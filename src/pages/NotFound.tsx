@@ -1,24 +1,15 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
-const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-  }, [location.pathname]);
-
+export default function NotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-        <a href="/" className="text-primary underline hover:text-primary/90">
-          Return to Home
-        </a>
+    <div className="min-h-screen flex items-center justify-center bg-background bg-grid">
+      <div className="text-center max-w-sm">
+        <div className="metric text-7xl font-bold text-primary mb-2">404</div>
+        <h1 className="text-xl font-bold mb-2">Página não encontrada</h1>
+        <p className="text-sm text-muted-foreground mb-6">A rota que você acessou não existe no SmartStock.</p>
+        <Button asChild className="bg-gradient-primary"><Link to="/app">Voltar ao dashboard</Link></Button>
       </div>
     </div>
   );
-};
-
-export default NotFound;
+}
