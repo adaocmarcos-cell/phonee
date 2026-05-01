@@ -47,8 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", uid)
         .limit(1)
         .maybeSingle();
-      // @ts-expect-error nested select
-      s = linked?.stores ?? null;
+      s = (linked?.stores as unknown as StoreSummary | null) ?? null;
     }
 
     // 3. If still none, bootstrap a store + owner role for first-time signup
