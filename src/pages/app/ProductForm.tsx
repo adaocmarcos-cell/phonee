@@ -29,12 +29,20 @@ const schema = z.object({
   location: z.string().trim().max(60).optional(),
 });
 
-const empty = {
+type FormState = {
+  name: string; sku: string; ean: string; brand: string; compatible_model: string;
+  category: string; subcategory: string; condition: string;
+  supplier: string; cost_price: number; sale_price: number;
+  stock_current: number; stock_min: number; stock_max: number;
+  location: string; visible_in_catalog: boolean; status: string;
+};
+
+const empty: FormState = {
   name: "", sku: "", ean: "", brand: "", compatible_model: "",
-  category: "acessorio" as const, subcategory: "", condition: "novo" as const,
+  category: "acessorio", subcategory: "", condition: "novo",
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 0, stock_max: 0,
-  location: "", visible_in_catalog: false, status: "ativo" as const,
+  location: "", visible_in_catalog: false, status: "ativo",
 };
 
 export default function ProductForm() {
@@ -42,7 +50,7 @@ export default function ProductForm() {
   const isNew = !id || id === "novo";
   const navigate = useNavigate();
   const { store, role } = useAuth();
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState<FormState>(empty);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
