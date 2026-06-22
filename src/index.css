@@ -127,3 +127,17 @@
     font-weight: 700;
   }
 }
+
+/* Exports / impressões sempre em fundo branco — independente do tema. */
+@media print {
+  :root, html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    color-scheme: light !important;
+  }
+  .print-force-light, .print-force-light * {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #e5e7eb !important;
+  }
+}
