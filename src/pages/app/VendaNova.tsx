@@ -633,6 +633,83 @@ Obrigado pela preferência.`;
           </div>
         </div>
 
+        {/* PRINT / PDF VIEW — Comprovante + Termo de garantia */}
+        <div className="hidden print:block text-black text-sm col-span-full">
+          <div className="flex items-start justify-between border-b-2 border-black pb-3 mb-4">
+            <div>
+              <h1 className="text-2xl font-bold uppercase tracking-tight">
+                {(store as any)?.trade_name || store?.name || "BRAZILERA"}
+              </h1>
+              {(store as any)?.tax_id && <p className="text-[11px]">CNPJ/CPF: {(store as any).tax_id}</p>}
+              {(store as any)?.address && <p className="text-[11px]">{(store as any).address}</p>}
+              <p className="text-[11px]">
+                {(store as any)?.phone && `Tel: ${(store as any).phone}`}
+                {(store as any)?.phone && (store as any)?.email && " · "}
+                {(store as any)?.email && (store as any).email}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-mono font-bold">COMPROVANTE DE VENDA</div>
+              <div className="text-xs">{new Date().toLocaleString("pt-BR")}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs mb-4">
+            <div><strong>Cliente:</strong> {customer || "—"}</div>
+            <div><strong>{docType.toUpperCase()}:</strong> {doc || "—"}</div>
+            <div><strong>WhatsApp:</strong> {whatsapp || "—"}</div>
+            <div><strong>Cidade:</strong> {city || "—"}</div>
+            <div><strong>Vendedor:</strong> {seller || "—"}</div>
+            <div><strong>Pagamento:</strong> {payMethod.toUpperCase()} {installments > 1 ? `(${installments}x)` : ""}</div>
+          </div>
+
+          <table className="w-full border-collapse text-xs mb-4">
+            <thead>
+              <tr className="bg-black text-white">
+                <th className="text-left p-1">Produto</th>
+                <th className="text-right p-1">Qtd</th>
+                <th className="text-right p-1">Unit.</th>
+                <th className="text-right p-1">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((i) => (
+                <tr key={i.product_id} className="border-b border-gray-300">
+                  <td className="p-1">{i.name} {i.code && <span className="text-gray-500">({i.code})</span>}</td>
+                  <td className="text-right p-1">{i.quantity}</td>
+                  <td className="text-right p-1">{brl(i.unit_price)}</td>
+                  <td className="text-right p-1">{brl(i.quantity * i.unit_price)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex justify-end mb-4">
+            <div className="w-64 text-xs space-y-1">
+              <div className="flex justify-between"><span>Subtotal:</span><span>{brl(totalItemsValue)}</span></div>
+              <div className="flex justify-between"><span>Desconto:</span><span>-{brl(totalDiscount)}</span></div>
+              <div className="flex justify-between"><span>Frete:</span><span>{brl(freight)}</span></div>
+              <div className="flex justify-between font-bold border-t border-black pt-1"><span>TOTAL:</span><span>{brl(totalSale)}</span></div>
+              {netValue > 0 && netValue !== totalSale && (
+                <>
+                  <div className="flex justify-between"><span>Valor líquido:</span><span>{brl(netValue)}</span></div>
+                  {deductionReason && <div className="flex justify-between text-gray-600"><span>Motivo:</span><span>{deductionReason}</span></div>}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-black pt-3 text-[10px] leading-snug">
+            <p className="font-bold mb-1">TERMO DE GARANTIA</p>
+            <p>Os produtos comercializados possuem garantia legal de 90 dias contra defeitos de fabricação, conforme o Código de Defesa do Consumidor. A garantia não cobre danos por mau uso, quedas, exposição a líquidos, violação por terceiros ou desgaste natural. Para acionamento, é obrigatória a apresentação deste comprovante. {(store as any)?.trade_name || store?.name} agradece a preferência.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 mt-10">
+            <div className="border-t border-black pt-1 text-center text-[10px]">Assinatura do cliente</div>
+            <div className="border-t border-black pt-1 text-center text-[10px]">{(store as any)?.trade_name || store?.name}</div>
+          </div>
+        </div>
+
         {/* MOBILE bottom bar */}
         <div className="fixed bottom-0 left-0 right-0 md:hidden bg-card border-t border-border p-3 flex gap-2 z-50">
           <Button type="button" variant="outline" onClick={() => navigate("/app/vendas")} className="flex-shrink-0">
