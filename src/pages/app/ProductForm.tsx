@@ -13,9 +13,38 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Wand2 } from "lucide-react";
 import { z } from "zod";
 import { DEFAULT_CATEGORIES, getCustomCategories, addCustomCategory } from "@/lib/categories";
+
+function buildSkuPrefix(name: string): string {
+  const words = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const initials = words.map((w) => w[0]!.toUpperCase()).join("").slice(0, 6);
+  return initials || "SKU";
+}
+
+async function generateUniqueSku(storeId: string, name: string): Promise<string> {
+  const prefix = buildSkuPrefix(name);
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const digits = Math.floor(1000 + Math.random() * 9000).toString();
+    const candidate = `${prefix}-${digits}`;
+    const { data, error } = await supabase
+      .from("products")
+      .select("id")
+      .eq("store_id", storeId)
+      .eq("sku", candidate)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    if (!data) return candidate;
+  }
+  return `${prefix}-${Date.now().toString().slice(-6)}`;
+}
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nome muito curto").max(120),
@@ -110,7 +139,10 @@ export default function ProductForm() {
       : await supabase.from("products").update(payload).eq("id", id!);
 
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if ((error as any).code === "23505") return toast.error("Este SKU já está em uso. Use outro ou gere automaticamente.");
+      return toast.error(error.message);
+    }
     toast.success(isNew ? "Produto cadastrado" : "Produto atualizado");
     navigate("/app/estoque");
   };
@@ -128,7 +160,29 @@ export default function ProductForm() {
           <h3 className="font-semibold mb-4">Identificação</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Nome *"><Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Capa silicone iPhone 15 Pro" /></Field>
-            <Field label="SKU"><Input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="SKU-001" /></Field>
+            <Field label="SKU">
+              <div className="flex gap-2">
+                <Input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="SKU-001" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  title="Gerar SKU automaticamente"
+                  onClick={async () => {
+                    if (!store) return;
+                    if (!form.name.trim()) return toast.error("Preencha o nome do produto primeiro");
+                    try {
+                      const sku = await generateUniqueSku(store.id, form.name);
+                      set("sku", sku);
+                      toast.success(`SKU gerado: ${sku}`);
+                    } catch (e: any) {
+                      toast.error(e.message || "Erro ao gerar SKU");
+                    }
+                  }}
+                >
+                  <Wand2 className="h-4 w-4 mr-1" />Gerar
+                </Button>
+              </div>
+            </Field>
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
             <Field label="Marca"><Input value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
             <Field label="Modelo compatível"><Input value={form.compatible_model} onChange={(e) => set("compatible_model", e.target.value)} placeholder="iPhone 15 Pro" /></Field>
