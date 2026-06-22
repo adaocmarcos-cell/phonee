@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import { FileDown, Filter, Search, CheckSquare, Square } from "lucide-react";
 import { DEFAULT_CATEGORIES, getCustomCategories, categoryLabel } from "@/lib/categories";
-import { formatBRL } from "@/lib/format";
+import { brl as formatBRL } from "@/lib/format";
 
 type Product = {
   id: string;
