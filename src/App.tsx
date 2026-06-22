@@ -14,6 +14,11 @@ import Estoque from "./pages/app/Estoque";
 import ProductForm from "./pages/app/ProductForm";
 import Vendas from "./pages/app/Vendas";
 import Alertas from "./pages/app/Alertas";
+import CurvaABC from "./pages/app/CurvaABC";
+import TradeIn from "./pages/app/TradeIn";
+import TradeInForm from "./pages/app/TradeInForm";
+import Pedidos from "./pages/app/Pedidos";
+import PedidoNovo from "./pages/app/PedidoNovo";
 import ComingSoon from "./pages/app/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -36,9 +41,12 @@ const App = () => (
               <Route path="estoque" element={<Estoque />} />
               <Route path="estoque/novo" element={<ProductForm />} />
               <Route path="estoque/:id" element={<ProductForm />} />
-              <Route path="curva-abc" element={<ComingSoon title="Curva ABC" description="Análise ABC e regra 80/20." />} />
-              <Route path="trade-in" element={<ComingSoon title="Trade-in" description="Entrada de seminovos com checklist e fotos." />} />
-              <Route path="pedidos" element={<ComingSoon title="Pedidos de reposição" description="Geração automática por giro e fornecedor." />} />
+              <Route path="curva-abc" element={<CurvaABC />} />
+              <Route path="trade-in" element={<TradeIn />} />
+              <Route path="trade-in/novo" element={<TradeInForm />} />
+              <Route path="trade-in/:id" element={<TradeInForm />} />
+              <Route path="pedidos" element={<Pedidos />} />
+              <Route path="pedidos/novo" element={<PedidoNovo />} />
               <Route path="vendas" element={<Vendas />} />
               <Route path="clientes" element={<ComingSoon title="Clientes" description="CRM básico por CPF." />} />
               <Route path="os" element={<ComingSoon title="Ordens de Serviço" description="Assistência técnica." />} />
