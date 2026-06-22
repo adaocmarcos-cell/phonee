@@ -369,12 +369,21 @@ Status: ${os.status}`;
         <div className="hidden print:block text-black text-sm">
           <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">BRAZILERA</h1>
-              <p className="text-xs text-gray-600">Assistência Técnica</p>
+              <h1 className="text-2xl font-bold tracking-tight uppercase">{(store as any)?.trade_name || store?.name || "BRAZILERA"}</h1>
+              <p className="text-[11px] text-gray-700">
+                {(store as any)?.tax_id ? `CNPJ/CPF: ${(store as any).tax_id}` : "Assistência Técnica"}
+              </p>
+              {(store as any)?.address && <p className="text-[11px] text-gray-700">{(store as any).address}</p>}
+              <p className="text-[11px] text-gray-700">
+                {(store as any)?.phone && `Tel: ${(store as any).phone}`}
+                {(store as any)?.phone && (store as any)?.email && " · "}
+                {(store as any)?.email && `${(store as any).email}`}
+              </p>
             </div>
             <div className="text-right">
               <div className="text-xl font-mono font-bold">OS #{String(os.os_number ?? "").padStart(4, "0")}</div>
               <div className="text-xs">{new Date(os.created_at || Date.now()).toLocaleString("pt-BR")}</div>
+              <div className="text-[10px] mt-1 italic">Documento de Garantia / Ordem de Serviço</div>
             </div>
           </div>
 

@@ -8,6 +8,11 @@ export interface StoreSummary {
   id: string;
   name: string;
   slug: string;
+  trade_name?: string | null;
+  tax_id?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  email?: string | null;
 }
 
 interface AuthContextValue {
@@ -31,9 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadStoreAndRole = async (uid: string) => {
     // 1. Try owned store
-    const { data: owned } = await supabase
-      .from("stores")
-      .select("id, name, slug")
+    const storeCols = "id, name, slug, trade_name, tax_id, phone, address, email" as any;
+    const { data: owned } = await (supabase
+      .from("stores") as any)
+      .select(storeCols)
       .eq("owner_id", uid)
       .maybeSingle();
 
@@ -41,9 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. If no owned store, try linked store
     if (!s) {
-      const { data: linked } = await supabase
-        .from("user_stores")
-        .select("stores(id, name, slug)")
+      const { data: linked } = await (supabase
+        .from("user_stores") as any)
+        .select(`stores(${storeCols})`)
         .eq("user_id", uid)
         .limit(1)
         .maybeSingle();
@@ -53,10 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 3. If still none, bootstrap a store + owner role for first-time signup
     if (!s) {
       const baseSlug = `loja-${uid.slice(0, 8)}`;
-      const { data: created, error } = await supabase
-        .from("stores")
+      const { data: created, error } = await (supabase
+        .from("stores") as any)
         .insert({ name: "Minha Loja", slug: baseSlug, owner_id: uid })
-        .select("id, name, slug")
+        .select(storeCols)
         .single();
       if (!error && created) {
         s = created;

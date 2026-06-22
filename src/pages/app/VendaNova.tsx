@@ -35,6 +35,27 @@ type LineItem = {
 
 type MixedPayment = { method: string; amount: number };
 
+const DEDUCTION_REASONS = [
+  "Taxa cartão de crédito", "Taxa cartão de débito", "Taxa PIX/maquineta",
+  "Antecipação", "Tarifa boleto", "Cashback / desconto", "Outro",
+];
+
+function maskCPF(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+function maskCNPJ(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
 const CATEGORIES_DEFAULT = [
   "Venda direta", "Reserva", "Troca", "Garantia", "Assistência",
   "Acessórios", "Xiaomi", "iPhone novo", "iPhone seminovo", "Outros",
@@ -47,6 +68,7 @@ export default function VendaNova() {
   // Cliente
   const [customer, setCustomer] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
   const [doc, setDoc] = useState("");
   const [city, setCity] = useState("");
   const [seller, setSeller] = useState("");
@@ -69,6 +91,8 @@ export default function VendaNova() {
   const [mixed, setMixed] = useState<MixedPayment[]>([]);
   const [otherExpenses, setOtherExpenses] = useState(0);
   const [freight, setFreight] = useState(0);
+  const [netValue, setNetValue] = useState<number>(0);
+  const [deductionReason, setDeductionReason] = useState<string>("");
 
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
@@ -174,8 +198,13 @@ export default function VendaNova() {
   const buildPayload = () => ({
     extras: {
       whatsapp, city, seller, unit, price_list: priceList,
+      customer_doc_type: docType,
       commission: { percent: commissionPct, value: commissionValue, status: commissionStatus },
-      payment: { method: payMethod, installments, entry, mixed, other_expenses: otherExpenses, freight },
+      payment: {
+        method: payMethod, installments, entry, mixed,
+        other_expenses: otherExpenses, freight,
+        net_value: netValue, deduction_reason: deductionReason,
+      },
       delivery: { sale_date: saleDate, ship_date: shipDate, expected_date: expectedDate, carrier, payer: freightPayer, diff_address: diffAddress, address: deliveryAddress },
       category,
       totals: { items: totalsItems, qty: totalsQty, subtotal, discount: totalDiscount, items_value: totalItemsValue, sale_total: totalSale },
@@ -279,7 +308,23 @@ Obrigado pela preferência.`;
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Cliente"><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></Field>
               <Field label="WhatsApp"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
-              <Field label="CPF/CNPJ"><Input value={doc} onChange={(e) => setDoc(e.target.value)} /></Field>
+              <Field label="Tipo de documento">
+                <Select value={docType} onValueChange={(v: any) => { setDocType(v); setDoc(""); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cpf">CPF (pessoa física)</SelectItem>
+                    <SelectItem value="cnpj">CNPJ (pessoa jurídica)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={docType === "cpf" ? "CPF (11 dígitos)" : "CNPJ (14 dígitos)"}>
+                <Input
+                  value={doc}
+                  onChange={(e) => setDoc(docType === "cpf" ? maskCPF(e.target.value) : maskCNPJ(e.target.value))}
+                  placeholder={docType === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
+                  inputMode="numeric"
+                />
+              </Field>
               <Field label="Cidade"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
               <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
               <Field label="Loja"><Input value={store?.name ?? ""} readOnly /></Field>
@@ -435,6 +480,30 @@ Obrigado pela preferência.`;
                   </Field>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-border/60">
+                  <Field label="Valor líquido recebido">
+                    <Input
+                      type="number" step="0.01" min="0"
+                      value={netValue}
+                      onChange={(e) => setNetValue(Number(e.target.value))}
+                      placeholder={brl(totalSale)}
+                    />
+                  </Field>
+                  <Field label="Motivo do abatimento">
+                    <Select value={deductionReason} onValueChange={setDeductionReason}>
+                      <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectContent>
+                        {DEDUCTION_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Diferença (taxa/abatimento)">
+                    <div className={`h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm ${netValue > 0 && netValue < totalSale ? "text-danger" : ""}`}>
+                      {brl(netValue > 0 ? Math.max(0, totalSale - netValue) : 0)}
+                    </div>
+                  </Field>
+                </div>
+
                 {payMethod === "misto" && (
                   <div className="border border-border rounded-md p-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -561,6 +630,83 @@ Obrigado pela preferência.`;
                 <Row label="Restante" value={brl(remaining)} negative={remaining > 0} />
               </ul>
             </Card>
+          </div>
+        </div>
+
+        {/* PRINT / PDF VIEW — Comprovante + Termo de garantia */}
+        <div className="hidden print:block text-black text-sm col-span-full">
+          <div className="flex items-start justify-between border-b-2 border-black pb-3 mb-4">
+            <div>
+              <h1 className="text-2xl font-bold uppercase tracking-tight">
+                {(store as any)?.trade_name || store?.name || "BRAZILERA"}
+              </h1>
+              {(store as any)?.tax_id && <p className="text-[11px]">CNPJ/CPF: {(store as any).tax_id}</p>}
+              {(store as any)?.address && <p className="text-[11px]">{(store as any).address}</p>}
+              <p className="text-[11px]">
+                {(store as any)?.phone && `Tel: ${(store as any).phone}`}
+                {(store as any)?.phone && (store as any)?.email && " · "}
+                {(store as any)?.email && (store as any).email}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-mono font-bold">COMPROVANTE DE VENDA</div>
+              <div className="text-xs">{new Date().toLocaleString("pt-BR")}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs mb-4">
+            <div><strong>Cliente:</strong> {customer || "—"}</div>
+            <div><strong>{docType.toUpperCase()}:</strong> {doc || "—"}</div>
+            <div><strong>WhatsApp:</strong> {whatsapp || "—"}</div>
+            <div><strong>Cidade:</strong> {city || "—"}</div>
+            <div><strong>Vendedor:</strong> {seller || "—"}</div>
+            <div><strong>Pagamento:</strong> {payMethod.toUpperCase()} {installments > 1 ? `(${installments}x)` : ""}</div>
+          </div>
+
+          <table className="w-full border-collapse text-xs mb-4">
+            <thead>
+              <tr className="bg-black text-white">
+                <th className="text-left p-1">Produto</th>
+                <th className="text-right p-1">Qtd</th>
+                <th className="text-right p-1">Unit.</th>
+                <th className="text-right p-1">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((i) => (
+                <tr key={i.product_id} className="border-b border-gray-300">
+                  <td className="p-1">{i.name} {i.code && <span className="text-gray-500">({i.code})</span>}</td>
+                  <td className="text-right p-1">{i.quantity}</td>
+                  <td className="text-right p-1">{brl(i.unit_price)}</td>
+                  <td className="text-right p-1">{brl(i.quantity * i.unit_price)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex justify-end mb-4">
+            <div className="w-64 text-xs space-y-1">
+              <div className="flex justify-between"><span>Subtotal:</span><span>{brl(totalItemsValue)}</span></div>
+              <div className="flex justify-between"><span>Desconto:</span><span>-{brl(totalDiscount)}</span></div>
+              <div className="flex justify-between"><span>Frete:</span><span>{brl(freight)}</span></div>
+              <div className="flex justify-between font-bold border-t border-black pt-1"><span>TOTAL:</span><span>{brl(totalSale)}</span></div>
+              {netValue > 0 && netValue !== totalSale && (
+                <>
+                  <div className="flex justify-between"><span>Valor líquido:</span><span>{brl(netValue)}</span></div>
+                  {deductionReason && <div className="flex justify-between text-gray-600"><span>Motivo:</span><span>{deductionReason}</span></div>}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-black pt-3 text-[10px] leading-snug">
+            <p className="font-bold mb-1">TERMO DE GARANTIA</p>
+            <p>Os produtos comercializados possuem garantia legal de 90 dias contra defeitos de fabricação, conforme o Código de Defesa do Consumidor. A garantia não cobre danos por mau uso, quedas, exposição a líquidos, violação por terceiros ou desgaste natural. Para acionamento, é obrigatória a apresentação deste comprovante. {(store as any)?.trade_name || store?.name} agradece a preferência.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 mt-10">
+            <div className="border-t border-black pt-1 text-center text-[10px]">Assinatura do cliente</div>
+            <div className="border-t border-black pt-1 text-center text-[10px]">{(store as any)?.trade_name || store?.name}</div>
           </div>
         </div>
 

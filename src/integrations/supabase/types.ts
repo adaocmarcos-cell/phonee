@@ -677,6 +677,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          email: string | null
           hours: string | null
           id: string
           logo_url: string | null
@@ -685,11 +686,14 @@ export type Database = {
           phone: string | null
           primary_color: string | null
           slug: string
+          tax_id: string | null
+          trade_name: string | null
           welcome_text: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string
+          email?: string | null
           hours?: string | null
           id?: string
           logo_url?: string | null
@@ -698,11 +702,14 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           slug: string
+          tax_id?: string | null
+          trade_name?: string | null
           welcome_text?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string
+          email?: string | null
           hours?: string | null
           id?: string
           logo_url?: string | null
@@ -711,6 +718,8 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           slug?: string
+          tax_id?: string | null
+          trade_name?: string | null
           welcome_text?: string | null
         }
         Relationships: []

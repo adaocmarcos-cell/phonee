@@ -118,6 +118,24 @@ export default function Dashboard() {
         .gte("expense_date", monthISO.toISOString().slice(0, 10));
       setExpensesMonth((exps ?? []).reduce((s: number, x: any) => s + Number(x.amount || 0), 0));
 
+      // Ordens de serviço (sincroniza faturamento e custo de assistência técnica)
+      const { data: osList } = await (supabase as any)
+        .from("service_orders")
+        .select("total_value, parts_value, status, created_at, delivered_at")
+        .eq("store_id", store.id)
+        .gte("created_at", monthISO.toISOString())
+        .lte("created_at", (to ?? new Date()).toISOString());
+      const osRevenue = (osList ?? [])
+        .filter((o: any) => ["entregue", "pronto", "em_execucao", "concluido"].includes(String(o.status)))
+        .reduce((s: number, o: any) => s + Number(o.total_value || 0), 0);
+      const osCost = (osList ?? []).reduce((s: number, o: any) => s + Number(o.parts_value || 0), 0);
+      if (osRevenue > 0) {
+        setRevenueMonth((v) => v + osRevenue);
+      }
+      if (osCost > 0 && canSeeCost(role)) {
+        setCostMonth((v) => v + osCost);
+      }
+
       const { data: prods } = await supabase
         .from("products")
         .select("id, name, stock_current, stock_min, last_sold_at")
