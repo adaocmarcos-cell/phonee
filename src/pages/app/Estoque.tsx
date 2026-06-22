@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Package, AlertTriangle, Edit3, Trash2 } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -79,6 +80,18 @@ export default function Estoque() {
     load();
   };
 
+  const toggleActive = async (p: Product, next: boolean) => {
+    const newStatus = next ? "ativo" : "inativo";
+    setProducts((arr) => arr.map((x) => (x.id === p.id ? { ...x, status: newStatus } : x)));
+    const { error } = await supabase.from("products").update({ status: newStatus }).eq("id", p.id);
+    if (error) {
+      toast.error(error.message);
+      setProducts((arr) => arr.map((x) => (x.id === p.id ? { ...x, status: p.status } : x)));
+      return;
+    }
+    toast.success(next ? "Produto ativado" : "Produto desativado");
+  };
+
   return (
     <div>
       <PageHeader
@@ -119,14 +132,15 @@ export default function Estoque() {
                 <th className="text-right px-4 py-3 font-medium">Venda</th>
                 {canSeeCost(role) && <th className="text-right px-4 py-3 font-medium">Margem</th>}
                 <th className="text-left px-4 py-3 font-medium">Status</th>
+                <th className="text-center px-4 py-3 font-medium">Ativo</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-16 text-center">
+                <tr><td colSpan={9} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
                   {canManageProducts(role) && (
@@ -163,6 +177,16 @@ export default function Estoque() {
                         {p.status === "promocao" && <Badge className="bg-success/15 text-success border-success/30 hover:bg-success/20">Promo</Badge>}
                         {p.status === "inativo" && <Badge variant="outline">Inativo</Badge>}
                         {!low && p.status === "ativo" && <Badge variant="outline" className="border-border text-muted-foreground">Ativo</Badge>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center">
+                        <Switch
+                          checked={p.status === "ativo"}
+                          onCheckedChange={(v) => toggleActive(p, v)}
+                          disabled={!canManageProducts(role)}
+                          aria-label={p.status === "ativo" ? "Desativar produto" : "Ativar produto"}
+                        />
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">

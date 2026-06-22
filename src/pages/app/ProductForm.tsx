@@ -41,7 +41,7 @@ const empty: FormState = {
   name: "", sku: "", ean: "", brand: "", compatible_model: "",
   category: "acessorio", subcategory: "", condition: "novo",
   supplier: "", cost_price: 0, sale_price: 0,
-  stock_current: 0, stock_min: 0, stock_max: 0,
+  stock_current: 0, stock_min: 3, stock_max: 0,
   location: "", visible_in_catalog: false, status: "ativo",
 };
 

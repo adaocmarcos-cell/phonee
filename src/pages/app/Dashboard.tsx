@@ -217,7 +217,7 @@ export default function Dashboard() {
     period === "custom" ? "período personalizado" : "período";
 
   return (
-    <div>
+    <div className="text-[15px] leading-relaxed">
       <PageHeader
         title="Visão geral"
         description="Tudo que importa na sua loja, em um só lugar."

@@ -89,7 +89,8 @@ export default function PedidoNovo() {
           days_to_rupture: daysToRupture,
           suggested_qty: qty,
           unit_cost: Number(p.cost_price) || 0,
-          selected: true,
+          // Pré-seleciona apenas itens com pouco estoque (em ponto de pedido).
+          selected: needsBecauseLow,
         }];
       });
 

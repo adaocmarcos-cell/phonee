@@ -23,6 +23,7 @@ import PedidoNovo from "./pages/app/PedidoNovo";
 import Despesas from "./pages/app/Despesas";
 import OrdensServico from "./pages/app/OrdensServico";
 import OrdemServicoForm from "./pages/app/OrdemServicoForm";
+import Configuracoes from "./pages/app/Configuracoes";
 import ComingSoon from "./pages/app/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -61,7 +62,7 @@ const App = () => (
               <Route path="alertas" element={<Alertas />} />
               <Route path="catalogo-config" element={<ComingSoon title="Catálogo público" description="Personalize seu minisite." />} />
               <Route path="admin/usuarios" element={<ComingSoon title="Usuários & permissões" description="Gestão de funcionários por perfil." />} />
-              <Route path="admin/configuracoes" element={<ComingSoon title="Configurações" description="Configurações gerais da loja." />} />
+              <Route path="admin/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
