@@ -109,10 +109,6 @@ export default function Auth() {
                 <img src={logo} alt="Mobile+" width={96} height={96} className="h-full w-full object-contain" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Mobile<span className="text-primary">+</span>
-            </h1>
-            <p className="text-[11px] font-mono text-muted-foreground tracking-[0.25em] mt-1">ERP · SMARTPHONES</p>
           </div>
 
           <h2 className="text-xl font-semibold mb-1 text-center">Acesse sua conta</h2>
