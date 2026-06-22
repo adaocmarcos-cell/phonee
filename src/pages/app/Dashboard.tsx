@@ -6,8 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Filter } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet } from "lucide-react";
+import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -17,7 +17,8 @@ const PAY_COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--war
 
 export default function Dashboard() {
   const { store, role } = useAuth();
-  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "month" | "year">("month");
+  const [period, setPeriod] = useState<PeriodValue>("month");
+  const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [revenueToday, setRevenueToday] = useState(0);
   const [revenueMonth, setRevenueMonth] = useState(0);
   const [salesCount, setSalesCount] = useState(0);
@@ -32,26 +33,24 @@ export default function Dashboard() {
   const [topProducts, setTopProducts] = useState<{ name: string; qty: number; revenue: number }[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
-  const [evoPeriod, setEvoPeriod] = useState<"7d" | "30d" | "3m" | "6m" | "1y">("1y");
+  const [evoPeriod, setEvoPeriod] = useState<PeriodValue>("1y");
+  const [evoCustom, setEvoCustom] = useState<CustomRange>({});
   const [evoSeries, setEvoSeries] = useState<{ label: string; total: number }[]>([]);
 
   useEffect(() => {
     if (!store) return;
     (async () => {
       const todayISO = new Date(); todayISO.setHours(0, 0, 0, 0);
-      const fromDate = new Date();
-      if (period === "today") fromDate.setHours(0, 0, 0, 0);
-      else if (period === "7d") { fromDate.setDate(fromDate.getDate() - 7); fromDate.setHours(0, 0, 0, 0); }
-      else if (period === "30d") { fromDate.setDate(fromDate.getDate() - 30); fromDate.setHours(0, 0, 0, 0); }
-      else if (period === "month") { fromDate.setDate(1); fromDate.setHours(0, 0, 0, 0); }
-      else if (period === "year") { fromDate.setMonth(0, 1); fromDate.setHours(0, 0, 0, 0); }
-      const monthISO = fromDate;
+      const { from, to } = resolvePeriod(period, periodCustom);
+      if (period === "custom" && (!from || !to)) return;
+      const monthISO = from ?? new Date(0);
 
       const { data: sales } = await supabase
         .from("sales")
         .select("id, total, payment_method, created_at, customer_name")
         .eq("store_id", store.id)
         .gte("created_at", monthISO.toISOString())
+        .lte("created_at", (to ?? new Date()).toISOString())
         .order("created_at", { ascending: false });
 
       const safeSales = sales ?? [];
@@ -141,19 +140,23 @@ export default function Dashboard() {
         .limit(5);
       setAlerts(al ?? []);
     })();
-  }, [store, role, period]);
+  }, [store, role, period, periodCustom]);
 
   // Evolução das vendas (gráfico independente)
   useEffect(() => {
     if (!store) return;
     (async () => {
-      const days = evoPeriod === "7d" ? 7 : evoPeriod === "30d" ? 30 : evoPeriod === "3m" ? 90 : evoPeriod === "6m" ? 180 : 365;
-      const since = new Date(Date.now() - days * 86400_000); since.setHours(0, 0, 0, 0);
+      const { from, to } = resolvePeriod(evoPeriod, evoCustom);
+      if (!from) return;
+      const since = new Date(from); since.setHours(0, 0, 0, 0);
+      const until = to ?? new Date();
+      const days = Math.max(1, Math.round((until.getTime() - since.getTime()) / 86400_000));
       const { data } = await supabase
         .from("sales")
         .select("total, created_at")
         .eq("store_id", store.id)
-        .gte("created_at", since.toISOString());
+        .gte("created_at", since.toISOString())
+        .lte("created_at", until.toISOString());
       const groupByMonth = days > 60;
       const buckets: Record<string, number> = {};
       (data ?? []).forEach((s: any) => {
@@ -166,7 +169,7 @@ export default function Dashboard() {
       // Build ordered timeline
       const out: { label: string; total: number }[] = [];
       const cursor = new Date(since);
-      const end = new Date();
+      const end = new Date(until);
       if (groupByMonth) {
         cursor.setDate(1);
         while (cursor <= end) {
@@ -183,11 +186,17 @@ export default function Dashboard() {
       }
       setEvoSeries(out);
     })();
-  }, [store, evoPeriod]);
+  }, [store, evoPeriod, evoCustom]);
 
   const lucroMes = revenueMonth - costMonth - expensesMonth;
   const lucroBrutoHoje = revenueToday - costToday;
-  const periodLabel = period === "today" ? "hoje" : period === "7d" ? "últimos 7 dias" : period === "30d" ? "últimos 30 dias" : period === "month" ? "mês atual" : "ano atual";
+  const periodLabel =
+    period === "today" ? "hoje" :
+    period === "7d" ? "últimos 7 dias" :
+    period === "30d" ? "últimos 30 dias" :
+    period === "month" ? "mês atual" :
+    period === "year" ? "ano atual" :
+    period === "custom" ? "período personalizado" : "período";
 
   return (
     <div>
@@ -196,21 +205,14 @@ export default function Dashboard() {
         description="Tudo que importa na sua loja, em um só lugar."
       />
 
-      <div className="flex items-center justify-end gap-2 mb-4">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Período</span>
-        <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-          <SelectTrigger className="w-[200px] h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Hoje</SelectItem>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
-            <SelectItem value="month">Mês atual</SelectItem>
-            <SelectItem value="year">Ano atual</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-end mb-4">
+        <PeriodFilter
+          value={period}
+          onChange={setPeriod}
+          options={["today", "7d", "30d", "month", "year", "custom"]}
+          custom={periodCustom}
+          onCustomChange={setPeriodCustom}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -267,19 +269,15 @@ export default function Dashboard() {
               <h3 className="font-semibold">Evolução das vendas</h3>
               <p className="text-xs text-muted-foreground">Faturamento por período</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-              <Select value={evoPeriod} onValueChange={(v) => setEvoPeriod(v as any)}>
-                <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7d">7 dias</SelectItem>
-                  <SelectItem value="30d">30 dias</SelectItem>
-                  <SelectItem value="3m">3 meses</SelectItem>
-                  <SelectItem value="6m">6 meses</SelectItem>
-                  <SelectItem value="1y">1 ano</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <PeriodFilter
+              value={evoPeriod}
+              onChange={setEvoPeriod}
+              options={["7d", "30d", "3m", "6m", "1y", "custom"]}
+              custom={evoCustom}
+              onCustomChange={setEvoCustom}
+              compact
+              showLabel={false}
+            />
           </div>
           <div className="h-64">
             {evoSeries.every((p) => p.total === 0) ? (
