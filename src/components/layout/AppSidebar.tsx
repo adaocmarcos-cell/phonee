@@ -2,13 +2,15 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet,
-  ArrowRightLeft,
+  ArrowRightLeft, UserCog, KeyRound, FileSearch,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { canManageUsers, isAdminMaster } from "@/lib/roles";
 import logoIcon from "@/assets/mobileplus-icon.png";
 
 type Item = { title: string; url: string; icon: any; end?: boolean };
@@ -31,14 +33,23 @@ const ops: Item[] = [
 
 const config = [
   { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
-  { title: "Usuários", url: "/app/admin/usuarios", icon: ShieldCheck },
   { title: "Configurações", url: "/app/admin/configuracoes", icon: Settings },
+];
+
+const adminItems: Item[] = [
+  { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
+  { title: "Cargos e Funções", url: "/app/admin/cargos", icon: UserCog },
+  { title: "Permissões", url: "/app/admin/permissoes", icon: KeyRound },
+  { title: "Logs e Auditoria", url: "/app/admin/logs", icon: FileSearch },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
+  const { role } = useAuth();
+  const showAdmin = canManageUsers(role as any);
+  const showLogsOnly = isAdminMaster(role as any) || role === "dono";
 
   const renderGroup = (label: string, items: typeof main) => (
     <SidebarGroup>
@@ -89,6 +100,10 @@ export function AppSidebar() {
         {renderGroup("Operação", ops)}
         {renderGroup("Inteligência", main)}
         {renderGroup("Configuração", config)}
+        {showAdmin && renderGroup(
+          "Usuários e Permissões",
+          adminItems.filter((it) => it.url !== "/app/admin/logs" || showLogsOnly)
+        )}
       </SidebarContent>
     </Sidebar>
   );
