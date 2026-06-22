@@ -13,8 +13,9 @@ import { ArrowLeft, Zap, Info, AlertTriangle, Trash2 } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 
-const COVERAGE_DAYS = 30; // sugerir cobertura de 30 dias
+const DEFAULT_COVERAGE_DAYS = 30; // sugerir cobertura de 30 dias
 const WINDOW_DAYS = 60;
+const COVERAGE_OPTIONS = [7, 15, 30, 45, 60, 90] as const;
 
 type Suggestion = {
   product_id: string;
@@ -43,6 +44,7 @@ export default function PedidoNovo() {
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [saving, setSaving] = useState(false);
+  const [coverageDays, setCoverageDays] = useState<number>(DEFAULT_COVERAGE_DAYS);
 
   useEffect(() => {
     if (!store) return;
@@ -76,7 +78,7 @@ export default function PedidoNovo() {
         const daysToRupture = velocity > 0 ? Math.floor(p.stock_current / velocity) : null;
         const ruptureSoon = daysToRupture !== null && daysToRupture <= 14;
         if (!needsBecauseLow && !ruptureSoon) return [];
-        const target = Math.max(p.stock_min + Math.ceil(velocity * COVERAGE_DAYS), Math.ceil(velocity * COVERAGE_DAYS));
+        const target = Math.max(p.stock_min + Math.ceil(velocity * coverageDays), Math.ceil(velocity * coverageDays));
         const qty = Math.max(1, target - p.stock_current);
         return [{
           product_id: p.id,
@@ -99,7 +101,7 @@ export default function PedidoNovo() {
       setSuggestions(sugg);
       setLoading(false);
     })();
-  }, [store]);
+  }, [store, coverageDays]);
 
   const update = (idx: number, patch: Partial<Suggestion>) =>
     setSuggestions((arr) => arr.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
@@ -149,18 +151,35 @@ export default function PedidoNovo() {
     <div>
       <PageHeader
         title="Gerador de pedido de reposição"
-        description={`Análise dos últimos ${WINDOW_DAYS} dias · cobertura sugerida de ${COVERAGE_DAYS} dias.`}
+        description={`Análise dos últimos ${WINDOW_DAYS} dias · cobertura sugerida de ${coverageDays} dias.`}
         actions={<Button variant="ghost" onClick={() => navigate("/app/pedidos")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>}
       />
 
       <Card className="p-4 bg-primary/5 border-primary/30 mb-6">
         <div className="flex items-start gap-3">
           <Zap className="h-5 w-5 text-primary mt-0.5" />
-          <div className="text-sm">
-            <p className="font-semibold mb-1">Como o SmartStock sugere a quantidade?</p>
-            <p className="text-muted-foreground">
-              Cruzamos o <strong className="text-foreground">giro médio</strong> dos últimos {WINDOW_DAYS} dias com o <strong className="text-foreground">estoque mínimo</strong> e prevemos a <strong className="text-foreground">ruptura</strong>. A sugestão garante {COVERAGE_DAYS} dias de venda + buffer do ponto de pedido.
+          <div className="text-sm flex-1">
+            <p className="font-semibold mb-1">Como o Mobile+ sugere a quantidade?</p>
+            <p className="text-muted-foreground font-normal">
+              Cruzamos o giro médio dos últimos {WINDOW_DAYS} dias com o estoque mínimo e prevemos a ruptura. A sugestão garante {coverageDays} dias de venda + buffer do ponto de pedido.
             </p>
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <Label className="text-xs text-muted-foreground">Dias de venda desejados:</Label>
+              <div className="flex gap-1 p-1 bg-card border border-border rounded-md">
+                {COVERAGE_OPTIONS.map((d) => (
+                  <Button
+                    key={d}
+                    type="button"
+                    size="sm"
+                    variant={coverageDays === d ? "default" : "ghost"}
+                    onClick={() => setCoverageDays(d)}
+                    className={coverageDays === d ? "bg-primary text-primary-foreground h-7 px-2.5 text-xs" : "h-7 px-2.5 text-xs"}
+                  >
+                    {d}d
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </Card>
