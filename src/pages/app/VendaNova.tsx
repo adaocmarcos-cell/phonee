@@ -308,7 +308,23 @@ Obrigado pela preferência.`;
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Cliente"><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></Field>
               <Field label="WhatsApp"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
-              <Field label="CPF/CNPJ"><Input value={doc} onChange={(e) => setDoc(e.target.value)} /></Field>
+              <Field label="Tipo de documento">
+                <Select value={docType} onValueChange={(v: any) => { setDocType(v); setDoc(""); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cpf">CPF (pessoa física)</SelectItem>
+                    <SelectItem value="cnpj">CNPJ (pessoa jurídica)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label={docType === "cpf" ? "CPF (11 dígitos)" : "CNPJ (14 dígitos)"}>
+                <Input
+                  value={doc}
+                  onChange={(e) => setDoc(docType === "cpf" ? maskCPF(e.target.value) : maskCNPJ(e.target.value))}
+                  placeholder={docType === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
+                  inputMode="numeric"
+                />
+              </Field>
               <Field label="Cidade"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
               <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
               <Field label="Loja"><Input value={store?.name ?? ""} readOnly /></Field>
