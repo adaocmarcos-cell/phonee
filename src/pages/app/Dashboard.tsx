@@ -223,16 +223,6 @@ export default function Dashboard() {
         description="Tudo que importa na sua loja, em um só lugar."
       />
 
-      <div className="flex items-center justify-end mb-4">
-        <PeriodFilter
-          value={period}
-          onChange={setPeriod}
-          options={["today", "7d", "30d", "month", "year", "custom"]}
-          custom={periodCustom}
-          onCustomChange={setPeriodCustom}
-        />
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <MetricCard
           label="Faturamento hoje"
@@ -267,7 +257,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-4 mb-6">
         {canSeeCost(role) ? (
           <MetricCard
-            label={`Lucro do período — ${periodLabel}`}
+            label="Lucro líquido do período"
             value={brl(lucroMes)}
             delta={`Receita − custo − despesas (${brl(expensesMonth)} desp.)`}
             icon={Wallet}
@@ -278,6 +268,18 @@ export default function Dashboard() {
         ) : (
           <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} tone="warning" />
         )}
+      </div>
+
+      <div className="flex items-center justify-end mb-6">
+        <PeriodFilter
+          value={period}
+          onChange={setPeriod}
+          options={["today", "7d", "30d", "month", "year", "custom"]}
+          custom={periodCustom}
+          onCustomChange={setPeriodCustom}
+          compact
+          showLabel={false}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
