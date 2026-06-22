@@ -125,7 +125,7 @@ export default function TradeInForm() {
     const { error } = await q;
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success(editing ? "Ficha atualizada" : "Ficha de trade-in criada");
+    toast.success(editing ? "Ficha atualizada" : "Ficha de Compra & Troca criada");
     navigate("/app/trade-in");
   };
 
@@ -135,7 +135,7 @@ export default function TradeInForm() {
   return (
     <div>
       <PageHeader
-        title={editing ? "Editar ficha de trade-in" : "Nova ficha de trade-in"}
+        title={editing ? "Editar ficha de Compra & Troca" : "Nova ficha de Compra & Troca"}
         description="Cadastro completo do aparelho seminovo recebido."
         actions={<Button variant="ghost" onClick={() => navigate("/app/trade-in")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>}
       />
@@ -230,7 +230,7 @@ export default function TradeInForm() {
         <Card className="p-5 bg-card border-border">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Status do trade-in</Label>
+              <Label>Status da Compra & Troca</Label>
               <Select value={form.status} onValueChange={(v) => update({ status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
