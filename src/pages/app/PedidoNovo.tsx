@@ -9,16 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Zap, Info, AlertTriangle, Trash2 } from "lucide-react";
+import { ArrowLeft, Zap, Info, AlertTriangle, Trash2, Search, Plus, PackagePlus } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 
 const DEFAULT_COVERAGE_DAYS = 30; // sugerir cobertura de 30 dias
 const WINDOW_DAYS = 60;
-const COVERAGE_OPTIONS = [7, 15, 30, 45, 60, 90] as const;
 
 type Suggestion = {
-  product_id: string;
+  product_id: string | null;
   product_name: string;
   supplier: string;
   stock_current: number;
@@ -29,6 +28,18 @@ type Suggestion = {
   suggested_qty: number;
   unit_cost: number;
   selected: boolean;
+  custom?: boolean;
+};
+
+type ProductLite = {
+  id: string;
+  name: string;
+  sku: string | null;
+  brand: string | null;
+  supplier: string | null;
+  cost_price: number;
+  stock_current: number;
+  stock_min: number;
 };
 
 const InfoTip = ({ children }: { children: React.ReactNode }) => (
@@ -45,6 +56,12 @@ export default function PedidoNovo() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [saving, setSaving] = useState(false);
   const [coverageDays, setCoverageDays] = useState<number>(DEFAULT_COVERAGE_DAYS);
+  const [allProducts, setAllProducts] = useState<ProductLite[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [customName, setCustomName] = useState("");
+  const [customSupplier, setCustomSupplier] = useState("");
+  const [customQty, setCustomQty] = useState(1);
+  const [customCost, setCustomCost] = useState(0);
 
   useEffect(() => {
     if (!store) return;
@@ -99,12 +116,74 @@ export default function PedidoNovo() {
       // ordena por urgência (ruptura mais próxima primeiro)
       sugg.sort((a, b) => (a.days_to_rupture ?? 999) - (b.days_to_rupture ?? 999));
       setSuggestions(sugg);
+      setAllProducts((products ?? []).map((p: any) => ({
+        id: p.id, name: p.name, sku: p.sku ?? null, brand: p.brand ?? null,
+        supplier: p.supplier ?? null, cost_price: Number(p.cost_price) || 0,
+        stock_current: p.stock_current, stock_min: p.stock_min,
+      })));
       setLoading(false);
     })();
   }, [store, coverageDays]);
 
   const update = (idx: number, patch: Partial<Suggestion>) =>
     setSuggestions((arr) => arr.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+
+  const normalized = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const searchResults = useMemo(() => {
+    const q = normalized(searchTerm.trim());
+    if (!q) return [];
+    return allProducts.filter((p) => {
+      const hay = normalized(`${p.name} ${p.sku ?? ""} ${p.brand ?? ""} ${p.supplier ?? ""}`);
+      return hay.includes(q);
+    }).slice(0, 8);
+  }, [searchTerm, allProducts]);
+
+  const addProductFromSearch = (p: ProductLite) => {
+    setSuggestions((arr) => {
+      const existingIdx = arr.findIndex((s) => s.product_id === p.id);
+      if (existingIdx >= 0) {
+        toast.info("Item já está na lista — apenas marcado.");
+        return arr.map((s, i) => i === existingIdx ? { ...s, selected: true } : s);
+      }
+      const velocity = 0;
+      return [{
+        product_id: p.id,
+        product_name: p.name,
+        supplier: p.supplier?.trim() || "Sem fornecedor",
+        stock_current: p.stock_current,
+        stock_min: p.stock_min,
+        cost_price: p.cost_price,
+        daily_velocity: velocity,
+        days_to_rupture: null,
+        suggested_qty: Math.max(1, p.stock_min || 1),
+        unit_cost: p.cost_price,
+        selected: true,
+      }, ...arr];
+    });
+    setSearchTerm("");
+  };
+
+  const addCustomItem = () => {
+    if (!customName.trim()) return toast.error("Informe o nome do produto.");
+    setSuggestions((arr) => [{
+      product_id: null,
+      product_name: customName.trim(),
+      supplier: customSupplier.trim() || "Encomenda",
+      stock_current: 0,
+      stock_min: 0,
+      cost_price: customCost,
+      daily_velocity: 0,
+      days_to_rupture: null,
+      suggested_qty: Math.max(1, customQty),
+      unit_cost: customCost,
+      selected: true,
+      custom: true,
+    }, ...arr]);
+    setCustomName(""); setCustomSupplier(""); setCustomQty(1); setCustomCost(0);
+    toast.success("Encomenda adicionada.");
+  };
 
   const grouped = useMemo(() => {
     const map = new Map<string, { items: Suggestion[]; total: number }>();
@@ -164,21 +243,77 @@ export default function PedidoNovo() {
               Cruzamos o giro médio dos últimos {WINDOW_DAYS} dias com o estoque mínimo e prevemos a ruptura. A sugestão garante {coverageDays} dias de venda + buffer do ponto de pedido.
             </p>
             <div className="mt-3 flex items-center gap-2 flex-wrap">
-              <Label className="text-xs text-muted-foreground">Dias de venda desejados:</Label>
-              <div className="flex gap-1 p-1 bg-card border border-border rounded-md">
-                {COVERAGE_OPTIONS.map((d) => (
-                  <Button
-                    key={d}
-                    type="button"
-                    size="sm"
-                    variant={coverageDays === d ? "default" : "ghost"}
-                    onClick={() => setCoverageDays(d)}
-                    className={coverageDays === d ? "bg-primary text-primary-foreground h-7 px-2.5 text-xs" : "h-7 px-2.5 text-xs"}
-                  >
-                    {d}d
-                  </Button>
-                ))}
-              </div>
+              <Label htmlFor="coverage-days" className="text-xs text-muted-foreground">Dias de venda desejados:</Label>
+              <Input
+                id="coverage-days"
+                type="number"
+                min={1}
+                max={365}
+                value={coverageDays}
+                onChange={(e) => {
+                  const n = Math.max(1, Math.min(365, Number(e.target.value) || 0));
+                  setCoverageDays(n);
+                }}
+                className="h-8 w-24 text-center font-mono"
+              />
+              <span className="text-xs text-muted-foreground">dias</span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-4 bg-card border-border mb-6">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs text-muted-foreground flex items-center gap-1 mb-1.5">
+              <Search className="h-3.5 w-3.5" /> Adicionar item do estoque
+            </Label>
+            <div className="relative">
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por nome, SKU, marca ou fornecedor…"
+              />
+              {searchResults.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-72 overflow-y-auto">
+                  {searchResults.map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      onClick={() => addProductFromSearch(p)}
+                      className="w-full text-left px-3 py-2 hover:bg-surface-elevated border-b border-border last:border-b-0 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{p.name}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono truncate">
+                          {p.sku || "sem SKU"} · {p.supplier || "sem fornecedor"} · estoque {p.stock_current}
+                        </div>
+                      </div>
+                      <Plus className="h-4 w-4 text-primary flex-shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchTerm.trim() && searchResults.length === 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg px-3 py-2 text-xs text-muted-foreground">
+                  Nenhum produto encontrado. Use a coluna ao lado para pedir uma encomenda.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground flex items-center gap-1 mb-1.5">
+              <PackagePlus className="h-3.5 w-3.5" /> Pedir novo produto / encomenda
+            </Label>
+            <div className="grid grid-cols-12 gap-2">
+              <Input className="col-span-6" placeholder="Nome do produto" value={customName} onChange={(e) => setCustomName(e.target.value)} />
+              <Input className="col-span-6" placeholder="Fornecedor (opcional)" value={customSupplier} onChange={(e) => setCustomSupplier(e.target.value)} />
+              <Input className="col-span-3 font-mono" type="number" min={1} placeholder="Qtd" value={customQty} onChange={(e) => setCustomQty(Math.max(1, Number(e.target.value) || 1))} />
+              <Input className="col-span-5 font-mono" type="number" step="0.01" placeholder="Custo unit." value={customCost} onChange={(e) => setCustomCost(Number(e.target.value) || 0)} />
+              <Button type="button" onClick={addCustomItem} className="col-span-4">
+                <Plus className="h-4 w-4 mr-1" /> Adicionar
+              </Button>
             </div>
           </div>
         </div>
@@ -215,9 +350,12 @@ export default function PedidoNovo() {
               ) : suggestions.map((s, i) => {
                 const urgent = s.days_to_rupture !== null && s.days_to_rupture <= 7;
                 return (
-                  <tr key={s.product_id} className={`hover:bg-surface-elevated/40 ${!s.selected ? "opacity-50" : ""}`}>
+                  <tr key={s.product_id ?? `custom-${i}`} className={`hover:bg-surface-elevated/40 ${!s.selected ? "opacity-50" : ""}`}>
                     <td className="px-4 py-3"><input type="checkbox" checked={s.selected} onChange={(e) => update(i, { selected: e.target.checked })} /></td>
-                    <td className="px-4 py-3 font-medium">{s.product_name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {s.product_name}
+                      {s.custom && <Badge className="ml-2 bg-primary/15 text-primary border-primary/30 text-[10px]">encomenda</Badge>}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">{s.supplier}</td>
                     <td className="px-4 py-3 text-right metric">
                       <span className={s.stock_current <= s.stock_min ? "text-warning font-semibold" : ""}>{s.stock_current}</span>
