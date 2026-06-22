@@ -58,6 +58,45 @@ export type Database = {
           },
         ]
       }
+      asaas_settings: {
+        Row: {
+          account_email: string | null
+          api_key_set: boolean
+          connection_status: string | null
+          created_at: string
+          environment: string
+          id: string
+          last_tested_at: string | null
+          updated_at: string
+          wallet_id: string | null
+          webhook_token_set: boolean
+        }
+        Insert: {
+          account_email?: string | null
+          api_key_set?: boolean
+          connection_status?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          last_tested_at?: string | null
+          updated_at?: string
+          wallet_id?: string | null
+          webhook_token_set?: boolean
+        }
+        Update: {
+          account_email?: string | null
+          api_key_set?: boolean
+          connection_status?: string | null
+          created_at?: string
+          environment?: string
+          id?: string
+          last_tested_at?: string | null
+          updated_at?: string
+          wallet_id?: string | null
+          webhook_token_set?: boolean
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -238,6 +277,86 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_logs: {
+        Row: {
+          action: string | null
+          amount_cents: number | null
+          asaas_payload: Json | null
+          created_at: string
+          event_type: string
+          id: string
+          status: string | null
+          subscription_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          amount_cents?: number | null
+          asaas_payload?: Json | null
+          created_at?: string
+          event_type: string
+          id?: string
+          status?: string | null
+          subscription_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          amount_cents?: number | null
+          asaas_payload?: Json | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          status?: string | null
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          duration_months: number | null
+          id: string
+          max_installments: number
+          name: string
+          price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          duration_months?: number | null
+          id?: string
+          max_installments?: number
+          name: string
+          price_cents: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          duration_months?: number | null
+          id?: string
+          max_installments?: number
+          name?: string
+          price_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -806,6 +925,89 @@ export type Database = {
           welcome_text?: string | null
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount_cents: number
+          asaas_charge_id: string | null
+          asaas_customer_id: string | null
+          created_at: string
+          customer_doc: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          expires_at: string | null
+          id: string
+          installments: number
+          invoice_url: string | null
+          payment_method: string
+          pix_copy_paste: string | null
+          pix_qr_code: string | null
+          plan_id: string
+          refund_requested_at: string | null
+          refund_status: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          asaas_charge_id?: string | null
+          asaas_customer_id?: string | null
+          created_at?: string
+          customer_doc: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          expires_at?: string | null
+          id?: string
+          installments?: number
+          invoice_url?: string | null
+          payment_method: string
+          pix_copy_paste?: string | null
+          pix_qr_code?: string | null
+          plan_id: string
+          refund_requested_at?: string | null
+          refund_status?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          asaas_charge_id?: string | null
+          asaas_customer_id?: string | null
+          created_at?: string
+          customer_doc?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          expires_at?: string | null
+          id?: string
+          installments?: number
+          invoice_url?: string | null
+          payment_method?: string
+          pix_copy_paste?: string | null
+          pix_qr_code?: string | null
+          plan_id?: string
+          refund_requested_at?: string | null
+          refund_status?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trade_ins: {
         Row: {
