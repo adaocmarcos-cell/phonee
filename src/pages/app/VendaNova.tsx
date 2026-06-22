@@ -609,7 +609,16 @@ Obrigado pela preferência.`;
               </TabsContent>
 
               <TabsContent value="comissoes" className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
+                <Field label="Vendedor">
+                  <Select value={sellerId} onValueChange={onSellerChange} disabled={!canChangeSeller && selectableSellers.length <= 1}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {selectableSellers.map((s) => (
+                        <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
                 <Field label="% Comissão"><Input type="number" step="0.01" value={commissionPct} onChange={(e) => setCommissionPct(Number(e.target.value))} /></Field>
                 <Field label="Valor da comissão">
                   <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm">{brl(commissionValue)}</div>
