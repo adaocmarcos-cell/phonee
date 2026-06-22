@@ -215,6 +215,104 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_order_items: {
+        Row: {
+          id: string
+          notes: string | null
+          order_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          total: number
+          unit_cost: number
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          order_id: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          total?: number
+          unit_cost?: number
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          order_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          total?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          received_at: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"]
+          store_id: string
+          supplier: string
+          total_cost: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          received_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          store_id: string
+          supplier: string
+          total_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          received_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          store_id?: string
+          supplier?: string
+          total_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           id: string
@@ -352,6 +450,105 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_ins: {
+        Row: {
+          battery_health: number | null
+          brand: string | null
+          checklist: Json
+          color: string | null
+          condition: Database["public"]["Enums"]["device_condition"]
+          created_at: string
+          created_by: string | null
+          customer_doc: string | null
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          entry_value: number
+          id: string
+          imei: string | null
+          imei_status: string | null
+          intended_sale_value: number
+          model: string
+          notes: string | null
+          photos_in: string[]
+          photos_out: string[]
+          product_id: string | null
+          status: Database["public"]["Enums"]["trade_in_status"]
+          storage_gb: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          battery_health?: number | null
+          brand?: string | null
+          checklist?: Json
+          color?: string | null
+          condition?: Database["public"]["Enums"]["device_condition"]
+          created_at?: string
+          created_by?: string | null
+          customer_doc?: string | null
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          entry_value?: number
+          id?: string
+          imei?: string | null
+          imei_status?: string | null
+          intended_sale_value?: number
+          model: string
+          notes?: string | null
+          photos_in?: string[]
+          photos_out?: string[]
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["trade_in_status"]
+          storage_gb?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          battery_health?: number | null
+          brand?: string | null
+          checklist?: Json
+          color?: string | null
+          condition?: Database["public"]["Enums"]["device_condition"]
+          created_at?: string
+          created_by?: string | null
+          customer_doc?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          entry_value?: number
+          id?: string
+          imei?: string | null
+          imei_status?: string | null
+          intended_sale_value?: number
+          model?: string
+          notes?: string | null
+          photos_in?: string[]
+          photos_out?: string[]
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["trade_in_status"]
+          storage_gb?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_ins_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_ins_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -432,6 +629,7 @@ export type Database = {
     Enums: {
       alert_severity: "info" | "warning" | "danger"
       app_role: "dono" | "gerente" | "vendedor" | "estoquista"
+      device_condition: "otimo" | "bom" | "regular" | "com_defeito"
       payment_method: "dinheiro" | "pix" | "debito" | "credito" | "crediario"
       product_category:
         | "acessorio"
@@ -440,6 +638,18 @@ export type Database = {
         | "aparelho_seminovo"
       product_condition: "novo" | "seminovo" | "recondicionado"
       product_status: "ativo" | "inativo" | "promocao"
+      purchase_order_status:
+        | "rascunho"
+        | "enviado"
+        | "recebido"
+        | "parcial"
+        | "cancelado"
+      trade_in_status:
+        | "em_avaliacao"
+        | "aprovado"
+        | "em_estoque"
+        | "vendido"
+        | "recusado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -569,6 +779,7 @@ export const Constants = {
     Enums: {
       alert_severity: ["info", "warning", "danger"],
       app_role: ["dono", "gerente", "vendedor", "estoquista"],
+      device_condition: ["otimo", "bom", "regular", "com_defeito"],
       payment_method: ["dinheiro", "pix", "debito", "credito", "crediario"],
       product_category: [
         "acessorio",
@@ -578,6 +789,20 @@ export const Constants = {
       ],
       product_condition: ["novo", "seminovo", "recondicionado"],
       product_status: ["ativo", "inativo", "promocao"],
+      purchase_order_status: [
+        "rascunho",
+        "enviado",
+        "recebido",
+        "parcial",
+        "cancelado",
+      ],
+      trade_in_status: [
+        "em_avaliacao",
+        "aprovado",
+        "em_estoque",
+        "vendido",
+        "recusado",
+      ],
     },
   },
 } as const
