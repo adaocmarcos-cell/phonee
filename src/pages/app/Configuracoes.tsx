@@ -193,6 +193,79 @@ export default function Configuracoes() {
             </div>
           </div>
         </Card>
+
+        <Card className="p-5 bg-card border-border">
+          <div className="flex items-start gap-3 mb-4">
+            <Palette className="h-5 w-5 text-primary mt-0.5" />
+            <div>
+              <h3 className="font-semibold">Identidade de marca nos PDFs</h3>
+              <p className="text-xs text-muted-foreground">
+                Personalize as cores, o logotipo e o rodapé que aparecem em todos os PDFs exportados pelo sistema.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cor primária dos PDFs</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="color"
+                  className="h-10 w-16 p-1"
+                  value={storeForm.pdf_primary_color}
+                  onChange={(e) => setSF("pdf_primary_color", e.target.value)}
+                  disabled={role !== "dono" && role !== "gerente"}
+                />
+                <Input
+                  value={storeForm.pdf_primary_color}
+                  onChange={(e) => setSF("pdf_primary_color", e.target.value)}
+                  disabled={role !== "dono" && role !== "gerente"}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cor de destaque dos PDFs</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="color"
+                  className="h-10 w-16 p-1"
+                  value={storeForm.pdf_accent_color}
+                  onChange={(e) => setSF("pdf_accent_color", e.target.value)}
+                  disabled={role !== "dono" && role !== "gerente"}
+                />
+                <Input
+                  value={storeForm.pdf_accent_color}
+                  onChange={(e) => setSF("pdf_accent_color", e.target.value)}
+                  disabled={role !== "dono" && role !== "gerente"}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs">URL do logotipo (PNG/JPG)</Label>
+              <Input
+                value={storeForm.pdf_logo_url}
+                onChange={(e) => setSF("pdf_logo_url", e.target.value)}
+                placeholder="https://..."
+                disabled={role !== "dono" && role !== "gerente"}
+              />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs">Texto institucional do rodapé dos PDFs</Label>
+              <Textarea
+                value={storeForm.pdf_footer_text}
+                onChange={(e) => setSF("pdf_footer_text", e.target.value)}
+                placeholder="Frase de marca, slogan ou aviso legal exibido em todos os PDFs"
+                disabled={role !== "dono" && role !== "gerente"}
+              />
+            </div>
+          </div>
+          {(role === "dono" || role === "gerente") && (
+            <div className="flex justify-end mt-3">
+              <Button onClick={saveStore} disabled={savingStore} className="bg-gradient-primary shadow-glow">
+                <Save className="h-4 w-4 mr-1" /> Salvar identidade dos PDFs
+              </Button>
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
