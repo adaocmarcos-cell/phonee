@@ -54,6 +54,46 @@ function classify(rows: Omit<Row, "class" | "cum" | "share">[]): Row[] {
   });
 }
 
+function RankingCard({
+  title, icon, period, onPeriod, items, metric, sub,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  period: Period;
+  onPeriod: (p: Period) => void;
+  items: { id: string; name: string; qty: number; revenue: number; profit: number; margin: number }[];
+  metric: (r: any) => string;
+  sub: (r: any) => string;
+}) {
+  return (
+    <Card className="bg-card border-border shadow-card p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="font-semibold text-sm">{title}</h3>
+        </div>
+        <MiniFilter value={period} onChange={onPeriod} />
+      </div>
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-8">Sem dados no período.</p>
+      ) : (
+        <ol className="space-y-2">
+          {items.map((r, i) => (
+            <li key={r.id} className="flex items-center gap-3 p-2 rounded-md bg-surface-elevated border border-border/60">
+              <span className="text-xs font-mono font-bold text-primary w-5 text-center">{i + 1}º</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{r.name}</div>
+                <div className="text-[11px] text-muted-foreground">{sub(r)}</div>
+              </div>
+              <span className="metric text-sm font-bold">{metric(r)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Card>
+  );
+}
+
 type Period = "7d" | "30d" | "90d" | "6m" | "1y";
 const PERIODS: { v: Period; label: string; days: number }[] = [
   { v: "7d", label: "7 dias", days: 7 },
