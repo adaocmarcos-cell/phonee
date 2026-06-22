@@ -47,13 +47,13 @@ function BenefitCard({ icon: Icon, title, desc }: { icon: any; title: string; de
 }
 
 function CheckItem({ children, negative = false, big = false }: { children: React.ReactNode; negative?: boolean; big?: boolean }) {
-  const size = big ? "h-7 w-7" : "h-6 w-6";
+  const size = big ? "h-6 w-6" : "h-5 w-5";
   return (
-    <li className={`flex items-start gap-3 ${big ? "text-lg md:text-xl font-semibold" : "text-base font-medium"}`}>
+    <li className={`flex items-start gap-3 ${big ? "text-base md:text-lg font-normal" : "text-sm font-normal"}`}>
       {negative ? (
-        <X className={`${size} text-danger shrink-0 mt-0.5`} strokeWidth={3.5} />
+        <X className={`${size} text-danger shrink-0 mt-0.5`} strokeWidth={3} />
       ) : (
-        <CheckCircle2 className={`${size} text-success shrink-0 mt-0.5`} strokeWidth={2.5} />
+        <CheckCircle2 className={`${size} text-success shrink-0 mt-0.5`} strokeWidth={2.25} />
       )}
       <span>{children}</span>
     </li>
@@ -83,16 +83,13 @@ export default function Landing() {
       {/* NAV — preto sólido */}
       <header className="sticky top-0 z-50 bg-black border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <img src={logo} alt="Mobile+" className="h-12 md:h-14 w-auto invert" />
-          </Link>
           <nav className="hidden md:flex items-center gap-8 text-base font-semibold text-white">
             <a href="#beneficios" className="hover:text-primary transition">Benefícios</a>
             <a href="#dashboard" className="hover:text-primary transition">Dashboard</a>
             <a href="#preco" className="hover:text-primary transition">Preço</a>
             <a href="#garantia" className="hover:text-primary transition">Garantia</a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <Link to="/auth">
               <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10">
                 Fazer login
@@ -112,13 +109,18 @@ export default function Landing() {
         <div className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[140px] pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-5 pt-20 pb-24 lg:pt-28 lg:pb-32 grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+        <div className="relative max-w-7xl mx-auto px-5 pt-16 pb-24 lg:pt-20 lg:pb-32">
+          {/* LOGO PRINCIPAL — destaque máximo, centralizado */}
+          <div className="flex justify-center mb-16 lg:mb-24">
             <img
               src={logo}
               alt="Mobile+"
-              className="h-16 md:h-24 lg:h-28 w-auto mb-8 invert"
+              className="h-56 sm:h-72 md:h-96 lg:h-[28rem] w-auto invert drop-shadow-[0_0_60px_rgba(14,165,233,0.45)]"
             />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div>
             <Badge className="mb-6 bg-primary/20 text-white border-primary/40 hover:bg-primary/25 text-sm py-1.5 px-3">
               ERP especializado em smartphones e assistência
             </Badge>
@@ -160,24 +162,24 @@ export default function Landing() {
               </div>
               <div className="text-success font-bold text-base uppercase tracking-wide">SEM MENSALIDADES</div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="metric text-5xl md:text-6xl">R$ 99</span>
-                <span className="text-2xl text-slate-200">,90</span>
+                <span className="metric text-5xl md:text-6xl">R$ 127</span>
                 <span className="text-base text-slate-300 ml-1">/ano à vista</span>
               </div>
-              <div className="mt-1 text-lg text-white font-semibold">ou 12x de R$ 14,97 no cartão</div>
+              <div className="mt-1 text-lg text-white font-semibold">ou parcelado no cartão</div>
 
               <div className="my-5 flex items-center gap-3 text-slate-300 text-xs">
                 <div className="h-px flex-1 bg-white/10" /> OU <div className="h-px flex-1 bg-white/10" />
               </div>
 
               <div className="rounded-lg border border-white/15 bg-white/5 p-4">
-                <div className="text-xs font-mono tracking-widest text-slate-300">PLANO VITALÍCIO</div>
+                <div className="text-xs font-mono tracking-widest text-primary font-bold">RECOMENDADO · PLANO VITALÍCIO</div>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="metric text-3xl">R$ 197</span>
-                  <span className="text-lg text-slate-200">,00</span>
                   <span className="text-sm text-slate-300 ml-1">pagamento único</span>
                 </div>
-                <div className="text-xs text-slate-300 mt-1">Pague uma única vez e use para sempre.</div>
+                <div className="text-xs text-slate-200 mt-1">
+                  Pague uma vez e use para sempre — sem renovação, com prioridade no suporte e acesso antecipado a novos módulos.
+                </div>
               </div>
 
               <ul className="mt-5 space-y-2.5 text-base text-white font-medium">
@@ -194,6 +196,7 @@ export default function Landing() {
                 <Lock className="h-3 w-3" /> Pagamento 100% seguro
               </div>
             </Card>
+          </div>
           </div>
         </div>
       </section>
@@ -463,19 +466,18 @@ export default function Landing() {
             {/* Anual — destaque */}
             <div className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/40 to-info/25 blur-2xl rounded-3xl" />
-              <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full">
+              <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full">
                 <Badge className="bg-success/15 text-success border-success/40 text-sm">
-                  <Star className="h-3.5 w-3.5 mr-1" /> MAIS ESCOLHIDO
+                  PLANO ANUAL
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-success">
-                  Plano Anual · Sem mensalidades
+                  Sem mensalidades
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-6xl md:text-7xl text-primary">R$ 99</span>
-                  <span className="text-2xl text-foreground/70">,90</span>
+                  <span className="metric text-6xl md:text-7xl text-primary">R$ 127</span>
                 </div>
                 <div className="mt-1 text-xl font-extrabold">por ano à vista</div>
-                <div className="mt-1 text-lg font-semibold text-foreground/80">ou 12x de R$ 14,97 no cartão</div>
+                <div className="mt-1 text-lg font-semibold text-foreground/80">ou parcelado no cartão</div>
 
                 <ul className="mt-6 space-y-3">
                   {[
@@ -488,7 +490,7 @@ export default function Landing() {
                 </ul>
 
                 <a href="#" className="block mt-7">
-                  <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
+                  <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
                     Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </a>
@@ -498,38 +500,48 @@ export default function Landing() {
               </Card>
             </div>
 
-            {/* Vitalício */}
-            <Card className="p-8 md:p-10 border-2 border-border bg-card h-full">
-              <Badge className="bg-primary/15 text-primary border-primary/40 text-sm">PAGAMENTO ÚNICO</Badge>
-              <div className="mt-4 text-base font-bold uppercase tracking-wide text-primary">
-                Plano Vitalício
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="metric text-6xl md:text-7xl">R$ 197</span>
-                <span className="text-2xl text-foreground/70">,00</span>
-              </div>
-              <div className="mt-1 text-xl font-extrabold">pague uma vez, use para sempre</div>
-              <div className="mt-1 text-lg font-semibold text-foreground/80">Sem renovação anual</div>
+            {/* Vitalício — destaque máximo */}
+            <div className="relative">
+              <div className="absolute -inset-2 bg-gradient-to-br from-primary/50 to-info/30 blur-2xl rounded-3xl" />
+              <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full shadow-glow">
+                <Badge className="bg-primary/15 text-primary border-primary/40 text-sm">
+                  <Star className="h-3.5 w-3.5 mr-1" /> RECOMENDADO · MELHOR CUSTO-BENEFÍCIO
+                </Badge>
+                <div className="mt-4 text-base font-bold uppercase tracking-wide text-primary">
+                  Plano Vitalício · Pagamento único
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="metric text-6xl md:text-7xl text-primary">R$ 197</span>
+                </div>
+                <div className="mt-1 text-xl font-extrabold">pague uma vez, use para sempre</div>
+                <div className="mt-1 text-lg font-semibold text-foreground/80">
+                  Em menos de 2 anos já se paga frente ao anual — depois disso, é 100% economia.
+                </div>
 
-              <ul className="mt-6 space-y-3">
-                {[
-                  "Acesso vitalício ao sistema",
-                  "Sem mensalidade",
-                  "Atualizações incluídas",
-                  "Suporte dedicado",
-                  "Garantia de 7 dias",
-                ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
-              </ul>
+                <ul className="mt-6 space-y-3">
+                  {[
+                    "Acesso vitalício ao sistema",
+                    "Sem renovação anual",
+                    "Sem mensalidade nunca mais",
+                    "Todas as atualizações futuras incluídas",
+                    "Acesso antecipado a novos módulos",
+                    "Suporte prioritário",
+                    "Multiusuário e multiloja sem custo extra",
+                    "Backup automático em nuvem",
+                    "Garantia de 7 dias",
+                  ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
+                </ul>
 
-              <a href="#" className="block mt-7">
-                <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
-                  Quero o Vitalício
-                </Button>
-              </a>
-              <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
-                <Lock className="h-3 w-3" /> Pagamento 100% seguro
-              </div>
-            </Card>
+                <a href="#" className="block mt-7">
+                  <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
+                    Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                </a>
+                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
+                  <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
