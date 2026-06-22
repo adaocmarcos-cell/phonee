@@ -35,6 +35,27 @@ type LineItem = {
 
 type MixedPayment = { method: string; amount: number };
 
+const DEDUCTION_REASONS = [
+  "Taxa cartão de crédito", "Taxa cartão de débito", "Taxa PIX/maquineta",
+  "Antecipação", "Tarifa boleto", "Cashback / desconto", "Outro",
+];
+
+function maskCPF(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+function maskCNPJ(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
 const CATEGORIES_DEFAULT = [
   "Venda direta", "Reserva", "Troca", "Garantia", "Assistência",
   "Acessórios", "Xiaomi", "iPhone novo", "iPhone seminovo", "Outros",
@@ -47,6 +68,7 @@ export default function VendaNova() {
   // Cliente
   const [customer, setCustomer] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
   const [doc, setDoc] = useState("");
   const [city, setCity] = useState("");
   const [seller, setSeller] = useState("");
@@ -69,6 +91,8 @@ export default function VendaNova() {
   const [mixed, setMixed] = useState<MixedPayment[]>([]);
   const [otherExpenses, setOtherExpenses] = useState(0);
   const [freight, setFreight] = useState(0);
+  const [netValue, setNetValue] = useState<number>(0);
+  const [deductionReason, setDeductionReason] = useState<string>("");
 
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
@@ -174,8 +198,13 @@ export default function VendaNova() {
   const buildPayload = () => ({
     extras: {
       whatsapp, city, seller, unit, price_list: priceList,
+      customer_doc_type: docType,
       commission: { percent: commissionPct, value: commissionValue, status: commissionStatus },
-      payment: { method: payMethod, installments, entry, mixed, other_expenses: otherExpenses, freight },
+      payment: {
+        method: payMethod, installments, entry, mixed,
+        other_expenses: otherExpenses, freight,
+        net_value: netValue, deduction_reason: deductionReason,
+      },
       delivery: { sale_date: saleDate, ship_date: shipDate, expected_date: expectedDate, carrier, payer: freightPayer, diff_address: diffAddress, address: deliveryAddress },
       category,
       totals: { items: totalsItems, qty: totalsQty, subtotal, discount: totalDiscount, items_value: totalItemsValue, sale_total: totalSale },
