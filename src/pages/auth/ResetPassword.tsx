@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import logo from "@/assets/smartstock-icon.png";
+import logo from "@/assets/mobileplus-icon.png";
 
 const passwordSchema = z.string().min(6, "Mínimo 6 caracteres").max(72);
 
@@ -46,7 +46,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md p-8 bg-card border-border shadow-card">
         <div className="mb-6 flex items-center gap-3">
           <img src={logo} alt="" width={32} height={32} className="h-8 w-8" />
-          <span className="text-lg font-bold">SmartStock</span>
+          <span className="text-lg font-bold">Mobile+</span>
         </div>
         <h1 className="text-2xl font-bold mb-1">Redefinir senha</h1>
         <p className="text-sm text-muted-foreground mb-6">

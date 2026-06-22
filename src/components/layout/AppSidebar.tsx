@@ -8,7 +8,7 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
-import logoIcon from "@/assets/smartstock-icon.png";
+import logoIcon from "@/assets/mobileplus-icon.png";
 
 const main = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
@@ -66,7 +66,7 @@ export function AppSidebar() {
           <img src={logoIcon} alt="" width={28} height={28} className="h-7 w-7" />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold tracking-tight">SmartStock</span>
+              <span className="text-sm font-bold tracking-tight">Mobile+</span>
               <span className="text-[10px] text-muted-foreground font-mono">v1.0</span>
             </div>
           )}
