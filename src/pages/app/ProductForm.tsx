@@ -139,7 +139,10 @@ export default function ProductForm() {
       : await supabase.from("products").update(payload).eq("id", id!);
 
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if ((error as any).code === "23505") return toast.error("Este SKU já está em uso. Use outro ou gere automaticamente.");
+      return toast.error(error.message);
+    }
     toast.success(isNew ? "Produto cadastrado" : "Produto atualizado");
     navigate("/app/estoque");
   };
