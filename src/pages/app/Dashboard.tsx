@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [salesCount, setSalesCount] = useState(0);
   const [margin, setMargin] = useState(0);
   const [costMonth, setCostMonth] = useState(0);
+  const [costToday, setCostToday] = useState(0);
   const [expensesMonth, setExpensesMonth] = useState(0);
   const [productsLow, setProductsLow] = useState(0);
   const [stalled, setStalled] = useState(0);
@@ -85,14 +86,18 @@ export default function Dashboard() {
       if (canSeeCost(role) && safeSales.length > 0) {
         const { data: items } = await supabase
           .from("sale_items")
-          .select("quantity, unit_price, product_id, products(cost_price, name)")
+          .select("quantity, unit_price, product_id, sale_id, products(cost_price, name)")
           .in("sale_id", safeSales.map((s) => s.id));
-        let rev = 0, cost = 0;
+        let rev = 0, cost = 0, costT = 0;
+        const todaySalesIds = new Set(
+          safeSales.filter((s) => new Date(s.created_at) >= todayISO).map((s) => s.id)
+        );
         const prodMap: Record<string, { name: string; qty: number; revenue: number }> = {};
         (items ?? []).forEach((it: any) => {
           const r = Number(it.unit_price) * Number(it.quantity);
           const c = Number(it.products?.cost_price ?? 0) * Number(it.quantity);
           rev += r; cost += c;
+          if (todaySalesIds.has(it.sale_id)) costT += c;
           const pid = it.product_id;
           if (!prodMap[pid]) prodMap[pid] = { name: it.products?.name ?? "—", qty: 0, revenue: 0 };
           prodMap[pid].qty += it.quantity;
@@ -100,6 +105,7 @@ export default function Dashboard() {
         });
         setMargin(rev > 0 ? ((rev - cost) / rev) * 100 : 0);
         setCostMonth(cost);
+        setCostToday(costT);
         setTopProducts(Object.values(prodMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5));
       }
 
@@ -136,6 +142,7 @@ export default function Dashboard() {
   }, [store, role, period]);
 
   const lucroMes = revenueMonth - costMonth - expensesMonth;
+  const lucroBrutoHoje = revenueToday - costToday;
   const periodLabel = period === "today" ? "hoje" : period === "7d" ? "últimos 7 dias" : period === "30d" ? "últimos 30 dias" : period === "month" ? "mês atual" : "ano atual";
 
   return (
@@ -162,9 +169,38 @@ export default function Dashboard() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-        <MetricCard label="Faturamento hoje" value={brl(revenueToday)} icon={DollarSign} tone="info" className="lg:col-span-1" />
-        <MetricCard label={`Faturamento — ${periodLabel}`} value={brl(revenueMonth)} delta={`${num(salesCount)} vendas`} icon={TrendingUp} tone="primary" className="lg:col-span-1" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <MetricCard
+          label="Faturamento hoje"
+          value={brl(revenueToday)}
+          delta={canSeeCost(role) ? `Lucro bruto hoje: ${brl(lucroBrutoHoje)}` : undefined}
+          icon={DollarSign}
+          tone="info"
+        />
+        <MetricCard
+          label={`Faturamento — ${periodLabel}`}
+          value={brl(revenueMonth)}
+          delta={`${num(salesCount)} vendas`}
+          icon={TrendingUp}
+          tone="primary"
+        />
+        <MetricCard
+          label={canSeeCost(role) ? "Margem média" : "Estoque baixo"}
+          value={canSeeCost(role) ? pct(margin) : num(productsLow)}
+          icon={canSeeCost(role) ? Sparkles : AlertTriangle}
+          tone={canSeeCost(role) ? "violet" : "warning"}
+        />
+        <MetricCard
+          label="Estoque encalhado"
+          value={num(stalled)}
+          delta="+30 dias sem venda"
+          trend="down"
+          icon={Package}
+          tone="danger"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 mb-6">
         {canSeeCost(role) ? (
           <MetricCard
             label={`Lucro do período — ${periodLabel}`}
@@ -174,13 +210,10 @@ export default function Dashboard() {
             variant="highlight"
             tone="success"
             trend={lucroMes >= 0 ? "up" : "down"}
-            className="lg:col-span-2 sm:col-span-2"
           />
         ) : (
-          <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} tone="warning" className="lg:col-span-2 sm:col-span-2" />
+          <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} tone="warning" />
         )}
-        <MetricCard label={canSeeCost(role) ? "Margem média" : "Estoque baixo"} value={canSeeCost(role) ? pct(margin) : num(productsLow)} icon={canSeeCost(role) ? Sparkles : AlertTriangle} tone={canSeeCost(role) ? "violet" : "warning"} className="lg:col-span-1" />
-        <MetricCard label="Estoque encalhado" value={num(stalled)} delta="+30 dias sem venda" trend="down" icon={Package} tone="danger" className="lg:col-span-1" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
