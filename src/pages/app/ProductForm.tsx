@@ -157,7 +157,29 @@ export default function ProductForm() {
           <h3 className="font-semibold mb-4">Identificação</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Nome *"><Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Capa silicone iPhone 15 Pro" /></Field>
-            <Field label="SKU"><Input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="SKU-001" /></Field>
+            <Field label="SKU">
+              <div className="flex gap-2">
+                <Input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="SKU-001" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  title="Gerar SKU automaticamente"
+                  onClick={async () => {
+                    if (!store) return;
+                    if (!form.name.trim()) return toast.error("Preencha o nome do produto primeiro");
+                    try {
+                      const sku = await generateUniqueSku(store.id, form.name);
+                      set("sku", sku);
+                      toast.success(`SKU gerado: ${sku}`);
+                    } catch (e: any) {
+                      toast.error(e.message || "Erro ao gerar SKU");
+                    }
+                  }}
+                >
+                  <Wand2 className="h-4 w-4 mr-1" />Gerar
+                </Button>
+              </div>
+            </Field>
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
             <Field label="Marca"><Input value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
             <Field label="Modelo compatível"><Input value={form.compatible_model} onChange={(e) => set("compatible_model", e.target.value)} placeholder="iPhone 15 Pro" /></Field>
