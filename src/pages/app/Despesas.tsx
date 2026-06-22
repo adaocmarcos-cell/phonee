@@ -175,14 +175,6 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
         description="Controle todos os gastos fixos e variáveis da sua loja."
         actions={
           <>
-            {isAdmin && (
-              <Dialog open={openCat} onOpenChange={setOpenCat}>
-                <DialogTrigger asChild>
-                  <Button variant="outline"><Plus className="h-4 w-4 mr-1" /> Nova Categoria</Button>
-                </DialogTrigger>
-                <NewCategoryDialog storeId={store.id} onDone={() => { setOpenCat(false); reload(); }} />
-              </Dialog>
-            )}
             <Dialog open={openNew} onOpenChange={setOpenNew}>
               <DialogTrigger asChild>
                 <Button><Plus className="h-4 w-4 mr-1" /> Lançar Despesa</Button>
@@ -423,6 +415,16 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
               </TableBody>
             </Table>
           </Card>
+          {isAdmin && (
+            <div className="flex justify-end mt-4">
+              <Dialog open={openCat} onOpenChange={setOpenCat}>
+                <DialogTrigger asChild>
+                  <Button variant="outline"><Plus className="h-4 w-4 mr-1" /> Nova Categoria</Button>
+                </DialogTrigger>
+                <NewCategoryDialog storeId={store.id} onDone={() => { setOpenCat(false); reload(); }} />
+              </Dialog>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
