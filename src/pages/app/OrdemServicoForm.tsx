@@ -414,6 +414,40 @@ Status: ${os.status}`;
           </Card>
         </TabsContent>
       </Tabs>
+            </div>
+
+            {/* Wizard footer */}
+            <Card className="p-3 flex items-center justify-between gap-2 sticky bottom-20 md:bottom-4 z-30 shadow-card">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={step === 0}
+                onClick={() => setStep((s) => Math.max(0, s - 1))}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" onClick={saveDraft} disabled={busy}>
+                  <FileEdit className="h-4 w-4 mr-1" />Salvar rascunho
+                </Button>
+                {step < steps.length - 1 ? (
+                  <Button
+                    type="button"
+                    onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))}
+                    className="bg-primary text-primary-foreground"
+                  >
+                    Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
+                    <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Finalizar OS"}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
       </div>
 
       {/* Mobile actions */}
