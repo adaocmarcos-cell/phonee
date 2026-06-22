@@ -10,7 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
-import logo from "@/assets/mobileplus-logo.png.asset.json";
+import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+const logo = logoAsset.url;
 import { Boxes, Zap, ShieldCheck, Eye, EyeOff } from "lucide-react";
 
 const emailSchema = z.string().trim().email("E-mail inválido").max(255);
