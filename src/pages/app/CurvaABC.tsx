@@ -5,10 +5,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info, TrendingUp, TrendingDown, Minus, Filter, Trophy, Percent, Wallet, Award } from "lucide-react";
+import { Info, TrendingUp, TrendingDown, Minus, Trophy, Percent, Wallet, Award } from "lucide-react";
 import { brl, num, pct, daysAgo } from "@/lib/format";
 import { MetricCard } from "@/components/MetricCard";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
   Bar, BarChart, CartesianGrid, ComposedChart, Line, ResponsiveContainer,
   Tooltip as ReTooltip, XAxis, YAxis, Cell,
@@ -54,25 +54,41 @@ function classify(rows: Omit<Row, "class" | "cum" | "share">[]): Row[] {
   });
 }
 
+type Period = PeriodValue;
+const RANK_OPTIONS: PeriodValue[] = ["7d", "30d", "90d", "6m", "1y", "custom"];
+const ABC_OPTIONS: PeriodValue[] = ["30d", "90d", "6m", "1y", "custom"];
+
+function rangeFor(p: Period, custom?: CustomRange) {
+  const { from, to } = resolvePeriod(p, custom);
+  return { from: from ? from.getTime() : 0, to: (to ?? new Date()).getTime() };
+}
+
 function RankingCard({
-  title, icon, period, onPeriod, items, metric, sub,
+  title, icon, period, onPeriod, custom, onCustom, items, metric, sub,
 }: {
   title: string;
   icon: React.ReactNode;
   period: Period;
   onPeriod: (p: Period) => void;
+  custom?: CustomRange;
+  onCustom: (c: CustomRange) => void;
   items: { id: string; name: string; qty: number; revenue: number; profit: number; margin: number }[];
   metric: (r: any) => string;
   sub: (r: any) => string;
 }) {
   return (
     <Card className="bg-card border-border shadow-card p-5">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
           {icon}
           <h3 className="font-semibold text-sm">{title}</h3>
         </div>
-        <MiniFilter value={period} onChange={onPeriod} />
+        <PeriodFilter
+          value={period} onChange={onPeriod}
+          options={RANK_OPTIONS}
+          custom={custom} onCustomChange={onCustom}
+          compact showLabel={false}
+        />
       </div>
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-8">Sem dados no período.</p>
@@ -94,38 +110,18 @@ function RankingCard({
   );
 }
 
-type Period = "7d" | "30d" | "90d" | "6m" | "1y";
-const PERIODS: { v: Period; label: string; days: number }[] = [
-  { v: "7d", label: "7 dias", days: 7 },
-  { v: "30d", label: "30 dias", days: 30 },
-  { v: "90d", label: "90 dias", days: 90 },
-  { v: "6m", label: "6 meses", days: 180 },
-  { v: "1y", label: "1 ano", days: 365 },
-];
-const daysFor = (p: Period) => PERIODS.find((x) => x.v === p)!.days;
-
-function MiniFilter({ value, onChange }: { value: Period; onChange: (v: Period) => void }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Filter className="h-3 w-3 text-muted-foreground" />
-      <Select value={value} onValueChange={(v) => onChange(v as Period)}>
-        <SelectTrigger className="h-7 w-[110px] text-xs"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {PERIODS.map((p) => <SelectItem key={p.v} value={p.v}>{p.label}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
 export default function CurvaABC() {
   const { store, role } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("90d");
+  const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [pSold, setPSold] = useState<Period>("30d");
+  const [pSoldCustom, setPSoldCustom] = useState<CustomRange>({});
   const [pMargin, setPMargin] = useState<Period>("30d");
+  const [pMarginCustom, setPMarginCustom] = useState<CustomRange>({});
   const [pProfit, setPProfit] = useState<Period>("30d");
+  const [pProfitCustom, setPProfitCustom] = useState<CustomRange>({});
   const [allSales, setAllSales] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
 
@@ -152,12 +148,13 @@ export default function CurvaABC() {
   // Aggregate for the main ABC view, scoped by `period`
   useEffect(() => {
     if (!allProducts.length && !allSales.length) return;
-    const cutoff = Date.now() - daysFor(period) * 86400_000;
+    const { from, to } = rangeFor(period, periodCustom);
     const agg = new Map<string, { revenue: number; qty: number; cost: number }>();
     const costMap = new Map<string, number>();
     allProducts.forEach((p: any) => costMap.set(p.id, Number(p.cost_price || 0)));
     allSales.forEach((s: any) => {
-      if (new Date(s.created_at).getTime() < cutoff) return;
+      const t = new Date(s.created_at).getTime();
+      if (t < from || t > to) return;
       (s.sale_items ?? []).forEach((it: any) => {
           if (!it.product_id) return;
         const cur = agg.get(it.product_id) ?? { revenue: 0, qty: 0, cost: 0 };
@@ -184,17 +181,18 @@ export default function CurvaABC() {
       };
     });
     setRows(classify(merged));
-  }, [allProducts, allSales, period]);
+  }, [allProducts, allSales, period, periodCustom]);
 
-  const ranking = (p: Period, key: "qty" | "margin" | "profit") => {
-    const cutoff = Date.now() - daysFor(p) * 86400_000;
+  const ranking = (p: Period, custom: CustomRange | undefined, key: "qty" | "margin" | "profit") => {
+    const { from, to } = rangeFor(p, custom);
     const costMap = new Map<string, number>();
     allProducts.forEach((pr: any) => costMap.set(pr.id, Number(pr.cost_price || 0)));
     const nameMap = new Map<string, string>();
     allProducts.forEach((pr: any) => nameMap.set(pr.id, pr.name));
     const agg = new Map<string, { qty: number; revenue: number; cost: number }>();
     allSales.forEach((s: any) => {
-      if (new Date(s.created_at).getTime() < cutoff) return;
+      const t = new Date(s.created_at).getTime();
+      if (t < from || t > to) return;
       (s.sale_items ?? []).forEach((it: any) => {
         if (!it.product_id) return;
         const cur = agg.get(it.product_id) ?? { qty: 0, revenue: 0, cost: 0 };
@@ -217,9 +215,9 @@ export default function CurvaABC() {
     return list.sort((a, b) => b.profit - a.profit).slice(0, 5);
   };
 
-  const topSold = useMemo(() => ranking(pSold, "qty"), [pSold, allSales, allProducts]);
-  const topMargin = useMemo(() => ranking(pMargin, "margin"), [pMargin, allSales, allProducts]);
-  const topProfit = useMemo(() => ranking(pProfit, "profit"), [pProfit, allSales, allProducts]);
+  const topSold = useMemo(() => ranking(pSold, pSoldCustom, "qty"), [pSold, pSoldCustom, allSales, allProducts]);
+  const topMargin = useMemo(() => ranking(pMargin, pMarginCustom, "margin"), [pMargin, pMarginCustom, allSales, allProducts]);
+  const topProfit = useMemo(() => ranking(pProfit, pProfitCustom, "profit"), [pProfit, pProfitCustom, allSales, allProducts]);
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
@@ -256,15 +254,12 @@ export default function CurvaABC() {
         description="Classificação automática dos produtos por faturamento."
       />
 
-      <div className="flex items-center justify-end gap-2 mb-4">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Período</span>
-        <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-          <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {PERIODS.map((p) => <SelectItem key={p.v} value={p.v}>{p.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-end mb-4">
+        <PeriodFilter
+          value={period} onChange={setPeriod}
+          options={ABC_OPTIONS}
+          custom={periodCustom} onCustomChange={setPeriodCustom}
+        />
       </div>
 
       {/* KPIs no estilo do Dashboard */}
@@ -293,8 +288,8 @@ export default function CurvaABC() {
           <RankingCard
             title="Mais vendidos"
             icon={<Trophy className="h-4 w-4 text-primary" />}
-            period={pSold}
-            onPeriod={setPSold}
+            period={pSold} onPeriod={setPSold}
+            custom={pSoldCustom} onCustom={setPSoldCustom}
             items={topSold}
             metric={(r) => `${num(r.qty)} un.`}
             sub={(r) => brl(r.revenue)}
@@ -302,8 +297,8 @@ export default function CurvaABC() {
           <RankingCard
             title="Maiores margens"
             icon={<Percent className="h-4 w-4 text-emerald-600" />}
-            period={pMargin}
-            onPeriod={setPMargin}
+            period={pMargin} onPeriod={setPMargin}
+            custom={pMarginCustom} onCustom={setPMarginCustom}
             items={topMargin}
             metric={(r) => pct(r.margin)}
             sub={(r) => `Lucro ${brl(r.profit)}`}
@@ -311,8 +306,8 @@ export default function CurvaABC() {
           <RankingCard
             title="Maiores lucros"
             icon={<Wallet className="h-4 w-4 text-amber-600" />}
-            period={pProfit}
-            onPeriod={setPProfit}
+            period={pProfit} onPeriod={setPProfit}
+            custom={pProfitCustom} onCustom={setPProfitCustom}
             items={topProfit}
             metric={(r) => brl(r.profit)}
             sub={(r) => `Receita ${brl(r.revenue)}`}
