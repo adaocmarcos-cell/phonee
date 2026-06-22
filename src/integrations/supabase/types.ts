@@ -481,6 +481,7 @@ export type Database = {
           installments: number | null
           notes: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          sale_number: number | null
           seller_id: string | null
           store_id: string
           subtotal: number
@@ -495,6 +496,7 @@ export type Database = {
           installments?: number | null
           notes?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          sale_number?: number | null
           seller_id?: string | null
           store_id: string
           subtotal?: number
@@ -509,6 +511,7 @@ export type Database = {
           installments?: number | null
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          sale_number?: number | null
           seller_id?: string | null
           store_id?: string
           subtotal?: number
