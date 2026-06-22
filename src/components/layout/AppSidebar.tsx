@@ -46,12 +46,21 @@ export function AppSidebar() {
         <SidebarMenu>
           {items.map((item) => {
             const active = item.end ? pathname === item.url : pathname.startsWith(item.url);
+            const isDashboard = item.url === "/app";
             return (
               <SidebarMenuItem key={item.url}>
-                <SidebarMenuButton asChild isActive={active} className="data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium hover:bg-sidebar-accent">
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  className="data-[active=true]:bg-orange-500 data-[active=true]:text-blue-700 data-[active=true]:font-semibold data-[active=true]:hover:bg-orange-500 data-[active=true]:hover:text-blue-700 hover:bg-sidebar-accent"
+                >
                   <NavLink to={item.url} end={item.end}>
                     <item.icon className="h-4 w-4" />
-                    {!collapsed && <span>{item.title}</span>}
+                    {!collapsed && (
+                      <span className={isDashboard && !active ? "text-orange-500 font-semibold" : ""}>
+                        {item.title}
+                      </span>
+                    )}
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
