@@ -96,12 +96,22 @@ export default function Auth() {
       {/* Right: form */}
       <div className="flex items-center justify-center p-6">
         <Card className="w-full max-w-md p-8 bg-card border-border shadow-card">
-          <div className="mb-6 lg:hidden flex items-center gap-3">
-            <img src={logo} alt="" width={32} height={32} className="h-8 w-8" />
-            <span className="text-lg font-bold">Mobile+</span>
+          {/* Logo em destaque, centralizado acima do formulário */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 bg-gradient-primary opacity-30 blur-2xl rounded-full" aria-hidden />
+              <div className="relative h-24 w-24 rounded-2xl bg-gradient-surface border border-border shadow-glow flex items-center justify-center p-3">
+                <img src={logo} alt="Mobile+" width={96} height={96} className="h-full w-full object-contain" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Mobile<span className="text-primary">+</span>
+            </h1>
+            <p className="text-[11px] font-mono text-muted-foreground tracking-[0.25em] mt-1">ERP · SMARTPHONES</p>
           </div>
-          <h1 className="text-2xl font-bold mb-1">Acesse sua loja</h1>
-          <p className="text-sm text-muted-foreground mb-6">Entre ou crie sua conta para começar.</p>
+
+          <h2 className="text-xl font-semibold mb-1 text-center">Acesse sua loja</h2>
+          <p className="text-sm text-muted-foreground mb-6 text-center">Entre ou crie sua conta para começar.</p>
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
             <TabsList className="grid grid-cols-2 w-full mb-6">
