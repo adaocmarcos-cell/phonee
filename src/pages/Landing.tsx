@@ -114,6 +114,11 @@ export default function Landing() {
 
         <div className="relative max-w-7xl mx-auto px-5 pt-20 pb-24 lg:pt-28 lg:pb-32 grid lg:grid-cols-2 gap-12 items-center">
           <div>
+            <img
+              src={logo}
+              alt="Mobile+"
+              className="h-16 md:h-24 lg:h-28 w-auto mb-8 invert"
+            />
             <Badge className="mb-6 bg-primary/20 text-white border-primary/40 hover:bg-primary/25 text-sm py-1.5 px-3">
               ERP especializado em smartphones e assistência
             </Badge>
