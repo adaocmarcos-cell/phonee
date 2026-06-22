@@ -83,16 +83,13 @@ export default function Landing() {
       {/* NAV — preto sólido */}
       <header className="sticky top-0 z-50 bg-black border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <img src={logo} alt="Mobile+" className="h-12 md:h-14 w-auto invert" />
-          </Link>
           <nav className="hidden md:flex items-center gap-8 text-base font-semibold text-white">
             <a href="#beneficios" className="hover:text-primary transition">Benefícios</a>
             <a href="#dashboard" className="hover:text-primary transition">Dashboard</a>
             <a href="#preco" className="hover:text-primary transition">Preço</a>
             <a href="#garantia" className="hover:text-primary transition">Garantia</a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <Link to="/auth">
               <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10">
                 Fazer login
@@ -112,13 +109,18 @@ export default function Landing() {
         <div className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[140px] pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-5 pt-20 pb-24 lg:pt-28 lg:pb-32 grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+        <div className="relative max-w-7xl mx-auto px-5 pt-16 pb-24 lg:pt-20 lg:pb-32">
+          {/* LOGO PRINCIPAL — destaque máximo, centralizado */}
+          <div className="flex justify-center mb-16 lg:mb-24">
             <img
               src={logo}
               alt="Mobile+"
-              className="h-16 md:h-24 lg:h-28 w-auto mb-8 invert"
+              className="h-56 sm:h-72 md:h-96 lg:h-[28rem] w-auto invert drop-shadow-[0_0_60px_rgba(14,165,233,0.45)]"
             />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div>
             <Badge className="mb-6 bg-primary/20 text-white border-primary/40 hover:bg-primary/25 text-sm py-1.5 px-3">
               ERP especializado em smartphones e assistência
             </Badge>
