@@ -26,6 +26,8 @@ import OrdemServicoForm from "./pages/app/OrdemServicoForm";
 import Configuracoes from "./pages/app/Configuracoes";
 import TabelasPreco from "./pages/app/TabelasPreco";
 import ComingSoon from "./pages/app/ComingSoon";
+import Usuarios from "./pages/app/admin/Usuarios";
+import Cargos from "./pages/app/admin/Cargos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,7 +64,10 @@ const App = () => (
               <Route path="os/:id" element={<OrdemServicoForm />} />
               <Route path="alertas" element={<Alertas />} />
               <Route path="tabelas-preco" element={<TabelasPreco />} />
-              <Route path="admin/usuarios" element={<ComingSoon title="Usuários & permissões" description="Gestão de funcionários por perfil." />} />
+              <Route path="admin/usuarios" element={<Usuarios />} />
+              <Route path="admin/cargos" element={<Cargos />} />
+              <Route path="admin/permissoes" element={<ComingSoon title="Permissões" description="Matriz de permissões por cargo × módulo × ação. Disponível na próxima fase." />} />
+              <Route path="admin/logs" element={<ComingSoon title="Logs e Auditoria" description="Histórico permanente de ações. Disponível na próxima fase." />} />
               <Route path="admin/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />
