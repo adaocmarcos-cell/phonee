@@ -17,6 +17,9 @@ import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import {
   Save, X, FileDown, MessageCircle, Mail, Camera, Trash2, Printer, ArrowLeft,
+  ChevronLeft, ChevronRight, FileEdit, User, Smartphone as SmartphoneIcon,
+  AlertCircle, ClipboardCheck, Image as ImageIcon, Calculator, Wrench as WrenchIcon,
+  PackageCheck, PenSquare, Check,
 } from "lucide-react";
 
 const CATEGORIES = ["iPhone","Xiaomi","Samsung","Motorola","Apple Watch","Smartwatch","Tablet","Notebook","Outro"];
@@ -64,6 +67,7 @@ export default function OrdemServicoForm() {
   const editing = !!id;
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(!editing);
+  const [step, setStep] = useState(0);
   const [os, setOs] = useState<any>({
     status: "recebido", reasons: [], accessories: [], photos: [],
     receive_checklist: {}, work_checklist: {}, delivery_checklist: {},
@@ -106,26 +110,33 @@ export default function OrdemServicoForm() {
     setBusy(false);
   };
 
-  const submit = async () => {
+  const persist = async (asDraft = false) => {
     if (!store) return;
-    if (!os.customer_name) return toast.error("Informe o nome do cliente");
+    if (!asDraft && !os.customer_name) return toast.error("Informe o nome do cliente");
     setBusy(true);
-    const payload = { ...os, store_id: store.id, created_by: user?.id };
+    const payload: any = {
+      ...os,
+      store_id: store.id,
+      created_by: user?.id,
+      customer_name: os.customer_name || (asDraft ? "Rascunho" : ""),
+    };
     delete payload.id; delete payload.os_number; delete payload.created_at; delete payload.updated_at;
     if (os.customer_signature || os.tech_signature) payload.signed_at = new Date().toISOString();
 
     if (editing) {
       const { error } = await (supabase as any).from("service_orders").update(payload).eq("id", id);
       if (error) { setBusy(false); return toast.error(error.message); }
-      toast.success("OS atualizada");
+      toast.success(asDraft ? "Rascunho salvo" : "OS atualizada");
     } else {
       const { data, error } = await (supabase as any).from("service_orders").insert(payload).select("id").single();
       if (error) { setBusy(false); return toast.error(error.message); }
-      toast.success("OS criada");
+      toast.success(asDraft ? "Rascunho criado" : "OS criada");
       navigate(`/app/os/${data.id}`); setBusy(false); return;
     }
     setBusy(false);
   };
+  const submit = () => persist(false);
+  const saveDraft = () => persist(true);
 
   const summary = useMemo(() => {
     return `*Brazilera — Ordem de Serviço #${String(os.os_number ?? "—").padStart(4, "0")}*
