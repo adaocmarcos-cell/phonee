@@ -11,7 +11,6 @@ import {
 import logoIcon from "@/assets/mobileplus-icon.png";
 
 const main = [
-  { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
   { title: "Estoque", url: "/app/estoque", icon: Boxes },
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Trade-in", url: "/app/trade-in", icon: Smartphone },
@@ -19,6 +18,7 @@ const main = [
 ];
 
 const ops = [
+  { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
   { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
   { title: "Clientes", url: "/app/clientes", icon: Users },
