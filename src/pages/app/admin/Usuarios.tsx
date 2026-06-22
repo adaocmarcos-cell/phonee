@@ -191,7 +191,7 @@ export default function Usuarios() {
 function InviteDialog({
   open, setOpen, onCreated, storeId,
 }: { open: boolean; setOpen: (v: boolean) => void; onCreated: () => void; storeId: string }) {
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", job_title: "", role: "vendedor" as AppRole });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", job_title: "", role: "vendedor" as AppRole | "outro" });
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: FormEvent) => {
@@ -208,7 +208,7 @@ function InviteDialog({
       return;
     }
     toast.success("Convite enviado por e-mail. O usuário definirá a senha pelo link.");
-    toast.info("Após o primeiro acesso, ele aparecerá na lista para você atribuir cargo e função.");
+    toast.info("Após o primeiro acesso, ele aparecerá na lista para você confirmar o cargo.");
     setOpen(false);
     setForm({ full_name: "", email: "", phone: "", job_title: "", role: "vendedor" });
     onCreated();
@@ -231,22 +231,28 @@ function InviteDialog({
             <div className="space-y-1.5"><Label className="text-xs">Nome completo</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div className="space-y-1.5"><Label className="text-xs">E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
             <div className="space-y-1.5"><Label className="text-xs">Celular</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(11) 99999-0000" /></div>
-            <div className="space-y-1.5"><Label className="text-xs">Função</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} placeholder="Ex.: Vendedor Sênior" /></div>
-            <div className="space-y-1.5 col-span-2">
+            <div className="space-y-1.5">
               <Label className="text-xs">Cargo</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole })}>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole | "outro" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLE_CATALOG.filter((r) => r.value !== "admin_master").map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label} — {r.description}</SelectItem>
                   ))}
+                  <SelectItem value="outro">Outro — especificar cargo personalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {form.role === "outro" && (
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-xs">Especifique o cargo</Label>
+                <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} placeholder="Ex.: Coordenador de Marketing" />
+              </div>
+            )}
           </div>
           <p className="text-[11px] text-muted-foreground border-t border-border pt-3 flex items-start gap-2">
             <Mail className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-            Enviaremos um link de cadastro para o e-mail. Após o primeiro acesso, ele aparecerá nesta lista para você confirmar cargo e função.
+            Enviaremos um link de cadastro para o e-mail. Após o primeiro acesso, ele aparecerá nesta lista para você confirmar o cargo.
           </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
