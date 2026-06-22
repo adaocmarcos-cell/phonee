@@ -162,24 +162,24 @@ export default function Landing() {
               </div>
               <div className="text-success font-bold text-base uppercase tracking-wide">SEM MENSALIDADES</div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="metric text-5xl md:text-6xl">R$ 99</span>
-                <span className="text-2xl text-slate-200">,90</span>
+                <span className="metric text-5xl md:text-6xl">R$ 127</span>
                 <span className="text-base text-slate-300 ml-1">/ano à vista</span>
               </div>
-              <div className="mt-1 text-lg text-white font-semibold">ou 12x de R$ 14,97 no cartão</div>
+              <div className="mt-1 text-lg text-white font-semibold">ou parcelado no cartão</div>
 
               <div className="my-5 flex items-center gap-3 text-slate-300 text-xs">
                 <div className="h-px flex-1 bg-white/10" /> OU <div className="h-px flex-1 bg-white/10" />
               </div>
 
               <div className="rounded-lg border border-white/15 bg-white/5 p-4">
-                <div className="text-xs font-mono tracking-widest text-slate-300">PLANO VITALÍCIO</div>
+                <div className="text-xs font-mono tracking-widest text-primary font-bold">RECOMENDADO · PLANO VITALÍCIO</div>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="metric text-3xl">R$ 197</span>
-                  <span className="text-lg text-slate-200">,00</span>
                   <span className="text-sm text-slate-300 ml-1">pagamento único</span>
                 </div>
-                <div className="text-xs text-slate-300 mt-1">Pague uma única vez e use para sempre.</div>
+                <div className="text-xs text-slate-200 mt-1">
+                  Pague uma vez e use para sempre — sem renovação, com prioridade no suporte e acesso antecipado a novos módulos.
+                </div>
               </div>
 
               <ul className="mt-5 space-y-2.5 text-base text-white font-medium">
