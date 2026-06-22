@@ -172,13 +172,16 @@ Status: ${os.status}`;
     <div className="pb-28 md:pb-6">
       <PageHeader
         title={editing ? `OS #${String(os.os_number ?? "").padStart(4, "0")}` : "Nova Ordem de Serviço"}
-        description="Assistência técnica · check-in completo, orçamento, assinaturas e PDF."
+        description="Preencha por etapas — você pode salvar como rascunho a qualquer momento."
         actions={
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/app/os")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
             {editing && <Button variant="outline" onClick={() => sendWhats(summary)}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>}
             {editing && <Button variant="outline" onClick={sendMail}><Mail className="h-4 w-4 mr-1" />E-mail</Button>}
+            <Button variant="outline" onClick={saveDraft} disabled={busy}>
+              <FileEdit className="h-4 w-4 mr-1" />Salvar rascunho
+            </Button>
             <Button onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar OS"}
             </Button>
@@ -187,18 +190,65 @@ Status: ${os.status}`;
       />
 
       <div className="print:hidden">
-      <Tabs defaultValue="cliente" className="space-y-4">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="cliente">Cliente</TabsTrigger>
-          <TabsTrigger value="aparelho">Aparelho</TabsTrigger>
-          <TabsTrigger value="motivo">Motivo</TabsTrigger>
-          <TabsTrigger value="checklist">Checklist</TabsTrigger>
-          <TabsTrigger value="fotos">Fotos</TabsTrigger>
-          <TabsTrigger value="orcamento">Orçamento</TabsTrigger>
-          <TabsTrigger value="execucao">Execução</TabsTrigger>
-          <TabsTrigger value="entrega">Entrega</TabsTrigger>
-          <TabsTrigger value="assinaturas">Assinaturas</TabsTrigger>
-        </TabsList>
+      {(() => {
+        const steps = [
+          { key: "cliente", label: "Cliente", icon: User },
+          { key: "aparelho", label: "Aparelho", icon: SmartphoneIcon },
+          { key: "motivo", label: "Motivo", icon: AlertCircle },
+          { key: "checklist", label: "Checklist", icon: ClipboardCheck },
+          { key: "fotos", label: "Fotos", icon: ImageIcon },
+          { key: "orcamento", label: "Orçamento", icon: Calculator },
+          { key: "execucao", label: "Execução", icon: WrenchIcon },
+          { key: "entrega", label: "Entrega", icon: PackageCheck },
+          { key: "assinaturas", label: "Assinaturas", icon: PenSquare },
+        ] as const;
+        const current = steps[step];
+        const progress = Math.round(((step + 1) / steps.length) * 100);
+        return (
+          <div className="space-y-4">
+            {/* Stepper header */}
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                <span>Etapa {step + 1} de {steps.length}</span>
+                <span className="text-primary font-semibold">{progress}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+                {steps.map((s, idx) => {
+                  const Icon = s.icon;
+                  const done = idx < step;
+                  const active = idx === step;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setStep(idx)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap border transition-colors ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : done
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                      }`}
+                    >
+                      {done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                      <span className="hidden sm:inline">{idx + 1}. {s.label}</span>
+                      <span className="sm:hidden">{idx + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <current.icon className="h-4 w-4 text-primary" />
+              {current.label}
+            </div>
+
+            <div data-step={current.key}>
+      <Tabs value={current.key} className="space-y-4">
 
         <TabsContent value="cliente">
           <Card className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
