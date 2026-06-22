@@ -749,6 +749,10 @@ export type Database = {
           logo_url: string | null
           name: string
           owner_id: string
+          pdf_accent_color: string | null
+          pdf_footer_text: string | null
+          pdf_logo_url: string | null
+          pdf_primary_color: string | null
           phone: string | null
           price_table_note: string | null
           primary_color: string | null
@@ -767,6 +771,10 @@ export type Database = {
           logo_url?: string | null
           name: string
           owner_id: string
+          pdf_accent_color?: string | null
+          pdf_footer_text?: string | null
+          pdf_logo_url?: string | null
+          pdf_primary_color?: string | null
           phone?: string | null
           price_table_note?: string | null
           primary_color?: string | null
@@ -785,6 +793,10 @@ export type Database = {
           logo_url?: string | null
           name?: string
           owner_id?: string
+          pdf_accent_color?: string | null
+          pdf_footer_text?: string | null
+          pdf_logo_url?: string | null
+          pdf_primary_color?: string | null
           phone?: string | null
           price_table_note?: string | null
           primary_color?: string | null
