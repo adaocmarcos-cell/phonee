@@ -13,7 +13,7 @@ import {
   FONT_SIZE_OPTIONS, getFontSize, setFontSize,
   getTheme, setTheme, type Theme,
 } from "@/lib/preferences";
-import { Moon, Sun, Type, FileText, Store, Save } from "lucide-react";
+import { Moon, Sun, Type, FileText, Store, Save, Palette } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ export default function Configuracoes() {
 
   const [storeForm, setStoreForm] = useState({
     trade_name: "", name: "", instagram: "", phone: "", address: "", tax_id: "", price_table_note: "",
+    pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B", pdf_logo_url: "", pdf_footer_text: "",
   });
   const [savingStore, setSavingStore] = useState(false);
 
@@ -38,6 +39,10 @@ export default function Configuracoes() {
       address: store.address ?? "",
       tax_id: store.tax_id ?? "",
       price_table_note: store.price_table_note ?? "",
+      pdf_primary_color: (store as any).pdf_primary_color ?? "#0EA5E9",
+      pdf_accent_color: (store as any).pdf_accent_color ?? "#1E293B",
+      pdf_logo_url: (store as any).pdf_logo_url ?? "",
+      pdf_footer_text: (store as any).pdf_footer_text ?? "",
     });
   }, [store]);
 
@@ -54,6 +59,10 @@ export default function Configuracoes() {
       address: storeForm.address || null,
       tax_id: storeForm.tax_id || null,
       price_table_note: storeForm.price_table_note || null,
+      pdf_primary_color: storeForm.pdf_primary_color || null,
+      pdf_accent_color: storeForm.pdf_accent_color || null,
+      pdf_logo_url: storeForm.pdf_logo_url || null,
+      pdf_footer_text: storeForm.pdf_footer_text || null,
     } as any).eq("id", store.id);
     setSavingStore(false);
     if (error) return toast.error(error.message);
