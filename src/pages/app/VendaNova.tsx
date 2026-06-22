@@ -63,15 +63,18 @@ const CATEGORIES_DEFAULT = [
 
 export default function VendaNova() {
   const navigate = useNavigate();
-  const { store, user } = useAuth();
+  const { store, user, role } = useAuth();
 
   // Cliente
   const [customer, setCustomer] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
   const [doc, setDoc] = useState("");
   const [city, setCity] = useState("");
-  const [seller, setSeller] = useState("");
+  const [sellerId, setSellerId] = useState<string>("");
+  const [seller, setSeller] = useState<string>("");
+  const [sellers, setSellers] = useState<{ user_id: string; full_name: string; role: string }[]>([]);
   const [unit, setUnit] = useState("");
   const [priceList, setPriceList] = useState("padrao");
 
@@ -123,6 +126,38 @@ export default function VendaNova() {
       setProducts(data ?? []);
     })();
   }, [store]);
+
+  // Carrega vendedores/gestores da loja (via função SECURITY DEFINER)
+  useEffect(() => {
+    if (!store || !user) return;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .rpc("get_store_sellers", { _store_id: store.id });
+      if (error) return;
+      const list = (data ?? []) as { user_id: string; full_name: string; role: string }[];
+      setSellers(list);
+
+      // Se vendedor, pré-seleciona a si mesmo e bloqueia a seleção.
+      if (role === "vendedor") {
+        const me = list.find((s) => s.user_id === user.id);
+        if (me) {
+          setSellerId(me.user_id);
+          setSeller(me.full_name);
+        }
+      }
+    })();
+  }, [store, user, role]);
+
+  const canChangeSeller = role === "dono" || role === "gerente";
+  const selectableSellers = canChangeSeller
+    ? sellers
+    : sellers.filter((s) => s.user_id === user?.id);
+
+  const onSellerChange = (uid: string) => {
+    const s = sellers.find((x) => x.user_id === uid);
+    setSellerId(uid);
+    setSeller(s?.full_name ?? "");
+  };
 
   const filteredProducts = useMemo(() => {
     const q = productQuery.trim().toLowerCase();
@@ -197,7 +232,7 @@ export default function VendaNova() {
 
   const buildPayload = () => ({
     extras: {
-      whatsapp, city, seller, unit, price_list: priceList,
+      whatsapp, phone, city, seller, seller_id: sellerId || null, unit, price_list: priceList,
       customer_doc_type: docType,
       commission: { percent: commissionPct, value: commissionValue, status: commissionStatus },
       payment: {
