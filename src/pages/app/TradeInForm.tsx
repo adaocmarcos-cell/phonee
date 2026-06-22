@@ -14,6 +14,31 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Upload, Trash2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
+function CurrencyBRLInput({
+  value,
+  onChange,
+  className,
+}: {
+  value: number | string;
+  onChange: (n: number) => void;
+  className?: string;
+}) {
+  const num = Number(value) || 0;
+  const display = num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (
+    <Input
+      inputMode="numeric"
+      value={display}
+      onChange={(e) => {
+        const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+        const cents = digits === "" ? 0 : parseInt(digits, 10);
+        onChange(cents / 100);
+      }}
+      className={className}
+    />
+  );
+}
+
 const CHECKLIST_ITEMS = [
   { key: "screen_ok", label: "Tela sem trincas ou manchas" },
   { key: "battery_ok", label: "Bateria saudável" },
@@ -182,8 +207,8 @@ export default function TradeInForm() {
               {form.imei_status === "restrito" && <Badge className="bg-danger/15 text-danger border-danger/30"><ShieldAlert className="h-3 w-3 mr-1" />IMEI com restrição</Badge>}
             </div>
             <div className="space-y-2"><Label>Saúde da bateria (%)</Label><Input type="number" min={0} max={100} value={form.battery_health} onChange={(e) => update({ battery_health: e.target.value })} className="font-mono" /></div>
-            <div className="space-y-2"><Label>Valor pago ao cliente</Label><Input type="number" step="0.01" value={form.entry_value} onChange={(e) => update({ entry_value: e.target.value })} className="font-mono" /></div>
-            <div className="space-y-2"><Label>Valor de venda pretendido</Label><Input type="number" step="0.01" value={form.intended_sale_value} onChange={(e) => update({ intended_sale_value: e.target.value })} className="font-mono" /></div>
+            <div className="space-y-2"><Label>Valor pago ao cliente (R$)</Label><CurrencyBRLInput value={form.entry_value} onChange={(n) => update({ entry_value: n })} className="font-mono" /></div>
+            <div className="space-y-2"><Label>Valor de venda pretendido (R$)</Label><CurrencyBRLInput value={form.intended_sale_value} onChange={(n) => update({ intended_sale_value: n })} className="font-mono" /></div>
             <div className="space-y-2"><Label>Margem estimada</Label><div className={`px-3 py-2 rounded-md border border-border bg-surface-elevated font-mono font-semibold ${margin >= 25 ? "text-success" : margin >= 10 ? "text-warning" : "text-danger"}`}>{margin.toFixed(1)}%</div></div>
           </div>
         </Card>
