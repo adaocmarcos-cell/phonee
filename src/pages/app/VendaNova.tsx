@@ -342,7 +342,8 @@ Obrigado pela preferência.`;
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Cliente"><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></Field>
-              <Field label="WhatsApp"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
+              <Field label="WhatsApp (opcional)"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
+              <Field label="Telefone (opcional)"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3000-0000" /></Field>
               <Field label="Tipo de documento">
                 <Select value={docType} onValueChange={(v: any) => { setDocType(v); setDoc(""); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -361,7 +362,18 @@ Obrigado pela preferência.`;
                 />
               </Field>
               <Field label="Cidade"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
-              <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
+              <Field label="Vendedor">
+                <Select value={sellerId} onValueChange={onSellerChange} disabled={!canChangeSeller && selectableSellers.length <= 1}>
+                  <SelectTrigger><SelectValue placeholder={selectableSellers.length ? "Selecione um vendedor" : "Sem vendedores cadastrados"} /></SelectTrigger>
+                  <SelectContent>
+                    {selectableSellers.map((s) => (
+                      <SelectItem key={s.user_id} value={s.user_id}>
+                        {s.full_name} {s.role !== "vendedor" && <span className="text-muted-foreground text-xs">· {s.role}</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label="Loja"><Input value={store?.name ?? ""} readOnly /></Field>
               <Field label="Unidade de negócio"><Input value={unit} onChange={(e) => setUnit(e.target.value)} /></Field>
               <Field label="Lista de preço">
