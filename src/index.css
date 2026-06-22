@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* SmartStock design system — dark first, electric blue + emerald accents.
+/* Mobile+ design system — dark first, electric blue + emerald accents.
    All colors MUST be HSL. Use semantic tokens — never raw classes in components. */
 
 @layer base {

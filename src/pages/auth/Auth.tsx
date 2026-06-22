@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
-import logo from "@/assets/smartstock-icon.png";
+import logo from "@/assets/mobileplus-icon.png";
 import { Boxes, Zap, ShieldCheck } from "lucide-react";
 
 const emailSchema = z.string().trim().email("E-mail inválido").max(255);
@@ -73,9 +73,9 @@ export default function Auth() {
         <div className="absolute inset-0 bg-grid opacity-[0.18] pointer-events-none" />
         <div className="relative">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="SmartStock" width={40} height={40} className="h-10 w-10" />
+            <img src={logo} alt="Mobile+" width={40} height={40} className="h-10 w-10" />
             <div>
-              <div className="text-lg font-bold tracking-tight">SmartStock</div>
+              <div className="text-lg font-bold tracking-tight">Mobile+</div>
               <div className="text-[11px] font-mono text-muted-foreground tracking-widest">ERP · SMARTPHONES</div>
             </div>
           </div>
@@ -90,7 +90,7 @@ export default function Auth() {
             <li className="flex gap-3"><ShieldCheck className="h-4 w-4 text-warning mt-0.5" /> Controle de seminovos, IMEI e checklist com fotos</li>
           </ul>
         </div>
-        <div className="relative text-[11px] font-mono text-muted-foreground tracking-widest">© SMARTSTOCK · 2026</div>
+        <div className="relative text-[11px] font-mono text-muted-foreground tracking-widest">© MOBILE+ · 2026</div>
       </div>
 
       {/* Right: form */}
@@ -98,7 +98,7 @@ export default function Auth() {
         <Card className="w-full max-w-md p-8 bg-card border-border shadow-card">
           <div className="mb-6 lg:hidden flex items-center gap-3">
             <img src={logo} alt="" width={32} height={32} className="h-8 w-8" />
-            <span className="text-lg font-bold">SmartStock</span>
+            <span className="text-lg font-bold">Mobile+</span>
           </div>
           <h1 className="text-2xl font-bold mb-1">Acesse sua loja</h1>
           <p className="text-sm text-muted-foreground mb-6">Entre ou crie sua conta para começar.</p>
@@ -149,7 +149,7 @@ export default function Auth() {
                   {busy ? "Criando…" : "Criar minha loja"}
                 </Button>
                 <p className="text-[11px] text-muted-foreground text-center">
-                  Ao criar, você vira o <strong className="text-foreground">dono</strong> da sua loja no SmartStock.
+                  Ao criar, você vira o <strong className="text-foreground">dono</strong> da sua loja no Mobile+.
                 </p>
               </form>
             </TabsContent>
