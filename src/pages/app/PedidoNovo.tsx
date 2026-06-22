@@ -350,9 +350,12 @@ export default function PedidoNovo() {
               ) : suggestions.map((s, i) => {
                 const urgent = s.days_to_rupture !== null && s.days_to_rupture <= 7;
                 return (
-                  <tr key={s.product_id} className={`hover:bg-surface-elevated/40 ${!s.selected ? "opacity-50" : ""}`}>
+                  <tr key={s.product_id ?? `custom-${i}`} className={`hover:bg-surface-elevated/40 ${!s.selected ? "opacity-50" : ""}`}>
                     <td className="px-4 py-3"><input type="checkbox" checked={s.selected} onChange={(e) => update(i, { selected: e.target.checked })} /></td>
-                    <td className="px-4 py-3 font-medium">{s.product_name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {s.product_name}
+                      {s.custom && <Badge className="ml-2 bg-primary/15 text-primary border-primary/30 text-[10px]">encomenda</Badge>}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">{s.supplier}</td>
                     <td className="px-4 py-3 text-right metric">
                       <span className={s.stock_current <= s.stock_min ? "text-warning font-semibold" : ""}>{s.stock_current}</span>
