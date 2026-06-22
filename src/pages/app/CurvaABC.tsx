@@ -5,6 +5,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { Info, TrendingUp, TrendingDown, Minus, Trophy, Percent, Wallet, Award } from "lucide-react";
 import { brl, num, pct, daysAgo } from "@/lib/format";
 import { MetricCard } from "@/components/MetricCard";
@@ -124,6 +127,7 @@ export default function CurvaABC() {
   const [pProfitCustom, setPProfitCustom] = useState<CustomRange>({});
   const [allSales, setAllSales] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [openClass, setOpenClass] = useState<"A" | "B" | "C" | null>(null);
 
   useEffect(() => {
     if (!store) return;
@@ -263,24 +267,73 @@ export default function CurvaABC() {
       </div>
 
       {/* KPIs no estilo do Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {(["A", "B", "C"] as const).map((cls) => {
           const tone: any = cls === "A" ? "success" : cls === "B" ? "warning" : "danger";
           const c = totals.counts[cls];
           const r = totals.rev[cls];
           const sharePct = totals.totalRevenue ? (r / totals.totalRevenue) * 100 : 0;
           return (
-            <MetricCard
+            <button
               key={cls}
-              label={`Classe ${cls} — ${num(c)} itens`}
-              value={brl(r)}
-              delta={`${pct(sharePct)} do faturamento`}
-              icon={cls === "A" ? Trophy : cls === "B" ? Award : Minus}
-              tone={tone}
-            />
+              type="button"
+              onClick={() => setOpenClass(cls)}
+              className="text-left rounded-lg transition-transform hover:-translate-y-0.5 hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-primary/60"
+              aria-label={`Ver produtos da Classe ${cls}`}
+            >
+              <MetricCard
+                label={`Classe ${cls}`}
+                value={brl(r)}
+                delta={`${num(c)} produtos que correspondem a ${pct(sharePct)} do faturamento`}
+                icon={cls === "A" ? Trophy : cls === "B" ? Award : Minus}
+                tone={tone}
+                className="cursor-pointer h-full"
+              />
+            </button>
           );
         })}
       </div>
+
+      <Dialog open={openClass !== null} onOpenChange={(o) => !o && setOpenClass(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Produtos da Classe {openClass}</DialogTitle>
+            <DialogDescription>
+              {openClass === "A" && "Top vendedores — sustentam até 80% do faturamento."}
+              {openClass === "B" && "Relevância média — próximos 15% do faturamento."}
+              {openClass === "C" && "Cauda longa — últimos 5% do faturamento."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {(() => {
+              const list = rows.filter((r) => r.class === openClass);
+              if (!list.length) return <p className="text-sm text-muted-foreground py-6 text-center">Nenhum produto nesta classe no período.</p>;
+              return (
+                <table className="w-full text-sm">
+                  <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">#</th>
+                      <th className="text-left px-3 py-2 font-medium">Produto</th>
+                      <th className="text-right px-3 py-2 font-medium">Receita</th>
+                      <th className="text-right px-3 py-2 font-medium">% acum.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {list.map((r, i) => (
+                      <tr key={r.id} className="hover:bg-surface-elevated/40">
+                        <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{i + 1}</td>
+                        <td className="px-3 py-2 font-medium">{r.name}</td>
+                        <td className="px-3 py-2 text-right metric font-semibold">{brl(r.revenue)}</td>
+                        <td className="px-3 py-2 text-right metric text-muted-foreground">{pct(r.cum)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Rankings */}
       {canSeeCost(role) && (

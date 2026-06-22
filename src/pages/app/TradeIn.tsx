@@ -50,7 +50,7 @@ export default function TradeIn() {
   return (
     <div>
       <PageHeader
-        title="Trade-in & Seminovos"
+        title="Compra & Troca"
         description="Fichas de entrada de aparelhos usados com checklist, fotos e status."
         actions={
           <Button onClick={() => navigate("/app/trade-in/novo")} className="bg-gradient-primary shadow-glow">
