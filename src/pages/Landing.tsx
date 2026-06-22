@@ -47,13 +47,13 @@ function BenefitCard({ icon: Icon, title, desc }: { icon: any; title: string; de
 }
 
 function CheckItem({ children, negative = false, big = false }: { children: React.ReactNode; negative?: boolean; big?: boolean }) {
-  const size = big ? "h-7 w-7" : "h-6 w-6";
+  const size = big ? "h-6 w-6" : "h-5 w-5";
   return (
-    <li className={`flex items-start gap-3 ${big ? "text-lg md:text-xl font-semibold" : "text-base font-medium"}`}>
+    <li className={`flex items-start gap-3 ${big ? "text-base md:text-lg font-normal" : "text-sm font-normal"}`}>
       {negative ? (
-        <X className={`${size} text-danger shrink-0 mt-0.5`} strokeWidth={3.5} />
+        <X className={`${size} text-danger shrink-0 mt-0.5`} strokeWidth={3} />
       ) : (
-        <CheckCircle2 className={`${size} text-success shrink-0 mt-0.5`} strokeWidth={2.5} />
+        <CheckCircle2 className={`${size} text-success shrink-0 mt-0.5`} strokeWidth={2.25} />
       )}
       <span>{children}</span>
     </li>
