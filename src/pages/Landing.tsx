@@ -95,9 +95,9 @@ export default function Landing() {
                 Fazer login
               </Button>
             </Link>
-            <a href="#preco">
+            <Link to="/comprar?plano=annual">
               <Button className="bg-gradient-primary shadow-glow hidden sm:inline-flex">Comprar agora</Button>
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -135,11 +135,11 @@ export default function Landing() {
               que querem organizar a operação, automatizar processos e acompanhar seus números em tempo real.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#preco">
+              <Link to="/comprar?plano=annual">
                 <Button size="lg" className="bg-gradient-primary shadow-glow text-base h-12 px-7">
                   Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
-              </a>
+              </Link>
               <Link to="/auth">
                 <Button size="lg" variant="outline" className="text-base h-12 px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                   Fazer login
@@ -176,8 +176,8 @@ export default function Landing() {
               <div className="rounded-lg border border-white/15 bg-white/5 p-4">
                 <div className="text-xs font-mono tracking-widest text-primary font-bold">RECOMENDADO · PLANO VITALÍCIO</div>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="metric text-3xl">R$ 197</span>
-                  <span className="text-sm text-slate-300 ml-1">pagamento único</span>
+                  <span className="metric text-3xl">R$ 297</span>
+                  <span className="text-sm text-slate-300 ml-1">pagamento único · até 12x</span>
                 </div>
                 <div className="text-xs text-slate-200 mt-1">
                   Pague uma vez e use para sempre — sem renovação, com prioridade no suporte e acesso antecipado a novos módulos.
@@ -189,11 +189,11 @@ export default function Landing() {
                 <CheckItem>Sem cobrança recorrente</CheckItem>
                 <CheckItem>Atualizações incluídas</CheckItem>
               </ul>
-              <a href="#preco" className="block mt-7">
+              <Link to="/comprar?plano=annual" className="block mt-7">
                 <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
                   Quero garantir agora
                 </Button>
-              </a>
+              </Link>
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-300">
                 <Lock className="h-3 w-3" /> Pagamento 100% seguro
               </div>
@@ -491,11 +491,11 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <a href="#" className="block mt-7">
+                <Link to="/comprar?plano=annual" className="block mt-7">
                   <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
                     Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
-                </a>
+                </Link>
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
@@ -513,7 +513,7 @@ export default function Landing() {
                   Plano Vitalício · Pagamento único
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-6xl md:text-7xl text-primary">R$ 197</span>
+                  <span className="metric text-6xl md:text-7xl text-primary">R$ 297</span>
                 </div>
                 <div className="mt-1 text-xl font-extrabold">pague uma vez, use para sempre</div>
                 <div className="mt-1 text-lg font-semibold text-foreground/80">
@@ -534,11 +534,11 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <a href="#" className="block mt-7">
+                <Link to="/comprar?plano=lifetime" className="block mt-7">
                   <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
                     Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
-                </a>
+                </Link>
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
@@ -562,11 +562,11 @@ export default function Landing() {
             e tenha mais liberdade para crescer.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a href="#preco">
+            <Link to="/comprar?plano=annual">
               <Button size="lg" className="bg-gradient-primary shadow-glow h-12 px-7 text-base">
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
-            </a>
+            </Link>
             <Link to="/auth">
               <Button size="lg" variant="outline" className="h-12 px-7 text-base bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                 Fazer login
