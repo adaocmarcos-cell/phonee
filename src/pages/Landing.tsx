@@ -197,6 +197,7 @@ export default function Landing() {
               </div>
             </Card>
           </div>
+          </div>
         </div>
       </section>
 
