@@ -166,7 +166,7 @@ export default function Auth() {
                         onCheckedChange={(v) => setRemember(v === true)}
                         className="h-4 w-4"
                       />
-                      Lembrar meu login
+                      Salvar senha e manter conectado
                     </label>
                     <Link to="/forgot-password" className="text-xs text-primary hover:underline">
                       Esqueceu a senha?
