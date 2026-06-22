@@ -329,39 +329,39 @@ Obrigado pela preferência.`;
             </div>
 
             {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground border-b border-border">
-                  <tr>
-                    <th className="text-left px-2 py-2">Produto</th>
-                    <th className="text-left px-2 py-2">Código</th>
-                    <th className="text-left px-2 py-2">Cor</th>
-                    <th className="text-left px-2 py-2">Armaz.</th>
-                    <th className="text-right px-2 py-2 w-16">Qtd</th>
-                    <th className="text-right px-2 py-2 w-24">P. lista</th>
-                    <th className="text-right px-2 py-2 w-16">Desc%</th>
-                    <th className="text-right px-2 py-2 w-24">Desc R$</th>
-                    <th className="text-right px-2 py-2 w-24">P. unit.</th>
-                    <th className="text-right px-2 py-2 w-28">Total</th>
-                    <th className="w-8" />
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-border/70">
+              <table className="w-full text-sm border-collapse [&_th]:border-r [&_th]:border-border/60 [&_th:last-child]:border-r-0 [&_td]:border-r [&_td]:border-border/40 [&_td:last-child]:border-r-0">
+                <thead className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground bg-surface-elevated">
+                  <tr className="border-b border-border">
+                    <th className="text-left px-3 py-2.5 font-medium">Produto</th>
+                    <th className="text-left px-3 py-2.5 font-medium">Código</th>
+                    <th className="text-left px-3 py-2.5 font-medium">Cor</th>
+                    <th className="text-left px-3 py-2.5 font-medium">Armaz.</th>
+                    <th className="text-right px-3 py-2.5 font-medium w-16">Qtd</th>
+                    <th className="text-right px-3 py-2.5 font-medium w-24">P. lista</th>
+                    <th className="text-right px-3 py-2.5 font-medium w-16">Desc%</th>
+                    <th className="text-right px-3 py-2.5 font-medium w-24">Desc R$</th>
+                    <th className="text-right px-3 py-2.5 font-medium w-24">P. unit.</th>
+                    <th className="text-right px-3 py-2.5 font-medium w-28">Total</th>
+                    <th className="w-10" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody>
                   {items.length === 0 ? (
-                    <tr><td colSpan={11} className="text-center text-xs text-muted-foreground py-6">Nenhum item — busque acima para adicionar</td></tr>
-                  ) : items.map((i) => (
-                    <tr key={i.product_id}>
-                      <td className="px-2 py-2 truncate max-w-[180px]">{i.name}</td>
-                      <td className="px-2 py-2 font-mono text-xs">{i.code}</td>
-                      <td className="px-2 py-2 text-xs">{i.color || "—"}</td>
-                      <td className="px-2 py-2 text-xs">{i.storage || "—"}</td>
-                      <td className="px-2"><Input type="number" min={1} value={i.quantity} onChange={(e) => updateItem(i.product_id, { quantity: Math.max(1, Number(e.target.value)) })} className="h-8 text-right" /></td>
-                      <td className="px-2"><Input type="number" step="0.01" value={i.list_price} onChange={(e) => updateItem(i.product_id, { list_price: Number(e.target.value) })} className="h-8 text-right" /></td>
-                      <td className="px-2"><Input type="number" step="0.01" value={i.discount_pct} onChange={(e) => updateItem(i.product_id, { discount_pct: Number(e.target.value) })} className="h-8 text-right" /></td>
-                      <td className="px-2"><Input type="number" step="0.01" value={i.discount_brl} onChange={(e) => updateItem(i.product_id, { discount_brl: Number(e.target.value) })} className="h-8 text-right" /></td>
-                      <td className="px-2"><Input type="number" step="0.01" value={i.unit_price} onChange={(e) => updateItem(i.product_id, { unit_price: Number(e.target.value) })} className="h-8 text-right" /></td>
-                      <td className="px-2 py-2 text-right metric font-semibold">{brl(i.quantity * i.unit_price)}</td>
-                      <td><Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button></td>
+                    <tr><td colSpan={11} className="text-center text-xs text-muted-foreground py-8 border-r-0">Nenhum item — busque acima para adicionar</td></tr>
+                  ) : items.map((i, idx) => (
+                    <tr key={i.product_id} className={`border-t border-border/60 transition-colors hover:bg-primary/[0.03] ${idx % 2 === 1 ? "bg-surface-elevated/40" : ""}`}>
+                      <td className="px-3 py-2.5 truncate max-w-[180px] font-medium">{i.name}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{i.code}</td>
+                      <td className="px-3 py-2.5 text-xs">{i.color || "—"}</td>
+                      <td className="px-3 py-2.5 text-xs">{i.storage || "—"}</td>
+                      <td className="px-2 py-1.5"><Input type="number" min={1} value={i.quantity} onChange={(e) => updateItem(i.product_id, { quantity: Math.max(1, Number(e.target.value)) })} className="h-8 text-right" /></td>
+                      <td className="px-2 py-1.5"><Input type="number" step="0.01" value={i.list_price} onChange={(e) => updateItem(i.product_id, { list_price: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-2 py-1.5"><Input type="number" step="0.01" value={i.discount_pct} onChange={(e) => updateItem(i.product_id, { discount_pct: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-2 py-1.5"><Input type="number" step="0.01" value={i.discount_brl} onChange={(e) => updateItem(i.product_id, { discount_brl: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-2 py-1.5"><Input type="number" step="0.01" value={i.unit_price} onChange={(e) => updateItem(i.product_id, { unit_price: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-3 py-2.5 text-right metric font-semibold text-primary">{brl(i.quantity * i.unit_price)}</td>
+                      <td className="text-center"><Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button></td>
                     </tr>
                   ))}
                 </tbody>
