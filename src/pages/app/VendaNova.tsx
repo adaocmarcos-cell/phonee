@@ -714,6 +714,7 @@ Obrigado pela preferência.`;
             <div><strong>Cliente:</strong> {customer || "—"}</div>
             <div><strong>{docType.toUpperCase()}:</strong> {doc || "—"}</div>
             <div><strong>WhatsApp:</strong> {whatsapp || "—"}</div>
+            <div><strong>Telefone:</strong> {phone || "—"}</div>
             <div><strong>Cidade:</strong> {city || "—"}</div>
             <div><strong>Vendedor:</strong> {seller || "—"}</div>
             <div><strong>Pagamento:</strong> {payMethod.toUpperCase()} {installments > 1 ? `(${installments}x)` : ""}</div>
