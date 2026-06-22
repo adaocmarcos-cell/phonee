@@ -21,6 +21,8 @@ import TradeInForm from "./pages/app/TradeInForm";
 import Pedidos from "./pages/app/Pedidos";
 import PedidoNovo from "./pages/app/PedidoNovo";
 import Despesas from "./pages/app/Despesas";
+import OrdensServico from "./pages/app/OrdensServico";
+import OrdemServicoForm from "./pages/app/OrdemServicoForm";
 import ComingSoon from "./pages/app/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -53,7 +55,9 @@ const App = () => (
               <Route path="vendas/nova" element={<VendaNova />} />
               <Route path="despesas" element={<Despesas />} />
               <Route path="clientes" element={<ComingSoon title="Clientes" description="CRM básico por CPF." />} />
-              <Route path="os" element={<ComingSoon title="Ordens de Serviço" description="Assistência técnica." />} />
+              <Route path="os" element={<OrdensServico />} />
+              <Route path="os/nova" element={<OrdemServicoForm />} />
+              <Route path="os/:id" element={<OrdemServicoForm />} />
               <Route path="alertas" element={<Alertas />} />
               <Route path="catalogo-config" element={<ComingSoon title="Catálogo público" description="Personalize seu minisite." />} />
               <Route path="admin/usuarios" element={<ComingSoon title="Usuários & permissões" description="Gestão de funcionários por perfil." />} />
