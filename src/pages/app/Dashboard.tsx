@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Sparkles, Wallet, Filter } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -187,7 +187,7 @@ export default function Dashboard() {
         <MetricCard
           label={canSeeCost(role) ? "Margem média" : "Estoque baixo"}
           value={canSeeCost(role) ? pct(margin) : num(productsLow)}
-          icon={canSeeCost(role) ? Sparkles : AlertTriangle}
+          icon={canSeeCost(role) ? Percent : AlertTriangle}
           tone={canSeeCost(role) ? "violet" : "warning"}
         />
         <MetricCard
