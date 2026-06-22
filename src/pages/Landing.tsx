@@ -80,13 +80,13 @@ function DashStat({ label, value, sub, accent = "primary" }: {
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* NAV — preto sólido */}
-      <header className="sticky top-0 z-50 bg-black border-b border-white/10">
+      {/* NAV — mesma cor do hero */}
+      <header className="sticky top-0 z-50 bg-[hsl(226_50%_15%)] border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
-          <nav className="hidden md:flex items-center gap-8 text-base font-semibold text-white">
+          <nav className="hidden md:flex items-center gap-8 text-base font-normal text-white">
             <a href="#beneficios" className="hover:text-primary transition">Benefícios</a>
             <a href="#dashboard" className="hover:text-primary transition">Dashboard</a>
-            <a href="#preco" className="hover:text-primary transition">Preço</a>
+            <a href="#preco" className="hover:text-primary transition">Preços</a>
             <a href="#garantia" className="hover:text-primary transition">Garantia</a>
           </nav>
           <div className="flex items-center gap-2 ml-auto">
@@ -110,21 +110,19 @@ export default function Landing() {
         <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-5 pt-4 pb-16 lg:pt-6 lg:pb-20">
-          {/* LOGO PRINCIPAL — cores originais sobre painel branco */}
+          {/* LOGO PRINCIPAL — sem fundo, tamanho reduzido */}
           <div className="flex justify-center mb-6 lg:mb-8">
-            <div className="bg-white rounded-3xl px-10 py-4 md:px-16 md:py-6 shadow-2xl ring-1 ring-white/10">
-              <img
-                src={logo}
-                alt="Mobile+"
-                className="h-40 sm:h-56 md:h-72 lg:h-80 w-auto"
-              />
-            </div>
+            <img
+              src={logo}
+              alt="Mobile+"
+              className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto"
+            />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <Badge className="mb-6 bg-primary/20 text-white border-primary/40 hover:bg-primary/25 text-sm py-1.5 px-3">
-              ERP especializado em smartphones e assistência
+              Sistema especializado para lojas de smartphones, eletrônicos e assistências técnicas
             </Badge>
             <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.02] tracking-tight">
               Mais controle. <br />
@@ -176,7 +174,7 @@ export default function Landing() {
               <div className="rounded-lg border border-white/15 bg-white/5 p-4">
                 <div className="text-xs font-mono tracking-widest text-primary font-bold">RECOMENDADO · PLANO VITALÍCIO</div>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="metric text-3xl">R$ 297</span>
+                  <span className="metric text-3xl">R$ 197</span>
                   <span className="text-sm text-slate-300 ml-1">pagamento único · até 12x</span>
                 </div>
                 <div className="text-xs text-slate-200 mt-1">
@@ -513,7 +511,7 @@ export default function Landing() {
                   Plano Vitalício · Pagamento único
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-6xl md:text-7xl text-primary">R$ 297</span>
+                  <span className="metric text-6xl md:text-7xl text-primary">R$ 197</span>
                 </div>
                 <div className="mt-1 text-xl font-extrabold">pague uma vez, use para sempre</div>
                 <div className="mt-1 text-lg font-semibold text-foreground/80">
