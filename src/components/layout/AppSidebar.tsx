@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { canManageUsers, isAdminMaster } from "@/lib/roles";
-import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+import logoAsset from "@/assets/mobileplus-logo-light.png.asset.json";
 
 type Item = { title: string; url: string; icon: any; end?: boolean };
 
@@ -92,12 +92,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border bg-white">
-        <div className={`flex items-center justify-center px-2 ${collapsed ? "py-3" : "py-6"}`}>
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className={`flex items-center justify-center px-2 ${collapsed ? "py-2" : "py-4"}`}>
           <img
             src={logoAsset.url}
             alt="Mobile+"
-            className={collapsed ? "h-10 w-auto" : "h-28 w-auto"}
+            className={collapsed ? "h-5 w-auto object-contain" : "h-14 w-auto object-contain"}
           />
         </div>
       </SidebarHeader>
