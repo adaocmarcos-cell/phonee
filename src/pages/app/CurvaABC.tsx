@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Info, TrendingUp, TrendingDown, Minus, Filter, Trophy, Percent, Wallet, Award } from "lucide-react";
 import { brl, num, pct, daysAgo } from "@/lib/format";
+import { MetricCard } from "@/components/MetricCard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Bar, BarChart, CartesianGrid, ComposedChart, Line, ResponsiveContainer,
   Tooltip as ReTooltip, XAxis, YAxis, Cell,
@@ -17,6 +19,9 @@ type Row = {
   name: string;
   revenue: number;
   qty: number;
+  cost: number;
+  profit: number;
+  margin: number;
   stock: number;
   last_sold_at: string | null;
   class: "A" | "B" | "C";
@@ -37,7 +42,7 @@ const InfoTip = ({ children }: { children: React.ReactNode }) => (
   </Tooltip>
 );
 
-function classify(rows: { id: string; name: string; revenue: number; qty: number; stock: number; last_sold_at: string | null }[]): Row[] {
+function classify(rows: Omit<Row, "class" | "cum" | "share">[]): Row[] {
   const sorted = [...rows].sort((a, b) => b.revenue - a.revenue);
   const total = sorted.reduce((s, r) => s + r.revenue, 0) || 1;
   let cum = 0;
@@ -49,49 +54,172 @@ function classify(rows: { id: string; name: string; revenue: number; qty: number
   });
 }
 
+function RankingCard({
+  title, icon, period, onPeriod, items, metric, sub,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  period: Period;
+  onPeriod: (p: Period) => void;
+  items: { id: string; name: string; qty: number; revenue: number; profit: number; margin: number }[];
+  metric: (r: any) => string;
+  sub: (r: any) => string;
+}) {
+  return (
+    <Card className="bg-card border-border shadow-card p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="font-semibold text-sm">{title}</h3>
+        </div>
+        <MiniFilter value={period} onChange={onPeriod} />
+      </div>
+      {items.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-8">Sem dados no período.</p>
+      ) : (
+        <ol className="space-y-2">
+          {items.map((r, i) => (
+            <li key={r.id} className="flex items-center gap-3 p-2 rounded-md bg-surface-elevated border border-border/60">
+              <span className="text-xs font-mono font-bold text-primary w-5 text-center">{i + 1}º</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{r.name}</div>
+                <div className="text-[11px] text-muted-foreground">{sub(r)}</div>
+              </div>
+              <span className="metric text-sm font-bold">{metric(r)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Card>
+  );
+}
+
+type Period = "7d" | "30d" | "90d" | "6m" | "1y";
+const PERIODS: { v: Period; label: string; days: number }[] = [
+  { v: "7d", label: "7 dias", days: 7 },
+  { v: "30d", label: "30 dias", days: 30 },
+  { v: "90d", label: "90 dias", days: 90 },
+  { v: "6m", label: "6 meses", days: 180 },
+  { v: "1y", label: "1 ano", days: 365 },
+];
+const daysFor = (p: Period) => PERIODS.find((x) => x.v === p)!.days;
+
+function MiniFilter({ value, onChange }: { value: Period; onChange: (v: Period) => void }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Filter className="h-3 w-3 text-muted-foreground" />
+      <Select value={value} onValueChange={(v) => onChange(v as Period)}>
+        <SelectTrigger className="h-7 w-[110px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {PERIODS.map((p) => <SelectItem key={p.v} value={p.v}>{p.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export default function CurvaABC() {
-  const { store } = useAuth();
+  const { store, role } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>("90d");
+  const [pSold, setPSold] = useState<Period>("30d");
+  const [pMargin, setPMargin] = useState<Period>("30d");
+  const [pProfit, setPProfit] = useState<Period>("30d");
+  const [allSales, setAllSales] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
 
   useEffect(() => {
     if (!store) return;
     (async () => {
       setLoading(true);
-      const since = new Date(Date.now() - 90 * 86400_000).toISOString();
+      const since = new Date(Date.now() - 365 * 86400_000).toISOString();
       const { data: products } = await supabase
         .from("products")
-        .select("id, name, stock_current, last_sold_at")
+        .select("id, name, stock_current, last_sold_at, cost_price")
         .eq("store_id", store.id);
       const { data: sales } = await supabase
         .from("sales")
-        .select("id, created_at, sale_items(product_id, quantity, total)")
+        .select("id, created_at, sale_items(product_id, quantity, total, unit_price)")
         .eq("store_id", store.id)
         .gte("created_at", since);
+      setAllSales(sales ?? []);
+      setAllProducts(products ?? []);
+      setLoading(false);
+    })();
+  }, [store]);
 
-      const agg = new Map<string, { revenue: number; qty: number }>();
-      (sales ?? []).forEach((s: any) =>
-        (s.sale_items ?? []).forEach((it: any) => {
+  // Aggregate for the main ABC view, scoped by `period`
+  useEffect(() => {
+    if (!allProducts.length && !allSales.length) return;
+    const cutoff = Date.now() - daysFor(period) * 86400_000;
+    const agg = new Map<string, { revenue: number; qty: number; cost: number }>();
+    const costMap = new Map<string, number>();
+    allProducts.forEach((p: any) => costMap.set(p.id, Number(p.cost_price || 0)));
+    allSales.forEach((s: any) => {
+      if (new Date(s.created_at).getTime() < cutoff) return;
+      (s.sale_items ?? []).forEach((it: any) => {
           if (!it.product_id) return;
-          const cur = agg.get(it.product_id) ?? { revenue: 0, qty: 0 };
+        const cur = agg.get(it.product_id) ?? { revenue: 0, qty: 0, cost: 0 };
           cur.revenue += Number(it.total) || 0;
           cur.qty += Number(it.quantity) || 0;
+        cur.cost += (costMap.get(it.product_id) || 0) * (Number(it.quantity) || 0);
           agg.set(it.product_id, cur);
-        })
-      );
+      });
+    });
 
-      const merged = (products ?? []).map((p: any) => ({
+    const merged = allProducts.map((p: any) => {
+      const a = agg.get(p.id) ?? { revenue: 0, qty: 0, cost: 0 };
+      const profit = a.revenue - a.cost;
+      return {
         id: p.id,
         name: p.name,
         stock: p.stock_current,
         last_sold_at: p.last_sold_at,
-        revenue: agg.get(p.id)?.revenue ?? 0,
-        qty: agg.get(p.id)?.qty ?? 0,
-      }));
-      setRows(classify(merged));
-      setLoading(false);
-    })();
-  }, [store]);
+        revenue: a.revenue,
+        qty: a.qty,
+        cost: a.cost,
+        profit,
+        margin: a.revenue > 0 ? (profit / a.revenue) * 100 : 0,
+      };
+    });
+    setRows(classify(merged));
+  }, [allProducts, allSales, period]);
+
+  const ranking = (p: Period, key: "qty" | "margin" | "profit") => {
+    const cutoff = Date.now() - daysFor(p) * 86400_000;
+    const costMap = new Map<string, number>();
+    allProducts.forEach((pr: any) => costMap.set(pr.id, Number(pr.cost_price || 0)));
+    const nameMap = new Map<string, string>();
+    allProducts.forEach((pr: any) => nameMap.set(pr.id, pr.name));
+    const agg = new Map<string, { qty: number; revenue: number; cost: number }>();
+    allSales.forEach((s: any) => {
+      if (new Date(s.created_at).getTime() < cutoff) return;
+      (s.sale_items ?? []).forEach((it: any) => {
+        if (!it.product_id) return;
+        const cur = agg.get(it.product_id) ?? { qty: 0, revenue: 0, cost: 0 };
+        cur.qty += Number(it.quantity) || 0;
+        cur.revenue += Number(it.total) || 0;
+        cur.cost += (costMap.get(it.product_id) || 0) * (Number(it.quantity) || 0);
+        agg.set(it.product_id, cur);
+      });
+    });
+    const list = Array.from(agg.entries()).map(([id, v]) => {
+      const profit = v.revenue - v.cost;
+      return {
+        id, name: nameMap.get(id) ?? "—",
+        qty: v.qty, revenue: v.revenue, profit,
+        margin: v.revenue > 0 ? (profit / v.revenue) * 100 : 0,
+      };
+    });
+    if (key === "qty") return list.sort((a, b) => b.qty - a.qty).slice(0, 5);
+    if (key === "margin") return list.filter((x) => x.revenue > 0).sort((a, b) => b.margin - a.margin).slice(0, 5);
+    return list.sort((a, b) => b.profit - a.profit).slice(0, 5);
+  };
+
+  const topSold = useMemo(() => ranking(pSold, "qty"), [pSold, allSales, allProducts]);
+  const topMargin = useMemo(() => ranking(pMargin, "margin"), [pMargin, allSales, allProducts]);
+  const topProfit = useMemo(() => ranking(pProfit, "profit"), [pProfit, allSales, allProducts]);
 
   const totals = useMemo(() => {
     const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
@@ -125,35 +253,72 @@ export default function CurvaABC() {
     <div>
       <PageHeader
         title="Curva ABC & Regra 80/20"
-        description="Classificação automática dos produtos pelo faturamento dos últimos 90 dias."
+        description="Classificação automática dos produtos por faturamento."
       />
 
-      {/* KPIs com tooltips */}
-      <div className="grid md:grid-cols-3 gap-3 mb-6">
+      <div className="flex items-center justify-end gap-2 mb-4">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Período</span>
+        <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+          <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {PERIODS.map((p) => <SelectItem key={p.v} value={p.v}>{p.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* KPIs no estilo do Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {(["A", "B", "C"] as const).map((cls) => {
-          const cfg = cls === "A"
-            ? { tone: "success", title: "Classe A — vitais", desc: "Top 20% que respondem por ~80% do faturamento. Nunca pode faltar." }
-            : cls === "B"
-            ? { tone: "warning", title: "Classe B — relevantes", desc: "15% do faturamento. Mantenha estoque equilibrado." }
-            : { tone: "danger", title: "Classe C — triviais", desc: "Cauda longa. Avalie reduzir compras ou liquidar." };
+          const tone: any = cls === "A" ? "success" : cls === "B" ? "warning" : "danger";
           const c = totals.counts[cls];
           const r = totals.rev[cls];
           const sharePct = totals.totalRevenue ? (r / totals.totalRevenue) * 100 : 0;
           return (
-            <Card key={cls} className="bg-card border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Badge className={`bg-${cfg.tone}/15 text-${cfg.tone} border-${cfg.tone}/30`}>Classe {cls}</Badge>
-                  <InfoTip>{cfg.desc}</InfoTip>
-                </div>
-                <span className="text-[11px] font-mono text-muted-foreground tracking-widest">{num(c)} ITENS</span>
-              </div>
-              <div className="metric text-2xl font-bold">{brl(r)}</div>
-              <div className="text-xs text-muted-foreground mt-1">{pct(sharePct)} do faturamento</div>
-            </Card>
+            <MetricCard
+              key={cls}
+              label={`Classe ${cls} — ${num(c)} itens`}
+              value={brl(r)}
+              delta={`${pct(sharePct)} do faturamento`}
+              icon={cls === "A" ? Trophy : cls === "B" ? Award : Minus}
+              tone={tone}
+            />
           );
         })}
       </div>
+
+      {/* Rankings */}
+      {canSeeCost(role) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <RankingCard
+            title="Mais vendidos"
+            icon={<Trophy className="h-4 w-4 text-primary" />}
+            period={pSold}
+            onPeriod={setPSold}
+            items={topSold}
+            metric={(r) => `${num(r.qty)} un.`}
+            sub={(r) => brl(r.revenue)}
+          />
+          <RankingCard
+            title="Maiores margens"
+            icon={<Percent className="h-4 w-4 text-emerald-600" />}
+            period={pMargin}
+            onPeriod={setPMargin}
+            items={topMargin}
+            metric={(r) => pct(r.margin)}
+            sub={(r) => `Lucro ${brl(r.profit)}`}
+          />
+          <RankingCard
+            title="Maiores lucros"
+            icon={<Wallet className="h-4 w-4 text-amber-600" />}
+            period={pProfit}
+            onPeriod={setPProfit}
+            items={topProfit}
+            metric={(r) => brl(r.profit)}
+            sub={(r) => `Receita ${brl(r.revenue)}`}
+          />
+        </div>
+      )}
 
       {/* Pareto */}
       <Card className="bg-card border-border p-5 mb-6">
@@ -168,7 +333,7 @@ export default function CurvaABC() {
           {loading ? (
             <div className="flex items-center justify-center h-full text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</div>
           ) : paretoData.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Sem vendas nos últimos 90 dias.</div>
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Sem vendas no período.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={paretoData}>
