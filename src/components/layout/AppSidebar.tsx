@@ -74,8 +74,8 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {renderGroup("Inteligência", main)}
         {renderGroup("Operação", ops)}
+        {renderGroup("Inteligência", main)}
         {renderGroup("Configuração", config)}
       </SidebarContent>
     </Sidebar>
