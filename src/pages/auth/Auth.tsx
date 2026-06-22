@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,11 @@ export default function Auth() {
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha</Label>
                   <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+                  <div className="text-right">
+                    <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                      Esqueceu a senha?
+                    </Link>
+                  </div>
                 </div>
                 <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-glow">
                   {busy ? "Entrando…" : "Entrar"}
