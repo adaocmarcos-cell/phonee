@@ -146,7 +146,7 @@ export default function Landing() {
             </div>
             <div className="mt-8 flex items-center gap-2 text-base text-white/90 font-semibold">
               <ShieldCheck className="h-5 w-5 text-success" />
-              Garantia total de 7 dias · Se não atender suas necessidades e expectativas devolvemos 100% do valor de volta sem questionar
+              Garantia total de 7 dias · Se não atender suas expectativas devolvemos 100% do valor pago, sem questionar.
             </div>
           </div>
 
