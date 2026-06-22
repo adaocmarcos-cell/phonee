@@ -6,11 +6,18 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Copy } from "lucide-react";
 
 export default function PagamentosAsaas() {
   const [settings, setSettings] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState(false);
+  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asaas-webhook`;
+
+  const copyWebhook = async () => {
+    await navigator.clipboard.writeText(webhookUrl);
+    toast.success("URL do webhook copiada");
+  };
 
   const load = async () => {
     const { data } = await supabase.from("asaas_settings").select("*").limit(1).maybeSingle();
@@ -77,10 +84,43 @@ export default function PagamentosAsaas() {
           <Button variant="outline" onClick={test} disabled={testing}>{testing ? "Testando…" : "Testar conexão"}</Button>
         </div>
 
-        <div className="text-xs text-muted-foreground border-t pt-3 space-y-1">
-          <div><strong>URL do Webhook:</strong> Configure no painel do Asaas apontando para a função <code>asaas-webhook</code>.</div>
-          <div>Header esperado: <code>asaas-access-token: SEU_WEBHOOK_TOKEN</code> (idêntico ao secret <code>ASAAS_WEBHOOK_TOKEN</code>).</div>
-          <div>Para trocar a API Key ou o Webhook Token, atualize os secrets na seção Backend.</div>
+      </Card>
+
+      <Card className="p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-bold">Webhook do Asaas</h2>
+          <p className="text-sm text-muted-foreground">
+            Use a URL abaixo para receber notificações de pagamento do Asaas. O token de
+            autenticação fica armazenado em segredo no backend e nunca é exibido aqui.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>URL do Webhook</Label>
+          <div className="flex gap-2">
+            <Input readOnly value={webhookUrl} className="font-mono text-xs" />
+            <Button type="button" variant="outline" onClick={copyWebhook}>
+              <Copy className="h-4 w-4 mr-1" /> Copiar
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-md border bg-muted/30 p-4 text-sm space-y-3">
+          <div className="font-semibold">Como cadastrar no Asaas — passo a passo</div>
+          <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground">
+            <li>Acesse sua conta em <strong>www.asaas.com</strong> e entre no menu <strong>Integrações → Webhooks</strong>.</li>
+            <li>Clique em <strong>Adicionar novo webhook</strong>.</li>
+            <li>Em <strong>URL</strong>, cole o endereço acima.</li>
+            <li>Em <strong>E-mail para notificação de erros</strong>, informe o e-mail do administrador.</li>
+            <li>Em <strong>Versão da API</strong>, selecione <strong>v3</strong>.</li>
+            <li>Em <strong>Token de autenticação</strong>, cole exatamente o mesmo valor configurado no segredo <code>ASAAS_WEBHOOK_TOKEN</code> deste sistema (peça ao desenvolvedor caso não tenha — ele não é exibido aqui por segurança).</li>
+            <li>Em <strong>Eventos</strong>, marque pelo menos: <em>PAYMENT_CONFIRMED, PAYMENT_RECEIVED, PAYMENT_OVERDUE, PAYMENT_REFUNDED, PAYMENT_DELETED</em>.</li>
+            <li>Marque <strong>Habilitado</strong> e salve.</li>
+            <li>Volte aqui e clique em <strong>Testar conexão</strong> para validar a API Key.</li>
+          </ol>
+          <div className="text-xs text-muted-foreground border-t pt-2">
+            Para trocar a API Key ou o Webhook Token, atualize os segredos <code>ASAAS_API_KEY</code> e <code>ASAAS_WEBHOOK_TOKEN</code> na seção Backend.
+          </div>
         </div>
       </Card>
     </div>
