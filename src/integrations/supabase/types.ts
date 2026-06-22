@@ -66,7 +66,15 @@ export type Database = {
           entity: string | null
           entity_id: string | null
           id: string
+          ip: string | null
+          module: string | null
+          new_value: Json | null
+          old_value: Json | null
+          role: string | null
+          screen: string | null
+          status: string | null
           store_id: string | null
+          user_agent: string | null
           user_id: string | null
         }
         Insert: {
@@ -76,7 +84,15 @@ export type Database = {
           entity?: string | null
           entity_id?: string | null
           id?: string
+          ip?: string | null
+          module?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          role?: string | null
+          screen?: string | null
+          status?: string | null
           store_id?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Update: {
@@ -86,7 +102,15 @@ export type Database = {
           entity?: string | null
           entity_id?: string | null
           id?: string
+          ip?: string | null
+          module?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          role?: string | null
+          screen?: string | null
+          status?: string | null
           store_id?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -422,6 +446,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "purchase_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          action: string
+          allowed: boolean
+          created_at: string
+          id: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          module?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -829,6 +894,56 @@ export type Database = {
           },
         ]
       }
+      user_profile_extras: {
+        Row: {
+          allowed_hours: Json | null
+          created_at: string
+          failed_attempts: number
+          job_title: string | null
+          last_login_at: string | null
+          locked_until: string | null
+          notes: string | null
+          status: string
+          store_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowed_hours?: Json | null
+          created_at?: string
+          failed_attempts?: number
+          job_title?: string | null
+          last_login_at?: string | null
+          locked_until?: string | null
+          notes?: string | null
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowed_hours?: Json | null
+          created_at?: string
+          failed_attempts?: number
+          job_title?: string | null
+          last_login_at?: string | null
+          locked_until?: string | null
+          notes?: string | null
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profile_extras_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -906,6 +1021,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_master: { Args: { _user_id: string }; Returns: boolean }
       is_owner: {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
@@ -917,7 +1033,16 @@ export type Database = {
     }
     Enums: {
       alert_severity: "info" | "warning" | "danger"
-      app_role: "dono" | "gerente" | "vendedor" | "estoquista"
+      app_role:
+        | "dono"
+        | "gerente"
+        | "vendedor"
+        | "estoquista"
+        | "admin_master"
+        | "administrador"
+        | "financeiro"
+        | "tecnico"
+        | "atendimento"
       device_condition: "otimo" | "bom" | "regular" | "com_defeito"
       os_budget_status: "pendente" | "aprovado" | "reprovado"
       os_status:
@@ -1079,7 +1204,17 @@ export const Constants = {
   public: {
     Enums: {
       alert_severity: ["info", "warning", "danger"],
-      app_role: ["dono", "gerente", "vendedor", "estoquista"],
+      app_role: [
+        "dono",
+        "gerente",
+        "vendedor",
+        "estoquista",
+        "admin_master",
+        "administrador",
+        "financeiro",
+        "tecnico",
+        "atendimento",
+      ],
       device_condition: ["otimo", "bom", "regular", "com_defeito"],
       os_budget_status: ["pendente", "aprovado", "reprovado"],
       os_status: [
