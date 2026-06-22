@@ -1,0 +1,600 @@
+import { useEffect, useMemo, useState, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { PageHeader } from "@/components/PageHeader";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { brl } from "@/lib/format";
+import {
+  Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt,
+} from "lucide-react";
+import { toast } from "sonner";
+
+type LineItem = {
+  product_id: string;
+  name: string;
+  code?: string;
+  category?: string;
+  color?: string;
+  storage?: string;
+  quantity: number;
+  list_price: number;
+  discount_pct: number;
+  discount_brl: number;
+  unit_price: number;
+};
+
+type MixedPayment = { method: string; amount: number };
+
+const CATEGORIES_DEFAULT = [
+  "Venda direta", "Reserva", "Troca", "Garantia", "Assistência",
+  "Acessórios", "Xiaomi", "iPhone novo", "iPhone seminovo", "Outros",
+];
+
+export default function VendaNova() {
+  const navigate = useNavigate();
+  const { store, user } = useAuth();
+
+  // Cliente
+  const [customer, setCustomer] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [doc, setDoc] = useState("");
+  const [city, setCity] = useState("");
+  const [seller, setSeller] = useState("");
+  const [unit, setUnit] = useState("");
+  const [priceList, setPriceList] = useState("padrao");
+
+  // Itens
+  const [products, setProducts] = useState<any[]>([]);
+  const [productQuery, setProductQuery] = useState("");
+  const [items, setItems] = useState<LineItem[]>([]);
+
+  // Comissões
+  const [commissionPct, setCommissionPct] = useState(0);
+  const [commissionStatus, setCommissionStatus] = useState("pendente");
+
+  // Pagamento
+  const [payMethod, setPayMethod] = useState("dinheiro");
+  const [installments, setInstallments] = useState(1);
+  const [entry, setEntry] = useState(0);
+  const [mixed, setMixed] = useState<MixedPayment[]>([]);
+  const [otherExpenses, setOtherExpenses] = useState(0);
+  const [freight, setFreight] = useState(0);
+
+  // Entrega
+  const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
+  const [shipDate, setShipDate] = useState("");
+  const [expectedDate, setExpectedDate] = useState("");
+  const [carrier, setCarrier] = useState("");
+  const [freightPayer, setFreightPayer] = useState("cif");
+  const [diffAddress, setDiffAddress] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+
+  // Adicionais
+  const [notes, setNotes] = useState("");
+  const [category, setCategory] = useState("Venda direta");
+  const [customCategory, setCustomCategory] = useState("");
+  const [allCategories, setAllCategories] = useState(CATEGORIES_DEFAULT);
+
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!store) return;
+    (async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, gtin")
+        .eq("store_id", store.id)
+        .gt("stock_current", 0)
+        .order("name");
+      setProducts(data ?? []);
+    })();
+  }, [store]);
+
+  const filteredProducts = useMemo(() => {
+    const q = productQuery.trim().toLowerCase();
+    if (!q) return products.slice(0, 8);
+    return products.filter((p: any) =>
+      [p.name, p.sku, p.category, p.gtin].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q))
+    ).slice(0, 12);
+  }, [products, productQuery]);
+
+  const addItem = (p: any) => {
+    setItems((arr) => {
+      const existing = arr.find((i) => i.product_id === p.id);
+      if (existing) return arr.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...arr, {
+        product_id: p.id,
+        name: p.name,
+        code: p.sku,
+        category: p.category,
+        color: p.color,
+        storage: p.storage,
+        quantity: 1,
+        list_price: Number(p.sale_price),
+        discount_pct: 0,
+        discount_brl: 0,
+        unit_price: Number(p.sale_price),
+      }];
+    });
+    setProductQuery("");
+  };
+
+  const updateItem = (id: string, patch: Partial<LineItem>) => {
+    setItems((arr) => arr.map((i) => {
+      if (i.product_id !== id) return i;
+      const merged = { ...i, ...patch };
+      // Recompute discount/unit cascading
+      if (patch.discount_pct !== undefined) {
+        merged.discount_brl = +(merged.list_price * (merged.discount_pct / 100)).toFixed(2);
+        merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
+      } else if (patch.discount_brl !== undefined) {
+        merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
+        merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
+      } else if (patch.list_price !== undefined || patch.unit_price !== undefined) {
+        merged.discount_brl = +(merged.list_price - merged.unit_price).toFixed(2);
+        merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
+      }
+      return merged;
+    }));
+  };
+
+  const removeItem = (id: string) => setItems((arr) => arr.filter((i) => i.product_id !== id));
+
+  // Totais
+  const totalsItems = items.length;
+  const totalsQty = items.reduce((s, i) => s + i.quantity, 0);
+  const subtotal = items.reduce((s, i) => s + i.quantity * i.list_price, 0);
+  const totalDiscount = items.reduce((s, i) => s + i.quantity * i.discount_brl, 0);
+  const totalItemsValue = subtotal - totalDiscount;
+  const commissionValue = +(totalItemsValue * (commissionPct / 100)).toFixed(2);
+  const totalSale = +(totalItemsValue + otherExpenses + freight).toFixed(2);
+  const paidMixed = mixed.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const paid = payMethod === "misto" ? paidMixed : totalSale;
+  const remaining = +(totalSale - paid).toFixed(2);
+
+  const addCategory = () => {
+    const v = customCategory.trim();
+    if (!v) return;
+    setAllCategories((arr) => arr.includes(v) ? arr : [...arr, v]);
+    setCategory(v);
+    setCustomCategory("");
+    toast.success("Categoria adicionada");
+  };
+
+  const buildPayload = () => ({
+    extras: {
+      whatsapp, city, seller, unit, price_list: priceList,
+      commission: { percent: commissionPct, value: commissionValue, status: commissionStatus },
+      payment: { method: payMethod, installments, entry, mixed, other_expenses: otherExpenses, freight },
+      delivery: { sale_date: saleDate, ship_date: shipDate, expected_date: expectedDate, carrier, payer: freightPayer, diff_address: diffAddress, address: deliveryAddress },
+      category,
+      totals: { items: totalsItems, qty: totalsQty, subtotal, discount: totalDiscount, items_value: totalItemsValue, sale_total: totalSale },
+      user_notes: notes,
+    },
+  });
+
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!store || !user) return;
+    if (items.length === 0) return toast.error("Adicione ao menos um item");
+    setBusy(true);
+
+    const payload = buildPayload();
+    const mappedMethod = ["dinheiro", "pix", "debito", "credito", "crediario"].includes(payMethod) ? payMethod : "dinheiro";
+
+    const { data: sale, error } = await supabase.from("sales").insert({
+      store_id: store.id, seller_id: user.id,
+      customer_name: customer || null, customer_doc: doc || null,
+      payment_method: mappedMethod as any,
+      installments, discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
+      notes: JSON.stringify(payload),
+    }).select("id").single();
+
+    if (error || !sale) { setBusy(false); return toast.error(error?.message ?? "Erro"); }
+
+    const { error: e2 } = await supabase.from("sale_items").insert(
+      items.map((i) => ({
+        sale_id: sale.id, product_id: i.product_id,
+        quantity: i.quantity, unit_price: i.unit_price, total: i.quantity * i.unit_price,
+      }))
+    );
+    if (e2) { setBusy(false); return toast.error(e2.message); }
+
+    for (const i of items) {
+      const cur = products.find((p) => p.id === i.product_id);
+      if (cur) {
+        await supabase.from("products").update({
+          stock_current: Math.max(0, cur.stock_current - i.quantity),
+          last_sold_at: new Date().toISOString(),
+        }).eq("id", i.product_id);
+      }
+    }
+
+    setBusy(false);
+    toast.success("Venda registrada!");
+    navigate("/app/vendas");
+  };
+
+  const buildSummary = () => {
+    const prodLine = items.map((i) => `• ${i.quantity}× ${i.name} — ${brl(i.unit_price * i.quantity)}`).join("\n");
+    return `Olá, segue o resumo da sua compra na Brazilera:
+
+Cliente: ${customer || "—"}
+Produto(s):
+${prodLine || "—"}
+Valor total: ${brl(totalSale)}
+Forma de pagamento: ${payMethod.toUpperCase()}
+Entrega: ${expectedDate ? `prevista para ${new Date(expectedDate).toLocaleDateString("pt-BR")}` : "a combinar"}
+
+Obrigado pela preferência.`;
+  };
+
+  const sendWhatsapp = () => {
+    const phone = whatsapp.replace(/\D/g, "");
+    if (!phone) return toast.error("Informe o WhatsApp do cliente");
+    const url = `https://wa.me/55${phone}?text=${encodeURIComponent(buildSummary())}`;
+    window.open(url, "_blank");
+  };
+
+  const exportPDF = () => window.print();
+
+  return (
+    <div className="pb-28 md:pb-6">
+      <PageHeader
+        title="Nova venda"
+        description="Cadastro completo de venda, com cliente, itens, pagamento e entrega."
+        actions={
+          <div className="hidden md:flex items-center gap-2">
+            <Button variant="ghost" onClick={() => navigate("/app/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
+            <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
+            <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
+            <Button onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
+              <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar venda"}
+            </Button>
+          </div>
+        }
+      />
+
+      <form onSubmit={submit} className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="xl:col-span-2 space-y-4">
+          {/* CLIENTE */}
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4 flex items-center justify-between">
+              Dados do Cliente
+              <div className="flex gap-2">
+                <Button type="button" size="sm" variant="outline"><Search className="h-3.5 w-3.5 mr-1" />Buscar</Button>
+                <Button type="button" size="sm" variant="outline"><UserPlus className="h-3.5 w-3.5 mr-1" />Novo</Button>
+              </div>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <Field label="Cliente"><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></Field>
+              <Field label="WhatsApp"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
+              <Field label="CPF/CNPJ"><Input value={doc} onChange={(e) => setDoc(e.target.value)} /></Field>
+              <Field label="Cidade"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
+              <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
+              <Field label="Loja"><Input value={store?.name ?? ""} readOnly /></Field>
+              <Field label="Unidade de negócio"><Input value={unit} onChange={(e) => setUnit(e.target.value)} /></Field>
+              <Field label="Lista de preço">
+                <Select value={priceList} onValueChange={setPriceList}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="padrao">Padrão</SelectItem>
+                    <SelectItem value="atacado">Atacado</SelectItem>
+                    <SelectItem value="vip">VIP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+          </Card>
+
+          {/* ITENS */}
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Itens da Venda</h3>
+
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={productQuery}
+                onChange={(e) => setProductQuery(e.target.value)}
+                placeholder="Buscar por nome, código, categoria, GTIN ou modelo…"
+                className="pl-9"
+              />
+              {productQuery && filteredProducts.length > 0 && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto">
+                  {filteredProducts.map((p: any) => (
+                    <button
+                      key={p.id} type="button"
+                      onClick={() => addItem(p)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{p.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{p.sku} · {p.category} · est. {p.stock_current}</div>
+                      </div>
+                      <div className="font-mono text-sm">{brl(Number(p.sale_price))}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground border-b border-border">
+                  <tr>
+                    <th className="text-left px-2 py-2">Produto</th>
+                    <th className="text-left px-2 py-2">Código</th>
+                    <th className="text-left px-2 py-2">Cor</th>
+                    <th className="text-left px-2 py-2">Armaz.</th>
+                    <th className="text-right px-2 py-2 w-16">Qtd</th>
+                    <th className="text-right px-2 py-2 w-24">P. lista</th>
+                    <th className="text-right px-2 py-2 w-16">Desc%</th>
+                    <th className="text-right px-2 py-2 w-24">Desc R$</th>
+                    <th className="text-right px-2 py-2 w-24">P. unit.</th>
+                    <th className="text-right px-2 py-2 w-28">Total</th>
+                    <th className="w-8" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {items.length === 0 ? (
+                    <tr><td colSpan={11} className="text-center text-xs text-muted-foreground py-6">Nenhum item — busque acima para adicionar</td></tr>
+                  ) : items.map((i) => (
+                    <tr key={i.product_id}>
+                      <td className="px-2 py-2 truncate max-w-[180px]">{i.name}</td>
+                      <td className="px-2 py-2 font-mono text-xs">{i.code}</td>
+                      <td className="px-2 py-2 text-xs">{i.color || "—"}</td>
+                      <td className="px-2 py-2 text-xs">{i.storage || "—"}</td>
+                      <td className="px-2"><Input type="number" min={1} value={i.quantity} onChange={(e) => updateItem(i.product_id, { quantity: Math.max(1, Number(e.target.value)) })} className="h-8 text-right" /></td>
+                      <td className="px-2"><Input type="number" step="0.01" value={i.list_price} onChange={(e) => updateItem(i.product_id, { list_price: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-2"><Input type="number" step="0.01" value={i.discount_pct} onChange={(e) => updateItem(i.product_id, { discount_pct: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-2"><Input type="number" step="0.01" value={i.discount_brl} onChange={(e) => updateItem(i.product_id, { discount_brl: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-2"><Input type="number" step="0.01" value={i.unit_price} onChange={(e) => updateItem(i.product_id, { unit_price: Number(e.target.value) })} className="h-8 text-right" /></td>
+                      <td className="px-2 py-2 text-right metric font-semibold">{brl(i.quantity * i.unit_price)}</td>
+                      <td><Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile item cards */}
+            <div className="md:hidden space-y-3">
+              {items.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-4">Nenhum item</p>
+              ) : items.map((i) => (
+                <div key={i.product_id} className="border border-border rounded-lg p-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{i.name}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono">{i.code} · {i.color} · {i.storage}</div>
+                    </div>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <Field label="Qtd"><Input type="number" min={1} value={i.quantity} onChange={(e) => updateItem(i.product_id, { quantity: Math.max(1, Number(e.target.value)) })} /></Field>
+                    <Field label="P. lista"><Input type="number" step="0.01" value={i.list_price} onChange={(e) => updateItem(i.product_id, { list_price: Number(e.target.value) })} /></Field>
+                    <Field label="Desc %"><Input type="number" step="0.01" value={i.discount_pct} onChange={(e) => updateItem(i.product_id, { discount_pct: Number(e.target.value) })} /></Field>
+                    <Field label="Desc R$"><Input type="number" step="0.01" value={i.discount_brl} onChange={(e) => updateItem(i.product_id, { discount_brl: Number(e.target.value) })} /></Field>
+                    <Field label="P. unit."><Input type="number" step="0.01" value={i.unit_price} onChange={(e) => updateItem(i.product_id, { unit_price: Number(e.target.value) })} /></Field>
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</Label>
+                      <div className="metric font-semibold h-10 flex items-center px-2 rounded-md bg-primary/10 text-primary">{brl(i.quantity * i.unit_price)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Button type="button" variant="outline" className="mt-3" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder*="Buscar por nome"]')?.focus()}>
+              <Plus className="h-4 w-4 mr-1" />Adicionar outro item
+            </Button>
+          </Card>
+
+          {/* TABS: Comissões / Pagamento / Entrega / Adicionais */}
+          <Card className="p-5">
+            <Tabs defaultValue="pagamento">
+              <TabsList className="grid grid-cols-4 w-full">
+                <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
+                <TabsTrigger value="entrega">Entrega</TabsTrigger>
+                <TabsTrigger value="comissoes">Comissões</TabsTrigger>
+                <TabsTrigger value="adicionais">Adicionais</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="pagamento" className="mt-4 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Field label="Forma de pagamento">
+                    <Select value={payMethod} onValueChange={setPayMethod}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="debito">Cartão de débito</SelectItem>
+                        <SelectItem value="credito">Cartão de crédito</SelectItem>
+                        <SelectItem value="crediario">Crediário</SelectItem>
+                        <SelectItem value="misto">Misto (2+ formas)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Entrada"><Input type="number" step="0.01" value={entry} onChange={(e) => setEntry(Number(e.target.value))} /></Field>
+                  <Field label="Parcelas"><Input type="number" min={1} max={24} value={installments} onChange={(e) => setInstallments(Number(e.target.value))} /></Field>
+                  <Field label="Outras despesas"><Input type="number" step="0.01" value={otherExpenses} onChange={(e) => setOtherExpenses(Number(e.target.value))} /></Field>
+                  <Field label="Frete"><Input type="number" step="0.01" value={freight} onChange={(e) => setFreight(Number(e.target.value))} /></Field>
+                  <Field label="Valor da parcela">
+                    <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm">{brl(installments > 0 ? totalSale / installments : 0)}</div>
+                  </Field>
+                </div>
+
+                {payMethod === "misto" && (
+                  <div className="border border-border rounded-md p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Pagamentos mistos</span>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setMixed([...mixed, { method: "pix", amount: 0 }])}>
+                        <Plus className="h-3.5 w-3.5 mr-1" />Adicionar
+                      </Button>
+                    </div>
+                    {mixed.map((p, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                        <Select value={p.method} onValueChange={(v) => setMixed(mixed.map((m, i) => i === idx ? { ...m, method: v } : m))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pix">PIX</SelectItem>
+                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                            <SelectItem value="debito">Débito</SelectItem>
+                            <SelectItem value="credito">Crédito</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input type="number" step="0.01" value={p.amount} onChange={(e) => setMixed(mixed.map((m, i) => i === idx ? { ...m, amount: Number(e.target.value) } : m))} />
+                        <Button type="button" size="icon" variant="ghost" onClick={() => setMixed(mixed.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
+                      </div>
+                    ))}
+                    <div className="text-xs text-muted-foreground font-mono flex justify-between pt-1">
+                      <span>Valor pago: {brl(paidMixed)}</span>
+                      <span className={remaining > 0 ? "text-danger" : "text-success"}>Restante: {brl(remaining)}</span>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="entrega" className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Field label="Data da venda"><Input type="date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} /></Field>
+                <Field label="Data de saída"><Input type="date" value={shipDate} onChange={(e) => setShipDate(e.target.value)} /></Field>
+                <Field label="Data prevista"><Input type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} /></Field>
+                <Field label="Transportador"><Input value={carrier} onChange={(e) => setCarrier(e.target.value)} /></Field>
+                <Field label="Frete por conta">
+                  <Select value={freightPayer} onValueChange={setFreightPayer}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cif">CIF (loja)</SelectItem>
+                      <SelectItem value="fob">FOB (cliente)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Valor do frete"><Input type="number" step="0.01" value={freight} onChange={(e) => setFreight(Number(e.target.value))} /></Field>
+                <div className="sm:col-span-3 flex items-center gap-2 pt-1">
+                  <Switch checked={diffAddress} onCheckedChange={setDiffAddress} id="diff" />
+                  <Label htmlFor="diff" className="text-sm">Endereço de entrega diferente da cobrança</Label>
+                </div>
+                {diffAddress && (
+                  <div className="sm:col-span-3">
+                    <Field label="Endereço de entrega"><Textarea value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} rows={2} /></Field>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="comissoes" className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
+                <Field label="% Comissão"><Input type="number" step="0.01" value={commissionPct} onChange={(e) => setCommissionPct(Number(e.target.value))} /></Field>
+                <Field label="Valor da comissão">
+                  <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm">{brl(commissionValue)}</div>
+                </Field>
+                <Field label="Status">
+                  <Select value={commissionStatus} onValueChange={setCommissionStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="paga">Paga</SelectItem>
+                      <SelectItem value="cancelada">Cancelada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </TabsContent>
+
+              <TabsContent value="adicionais" className="mt-4 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Categoria da venda">
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {allCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  {category === "Outros" && (
+                    <Field label="Nova categoria">
+                      <div className="flex gap-2">
+                        <Input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="Digite e salve" />
+                        <Button type="button" onClick={addCategory}>Salvar</Button>
+                      </div>
+                    </Field>
+                  )}
+                </div>
+                <Field label="Observações">
+                  <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Detalhes da venda, entrega, garantia, negociação…" />
+                </Field>
+              </TabsContent>
+            </Tabs>
+          </Card>
+        </div>
+
+        {/* TOTAIS — STICKY DESKTOP */}
+        <div className="xl:col-span-1">
+          <div className="xl:sticky xl:top-4 space-y-3">
+            <Card className="p-5 bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground border-primary/60 shadow-glow">
+              <h3 className="text-xs uppercase tracking-widest font-mono font-semibold text-white/85 mb-2">Total da venda</h3>
+              <div className="text-4xl font-bold metric leading-tight">{brl(totalSale)}</div>
+              <div className="text-sm text-white/85 mt-1 font-mono">{totalsItems} itens · {totalsQty} unid.</div>
+            </Card>
+
+            <Card className="p-4">
+              <h4 className="text-xs uppercase tracking-widest font-mono text-muted-foreground mb-3">Resumo</h4>
+              <ul className="space-y-1.5 text-sm">
+                <Row label="Nº de itens" value={String(totalsItems)} />
+                <Row label="Soma das qtds" value={String(totalsQty)} />
+                <Row label="Total dos itens" value={brl(totalItemsValue)} />
+                <Row label="Desconto total" value={brl(totalDiscount)} negative />
+                <Row label="Comissão" value={brl(commissionValue)} />
+                <Row label="Outras despesas" value={brl(otherExpenses)} />
+                <Row label="Frete" value={brl(freight)} />
+                <li className="h-px bg-border my-1" />
+                <Row label="Pago" value={brl(paid)} />
+                <Row label="Restante" value={brl(remaining)} negative={remaining > 0} />
+              </ul>
+            </Card>
+          </div>
+        </div>
+
+        {/* MOBILE bottom bar */}
+        <div className="fixed bottom-0 left-0 right-0 md:hidden bg-card border-t border-border p-3 flex gap-2 z-50">
+          <Button type="button" variant="outline" onClick={() => navigate("/app/vendas")} className="flex-shrink-0">
+            <X className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="outline" onClick={sendWhatsapp} className="flex-shrink-0">
+            <MessageCircle className="h-4 w-4" />
+          </Button>
+          <Button type="submit" disabled={busy} className="flex-1 bg-primary text-primary-foreground shadow-glow">
+            <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : `Salvar · ${brl(totalSale)}`}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
+  return (
+    <li className="flex items-center justify-between">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className={`metric font-semibold ${negative ? "text-danger" : ""}`}>{value}</span>
+    </li>
+  );
+}

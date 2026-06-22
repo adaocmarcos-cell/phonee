@@ -13,6 +13,7 @@ import Dashboard from "./pages/app/Dashboard";
 import Estoque from "./pages/app/Estoque";
 import ProductForm from "./pages/app/ProductForm";
 import Vendas from "./pages/app/Vendas";
+import VendaNova from "./pages/app/VendaNova";
 import Alertas from "./pages/app/Alertas";
 import CurvaABC from "./pages/app/CurvaABC";
 import TradeIn from "./pages/app/TradeIn";
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="pedidos" element={<Pedidos />} />
               <Route path="pedidos/novo" element={<PedidoNovo />} />
               <Route path="vendas" element={<Vendas />} />
+              <Route path="vendas/nova" element={<VendaNova />} />
               <Route path="despesas" element={<Despesas />} />
               <Route path="clientes" element={<ComingSoon title="Clientes" description="CRM básico por CPF." />} />
               <Route path="os" element={<ComingSoon title="Ordens de Serviço" description="Assistência técnica." />} />
