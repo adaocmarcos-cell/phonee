@@ -52,12 +52,12 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={active}
-                  className="data-[active=true]:bg-orange-500 data-[active=true]:text-blue-700 data-[active=true]:font-semibold data-[active=true]:hover:bg-orange-500 data-[active=true]:hover:text-blue-700 hover:bg-sidebar-accent"
+                  className="data-[active=true]:bg-[#03d4fc] data-[active=true]:text-blue-900 data-[active=true]:font-semibold data-[active=true]:hover:bg-[#03d4fc] data-[active=true]:hover:text-blue-900 hover:bg-sidebar-accent"
                 >
                   <NavLink to={item.url} end={item.end}>
                     <item.icon className="h-4 w-4" />
                     {!collapsed && (
-                      <span className={isDashboard && !active ? "text-orange-500 font-semibold" : ""}>
+                      <span className={isDashboard && !active ? "text-[#03d4fc] font-semibold" : ""}>
                         {item.title}
                       </span>
                     )}

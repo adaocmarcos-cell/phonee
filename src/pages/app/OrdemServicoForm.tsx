@@ -17,6 +17,9 @@ import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import {
   Save, X, FileDown, MessageCircle, Mail, Camera, Trash2, Printer, ArrowLeft,
+  ChevronLeft, ChevronRight, FileEdit, User, Smartphone as SmartphoneIcon,
+  AlertCircle, ClipboardCheck, Image as ImageIcon, Calculator, Wrench as WrenchIcon,
+  PackageCheck, PenSquare, Check,
 } from "lucide-react";
 
 const CATEGORIES = ["iPhone","Xiaomi","Samsung","Motorola","Apple Watch","Smartwatch","Tablet","Notebook","Outro"];
@@ -64,6 +67,7 @@ export default function OrdemServicoForm() {
   const editing = !!id;
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(!editing);
+  const [step, setStep] = useState(0);
   const [os, setOs] = useState<any>({
     status: "recebido", reasons: [], accessories: [], photos: [],
     receive_checklist: {}, work_checklist: {}, delivery_checklist: {},
@@ -106,26 +110,33 @@ export default function OrdemServicoForm() {
     setBusy(false);
   };
 
-  const submit = async () => {
+  const persist = async (asDraft = false) => {
     if (!store) return;
-    if (!os.customer_name) return toast.error("Informe o nome do cliente");
+    if (!asDraft && !os.customer_name) return toast.error("Informe o nome do cliente");
     setBusy(true);
-    const payload = { ...os, store_id: store.id, created_by: user?.id };
+    const payload: any = {
+      ...os,
+      store_id: store.id,
+      created_by: user?.id,
+      customer_name: os.customer_name || (asDraft ? "Rascunho" : ""),
+    };
     delete payload.id; delete payload.os_number; delete payload.created_at; delete payload.updated_at;
     if (os.customer_signature || os.tech_signature) payload.signed_at = new Date().toISOString();
 
     if (editing) {
       const { error } = await (supabase as any).from("service_orders").update(payload).eq("id", id);
       if (error) { setBusy(false); return toast.error(error.message); }
-      toast.success("OS atualizada");
+      toast.success(asDraft ? "Rascunho salvo" : "OS atualizada");
     } else {
       const { data, error } = await (supabase as any).from("service_orders").insert(payload).select("id").single();
       if (error) { setBusy(false); return toast.error(error.message); }
-      toast.success("OS criada");
+      toast.success(asDraft ? "Rascunho criado" : "OS criada");
       navigate(`/app/os/${data.id}`); setBusy(false); return;
     }
     setBusy(false);
   };
+  const submit = () => persist(false);
+  const saveDraft = () => persist(true);
 
   const summary = useMemo(() => {
     return `*Brazilera — Ordem de Serviço #${String(os.os_number ?? "—").padStart(4, "0")}*
@@ -161,13 +172,16 @@ Status: ${os.status}`;
     <div className="pb-28 md:pb-6">
       <PageHeader
         title={editing ? `OS #${String(os.os_number ?? "").padStart(4, "0")}` : "Nova Ordem de Serviço"}
-        description="Assistência técnica · check-in completo, orçamento, assinaturas e PDF."
+        description="Preencha por etapas — você pode salvar como rascunho a qualquer momento."
         actions={
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/app/os")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
             {editing && <Button variant="outline" onClick={() => sendWhats(summary)}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>}
             {editing && <Button variant="outline" onClick={sendMail}><Mail className="h-4 w-4 mr-1" />E-mail</Button>}
+            <Button variant="outline" onClick={saveDraft} disabled={busy}>
+              <FileEdit className="h-4 w-4 mr-1" />Salvar rascunho
+            </Button>
             <Button onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar OS"}
             </Button>
@@ -176,18 +190,65 @@ Status: ${os.status}`;
       />
 
       <div className="print:hidden">
-      <Tabs defaultValue="cliente" className="space-y-4">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="cliente">Cliente</TabsTrigger>
-          <TabsTrigger value="aparelho">Aparelho</TabsTrigger>
-          <TabsTrigger value="motivo">Motivo</TabsTrigger>
-          <TabsTrigger value="checklist">Checklist</TabsTrigger>
-          <TabsTrigger value="fotos">Fotos</TabsTrigger>
-          <TabsTrigger value="orcamento">Orçamento</TabsTrigger>
-          <TabsTrigger value="execucao">Execução</TabsTrigger>
-          <TabsTrigger value="entrega">Entrega</TabsTrigger>
-          <TabsTrigger value="assinaturas">Assinaturas</TabsTrigger>
-        </TabsList>
+      {(() => {
+        const steps = [
+          { key: "cliente", label: "Cliente", icon: User },
+          { key: "aparelho", label: "Aparelho", icon: SmartphoneIcon },
+          { key: "motivo", label: "Motivo", icon: AlertCircle },
+          { key: "checklist", label: "Checklist", icon: ClipboardCheck },
+          { key: "fotos", label: "Fotos", icon: ImageIcon },
+          { key: "orcamento", label: "Orçamento", icon: Calculator },
+          { key: "execucao", label: "Execução", icon: WrenchIcon },
+          { key: "entrega", label: "Entrega", icon: PackageCheck },
+          { key: "assinaturas", label: "Assinaturas", icon: PenSquare },
+        ] as const;
+        const current = steps[step];
+        const progress = Math.round(((step + 1) / steps.length) * 100);
+        return (
+          <div className="space-y-4">
+            {/* Stepper header */}
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                <span>Etapa {step + 1} de {steps.length}</span>
+                <span className="text-primary font-semibold">{progress}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+                {steps.map((s, idx) => {
+                  const Icon = s.icon;
+                  const done = idx < step;
+                  const active = idx === step;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => setStep(idx)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap border transition-colors ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : done
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                      }`}
+                    >
+                      {done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                      <span className="hidden sm:inline">{idx + 1}. {s.label}</span>
+                      <span className="sm:hidden">{idx + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <current.icon className="h-4 w-4 text-primary" />
+              {current.label}
+            </div>
+
+            <div data-step={current.key}>
+      <Tabs value={current.key} className="space-y-4">
 
         <TabsContent value="cliente">
           <Card className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -353,12 +414,47 @@ Status: ${os.status}`;
           </Card>
         </TabsContent>
       </Tabs>
+            </div>
+
+            {/* Wizard footer */}
+            <Card className="p-3 flex items-center justify-between gap-2 sticky bottom-20 md:bottom-4 z-30 shadow-card">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={step === 0}
+                onClick={() => setStep((s) => Math.max(0, s - 1))}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />Voltar
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" onClick={saveDraft} disabled={busy}>
+                  <FileEdit className="h-4 w-4 mr-1" />Salvar rascunho
+                </Button>
+                {step < steps.length - 1 ? (
+                  <Button
+                    type="button"
+                    onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))}
+                    className="bg-primary text-primary-foreground"
+                  >
+                    Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
+                    <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Finalizar OS"}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
+        );
+      })()}
       </div>
 
       {/* Mobile actions */}
       <div className="fixed md:hidden bottom-0 left-0 right-0 p-3 bg-card border-t border-border flex gap-2 z-50">
         <Button variant="ghost" size="sm" onClick={() => navigate("/app/os")}><X className="h-4 w-4" /></Button>
         {editing && <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4" /></Button>}
+        <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy}><FileEdit className="h-4 w-4" /></Button>
         <Button onClick={submit} disabled={busy} className="flex-1 bg-primary text-primary-foreground">
           <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar"}
         </Button>
