@@ -16,7 +16,7 @@ const main: Item[] = [
   { title: "Estoque", url: "/app/estoque", icon: Boxes },
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Trade-in", url: "/app/trade-in", icon: Smartphone },
-  { title: "Pedidos", url: "/app/pedidos", icon: ShoppingCart },
+  { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
 ];
 
 const ops: Item[] = [
