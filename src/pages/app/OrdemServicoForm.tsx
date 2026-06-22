@@ -454,6 +454,7 @@ Status: ${os.status}`;
       <div className="fixed md:hidden bottom-0 left-0 right-0 p-3 bg-card border-t border-border flex gap-2 z-50">
         <Button variant="ghost" size="sm" onClick={() => navigate("/app/os")}><X className="h-4 w-4" /></Button>
         {editing && <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4" /></Button>}
+        <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy}><FileEdit className="h-4 w-4" /></Button>
         <Button onClick={submit} disabled={busy} className="flex-1 bg-primary text-primary-foreground">
           <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar"}
         </Button>
