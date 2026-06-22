@@ -680,10 +680,12 @@ export type Database = {
           email: string | null
           hours: string | null
           id: string
+          instagram: string | null
           logo_url: string | null
           name: string
           owner_id: string
           phone: string | null
+          price_table_note: string | null
           primary_color: string | null
           slug: string
           tax_id: string | null
@@ -696,10 +698,12 @@ export type Database = {
           email?: string | null
           hours?: string | null
           id?: string
+          instagram?: string | null
           logo_url?: string | null
           name: string
           owner_id: string
           phone?: string | null
+          price_table_note?: string | null
           primary_color?: string | null
           slug: string
           tax_id?: string | null
@@ -712,10 +716,12 @@ export type Database = {
           email?: string | null
           hours?: string | null
           id?: string
+          instagram?: string | null
           logo_url?: string | null
           name?: string
           owner_id?: string
           phone?: string | null
+          price_table_note?: string | null
           primary_color?: string | null
           slug?: string
           tax_id?: string | null

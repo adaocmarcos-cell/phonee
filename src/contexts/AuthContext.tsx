@@ -13,6 +13,9 @@ export interface StoreSummary {
   phone?: string | null;
   address?: string | null;
   email?: string | null;
+  instagram?: string | null;
+  price_table_note?: string | null;
+  logo_url?: string | null;
 }
 
 interface AuthContextValue {
@@ -36,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadStoreAndRole = async (uid: string) => {
     // 1. Try owned store
-    const storeCols = "id, name, slug, trade_name, tax_id, phone, address, email" as any;
+    const storeCols = "id, name, slug, trade_name, tax_id, phone, address, email, instagram, price_table_note, logo_url" as any;
     const { data: owned } = await (supabase
       .from("stores") as any)
       .select(storeCols)

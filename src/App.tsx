@@ -24,6 +24,7 @@ import Despesas from "./pages/app/Despesas";
 import OrdensServico from "./pages/app/OrdensServico";
 import OrdemServicoForm from "./pages/app/OrdemServicoForm";
 import Configuracoes from "./pages/app/Configuracoes";
+import TabelasPreco from "./pages/app/TabelasPreco";
 import ComingSoon from "./pages/app/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -60,7 +61,7 @@ const App = () => (
               <Route path="os/nova" element={<OrdemServicoForm />} />
               <Route path="os/:id" element={<OrdemServicoForm />} />
               <Route path="alertas" element={<Alertas />} />
-              <Route path="catalogo-config" element={<ComingSoon title="Catálogo público" description="Personalize seu minisite." />} />
+              <Route path="tabelas-preco" element={<TabelasPreco />} />
               <Route path="admin/usuarios" element={<ComingSoon title="Usuários & permissões" description="Gestão de funcionários por perfil." />} />
               <Route path="admin/configuracoes" element={<Configuracoes />} />
             </Route>

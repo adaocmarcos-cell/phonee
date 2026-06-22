@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { z } from "zod";
+import { DEFAULT_CATEGORIES, getCustomCategories, addCustomCategory } from "@/lib/categories";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nome muito curto").max(120),
@@ -39,7 +40,7 @@ type FormState = {
 
 const empty: FormState = {
   name: "", sku: "", ean: "", brand: "", compatible_model: "",
-  category: "acessorio", subcategory: "", condition: "novo",
+  category: "", subcategory: "", condition: "novo",
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 3, stock_max: 0,
   location: "", visible_in_catalog: false, status: "ativo",
@@ -52,6 +53,9 @@ export default function ProductForm() {
   const { store, role } = useAuth();
   const [form, setForm] = useState<FormState>(empty);
   const [busy, setBusy] = useState(false);
+  const [customCats, setCustomCats] = useState(() => getCustomCategories());
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherName, setOtherName] = useState("");
 
   useEffect(() => {
     if (isNew || !store) return;
@@ -68,6 +72,9 @@ export default function ProductForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!store) return;
+    if (!form.category) {
+      return toast.error("Selecione uma categoria");
+    }
     const parsed = schema.safeParse({
       name: form.name, sku: form.sku, brand: form.brand, compatible_model: form.compatible_model,
       cost_price: Number(form.cost_price), sale_price: Number(form.sale_price),
@@ -133,15 +140,51 @@ export default function ProductForm() {
           <h3 className="font-semibold mb-4">Classificação</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label="Categoria">
-              <Select value={form.category} onValueChange={(v) => set("category", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.category}
+                onValueChange={(v) => {
+                  if (v === "__add_other__") {
+                    setShowOtherInput(true);
+                    return;
+                  }
+                  set("category", v);
+                  setShowOtherInput(false);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="acessorio">Acessório</SelectItem>
-                  <SelectItem value="peca">Peça</SelectItem>
-                  <SelectItem value="aparelho_novo">Aparelho novo</SelectItem>
-                  <SelectItem value="aparelho_seminovo">Aparelho seminovo</SelectItem>
+                  {DEFAULT_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                  {customCats.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                  <SelectItem value="__add_other__">+ Adicionar nova categoria…</SelectItem>
                 </SelectContent>
               </Select>
+              {showOtherInput && (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="Nome da nova categoria"
+                    value={otherName}
+                    onChange={(e) => setOtherName(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!otherName.trim()) return;
+                      const created = addCustomCategory(otherName);
+                      setCustomCats(getCustomCategories());
+                      set("category", created.value);
+                      setOtherName("");
+                      setShowOtherInput(false);
+                      toast.success("Categoria adicionada");
+                    }}
+                  >
+                    Salvar
+                  </Button>
+                </div>
+              )}
             </Field>
             <Field label="Subcategoria"><Input value={form.subcategory} onChange={(e) => set("subcategory", e.target.value)} placeholder="Capa, Película, Cabo…" /></Field>
             <Field label="Condição">
