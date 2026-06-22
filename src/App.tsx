@@ -28,8 +28,14 @@ import TabelasPreco from "./pages/app/TabelasPreco";
 import ComingSoon from "./pages/app/ComingSoon";
 import Usuarios from "./pages/app/admin/Usuarios";
 import Cargos from "./pages/app/admin/Cargos";
+import PagamentosAsaas from "./pages/app/admin/PagamentosAsaas";
+import Planos from "./pages/app/admin/Planos";
+import Assinaturas from "./pages/app/admin/Assinaturas";
+import LogsPagamento from "./pages/app/admin/LogsPagamento";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
+import Comprar from "./pages/Comprar";
+import ComprarSucesso from "./pages/ComprarSucesso";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +51,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/comprar" element={<Comprar />} />
+            <Route path="/comprar/sucesso/:id" element={<ComprarSucesso />} />
             <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="estoque" element={<Estoque />} />
@@ -70,6 +78,10 @@ const App = () => (
               <Route path="admin/permissoes" element={<ComingSoon title="Permissões" description="Matriz de permissões por cargo × módulo × ação. Disponível na próxima fase." />} />
               <Route path="admin/logs" element={<ComingSoon title="Logs e Auditoria" description="Histórico permanente de ações. Disponível na próxima fase." />} />
               <Route path="admin/configuracoes" element={<Configuracoes />} />
+              <Route path="admin/pagamentos" element={<PagamentosAsaas />} />
+              <Route path="admin/planos" element={<Planos />} />
+              <Route path="admin/assinaturas" element={<Assinaturas />} />
+              <Route path="admin/logs-pagamento" element={<LogsPagamento />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

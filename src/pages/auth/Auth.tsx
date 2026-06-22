@@ -7,28 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
 import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
 const logo = logoAsset.url;
-import { Boxes, Zap, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { Boxes, Zap, ShieldCheck, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 const emailSchema = z.string().trim().email("E-mail inválido").max(255);
 const passwordSchema = z.string().min(6, "Mínimo 6 caracteres").max(72);
-const nameSchema = z.string().trim().min(2, "Informe seu nome").max(80);
 
 export default function Auth() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [busy, setBusy] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showPassword2, setShowPassword2] = useState(false);
   const [remember, setRemember] = useState(true);
 
   useEffect(() => {
@@ -49,35 +44,30 @@ export default function Auth() {
     if (!eRes.success) return toast.error(eRes.error.issues[0].message);
     if (!pRes.success) return toast.error(pRes.error.issues[0].message);
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: eRes.data, password: pRes.data });
+    const { data: signin, error } = await supabase.auth.signInWithPassword({ email: eRes.data, password: pRes.data });
+    if (error) { setBusy(false); return toast.error(error.message); }
+
+    // Verifica se há assinatura ativa OU se é admin_master (acesso interno)
+    const userId = signin.user?.id;
+    let allowed = false;
+    if (userId) {
+      const [{ data: roles }, { data: subs }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", userId),
+        supabase.from("subscriptions").select("id,status").eq("user_id", userId).eq("status", "active").limit(1),
+      ]);
+      const isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
+      const hasActive = (subs ?? []).length > 0;
+      allowed = isAdminMaster || hasActive;
+    }
+    if (!allowed) {
+      await supabase.auth.signOut();
+      setBusy(false);
+      return toast.error("Nenhum plano ativo encontrado. Adquira um plano para acessar o Mobile+.");
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
     if (remember) localStorage.setItem("mobileplus.rememberedEmail", eRes.data);
     else localStorage.removeItem("mobileplus.rememberedEmail");
     toast.success("Bem-vindo de volta!");
-    navigate("/app");
-  };
-
-  const handleSignUp = async (e: FormEvent) => {
-    e.preventDefault();
-    const nRes = nameSchema.safeParse(fullName);
-    const eRes = emailSchema.safeParse(email);
-    const pRes = passwordSchema.safeParse(password);
-    if (!nRes.success) return toast.error(nRes.error.issues[0].message);
-    if (!eRes.success) return toast.error(eRes.error.issues[0].message);
-    if (!pRes.success) return toast.error(pRes.error.issues[0].message);
-    setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email: eRes.data,
-      password: pRes.data,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app`,
-        data: { full_name: nRes.data },
-      },
-    });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Conta criada! Sua loja foi provisionada.");
     navigate("/app");
   };
 
@@ -125,16 +115,9 @@ export default function Auth() {
             <p className="text-[11px] font-mono text-muted-foreground tracking-[0.25em] mt-1">ERP · SMARTPHONES</p>
           </div>
 
-          <h2 className="text-xl font-semibold mb-1 text-center">Acesse sua loja</h2>
-          <p className="text-sm text-muted-foreground mb-6 text-center">Entre ou crie sua conta para começar.</p>
+          <h2 className="text-xl font-semibold mb-1 text-center">Acesse sua conta</h2>
+          <p className="text-sm text-muted-foreground mb-6 text-center">Apenas clientes com plano ativo.</p>
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-            <TabsList className="grid grid-cols-2 w-full mb-6">
-              <TabsTrigger value="signin">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Criar conta</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
@@ -178,49 +161,15 @@ export default function Auth() {
                   {busy ? "Entrando…" : "Entrar"}
                 </Button>
               </form>
-            </TabsContent>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Seu nome</Label>
-                  <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="João Silva" autoComplete="name" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email2">E-mail</Label>
-                  <Input id="email2" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password2">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="password2"
-                      type={showPassword2 ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="new-password"
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword2((v) => !v)}
-                      aria-label={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-elevated transition-colors"
-                    >
-                      {showPassword2 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">Mínimo 6 caracteres.</p>
-                </div>
-                <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-glow">
-                  {busy ? "Criando…" : "Criar minha loja"}
-                </Button>
-                <p className="text-[11px] text-muted-foreground text-center">
-                  Ao criar, você vira o <strong className="text-foreground">dono</strong> da sua loja no Mobile+.
-                </p>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <div className="mt-6 pt-6 border-t border-border text-center space-y-2">
+            <p className="text-sm text-muted-foreground">Ainda não é cliente?</p>
+            <Link to="/comprar">
+              <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary hover:text-white">
+                Adquirir um plano <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </Card>
       </div>
     </div>

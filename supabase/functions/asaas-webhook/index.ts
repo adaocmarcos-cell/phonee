@@ -1,0 +1,100 @@
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { corsHeaders, jsonResponse } from "../_shared/asaas.ts";
+
+const APPROVED = new Set(["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED"]);
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
+    const expected = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
+    const got = req.headers.get("asaas-access-token");
+    if (!expected || got !== expected) return jsonResponse({ error: "invalid token" }, 401);
+
+    const body = await req.json();
+    const event = body?.event as string;
+    const payment = body?.payment;
+    if (!event || !payment) return jsonResponse({ error: "invalid payload" }, 400);
+
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: sub } = await admin.from("subscriptions").select("*, plans:plan_id(*)").eq("asaas_charge_id", payment.id).maybeSingle();
+    if (!sub) {
+      await admin.from("payment_logs").insert({ event_type: event, status: "unknown_charge", asaas_payload: body });
+      return jsonResponse({ ok: true, note: "no subscription found" });
+    }
+
+    let newStatus = sub.status as string;
+    let updates: Record<string, any> = {};
+
+    switch (event) {
+      case "PAYMENT_CONFIRMED":
+      case "PAYMENT_RECEIVED": {
+        newStatus = "active";
+        const now = new Date();
+        const startedAt = sub.started_at ?? now.toISOString();
+        const months = (sub as any).plans?.duration_months as number | null;
+        const expiresAt = months ? new Date(now.getTime() + months * 30 * 24 * 3600 * 1000).toISOString() : null;
+        updates = { status: newStatus, started_at: startedAt, expires_at: expiresAt };
+        break;
+      }
+      case "PAYMENT_OVERDUE":
+        newStatus = "overdue"; updates = { status: newStatus }; break;
+      case "PAYMENT_REFUNDED":
+        newStatus = "refunded"; updates = { status: newStatus, refund_status: "refunded" }; break;
+      case "PAYMENT_DELETED":
+        newStatus = "canceled"; updates = { status: newStatus }; break;
+      case "PAYMENT_CREATED":
+        updates = {}; break;
+      default:
+        updates = {};
+    }
+
+    if (Object.keys(updates).length) {
+      await admin.from("subscriptions").update(updates).eq("id", sub.id);
+    }
+
+    // Create user + send password reset on approval
+    if (newStatus === "active" && !sub.user_id) {
+      const email = sub.customer_email;
+      const siteUrl = Deno.env.get("SITE_URL") ?? "";
+      const redirectTo = siteUrl ? `${siteUrl}/reset-password` : undefined;
+
+      // Try to create user; if already exists, fetch
+      let userId: string | null = null;
+      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: { full_name: sub.customer_name, source: "asaas_checkout" },
+      });
+      if (created?.user) {
+        userId = created.user.id;
+      } else if (createErr && /already/i.test(createErr.message ?? "")) {
+        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+        userId = list?.users?.find((u: any) => (u.email ?? "").toLowerCase() === email.toLowerCase())?.id ?? null;
+      }
+
+      if (userId) {
+        await admin.from("subscriptions").update({ user_id: userId }).eq("id", sub.id);
+        // Send "set password" email via recovery link
+        try {
+          await admin.auth.admin.generateLink({
+            type: "recovery", email,
+            options: redirectTo ? { redirectTo } : undefined,
+          });
+        } catch (_) { /* ignore */ }
+      }
+    }
+
+    await admin.from("payment_logs").insert({
+      subscription_id: sub.id,
+      event_type: event,
+      status: newStatus,
+      amount_cents: sub.amount_cents,
+      asaas_payload: body,
+      action: "webhook",
+    });
+
+    return jsonResponse({ ok: true });
+  } catch (e) {
+    return jsonResponse({ error: String(e?.message ?? e) }, 500);
+  }
+});
