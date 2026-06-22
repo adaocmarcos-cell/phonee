@@ -1,56 +1,90 @@
-Vou criar um módulo completo de Usuários e Permissões para o Mobile+, com cargos, permissões granulares por módulo, auditoria e segurança. Por ser grande, proponho entregar em **3 fases**. Confirme antes que eu siga.
+# Integração Asaas — Mobile+
 
-## Escopo & decisões importantes
+## Visão geral
+Permitir compra pública dos planos Mobile+ pelo site, com cobrança PIX/cartão via Asaas. O acesso ao painel só é liberado após pagamento confirmado. Admin Master gerencia configuração, assinaturas, reembolsos e logs.
 
-1. **Multi-loja:** o sistema atual já é multi-loja (tabela `stores`, `user_roles` por loja). O novo módulo respeitará isso — Admin Master é global, demais cargos são por loja.
-2. **Cargos:** os 8 cargos pedidos (Admin Master, Administrador, Gerente, Vendedor, Estoque, Financeiro, Técnico, Atendimento) serão **predefinidos**, com permissões padrão editáveis, e haverá suporte a **cargos customizados**.
-3. **Senha & login:** o sistema usa autenticação por e-mail (Lovable Cloud). Não criarei "login" separado — manteremos e-mail como identificador único; "Celular" entra como campo do perfil. Criação de usuário envia convite por e-mail.
-4. **Convidar vs criar:** novos usuários recebem **convite por e-mail** (padrão seguro). Admin Master define cargo e permissões antes do primeiro acesso.
-5. **Remoção de "API/Bling":** farei um sweep no código removendo qualquer rótulo desse tipo (se encontrar) e nunca introduzirei novos.
-6. **Logs:** registrados via tabela `audit_log` (já existe). Vou expandir colunas (IP, user agent, valor antigo/novo) e gravar via **edge function** para capturar IP/UA com confiabilidade. Logs são **imutáveis** (sem UPDATE/DELETE, nem para Admin Master) via policies.
-7. **Segurança extra (bloqueio por tentativas, logout por inatividade, restrição de horário):** implemento client-side + checagens server-side onde possível. HIBP (senha vazada) habilitado no Auth.
+## 1. Banco de dados (1 migração)
 
-## Fase 1 — Banco + papéis + UI base (esta entrega)
+**`asaas_settings`** (linha única, somente Admin Master)
+- environment (`sandbox` | `production`)
+- api_key_set (boolean — chave fica no secret, esta flag só indica se está configurada)
+- webhook_token_set (boolean)
+- wallet_id, account_email, connection_status, last_tested_at
 
-**Migração SQL:**
-- Expandir `app_role` enum: adicionar `admin_master`, `administrador`, `estoque`, `financeiro`, `tecnico`, `atendimento` (mantém `dono`, `gerente`, `vendedor`).
-- Tabela `role_permissions` (store_id, role, module, action, allowed) com defaults seed por cargo.
-- Tabela `user_profile_extras` (phone, status, allowed_hours_json, last_login_at, failed_attempts).
-- Expandir `audit_log` com `ip`, `user_agent`, `module`, `screen`, `old_value`, `new_value`, `role`.
-- Policies: `audit_log` permite SELECT só para Admin Master; INSERT só via service_role; **revoga UPDATE/DELETE** de todos.
-- Function `has_permission(_user, _store, _module, _action)`.
-- Trigger `on_auth_login` para gravar `last_login_at`.
+**`plans`** (gerenciável pelo Admin Master)
+- code (`annual` | `lifetime`), name, price_cents, max_installments, active
 
-**UI:**
-- Novo grupo no menu: **Usuários e Permissões** com 4 itens (Usuários / Cargos e Funções / Permissões / Logs e Auditoria).
-- Página **Usuários** (lista + CRUD + convite + ativar/desativar + restrição de horário).
-- Página **Cargos e Funções** (lista cargos padrão + criar customizado).
+**`subscriptions`**
+- customer_name, customer_email, customer_phone, customer_doc (CPF/CNPJ)
+- plan_id, payment_method (`PIX`|`CREDIT_CARD`), status
+- asaas_customer_id, asaas_charge_id, invoice_url, pix_qr_code, pix_copy_paste
+- amount_cents, started_at, expires_at (null = vitalício)
+- user_id (preenchido após criar conta), refund_requested_at, refund_status
 
-## Fase 2 — Permissões granulares + enforcement
+**`payment_logs`** (append-only)
+- subscription_id, event_type, status, amount_cents, asaas_payload (jsonb), action, created_at
 
-- Página **Permissões**: matriz por cargo × módulo × ação (7 ações: visualizar/criar/editar/excluir/exportar/aprovar/gerenciar) organizada em 8 abas (Cadastros, Suprimentos, Vendas, Finanças, Serviços, Preferências, Contabilidade, Outros) com "Selecionar tudo".
-- Hook `usePermission(module, action)` aplicado nos botões/rotas existentes (Estoque, Pedidos, Vendas, OS, Financeiro, Configurações, Tabelas de Preço, etc.).
-- Guardas em rotas (`ProtectedRoute` estendido).
+**RLS**: `asaas_settings`/`payment_logs` só Admin Master; `subscriptions` Admin Master lê tudo, usuário vê as próprias; `plans` leitura pública (anon+authenticated), escrita só Admin Master.
 
-## Fase 3 — Auditoria + segurança
+GRANTs explícitos em todas as tabelas conforme regra do projeto.
 
-- Edge function `log-action` que recebe `{module, action, screen, target_id, old, new}` e grava IP/UA do request.
-- Wrapper client `logAction(...)` chamado em todas mutações críticas (preço, estoque, financeiro, permissões, OS).
-- Página **Logs e Auditoria** (somente Admin Master): tabela com filtros (usuário, cargo, módulo, ação, datas, status) + export PDF/Excel.
-- Segurança: contador de tentativas falhas, lockout temporário, idle-timeout (logout após X min), HIBP via `configure_auth`.
+## 2. Secrets (backend)
+Pedir ao usuário via add_secret:
+- `ASAAS_API_KEY` — chave da API Asaas
+- `ASAAS_WEBHOOK_TOKEN` — token validado no header `asaas-access-token`
 
-## Detalhes técnicos relevantes
+Nunca expostos no frontend.
 
-- **Cargos vs Funções:** "Cargo" = role do enum (controla permissões). "Função" = texto livre descritivo no perfil (ex.: "Vendedor Sênior").
-- **Admin Master:** verificado por `has_role(uid, store_id, 'admin_master')` OU `is_owner` — bypass de qualquer outra permissão.
-- **Imutabilidade dos logs:** `REVOKE UPDATE, DELETE ON public.audit_log FROM authenticated, anon, service_role` + policies sem WITH CHECK de update. Inserts feitos exclusivamente pela edge function com `SUPABASE_SERVICE_ROLE_KEY`.
-- **Horário de acesso:** checado no `AuthContext` ao montar; se fora da janela, logout + toast.
+## 3. Edge Functions
 
-## O que NÃO entra agora (a confirmar depois)
+| Função | JWT | Função |
+|---|---|---|
+| `asaas-test-connection` | sim (Admin Master) | testa GET /myAccount |
+| `asaas-create-charge` | não (público) | valida input, cria customer + payment no Asaas, grava `subscription` pendente, devolve QR/URL |
+| `asaas-webhook` | não | valida `asaas-access-token`, atualiza subscription, cria conta no auth, dispara e-mail boas-vindas |
+| `asaas-refund` | sim (Admin Master) | POST /payments/{id}/refund |
+| `asaas-resend-charge` | sim (Admin Master) | reenvia link cobrança |
 
-- Recursos não existentes hoje (Frente de Caixa, Propostas Comerciais, NF-e, Boletos, Certificados Digitais, Contabilidade Fiscal, Transportadores): aparecerão na matriz de permissões com flag "módulo futuro" e ficarão desabilitados até serem construídos.
-- Refactor completo dos textos "fornecedor/cliente" já existentes — só removerei o que mencionar API/Bling/Web Services se aparecer.
+Todas com CORS, validação Zod, log em `payment_logs`.
 
----
+## 4. Bloqueio de login sem pagamento
+- Após confirmar pagamento, webhook cria usuário via `auth.admin.createUser` com senha aleatória + envia e-mail de boas-vindas com link "definir senha" (`resetPasswordForEmail`).
+- Em `Auth.tsx`, após `signInWithPassword` bem-sucedido: verificar `subscriptions.status = 'active'` para o e-mail; se não houver, fazer signOut e mostrar "Pagamento não localizado".
+- Bloquear `signUp` público no formulário de login (somente compra cria conta). Login passa a ter só "Entrar" + "Esqueci senha".
 
-**Posso seguir com a Fase 1 agora?** Se quiser ajustar (ex.: mudar lista de cargos, transformar "login" em campo separado mesmo, ou priorizar Auditoria antes das Permissões), me diga antes que eu rode a migração.
+## 5. Páginas/UI
+
+**Pública**
+- `/comprar` — escolha do plano (Anual / Vitalício R$ 297, até 12x), formulário (nome, CPF/CNPJ, e-mail, WhatsApp), método (PIX/Cartão), botão "Pagar".
+- `/comprar/sucesso/:id` — exibe QR Code PIX (imagem + copia-e-cola) ou redireciona para invoice de cartão. Faz polling de status a cada 5s e mostra "Pagamento confirmado → e-mail enviado".
+- Botões "Comprar Agora" da landing apontam para `/comprar?plano=annual|lifetime`.
+
+**Admin Master (`/app/admin/...`)**
+- `Pagamentos Asaas` — formulário de configuração + "Testar conexão" + status.
+- `Planos` — editar preço/parcelas dos dois planos.
+- `Assinaturas` — tabela com filtros, ações: reenviar, cancelar, reembolsar (com confirmação), aprovar pedidos de reembolso ≤7 dias.
+- `Logs de pagamento` — tabela read-only.
+
+## 6. Visual
+Mantém identidade Mobile+ (azul escuro, azul neon, branco, logo central). Componentes shadcn já existentes, responsivo.
+
+## Detalhes técnicos
+- API Asaas: `https://api.asaas.com/v3` (prod) ou `https://sandbox.asaas.com/api/v3`, header `access_token: <API_KEY>`.
+- Cliente: `POST /customers` (cpfCnpj, name, email, phone)
+- Cobrança PIX: `POST /payments` `{billingType:"PIX"}` + `GET /payments/{id}/pixQrCode`
+- Cobrança Cartão: `POST /payments` `{billingType:"CREDIT_CARD", installmentCount}` → usa `invoiceUrl` (checkout hospedado pelo Asaas, mais seguro que tokenizar cartão no frontend).
+- Webhook valida `req.headers["asaas-access-token"] === ASAAS_WEBHOOK_TOKEN`.
+- Garantia 7 dias: cliente pede reembolso (`refund_requested_at`); Admin Master aprova → chama `asaas-refund` → marca `status='refunded'` + revoga acesso (delete user role).
+
+## Ordem de execução
+1. Migração (tabelas + RLS + GRANTs + roles).
+2. Pedir secrets `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN`.
+3. Edge functions.
+4. Páginas públicas de compra.
+5. Páginas Admin Master.
+6. Ajuste no `Auth.tsx` (bloqueio sem pagamento) e botões da landing.
+
+## Pergunta antes de começar
+- **Valor padrão do Plano Anual?** (Vitalício já = R$ 297. Anual ficou "a definir no painel" — posso usar R$ 127/ano como padrão inicial, igual ao texto atual da landing, e você ajusta depois no painel?)
+- **Acesso vitalício** = nunca expira (`expires_at = null`). Anual = `started_at + 12 meses`. Ok?
+- Confirma que quero criar a conta automaticamente no webhook e enviar e-mail de "definir senha" (em vez de pedir senha no checkout)?
