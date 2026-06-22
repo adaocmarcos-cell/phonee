@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Filter, Search } from "lucide-react";
+import { Plus, Receipt, Search } from "lucide-react";
 
 const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, "0")}`;
 
@@ -17,23 +18,23 @@ export default function Vendas() {
   const { store, role } = useAuth();
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
-  const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "1y" | "all">("30d");
+  const [period, setPeriod] = useState<PeriodValue>("30d");
+  const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [payment, setPayment] = useState<string>("all");
   const [q, setQ] = useState("");
 
   const load = async () => {
     if (!store) return;
     let query = supabase.from("sales").select("*").eq("store_id", store.id).order("created_at", { ascending: false }).limit(500);
-    if (period !== "all") {
-      const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
-      const since = new Date(Date.now() - days * 86400_000).toISOString();
-      query = query.gte("created_at", since);
-    }
+    const { from, to } = resolvePeriod(period, periodCustom);
+    if (period === "custom" && (!from || !to)) { setSales([]); return; }
+    if (from) query = query.gte("created_at", from.toISOString());
+    if (period !== "all" && to) query = query.lte("created_at", to.toISOString());
     const { data: s } = await query;
     setSales(s ?? []);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [store, period]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [store, period, periodCustom]);
 
   const filtered = useMemo(() => {
     return sales.filter((s) => {
@@ -68,24 +69,18 @@ export default function Vendas() {
       />
 
       <Card className="bg-card border-border shadow-card p-3 mb-4 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Filter className="h-4 w-4" />
-          <span className="text-[11px] font-mono uppercase tracking-widest">Filtros</span>
-        </div>
         <div className="relative flex-1 min-w-[180px]">
           <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Nº da venda ou cliente" value={q} onChange={(e) => setQ(e.target.value)} className="h-9 pl-8" />
         </div>
-        <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
-          <SelectTrigger className="w-[150px] h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
-            <SelectItem value="90d">Últimos 90 dias</SelectItem>
-            <SelectItem value="1y">Último ano</SelectItem>
-            <SelectItem value="all">Tudo</SelectItem>
-          </SelectContent>
-        </Select>
+        <PeriodFilter
+          value={period}
+          onChange={setPeriod}
+          options={["7d", "30d", "90d", "1y", "all", "custom"]}
+          custom={periodCustom}
+          onCustomChange={setPeriodCustom}
+          showLabel={false}
+        />
         <Select value={payment} onValueChange={setPayment}>
           <SelectTrigger className="w-[150px] h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
