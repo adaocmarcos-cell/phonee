@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Globe, Settings, ShieldCheck, Wallet,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -15,7 +16,7 @@ type Item = { title: string; url: string; icon: any; end?: boolean };
 const main: Item[] = [
   { title: "Estoque", url: "/app/estoque", icon: Boxes },
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
-  { title: "Trade-in", url: "/app/trade-in", icon: Smartphone },
+  { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
 ];
 
@@ -52,12 +53,12 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={active}
-                  className="data-[active=true]:bg-[#03d4fc] data-[active=true]:text-blue-900 data-[active=true]:font-semibold data-[active=true]:hover:bg-[#03d4fc] data-[active=true]:hover:text-blue-900 hover:bg-sidebar-accent"
+                  className="data-[active=true]:bg-[#00abfb] data-[active=true]:text-blue-900 data-[active=true]:font-semibold data-[active=true]:hover:bg-[#00abfb] data-[active=true]:hover:text-blue-900 hover:bg-sidebar-accent"
                 >
                   <NavLink to={item.url} end={item.end}>
                     <item.icon className="h-4 w-4" />
                     {!collapsed && (
-                      <span className={isDashboard && !active ? "text-[#03d4fc] font-semibold" : ""}>
+                      <span className={isDashboard && !active ? "text-[#00abfb] font-semibold" : ""}>
                         {item.title}
                       </span>
                     )}
