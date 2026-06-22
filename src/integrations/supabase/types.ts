@@ -527,6 +527,152 @@ export type Database = {
           },
         ]
       }
+      service_orders: {
+        Row: {
+          accessories: string[] | null
+          battery_health: number | null
+          budget_status: Database["public"]["Enums"]["os_budget_status"]
+          created_at: string
+          created_by: string | null
+          customer_address: string | null
+          customer_city: string | null
+          customer_cpf: string | null
+          customer_email: string | null
+          customer_name: string
+          customer_signature: string | null
+          customer_whatsapp: string | null
+          delivery_checklist: Json | null
+          device_brand: string | null
+          device_category: string | null
+          device_color: string | null
+          device_imei1: string | null
+          device_imei2: string | null
+          device_model: string | null
+          device_password: string | null
+          device_serial: string | null
+          device_storage: string | null
+          device_system: string | null
+          end_date: string | null
+          estimated_days: number | null
+          final_notes: string | null
+          id: string
+          issue_description: string | null
+          labor_value: number
+          os_number: number | null
+          parts_value: number
+          photos: Json | null
+          reasons: string[] | null
+          receive_checklist: Json | null
+          signed_at: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["os_status"]
+          store_id: string
+          tech_signature: string | null
+          technician: string | null
+          total_value: number
+          updated_at: string
+          work_checklist: Json | null
+        }
+        Insert: {
+          accessories?: string[] | null
+          battery_health?: number | null
+          budget_status?: Database["public"]["Enums"]["os_budget_status"]
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name: string
+          customer_signature?: string | null
+          customer_whatsapp?: string | null
+          delivery_checklist?: Json | null
+          device_brand?: string | null
+          device_category?: string | null
+          device_color?: string | null
+          device_imei1?: string | null
+          device_imei2?: string | null
+          device_model?: string | null
+          device_password?: string | null
+          device_serial?: string | null
+          device_storage?: string | null
+          device_system?: string | null
+          end_date?: string | null
+          estimated_days?: number | null
+          final_notes?: string | null
+          id?: string
+          issue_description?: string | null
+          labor_value?: number
+          os_number?: number | null
+          parts_value?: number
+          photos?: Json | null
+          reasons?: string[] | null
+          receive_checklist?: Json | null
+          signed_at?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["os_status"]
+          store_id: string
+          tech_signature?: string | null
+          technician?: string | null
+          total_value?: number
+          updated_at?: string
+          work_checklist?: Json | null
+        }
+        Update: {
+          accessories?: string[] | null
+          battery_health?: number | null
+          budget_status?: Database["public"]["Enums"]["os_budget_status"]
+          created_at?: string
+          created_by?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          customer_signature?: string | null
+          customer_whatsapp?: string | null
+          delivery_checklist?: Json | null
+          device_brand?: string | null
+          device_category?: string | null
+          device_color?: string | null
+          device_imei1?: string | null
+          device_imei2?: string | null
+          device_model?: string | null
+          device_password?: string | null
+          device_serial?: string | null
+          device_storage?: string | null
+          device_system?: string | null
+          end_date?: string | null
+          estimated_days?: number | null
+          final_notes?: string | null
+          id?: string
+          issue_description?: string | null
+          labor_value?: number
+          os_number?: number | null
+          parts_value?: number
+          photos?: Json | null
+          reasons?: string[] | null
+          receive_checklist?: Json | null
+          signed_at?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["os_status"]
+          store_id?: string
+          tech_signature?: string | null
+          technician?: string | null
+          total_value?: number
+          updated_at?: string
+          work_checklist?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           address: string | null
@@ -749,6 +895,18 @@ export type Database = {
       alert_severity: "info" | "warning" | "danger"
       app_role: "dono" | "gerente" | "vendedor" | "estoquista"
       device_condition: "otimo" | "bom" | "regular" | "com_defeito"
+      os_budget_status: "pendente" | "aprovado" | "reprovado"
+      os_status:
+        | "recebido"
+        | "em_analise"
+        | "aguardando_orcamento"
+        | "aguardando_aprovacao"
+        | "aguardando_peca"
+        | "em_reparo"
+        | "em_testes"
+        | "pronto_retirada"
+        | "entregue"
+        | "cancelado"
       payment_method: "dinheiro" | "pix" | "debito" | "credito" | "crediario"
       product_category:
         | "acessorio"
@@ -899,6 +1057,19 @@ export const Constants = {
       alert_severity: ["info", "warning", "danger"],
       app_role: ["dono", "gerente", "vendedor", "estoquista"],
       device_condition: ["otimo", "bom", "regular", "com_defeito"],
+      os_budget_status: ["pendente", "aprovado", "reprovado"],
+      os_status: [
+        "recebido",
+        "em_analise",
+        "aguardando_orcamento",
+        "aguardando_aprovacao",
+        "aguardando_peca",
+        "em_reparo",
+        "em_testes",
+        "pronto_retirada",
+        "entregue",
+        "cancelado",
+      ],
       payment_method: ["dinheiro", "pix", "debito", "credito", "crediario"],
       product_category: [
         "acessorio",
