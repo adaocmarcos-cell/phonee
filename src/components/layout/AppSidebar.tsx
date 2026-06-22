@@ -14,7 +14,6 @@ import logoIcon from "@/assets/mobileplus-icon.png";
 type Item = { title: string; url: string; icon: any; end?: boolean };
 
 const main: Item[] = [
-  { title: "Estoque", url: "/app/estoque", icon: Boxes },
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
@@ -22,6 +21,7 @@ const main: Item[] = [
 
 const ops: Item[] = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
+  { title: "Estoque", url: "/app/estoque", icon: Boxes },
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
   { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
   { title: "Clientes", url: "/app/clientes", icon: Users },

@@ -63,15 +63,18 @@ const CATEGORIES_DEFAULT = [
 
 export default function VendaNova() {
   const navigate = useNavigate();
-  const { store, user } = useAuth();
+  const { store, user, role } = useAuth();
 
   // Cliente
   const [customer, setCustomer] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
   const [doc, setDoc] = useState("");
   const [city, setCity] = useState("");
-  const [seller, setSeller] = useState("");
+  const [sellerId, setSellerId] = useState<string>("");
+  const [seller, setSeller] = useState<string>("");
+  const [sellers, setSellers] = useState<{ user_id: string; full_name: string; role: string }[]>([]);
   const [unit, setUnit] = useState("");
   const [priceList, setPriceList] = useState("padrao");
 
@@ -123,6 +126,38 @@ export default function VendaNova() {
       setProducts(data ?? []);
     })();
   }, [store]);
+
+  // Carrega vendedores/gestores da loja (via função SECURITY DEFINER)
+  useEffect(() => {
+    if (!store || !user) return;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .rpc("get_store_sellers", { _store_id: store.id });
+      if (error) return;
+      const list = (data ?? []) as { user_id: string; full_name: string; role: string }[];
+      setSellers(list);
+
+      // Se vendedor, pré-seleciona a si mesmo e bloqueia a seleção.
+      if (role === "vendedor") {
+        const me = list.find((s) => s.user_id === user.id);
+        if (me) {
+          setSellerId(me.user_id);
+          setSeller(me.full_name);
+        }
+      }
+    })();
+  }, [store, user, role]);
+
+  const canChangeSeller = role === "dono" || role === "gerente";
+  const selectableSellers = canChangeSeller
+    ? sellers
+    : sellers.filter((s) => s.user_id === user?.id);
+
+  const onSellerChange = (uid: string) => {
+    const s = sellers.find((x) => x.user_id === uid);
+    setSellerId(uid);
+    setSeller(s?.full_name ?? "");
+  };
 
   const filteredProducts = useMemo(() => {
     const q = productQuery.trim().toLowerCase();
@@ -197,7 +232,7 @@ export default function VendaNova() {
 
   const buildPayload = () => ({
     extras: {
-      whatsapp, city, seller, unit, price_list: priceList,
+      whatsapp, phone, city, seller, seller_id: sellerId || null, unit, price_list: priceList,
       customer_doc_type: docType,
       commission: { percent: commissionPct, value: commissionValue, status: commissionStatus },
       payment: {
@@ -307,7 +342,8 @@ Obrigado pela preferência.`;
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Cliente"><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></Field>
-              <Field label="WhatsApp"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
+              <Field label="WhatsApp (opcional)"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
+              <Field label="Telefone (opcional)"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3000-0000" /></Field>
               <Field label="Tipo de documento">
                 <Select value={docType} onValueChange={(v: any) => { setDocType(v); setDoc(""); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -326,7 +362,18 @@ Obrigado pela preferência.`;
                 />
               </Field>
               <Field label="Cidade"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
-              <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
+              <Field label="Vendedor">
+                <Select value={sellerId} onValueChange={onSellerChange} disabled={!canChangeSeller && selectableSellers.length <= 1}>
+                  <SelectTrigger><SelectValue placeholder={selectableSellers.length ? "Selecione um vendedor" : "Sem vendedores cadastrados"} /></SelectTrigger>
+                  <SelectContent>
+                    {selectableSellers.map((s) => (
+                      <SelectItem key={s.user_id} value={s.user_id}>
+                        {s.full_name} {s.role !== "vendedor" && <span className="text-muted-foreground text-xs">· {s.role}</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label="Loja"><Input value={store?.name ?? ""} readOnly /></Field>
               <Field label="Unidade de negócio"><Input value={unit} onChange={(e) => setUnit(e.target.value)} /></Field>
               <Field label="Lista de preço">
@@ -562,7 +609,16 @@ Obrigado pela preferência.`;
               </TabsContent>
 
               <TabsContent value="comissoes" className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <Field label="Vendedor"><Input value={seller} onChange={(e) => setSeller(e.target.value)} /></Field>
+                <Field label="Vendedor">
+                  <Select value={sellerId} onValueChange={onSellerChange} disabled={!canChangeSeller && selectableSellers.length <= 1}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {selectableSellers.map((s) => (
+                        <SelectItem key={s.user_id} value={s.user_id}>{s.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
                 <Field label="% Comissão"><Input type="number" step="0.01" value={commissionPct} onChange={(e) => setCommissionPct(Number(e.target.value))} /></Field>
                 <Field label="Valor da comissão">
                   <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm">{brl(commissionValue)}</div>
@@ -658,6 +714,7 @@ Obrigado pela preferência.`;
             <div><strong>Cliente:</strong> {customer || "—"}</div>
             <div><strong>{docType.toUpperCase()}:</strong> {doc || "—"}</div>
             <div><strong>WhatsApp:</strong> {whatsapp || "—"}</div>
+            <div><strong>Telefone:</strong> {phone || "—"}</div>
             <div><strong>Cidade:</strong> {city || "—"}</div>
             <div><strong>Vendedor:</strong> {seller || "—"}</div>
             <div><strong>Pagamento:</strong> {payMethod.toUpperCase()} {installments > 1 ? `(${installments}x)` : ""}</div>
