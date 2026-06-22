@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
-  Receipt, Users, Wrench, Bell, Globe, Settings, ShieldCheck, Wallet,
+  Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet,
   ArrowRightLeft,
 } from "lucide-react";
 import {
@@ -30,7 +30,7 @@ const ops: Item[] = [
 ];
 
 const config = [
-  { title: "Catálogo público", url: "/app/catalogo-config", icon: Globe },
+  { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
   { title: "Usuários", url: "/app/admin/usuarios", icon: ShieldCheck },
   { title: "Configurações", url: "/app/admin/configuracoes", icon: Settings },
 ];
