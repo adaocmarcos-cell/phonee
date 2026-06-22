@@ -40,7 +40,9 @@ export function PeriodFilter({
   showLabel?: boolean;
 }) {
   const opts = options.includes("custom") ? options : [...options, "custom" as PeriodValue];
-  const triggerH = compact ? "h-7 w-[130px] text-xs" : "h-9 w-[160px]";
+  const triggerH = compact
+    ? "h-8 w-[140px] text-xs border-0 bg-transparent shadow-none hover:bg-muted/60 focus:ring-0 focus-visible:ring-0 px-2 text-muted-foreground hover:text-foreground transition-colors"
+    : "h-9 w-[160px]";
   return (
     <div className={cn("flex items-center gap-2 flex-wrap", className)}>
       {showLabel && (
