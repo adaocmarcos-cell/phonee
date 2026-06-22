@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Sparkles } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Sparkles, Wallet } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [revenueMonth, setRevenueMonth] = useState(0);
   const [salesCount, setSalesCount] = useState(0);
   const [margin, setMargin] = useState(0);
+  const [costMonth, setCostMonth] = useState(0);
+  const [expensesMonth, setExpensesMonth] = useState(0);
   const [productsLow, setProductsLow] = useState(0);
   const [stalled, setStalled] = useState(0);
   const [series, setSeries] = useState<{ day: string; total: number }[]>([]);
@@ -89,8 +91,17 @@ export default function Dashboard() {
           prodMap[pid].revenue += r;
         });
         setMargin(rev > 0 ? ((rev - cost) / rev) * 100 : 0);
+        setCostMonth(cost);
         setTopProducts(Object.values(prodMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5));
       }
+
+      // Despesas do mês
+      const { data: exps } = await (supabase as any)
+        .from("expenses")
+        .select("amount")
+        .eq("store_id", store.id)
+        .gte("expense_date", monthISO.toISOString().slice(0, 10));
+      setExpensesMonth((exps ?? []).reduce((s: number, x: any) => s + Number(x.amount || 0), 0));
 
       const { data: prods } = await supabase
         .from("products")
@@ -116,6 +127,8 @@ export default function Dashboard() {
     })();
   }, [store, role]);
 
+  const lucroMes = revenueMonth - costMonth - expensesMonth;
+
   return (
     <div>
       <PageHeader
@@ -123,11 +136,24 @@ export default function Dashboard() {
         description="Tudo que importa na sua loja, em um só lugar."
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <MetricCard label="Faturamento hoje" value={brl(revenueToday)} icon={DollarSign} accent="success" />
-        <MetricCard label="Faturamento do mês" value={brl(revenueMonth)} delta={`${num(salesCount)} vendas`} icon={TrendingUp} accent="primary" />
-        <MetricCard label={canSeeCost(role) ? "Margem média" : "Itens em alerta"} value={canSeeCost(role) ? pct(margin) : num(productsLow)} icon={canSeeCost(role) ? Sparkles : AlertTriangle} accent={canSeeCost(role) ? "success" : "warning"} />
-        <MetricCard label="Estoque encalhado" value={num(stalled)} delta="+30 dias sem venda" trend="down" icon={Package} accent="danger" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+        <MetricCard label="Faturamento hoje" value={brl(revenueToday)} icon={DollarSign} variant="filled" className="lg:col-span-1" />
+        <MetricCard label="Faturamento do mês" value={brl(revenueMonth)} delta={`${num(salesCount)} vendas`} icon={TrendingUp} variant="filled" className="lg:col-span-1" />
+        {canSeeCost(role) ? (
+          <MetricCard
+            label="Lucro do mês"
+            value={brl(lucroMes)}
+            delta={`Receita − custo − despesas (${brl(expensesMonth)} desp.)`}
+            icon={Wallet}
+            variant="highlight"
+            trend={lucroMes >= 0 ? "up" : "down"}
+            className="lg:col-span-2 sm:col-span-2"
+          />
+        ) : (
+          <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} accent="warning" className="lg:col-span-2 sm:col-span-2" />
+        )}
+        <MetricCard label={canSeeCost(role) ? "Margem média" : "Estoque baixo"} value={canSeeCost(role) ? pct(margin) : num(productsLow)} icon={canSeeCost(role) ? Sparkles : AlertTriangle} accent={canSeeCost(role) ? "success" : "warning"} className="lg:col-span-1" />
+        <MetricCard label="Estoque encalhado" value={num(stalled)} delta="+30 dias sem venda" trend="down" icon={Package} accent="danger" className="lg:col-span-1" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">

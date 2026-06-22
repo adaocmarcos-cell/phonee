@@ -19,6 +19,7 @@ import TradeIn from "./pages/app/TradeIn";
 import TradeInForm from "./pages/app/TradeInForm";
 import Pedidos from "./pages/app/Pedidos";
 import PedidoNovo from "./pages/app/PedidoNovo";
+import Despesas from "./pages/app/Despesas";
 import ComingSoon from "./pages/app/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="pedidos" element={<Pedidos />} />
               <Route path="pedidos/novo" element={<PedidoNovo />} />
               <Route path="vendas" element={<Vendas />} />
+              <Route path="despesas" element={<Despesas />} />
               <Route path="clientes" element={<ComingSoon title="Clientes" description="CRM básico por CPF." />} />
               <Route path="os" element={<ComingSoon title="Ordens de Serviço" description="Assistência técnica." />} />
               <Route path="alertas" element={<Alertas />} />

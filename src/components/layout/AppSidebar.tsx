@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
-  Receipt, Users, Wrench, Bell, Globe, Settings, ShieldCheck,
+  Receipt, Users, Wrench, Bell, Globe, Settings, ShieldCheck, Wallet,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -20,6 +20,7 @@ const main = [
 
 const ops = [
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
+  { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
   { title: "Clientes", url: "/app/clientes", icon: Users },
   { title: "Ordens de Serviço", url: "/app/os", icon: Wrench },
   { title: "Alertas", url: "/app/alertas", icon: Bell },
