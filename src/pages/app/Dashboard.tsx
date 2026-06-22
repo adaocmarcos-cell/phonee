@@ -9,7 +9,7 @@ import { brl, num, pct } from "@/lib/format";
 import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
 } from "recharts";
 
@@ -32,6 +32,8 @@ export default function Dashboard() {
   const [topProducts, setTopProducts] = useState<{ name: string; qty: number; revenue: number }[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
+  const [evoPeriod, setEvoPeriod] = useState<"7d" | "30d" | "3m" | "6m" | "1y">("1y");
+  const [evoSeries, setEvoSeries] = useState<{ label: string; total: number }[]>([]);
 
   useEffect(() => {
     if (!store) return;
@@ -141,6 +143,48 @@ export default function Dashboard() {
     })();
   }, [store, role, period]);
 
+  // Evolução das vendas (gráfico independente)
+  useEffect(() => {
+    if (!store) return;
+    (async () => {
+      const days = evoPeriod === "7d" ? 7 : evoPeriod === "30d" ? 30 : evoPeriod === "3m" ? 90 : evoPeriod === "6m" ? 180 : 365;
+      const since = new Date(Date.now() - days * 86400_000); since.setHours(0, 0, 0, 0);
+      const { data } = await supabase
+        .from("sales")
+        .select("total, created_at")
+        .eq("store_id", store.id)
+        .gte("created_at", since.toISOString());
+      const groupByMonth = days > 60;
+      const buckets: Record<string, number> = {};
+      (data ?? []).forEach((s: any) => {
+        const d = new Date(s.created_at);
+        const k = groupByMonth
+          ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`
+          : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+        buckets[k] = (buckets[k] || 0) + Number(s.total || 0);
+      });
+      // Build ordered timeline
+      const out: { label: string; total: number }[] = [];
+      const cursor = new Date(since);
+      const end = new Date();
+      if (groupByMonth) {
+        cursor.setDate(1);
+        while (cursor <= end) {
+          const k = `${String(cursor.getMonth() + 1).padStart(2, "0")}/${String(cursor.getFullYear()).slice(2)}`;
+          out.push({ label: k, total: buckets[k] || 0 });
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+      } else {
+        while (cursor <= end) {
+          const k = `${String(cursor.getDate()).padStart(2, "0")}/${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+          out.push({ label: k, total: buckets[k] || 0 });
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      }
+      setEvoSeries(out);
+    })();
+  }, [store, evoPeriod]);
+
   const lucroMes = revenueMonth - costMonth - expensesMonth;
   const lucroBrutoHoje = revenueToday - costToday;
   const periodLabel = period === "today" ? "hoje" : period === "7d" ? "últimos 7 dias" : period === "30d" ? "últimos 30 dias" : period === "month" ? "mês atual" : "ano atual";
@@ -220,17 +264,29 @@ export default function Dashboard() {
         <Card className="p-5 lg:col-span-2 bg-card border-border shadow-card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold">Faturamento — mês atual</h3>
-              <p className="text-xs text-muted-foreground">Soma diária de vendas</p>
+              <h3 className="font-semibold">Evolução das vendas</h3>
+              <p className="text-xs text-muted-foreground">Faturamento por período</p>
             </div>
-            <Badge variant="outline" className="font-mono text-[10px] tracking-widest">DIÁRIO</Badge>
+            <div className="flex items-center gap-2">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+              <Select value={evoPeriod} onValueChange={(v) => setEvoPeriod(v as any)}>
+                <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">7 dias</SelectItem>
+                  <SelectItem value="30d">30 dias</SelectItem>
+                  <SelectItem value="3m">3 meses</SelectItem>
+                  <SelectItem value="6m">6 meses</SelectItem>
+                  <SelectItem value="1y">1 ano</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="h-64">
-            {series.length === 0 ? (
-              <EmptyChart label="Sem vendas neste mês ainda" />
+            {evoSeries.every((p) => p.total === 0) ? (
+              <EmptyChart label="Sem vendas no período" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series}>
+                <AreaChart data={evoSeries}>
                   <defs>
                     <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
@@ -238,7 +294,7 @@ export default function Dashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
                   <Tooltip
                     contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
