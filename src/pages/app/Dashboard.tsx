@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Sparkles, Wallet } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Sparkles, Wallet, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -16,6 +17,7 @@ const PAY_COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--war
 
 export default function Dashboard() {
   const { store, role } = useAuth();
+  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "month" | "year">("month");
   const [revenueToday, setRevenueToday] = useState(0);
   const [revenueMonth, setRevenueMonth] = useState(0);
   const [salesCount, setSalesCount] = useState(0);
@@ -34,7 +36,13 @@ export default function Dashboard() {
     if (!store) return;
     (async () => {
       const todayISO = new Date(); todayISO.setHours(0, 0, 0, 0);
-      const monthISO = new Date(); monthISO.setDate(1); monthISO.setHours(0, 0, 0, 0);
+      const fromDate = new Date();
+      if (period === "today") fromDate.setHours(0, 0, 0, 0);
+      else if (period === "7d") { fromDate.setDate(fromDate.getDate() - 7); fromDate.setHours(0, 0, 0, 0); }
+      else if (period === "30d") { fromDate.setDate(fromDate.getDate() - 30); fromDate.setHours(0, 0, 0, 0); }
+      else if (period === "month") { fromDate.setDate(1); fromDate.setHours(0, 0, 0, 0); }
+      else if (period === "year") { fromDate.setMonth(0, 1); fromDate.setHours(0, 0, 0, 0); }
+      const monthISO = fromDate;
 
       const { data: sales } = await supabase
         .from("sales")
@@ -125,9 +133,10 @@ export default function Dashboard() {
         .limit(5);
       setAlerts(al ?? []);
     })();
-  }, [store, role]);
+  }, [store, role, period]);
 
   const lucroMes = revenueMonth - costMonth - expensesMonth;
+  const periodLabel = period === "today" ? "hoje" : period === "7d" ? "últimos 7 dias" : period === "30d" ? "últimos 30 dias" : period === "month" ? "mês atual" : "ano atual";
 
   return (
     <div>
@@ -136,24 +145,42 @@ export default function Dashboard() {
         description="Tudo que importa na sua loja, em um só lugar."
       />
 
+      <div className="flex items-center justify-end gap-2 mb-4">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Período</span>
+        <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+          <SelectTrigger className="w-[200px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="today">Hoje</SelectItem>
+            <SelectItem value="7d">Últimos 7 dias</SelectItem>
+            <SelectItem value="30d">Últimos 30 dias</SelectItem>
+            <SelectItem value="month">Mês atual</SelectItem>
+            <SelectItem value="year">Ano atual</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-        <MetricCard label="Faturamento hoje" value={brl(revenueToday)} icon={DollarSign} variant="filled" className="lg:col-span-1" />
-        <MetricCard label="Faturamento do mês" value={brl(revenueMonth)} delta={`${num(salesCount)} vendas`} icon={TrendingUp} variant="filled" className="lg:col-span-1" />
+        <MetricCard label="Faturamento hoje" value={brl(revenueToday)} icon={DollarSign} tone="info" className="lg:col-span-1" />
+        <MetricCard label={`Faturamento — ${periodLabel}`} value={brl(revenueMonth)} delta={`${num(salesCount)} vendas`} icon={TrendingUp} tone="primary" className="lg:col-span-1" />
         {canSeeCost(role) ? (
           <MetricCard
-            label="Lucro do mês"
+            label={`Lucro do período — ${periodLabel}`}
             value={brl(lucroMes)}
             delta={`Receita − custo − despesas (${brl(expensesMonth)} desp.)`}
             icon={Wallet}
             variant="highlight"
+            tone="success"
             trend={lucroMes >= 0 ? "up" : "down"}
             className="lg:col-span-2 sm:col-span-2"
           />
         ) : (
-          <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} accent="warning" className="lg:col-span-2 sm:col-span-2" />
+          <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} tone="warning" className="lg:col-span-2 sm:col-span-2" />
         )}
-        <MetricCard label={canSeeCost(role) ? "Margem média" : "Estoque baixo"} value={canSeeCost(role) ? pct(margin) : num(productsLow)} icon={canSeeCost(role) ? Sparkles : AlertTriangle} accent={canSeeCost(role) ? "success" : "warning"} className="lg:col-span-1" />
-        <MetricCard label="Estoque encalhado" value={num(stalled)} delta="+30 dias sem venda" trend="down" icon={Package} accent="danger" className="lg:col-span-1" />
+        <MetricCard label={canSeeCost(role) ? "Margem média" : "Estoque baixo"} value={canSeeCost(role) ? pct(margin) : num(productsLow)} icon={canSeeCost(role) ? Sparkles : AlertTriangle} tone={canSeeCost(role) ? "violet" : "warning"} className="lg:col-span-1" />
+        <MetricCard label="Estoque encalhado" value={num(stalled)} delta="+30 dias sem venda" trend="down" icon={Package} tone="danger" className="lg:col-span-1" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
