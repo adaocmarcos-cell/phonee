@@ -7,7 +7,8 @@ import {
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
   ArrowRight, Lock, CheckCircle2, Star,
 } from "lucide-react";
-import logo from "@/assets/mobileplus-icon.png";
+import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+const logo = logoAsset.url;
 
 /* ---------- building blocks ---------- */
 
@@ -82,11 +83,8 @@ export default function Landing() {
       {/* NAV — preto sólido */}
       <header className="sticky top-0 z-50 bg-black border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <img src={logo} alt="Mobile+" className="h-9 w-9" />
-            <div className="text-white font-extrabold text-xl tracking-tight">
-              Mobile<span className="text-primary">+</span>
-            </div>
+          <Link to="/" className="flex items-center">
+            <img src={logo} alt="Mobile+" className="h-12 md:h-14 w-auto invert" />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-base font-semibold text-white">
             <a href="#beneficios" className="hover:text-primary transition">Benefícios</a>
@@ -567,10 +565,7 @@ export default function Landing() {
       {/* FOOTER */}
       <footer className="bg-black text-slate-300 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <img src={logo} alt="Mobile+" className="h-7 w-7" />
-            <div className="text-white font-extrabold">Mobile<span className="text-primary">+</span></div>
-          </div>
+          <img src={logo} alt="Mobile+" className="h-10 w-auto invert" />
           <div className="text-xs">© {new Date().getFullYear()} Mobile+. Todos os direitos reservados.</div>
         </div>
       </footer>
