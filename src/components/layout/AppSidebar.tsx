@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet,
-  ArrowRightLeft, UserCog, KeyRound, FileSearch,
+  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -41,6 +41,13 @@ const adminItems: Item[] = [
   { title: "Cargos e Funções", url: "/app/admin/cargos", icon: UserCog },
   { title: "Permissões", url: "/app/admin/permissoes", icon: KeyRound },
   { title: "Logs e Auditoria", url: "/app/admin/logs", icon: FileSearch },
+];
+
+const adminMasterItems: Item[] = [
+  { title: "Pagamentos Asaas", url: "/app/admin/pagamentos", icon: CreditCard },
+  { title: "Planos", url: "/app/admin/planos", icon: Package },
+  { title: "Assinaturas", url: "/app/admin/assinaturas", icon: Receipt },
+  { title: "Logs de Pagamento", url: "/app/admin/logs-pagamento", icon: ScrollText },
 ];
 
 export function AppSidebar() {
@@ -102,6 +109,7 @@ export function AppSidebar() {
           "Usuários e Permissões",
           adminItems.filter((it) => it.url !== "/app/admin/logs" || showLogsOnly)
         )}
+        {isAdminMaster(role as any) && renderGroup("Financeiro / Admin Master", adminMasterItems)}
       </SidebarContent>
     </Sidebar>
   );
