@@ -140,15 +140,51 @@ export default function ProductForm() {
           <h3 className="font-semibold mb-4">Classificação</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label="Categoria">
-              <Select value={form.category} onValueChange={(v) => set("category", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.category}
+                onValueChange={(v) => {
+                  if (v === "__add_other__") {
+                    setShowOtherInput(true);
+                    return;
+                  }
+                  set("category", v);
+                  setShowOtherInput(false);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="acessorio">Acessório</SelectItem>
-                  <SelectItem value="peca">Peça</SelectItem>
-                  <SelectItem value="aparelho_novo">Aparelho novo</SelectItem>
-                  <SelectItem value="aparelho_seminovo">Aparelho seminovo</SelectItem>
+                  {DEFAULT_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                  {customCats.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                  <SelectItem value="__add_other__">+ Adicionar nova categoria…</SelectItem>
                 </SelectContent>
               </Select>
+              {showOtherInput && (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="Nome da nova categoria"
+                    value={otherName}
+                    onChange={(e) => setOtherName(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!otherName.trim()) return;
+                      const created = addCustomCategory(otherName);
+                      setCustomCats(getCustomCategories());
+                      set("category", created.value);
+                      setOtherName("");
+                      setShowOtherInput(false);
+                      toast.success("Categoria adicionada");
+                    }}
+                  >
+                    Salvar
+                  </Button>
+                </div>
+              )}
             </Field>
             <Field label="Subcategoria"><Input value={form.subcategory} onChange={(e) => set("subcategory", e.target.value)} placeholder="Capa, Película, Cabo…" /></Field>
             <Field label="Condição">
