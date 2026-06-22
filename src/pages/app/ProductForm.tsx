@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { z } from "zod";
+import { DEFAULT_CATEGORIES, getCustomCategories, addCustomCategory } from "@/lib/categories";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nome muito curto").max(120),
@@ -39,7 +40,7 @@ type FormState = {
 
 const empty: FormState = {
   name: "", sku: "", ean: "", brand: "", compatible_model: "",
-  category: "acessorio", subcategory: "", condition: "novo",
+  category: "", subcategory: "", condition: "novo",
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 3, stock_max: 0,
   location: "", visible_in_catalog: false, status: "ativo",
@@ -52,6 +53,9 @@ export default function ProductForm() {
   const { store, role } = useAuth();
   const [form, setForm] = useState<FormState>(empty);
   const [busy, setBusy] = useState(false);
+  const [customCats, setCustomCats] = useState(() => getCustomCategories());
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [otherName, setOtherName] = useState("");
 
   useEffect(() => {
     if (isNew || !store) return;
@@ -68,6 +72,9 @@ export default function ProductForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!store) return;
+    if (!form.category) {
+      return toast.error("Selecione uma categoria");
+    }
     const parsed = schema.safeParse({
       name: form.name, sku: form.sku, brand: form.brand, compatible_model: form.compatible_model,
       cost_price: Number(form.cost_price), sale_price: Number(form.sale_price),
