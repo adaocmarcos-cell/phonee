@@ -1,16 +1,17 @@
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
 import logo from "@/assets/mobileplus-icon.png";
-import { Boxes, Zap, ShieldCheck } from "lucide-react";
+import { Boxes, Zap, ShieldCheck, Eye, EyeOff } from "lucide-react";
 
 const emailSchema = z.string().trim().email("E-mail inválido").max(255);
 const passwordSchema = z.string().min(6, "Mínimo 6 caracteres").max(72);
@@ -25,6 +26,17 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword2, setShowPassword2] = useState(false);
+  const [remember, setRemember] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("mobileplus.rememberedEmail");
+    if (saved) {
+      setEmail(saved);
+      setRemember(true);
+    }
+  }, []);
 
   if (loading) return null;
   if (user) return <Navigate to="/app" replace />;
@@ -39,6 +51,8 @@ export default function Auth() {
     const { error } = await supabase.auth.signInWithPassword({ email: eRes.data, password: pRes.data });
     setBusy(false);
     if (error) return toast.error(error.message);
+    if (remember) localStorage.setItem("mobileplus.rememberedEmail", eRes.data);
+    else localStorage.removeItem("mobileplus.rememberedEmail");
     toast.success("Bem-vindo de volta!");
     navigate("/app");
   };
@@ -127,8 +141,33 @@ export default function Auth() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-                  <div className="text-right">
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-elevated transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                      <Checkbox
+                        checked={remember}
+                        onCheckedChange={(v) => setRemember(v === true)}
+                        className="h-4 w-4"
+                      />
+                      Lembrar meu login
+                    </label>
                     <Link to="/forgot-password" className="text-xs text-primary hover:underline">
                       Esqueceu a senha?
                     </Link>
@@ -152,7 +191,24 @@ export default function Auth() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password2">Senha</Label>
-                  <Input id="password2" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+                  <div className="relative">
+                    <Input
+                      id="password2"
+                      type={showPassword2 ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="new-password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword2((v) => !v)}
+                      aria-label={showPassword2 ? "Ocultar senha" : "Mostrar senha"}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-elevated transition-colors"
+                    >
+                      {showPassword2 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   <p className="text-[11px] text-muted-foreground">Mínimo 6 caracteres.</p>
                 </div>
                 <Button type="submit" disabled={busy} className="w-full bg-gradient-primary shadow-glow">
