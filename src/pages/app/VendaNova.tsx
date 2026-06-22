@@ -480,6 +480,30 @@ Obrigado pela preferência.`;
                   </Field>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-border/60">
+                  <Field label="Valor líquido recebido">
+                    <Input
+                      type="number" step="0.01" min="0"
+                      value={netValue}
+                      onChange={(e) => setNetValue(Number(e.target.value))}
+                      placeholder={brl(totalSale)}
+                    />
+                  </Field>
+                  <Field label="Motivo do abatimento">
+                    <Select value={deductionReason} onValueChange={setDeductionReason}>
+                      <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                      <SelectContent>
+                        {DEDUCTION_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Diferença (taxa/abatimento)">
+                    <div className={`h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm ${netValue > 0 && netValue < totalSale ? "text-danger" : ""}`}>
+                      {brl(netValue > 0 ? Math.max(0, totalSale - netValue) : 0)}
+                    </div>
+                  </Field>
+                </div>
+
                 {payMethod === "misto" && (
                   <div className="border border-border rounded-md p-3 space-y-2">
                     <div className="flex items-center justify-between">
