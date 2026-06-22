@@ -44,7 +44,7 @@ export default function Pedidos() {
   return (
     <div>
       <PageHeader
-        title="Pedidos de reposição"
+        title="Pedidos de compra"
         description="Geração assertiva com base em giro de vendas e ponto de pedido."
         actions={
           <Button onClick={() => navigate("/app/pedidos/novo")} className="bg-gradient-primary shadow-glow">
