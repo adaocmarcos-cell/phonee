@@ -917,7 +917,16 @@ export type Database = {
     }
     Enums: {
       alert_severity: "info" | "warning" | "danger"
-      app_role: "dono" | "gerente" | "vendedor" | "estoquista"
+      app_role:
+        | "dono"
+        | "gerente"
+        | "vendedor"
+        | "estoquista"
+        | "admin_master"
+        | "administrador"
+        | "financeiro"
+        | "tecnico"
+        | "atendimento"
       device_condition: "otimo" | "bom" | "regular" | "com_defeito"
       os_budget_status: "pendente" | "aprovado" | "reprovado"
       os_status:
@@ -1079,7 +1088,17 @@ export const Constants = {
   public: {
     Enums: {
       alert_severity: ["info", "warning", "danger"],
-      app_role: ["dono", "gerente", "vendedor", "estoquista"],
+      app_role: [
+        "dono",
+        "gerente",
+        "vendedor",
+        "estoquista",
+        "admin_master",
+        "administrador",
+        "financeiro",
+        "tecnico",
+        "atendimento",
+      ],
       device_condition: ["otimo", "bom", "regular", "com_defeito"],
       os_budget_status: ["pendente", "aprovado", "reprovado"],
       os_status: [
