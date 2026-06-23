@@ -14,12 +14,21 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 
 type Supplier = { id: string; company_name: string; brands: string[]; avg_delivery_days: number | null };
 type Item = { id?: string; product_id?: string | null; product_name: string; quantity: number; unit_cost: number; notes?: string | null };
+type Preview = {
+  name: string;
+  quantity: number;
+  unit_cost: number;
+  exists: boolean;
+  current_stock: number;
+  new_stock: number;
+  product_id: string | null;
+};
 type Order = {
   id: string;
   store_id: string;
@@ -63,15 +72,35 @@ export default function Compras() {
   const [bulk, setBulk] = useState("");
   const [delTarget, setDelTarget] = useState<Order | null>(null);
 
+  // financial summary (mês atual)
+  const [monthSales, setMonthSales] = useState(0);
+  const [monthPurchases, setMonthPurchases] = useState(0);
+  const [monthExpenses, setMonthExpenses] = useState(0);
+
+  // validação/preview
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [preview, setPreview] = useState<Preview[]>([]);
+  const [saving, setSaving] = useState(false);
+
   const load = async () => {
     if (!store) return;
     setLoading(true);
-    const [{ data: o }, { data: s }] = await Promise.all([
+    const monthStart = new Date();
+    monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const iso = monthStart.toISOString();
+    const [{ data: o }, { data: s }, { data: salesM }, { data: expM }] = await Promise.all([
       supabase.from("purchase_orders").select("*").eq("store_id", store.id).order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id, company_name, brands, avg_delivery_days").eq("store_id", store.id).eq("active", true).order("company_name"),
+      supabase.from("sales").select("total, created_at").eq("store_id", store.id).gte("created_at", iso),
+      supabase.from("expenses").select("amount, expense_date").eq("store_id", store.id).gte("expense_date", monthStart.toISOString().slice(0, 10)),
     ]);
     setOrders((o ?? []) as Order[]);
     setSuppliers((s ?? []) as Supplier[]);
+    setMonthSales((salesM ?? []).reduce((a: number, r: any) => a + Number(r.total ?? 0), 0));
+    setMonthExpenses((expM ?? []).reduce((a: number, r: any) => a + Number(r.amount ?? 0), 0));
+    const mp = (o ?? []).filter((r: any) => new Date(r.created_at) >= monthStart)
+      .reduce((a: number, r: any) => a + Number(r.total_cost ?? 0), 0);
+    setMonthPurchases(mp);
     setLoading(false);
   };
 
@@ -125,14 +154,44 @@ export default function Compras() {
     toast.success(`${parsed.length} item(s) adicionado(s)`);
   };
 
-  const save = async (markReceived = false) => {
+  // Antes de salvar, valida cada item: existe no estoque? saldo atual e após entrada
+  const buildPreview = async () => {
     if (!store) return;
     const validItems = items.filter((i) => i.product_name.trim() && i.quantity > 0);
     if (validItems.length === 0) { toast.error("Adicione ao menos um item"); return; }
+    const result: Preview[] = [];
+    for (const it of validItems) {
+      const name = it.product_name.trim();
+      const { data: found } = await supabase
+        .from("products")
+        .select("id, stock_current")
+        .eq("store_id", store.id)
+        .ilike("name", name)
+        .limit(1)
+        .maybeSingle();
+      const current = found ? Number(found.stock_current ?? 0) : 0;
+      result.push({
+        name,
+        quantity: Number(it.quantity),
+        unit_cost: Number(it.unit_cost),
+        exists: !!found,
+        current_stock: current,
+        new_stock: current + Number(it.quantity),
+        product_id: found?.id ?? null,
+      });
+    }
+    setPreview(result);
+    setPreviewOpen(true);
+  };
+
+  const save = async () => {
+    if (!store) return;
+    const validItems = items.filter((i) => i.product_name.trim() && i.quantity > 0);
+    if (validItems.length === 0) { toast.error("Adicione ao menos um item"); return; }
+    setSaving(true);
     const supplierObj = suppliers.find((s) => s.id === form.supplier_id);
     // Toda compra finalizada já entra no estoque automaticamente.
     const status: Order["status"] = "recebido";
-    void markReceived;
     const payload: any = {
       store_id: store.id,
       supplier_id: form.supplier_id || null,
@@ -146,7 +205,7 @@ export default function Compras() {
       sent_at: new Date().toISOString(),
     };
     const { data: ord, error } = await supabase.from("purchase_orders").insert(payload).select("id").single();
-    if (error || !ord) { toast.error(error?.message ?? "Erro ao salvar"); return; }
+    if (error || !ord) { setSaving(false); toast.error(error?.message ?? "Erro ao salvar"); return; }
 
     toast.info("Registrando entrada de mercadorias…");
 
@@ -225,11 +284,13 @@ export default function Compras() {
       notes: it.notes || null,
     }));
     const { error: e2 } = await supabase.from("purchase_order_items").insert(itemsPayload);
-    if (e2) { toast.error(e2.message); return; }
+    if (e2) { setSaving(false); toast.error(e2.message); return; }
 
     toast.success(`Entrada de mercadorias concluída · ${totalUnits} un. no estoque`);
     if (created > 0) toast.message(`${created} produto(s) novo(s) cadastrado(s) no estoque`);
     if (updated > 0) toast.message(`${updated} produto(s) tiveram saldo atualizado`);
+    setSaving(false);
+    setPreviewOpen(false);
     setOpen(false);
     load();
   };
@@ -272,10 +333,36 @@ export default function Compras() {
         title="Compras"
         actions={can && (
           <Button onClick={startNew} className="bg-gradient-primary shadow-glow">
-            <Plus className="h-4 w-4 mr-1" /> Nova compra
+            <PackagePlus className="h-4 w-4 mr-1" /> Entrada de mercadorias
           </Button>
         )}
       />
+
+      {/* Resumo financeiro do mês — sincronizado com vendas, compras e despesas */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+        <Card className="p-3 bg-card border-border">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-muted-foreground font-mono"><TrendingUp className="h-3 w-3 text-success" /> Vendas no mês</div>
+          <div className="text-xl font-semibold mt-1 text-success">{brl(monthSales)}</div>
+        </Card>
+        <Card className="p-3 bg-card border-border">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-muted-foreground font-mono"><ShoppingCart className="h-3 w-3 text-primary" /> Compras no mês</div>
+          <div className="text-xl font-semibold mt-1">{brl(monthPurchases)}</div>
+        </Card>
+        <Card className="p-3 bg-card border-border">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-muted-foreground font-mono"><Wallet className="h-3 w-3 text-warning" /> Despesas</div>
+          <div className="text-xl font-semibold mt-1">{brl(monthExpenses)}</div>
+        </Card>
+        <Card className="p-3 bg-card border-border">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-muted-foreground font-mono"><TrendingDown className="h-3 w-3 text-danger" /> Todos os gastos</div>
+          <div className="text-xl font-semibold mt-1 text-danger">{brl(monthPurchases + monthExpenses)}</div>
+        </Card>
+        <Card className="p-3 bg-card border-border ring-1 ring-primary/20">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-muted-foreground font-mono"><DollarSign className="h-3 w-3 text-primary" /> Lucro líquido</div>
+          <div className={`text-xl font-semibold mt-1 ${(monthSales - monthPurchases - monthExpenses) >= 0 ? "text-success" : "text-danger"}`}>
+            {brl(monthSales - monthPurchases - monthExpenses)}
+          </div>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <Card className="p-3 bg-card border-border"><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Pedidos</div><div className="text-xl font-semibold mt-1">{totals.count}</div></Card>
@@ -376,7 +463,7 @@ export default function Compras() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova compra</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Entrada de mercadorias</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Fornecedor</Label>
@@ -440,8 +527,60 @@ export default function Compras() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={() => save(true)} className="bg-gradient-primary">
-              <CheckCircle2 className="h-4 w-4 mr-1" /> Salvar compra e dar entrada
+            <Button onClick={buildPreview} className="bg-gradient-primary">
+              <CheckCircle2 className="h-4 w-4 mr-1" /> Salvar compra e adicionar ao estoque
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação com prévia de impacto no estoque */}
+      <Dialog open={previewOpen} onOpenChange={(o) => !saving && setPreviewOpen(o)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Confirmar entrada no estoque</DialogTitle>
+          </DialogHeader>
+          <p className="text-[13px] text-muted-foreground">
+            Revise como cada item afetará o estoque atual da loja antes de confirmar a compra.
+          </p>
+          <div className="mt-3 border border-border rounded-md overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Item</th>
+                  <th className="text-left px-3 py-2 font-medium">Situação</th>
+                  <th className="text-right px-3 py-2 font-medium">Atual</th>
+                  <th className="text-right px-3 py-2 font-medium">Entrada</th>
+                  <th className="text-right px-3 py-2 font-medium">Saldo final</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {preview.map((p, i) => (
+                  <tr key={i}>
+                    <td className="px-3 py-2"><div className="font-medium truncate max-w-[220px]">{p.name}</div></td>
+                    <td className="px-3 py-2">
+                      {p.exists
+                        ? <Badge variant="outline" className="bg-success/10 text-success border-success/30">Já existe</Badge>
+                        : <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Novo produto</Badge>}
+                    </td>
+                    <td className="px-3 py-2 text-right metric text-muted-foreground">{p.current_stock}</td>
+                    <td className="px-3 py-2 text-right metric text-success">+{p.quantity}</td>
+                    <td className="px-3 py-2 text-right metric font-semibold">{p.new_stock}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[13px]">
+            <div className="text-muted-foreground">
+              {preview.filter((p) => p.exists).length} existente(s) · {preview.filter((p) => !p.exists).length} novo(s)
+            </div>
+            <div className="font-semibold">Total da compra: <span className="metric">{brl(orderTotal)}</span></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={saving} onClick={() => setPreviewOpen(false)}>Revisar itens</Button>
+            <Button disabled={saving} onClick={save} className="bg-gradient-primary">
+              {saving ? "Salvando…" : (<><CheckCircle2 className="h-4 w-4 mr-1" /> Confirmar e dar entrada</>)}
             </Button>
           </DialogFooter>
         </DialogContent>
