@@ -39,11 +39,8 @@ const ops: Item[] = [
 const config = [
   { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
   { title: "Configurações", url: "/app/admin/configuracoes", icon: Settings },
-  { title: "Suporte", url: "/app/suporte", icon: LifeBuoy },
-];
-
-const adminItems: Item[] = [
   { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
+  { title: "Suporte", url: "/app/suporte", icon: LifeBuoy },
 ];
 
 const adminMasterItems: Item[] = [
@@ -170,11 +167,7 @@ export function AppSidebar() {
       <SidebarContent>
         {renderGroup("Gestão", ops)}
         {renderGroup("Inteligência", main)}
-        {renderGroup("Configuração", config)}
-        {showAdmin && renderGroup(
-          "Usuários e Permissões",
-          adminItems.filter((it) => it.url !== "/app/admin/logs" || showLogsOnly)
-        )}
+        {renderGroup("Configuração", config.filter((it) => it.url !== "/app/admin/usuarios" || showAdmin))}
         {isAdminMaster(role as any) && renderGroup("Financeiro / Admin Master", adminMasterItems)}
         <div className="mt-auto px-3 py-3 border-t border-sidebar-border">
           <div className={`flex items-center gap-2 text-[10px] text-muted-foreground/80 ${collapsed ? "justify-center" : ""}`}>
