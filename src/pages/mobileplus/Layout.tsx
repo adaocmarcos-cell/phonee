@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut,
 } from "lucide-react";
+import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
 
 const nav = [
   { to: "/mobileplus/visao-geral", label: "Visão Geral", icon: LayoutDashboard },
@@ -25,8 +26,8 @@ export default function MobilePlusLayout() {
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-100">
       <aside className="hidden md:flex w-60 shrink-0 border-r border-slate-800 bg-slate-900 flex-col">
         <div className="px-5 py-5 border-b border-slate-800">
-          <div className="text-xl font-bold tracking-tight text-[#00abfb]">Mobile+</div>
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 mt-0.5">
+          <img src={logoAsset.url} alt="Mobile+" className="h-8 w-auto" />
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 mt-2">
             Console do Gestor
           </div>
         </div>
@@ -54,8 +55,8 @@ export default function MobilePlusLayout() {
       {/* Topbar mobile */}
       <header className="md:hidden sticky top-0 z-30 bg-slate-900 border-b border-slate-800">
         <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <div className="text-base font-bold tracking-tight text-[#00abfb]">Mobile+</div>
+          <div className="flex flex-col gap-0.5">
+            <img src={logoAsset.url} alt="Mobile+" className="h-6 w-auto" />
             <div className="text-[9px] uppercase tracking-widest text-slate-500">Console do Gestor</div>
           </div>
           <Button size="sm" variant="ghost" onClick={logout}
