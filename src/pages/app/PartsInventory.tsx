@@ -19,7 +19,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Edit3, Trash2, FileDown, Wrench, AlertTriangle } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, FileDown, Wrench, AlertTriangle, ShoppingBag } from "lucide-react";
+import { VendaPecaModal } from "@/components/VendaPecaModal";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -88,6 +89,7 @@ export default function PartsInventory() {
 
   const [delTarget, setDelTarget] = useState<Part | null>(null);
   const [osTarget, setOsTarget] = useState<Part | null>(null);
+  const [saleTarget, setSaleTarget] = useState<Part | null>(null);
   const [osList, setOsList] = useState<{ id: string; os_number: number; customer_name: string | null }[]>([]);
   const [osPick, setOsPick] = useState<string>("");
   const [osQty, setOsQty] = useState<number>(1);
@@ -323,6 +325,11 @@ export default function PartsInventory() {
                     <td className="p-3">
                       <div className="flex justify-end gap-1">
                         {p.stock_current > 0 && (
+                          <Button size="icon" variant="ghost" title="Venda rápida" onClick={() => setSaleTarget(p)}>
+                            <ShoppingBag className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {p.stock_current > 0 && (
                           <Button size="icon" variant="ghost" title="Lançar em OS" onClick={() => openLinkOS(p)}>
                             <Wrench className="h-4 w-4" />
                           </Button>
@@ -481,6 +488,13 @@ export default function PartsInventory() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <VendaPecaModal
+        part={saleTarget}
+        open={!!saleTarget}
+        onClose={() => setSaleTarget(null)}
+        onDone={load}
+      />
     </div>
   );
 }

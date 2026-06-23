@@ -128,7 +128,7 @@ export default function OrdensServico() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <MetricCard label="Faturamento (entregues)" value={brl(stats.revenue)} icon={TrendingUp} tone="primary" />
-        <MetricCard label="Tempo médio de reparo" value={`${stats.avgDays.toFixed(1)} d`} icon={Timer} />
+        <MetricCard label="Tempo médio de reparo" value={`${stats.avgDays.toFixed(1)} d`} icon={Timer} tone="info" />
         <MetricCard label="Aprovação de orçamento" value={`${stats.approveRate.toFixed(0)}%`} icon={CheckCircle2} tone="success" />
       </div>
 
