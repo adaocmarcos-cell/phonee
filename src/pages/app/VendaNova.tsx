@@ -142,6 +142,28 @@ export default function VendaNova() {
     });
   }, [store]);
 
+  // Registra visita à página de vendas (admin master monitora)
+  useEffect(() => {
+    let sid = sessionStorage.getItem("phn_sid");
+    if (!sid) {
+      sid = (crypto as any).randomUUID?.() ?? String(Math.random()).slice(2);
+      sessionStorage.setItem("phn_sid", sid!);
+    }
+    (supabase as any).from("page_visits").insert({
+      path: "/painel/vendas/nova",
+      store_id: store?.id ?? null,
+      user_id: user?.id ?? null,
+      session_id: sid,
+      user_agent: navigator.userAgent,
+      referrer: document.referrer || null,
+    }).then(() => {/* noop */});
+    try {
+      const fbq = (window as any).fbq;
+      if (typeof fbq === "function") fbq("track", "ViewContent", { content_name: "Nova venda" });
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store?.id]);
+
   useEffect(() => {
     if (!store) return;
     (async () => {
