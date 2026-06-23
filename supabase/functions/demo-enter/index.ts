@@ -67,19 +67,20 @@ Deno.serve(async (req) => {
     if (anyPlan) {
       const { data: existingSub } = await admin.from("subscriptions").select("id").eq("store_id", storeId).maybeSingle();
       if (!existingSub) {
-        await admin.from("subscriptions").insert({
+        const { error: subInsErr } = await admin.from("subscriptions").insert({
           store_id: storeId,
           plan_id: anyPlan.id,
           customer_name: "Demonstração Phonee",
           customer_email: DEMO_EMAIL,
           customer_doc: "00000000000",
-          payment_method: "pix",
+          payment_method: "PIX",
           status: "active",
           amount_cents: 0,
-          billing_cycle: "vitalicio",
+          billing_cycle: "lifetime",
         });
+        if (subInsErr) console.error("subscription insert error", subInsErr);
       } else {
-        await admin.from("subscriptions").update({ status: "active", billing_cycle: "vitalicio" }).eq("id", existingSub.id);
+        await admin.from("subscriptions").update({ status: "active", billing_cycle: "lifetime" }).eq("id", existingSub.id);
       }
     }
 
