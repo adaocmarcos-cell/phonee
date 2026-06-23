@@ -28,6 +28,7 @@ import TabelasPreco from "./pages/app/TabelasPreco";
 import ComingSoon from "./pages/app/ComingSoon";
 import Usuarios from "./pages/app/admin/Usuarios";
 import Cargos from "./pages/app/admin/Cargos";
+import Garantias from "./pages/app/admin/Garantias";
 import PagamentosAsaas from "./pages/app/admin/PagamentosAsaas";
 import Planos from "./pages/app/admin/Planos";
 import Assinaturas from "./pages/app/admin/Assinaturas";
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="tabelas-preco" element={<TabelasPreco />} />
               <Route path="admin/usuarios" element={<Usuarios />} />
               <Route path="admin/cargos" element={<Cargos />} />
+              <Route path="admin/garantias" element={<Garantias />} />
               <Route path="admin/permissoes" element={<ComingSoon title="Permissões" description="Matriz de permissões por cargo × módulo × ação. Disponível na próxima fase." />} />
               <Route path="admin/logs" element={<ComingSoon title="Logs e Auditoria" description="Histórico permanente de ações. Disponível na próxima fase." />} />
               <Route path="admin/configuracoes" element={<Configuracoes />} />
