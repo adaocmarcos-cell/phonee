@@ -656,6 +656,50 @@ export default function Vendas() {
           <span className="font-medium text-foreground/80">Em breve · Catálogo de Fornecedores</span> — gratuito, exclusivo para Gestores. Fornecedores de todas as categorias em diversos estados do Brasil.
         </span>
       </div>
+
+      {/* Ajustar valor líquido — taxas de cartão */}
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sliders className="h-4 w-4 text-info" />
+              Ajustar valor líquido · Venda {adjustSale ? fmtNum(adjustSale.sale_number) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md bg-muted/40 p-3 text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Total bruto da venda</span><span className="metric font-semibold">{adjustSale ? brl(Number(adjustSale.total)) : "—"}</span></div>
+              <div className="flex justify-between mt-1"><span className="text-muted-foreground">Pagamento</span><span className="font-mono capitalize">{adjustSale?.payment_method}</span></div>
+            </div>
+            <div>
+              <Label>Valor líquido recebido (R$)</Label>
+              <Input type="number" step="0.01" min="0" value={adjustNet} onChange={(e) => setAdjustNet(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Será refletido em Financeiro, Dashboard e relatórios automaticamente.
+              </p>
+            </div>
+            <div>
+              <Label>Motivo do abatimento</Label>
+              <Select2 value={adjustReason} onValueChange={setAdjustReason}>
+                <Select2Trigger><Select2Value /></Select2Trigger>
+                <Select2Content>
+                  {NET_REASONS.map((r) => <Select2Item key={r} value={r}>{r}</Select2Item>)}
+                </Select2Content>
+              </Select2>
+            </div>
+            {adjustSale && Number(adjustNet) > 0 && (
+              <div className="text-xs flex justify-between rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                <span className="text-amber-700">Diferença (taxa)</span>
+                <span className="metric text-amber-700">{brl(Math.max(0, Number(adjustSale.total) - Number(adjustNet)))}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
+            <Button onClick={saveAdjust}>Salvar ajuste</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
