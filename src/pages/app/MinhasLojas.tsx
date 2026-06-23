@@ -128,6 +128,25 @@ export default function MinhasLojas() {
     return { label: "Pendente", cls: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: <CalendarClock className="h-3 w-3" /> };
   };
 
+  const isActiveSub = (s: MyStore) =>
+    ["ativa", "active", "aprovado"].includes(s.subscription_status);
+
+  const deleteStore = async (s: MyStore) => {
+    if (!s.is_owner) { toast.error("Apenas o dono pode excluir a loja"); return; }
+    if (isActiveSub(s)) { toast.error("Loja com assinatura ativa não pode ser excluída"); return; }
+    try {
+      await supabase.from("subscriptions").delete().eq("store_id", s.store_id);
+      await supabase.from("user_roles").delete().eq("store_id", s.store_id);
+      await supabase.from("user_stores").delete().eq("store_id", s.store_id);
+      const { error } = await supabase.from("stores").delete().eq("id", s.store_id);
+      if (error) throw error;
+      toast.success(`Loja "${s.name}" removida`);
+      await reloadStores();
+    } catch (err: any) {
+      toast.error(err.message ?? "Falha ao remover loja");
+    }
+  };
+
   return (
     <div>
       <PageHeader
