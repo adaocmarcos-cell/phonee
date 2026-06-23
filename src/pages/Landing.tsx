@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { toast } from "sonner";
-import { enterDemoMode } from "@/lib/demoMode";
+import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +9,7 @@ import { Reveal, useParallax } from "@/components/Reveal";
 import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
-  ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play, Loader2,
+  ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play,
   DollarSign, Percent, Package, type LucideIcon,
 } from "lucide-react";
 import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
@@ -113,23 +112,15 @@ export default function Landing() {
   const heroLogoOffset = useParallax(0.12);
   const heroGlowOffset = useParallax(0.25);
   const navigate = useNavigate();
-  const [demoBusy, setDemoBusy] = useState(false);
-
-  const handleDemo = async () => {
-    if (demoBusy) return;
-    setDemoBusy(true);
-    toast.loading("Preparando ambiente de demonstração…", { id: "demo" });
-    const res = await enterDemoMode();
-    if (!res.ok) {
-      setDemoBusy(false);
-      toast.error(res.error ?? "Não foi possível abrir a demonstração", { id: "demo" });
-      return;
-    }
-    toast.success("Bem-vindo à demonstração!", { id: "demo" });
-    navigate("/painel");
-  };
+  const [demoOpen, setDemoOpen] = useState(false);
+  const handleDemo = () => setDemoOpen(true);
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <DemoLeadModal
+        open={demoOpen}
+        onOpenChange={setDemoOpen}
+        onSuccess={() => navigate("/painel")}
+      />
       {/* NAV — mesma cor do hero */}
       <header className="sticky top-0 z-50 bg-[hsl(226_50%_15%)] border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -143,10 +134,9 @@ export default function Landing() {
             <Button
               variant="outline"
               onClick={handleDemo}
-              disabled={demoBusy}
               className="hidden sm:inline-flex border-primary/60 text-white bg-primary/15 hover:bg-primary/25 hover:text-white"
             >
-              {demoBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Play className="h-4 w-4 mr-1.5" />}
+              <Play className="h-4 w-4 mr-1.5" />
               Ver demonstração
             </Button>
             <Link to="/entrar">
@@ -210,10 +200,9 @@ export default function Landing() {
               <Button
                 size="lg"
                 onClick={handleDemo}
-                disabled={demoBusy}
                 className="text-base h-12 px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg"
               >
-                {demoBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Play className="h-4 w-4 mr-1.5" />}
+                <Play className="h-4 w-4 mr-1.5" />
                 Ver demonstração
               </Button>
               <a href="#preco">

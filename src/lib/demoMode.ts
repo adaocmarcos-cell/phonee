@@ -16,9 +16,15 @@ export function clearDemoMode() {
   if (typeof window !== "undefined") sessionStorage.removeItem(DEMO_FLAG);
 }
 
-export async function enterDemoMode(): Promise<{ ok: boolean; error?: string }> {
+export interface DemoLeadInput {
+  name: string;
+  instagram: string;
+  whatsapp: string;
+}
+
+export async function enterDemoMode(lead: DemoLeadInput): Promise<{ ok: boolean; error?: string }> {
   try {
-    const { data, error } = await supabase.functions.invoke("demo-enter", { body: {} });
+    const { data, error } = await supabase.functions.invoke("demo-enter", { body: lead });
     if (error || !data?.ok) {
       return { ok: false, error: error?.message ?? data?.error ?? "Falha ao iniciar demonstração" };
     }

@@ -1,0 +1,217 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Download, ExternalLink, Instagram, MessageCircle, Search, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
+
+interface Lead {
+  id: string;
+  name: string;
+  instagram: string;
+  whatsapp: string;
+  user_agent: string | null;
+  referrer: string | null;
+  created_at: string;
+}
+
+function digitsOnly(v: string) { return (v || "").replace(/\D/g, ""); }
+
+function formatWhats(v: string) {
+  const d = digitsOnly(v);
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return v;
+}
+
+function whatsappLink(v: string) {
+  const d = digitsOnly(v);
+  const intl = d.length <= 11 ? `55${d}` : d;
+  return `https://wa.me/${intl}`;
+}
+
+function instagramLink(handle: string) {
+  return `https://instagram.com/${handle.replace(/^@+/, "")}`;
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+export default function PhoneeLeads() {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await (supabase.from("demo_leads") as any)
+      .select("*").order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    setLeads((data ?? []) as Lead[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return leads;
+    return leads.filter((l) =>
+      l.name.toLowerCase().includes(q) ||
+      l.instagram.toLowerCase().includes(q) ||
+      digitsOnly(l.whatsapp).includes(digitsOnly(q)),
+    );
+  }, [leads, query]);
+
+  const exportCsv = () => {
+    if (filtered.length === 0) { toast.error("Sem leads para exportar"); return; }
+    const rows = [
+      ["Data", "Nome", "Instagram", "WhatsApp", "Link Instagram", "Link WhatsApp"],
+      ...filtered.map((l) => [
+        formatDate(l.created_at),
+        l.name,
+        `@${l.instagram.replace(/^@+/, "")}`,
+        formatWhats(l.whatsapp),
+        instagramLink(l.instagram),
+        whatsappLink(l.whatsapp),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `phonee-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filtered.length} lead(s) exportados`);
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remover este lead?")) return;
+    const { error } = await supabase.from("demo_leads").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    setLeads((ls) => ls.filter((l) => l.id !== id));
+    toast.success("Lead removido");
+  };
+
+  return (
+    <div className="space-y-5">
+      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-500">
+            <Users className="h-3.5 w-3.5" /> Captura
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mt-1">Leads da demonstração</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            {leads.length} {leads.length === 1 ? "lead capturado" : "leads capturados"} pelo botão "Ver demonstração".
+          </p>
+        </div>
+        <Button onClick={exportCsv} className="bg-[#00abfb] text-slate-900 hover:bg-[#00abfb]/90 font-semibold">
+          <Download className="h-4 w-4 mr-2" /> Exportar CSV
+        </Button>
+      </header>
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por nome, @instagram ou whatsapp"
+          className="pl-9 bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500"
+        />
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-950/60 text-slate-400 text-xs uppercase tracking-wider">
+            <tr>
+              <th className="text-left px-4 py-3">Data</th>
+              <th className="text-left px-4 py-3">Nome</th>
+              <th className="text-left px-4 py-3">Instagram</th>
+              <th className="text-left px-4 py-3">WhatsApp</th>
+              <th className="text-right px-4 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800">
+            {loading && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
+            )}
+            {!loading && filtered.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                {leads.length === 0 ? "Nenhum lead capturado ainda." : "Nenhum lead encontrado para a busca."}
+              </td></tr>
+            )}
+            {filtered.map((l) => (
+              <tr key={l.id} className="hover:bg-slate-800/40 transition">
+                <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{formatDate(l.created_at)}</td>
+                <td className="px-4 py-3 text-slate-100 font-medium">{l.name}</td>
+                <td className="px-4 py-3">
+                  <a href={instagramLink(l.instagram)} target="_blank" rel="noreferrer"
+                     className="inline-flex items-center gap-1.5 text-[#e1306c] hover:underline">
+                    <Instagram className="h-3.5 w-3.5" />
+                    @{l.instagram.replace(/^@+/, "")}
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+                </td>
+                <td className="px-4 py-3">
+                  <a href={whatsappLink(l.whatsapp)} target="_blank" rel="noreferrer"
+                     className="inline-flex items-center gap-1.5 text-[#25d366] hover:underline">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    {formatWhats(l.whatsapp)}
+                    <ExternalLink className="h-3 w-3 opacity-60" />
+                  </a>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Button size="sm" variant="ghost" onClick={() => remove(l.id)}
+                    className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 h-8">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-2">
+        {loading && <div className="text-center text-slate-500 py-6">Carregando…</div>}
+        {!loading && filtered.length === 0 && (
+          <div className="text-center text-slate-500 py-6">
+            {leads.length === 0 ? "Nenhum lead capturado ainda." : "Nenhum lead encontrado."}
+          </div>
+        )}
+        {filtered.map((l) => (
+          <div key={l.id} className="rounded-lg border border-slate-800 bg-slate-900 p-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold text-slate-100 truncate">{l.name}</div>
+                <Badge variant="outline" className="text-[10px] mt-1 border-slate-700 text-slate-400">
+                  {formatDate(l.created_at)}
+                </Badge>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => remove(l.id)}
+                className="text-slate-400 hover:text-red-400 h-8 px-2 shrink-0">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <a href={instagramLink(l.instagram)} target="_blank" rel="noreferrer"
+               className="flex items-center gap-2 text-sm text-[#e1306c]">
+              <Instagram className="h-4 w-4" /> @{l.instagram.replace(/^@+/, "")}
+              <ExternalLink className="h-3 w-3 opacity-60 ml-auto" />
+            </a>
+            <a href={whatsappLink(l.whatsapp)} target="_blank" rel="noreferrer"
+               className="flex items-center gap-2 text-sm text-[#25d366]">
+              <MessageCircle className="h-4 w-4" /> {formatWhats(l.whatsapp)}
+              <ExternalLink className="h-3 w-3 opacity-60 ml-auto" />
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

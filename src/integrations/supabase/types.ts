@@ -239,6 +239,36 @@ export type Database = {
           },
         ]
       }
+      demo_leads: {
+        Row: {
+          created_at: string
+          id: string
+          instagram: string
+          name: string
+          referrer: string | null
+          user_agent: string | null
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instagram: string
+          name: string
+          referrer?: string | null
+          user_agent?: string | null
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instagram?: string
+          name?: string
+          referrer?: string | null
+          user_agent?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           color: string | null

@@ -59,6 +59,7 @@ import PhoneeUsuarios from "./pages/mobileplus/Usuarios";
 import PhoneeAssinaturas from "./pages/mobileplus/Assinaturas";
 import PhoneeFinanceiro from "./pages/mobileplus/Financeiro";
 import PhoneeCrescimento from "./pages/mobileplus/Crescimento";
+import PhoneeLeads from "./pages/mobileplus/Leads";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
 const queryClient = new QueryClient();
@@ -135,6 +136,7 @@ const App = () => (
               <Route path="assinaturas" element={<PhoneeAssinaturas />} />
               <Route path="financeiro" element={<PhoneeFinanceiro />} />
               <Route path="crescimento" element={<PhoneeCrescimento />} />
+              <Route path="leads" element={<PhoneeLeads />} />
               <Route path="suporte" element={<SuporteAdmin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
