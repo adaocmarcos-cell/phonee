@@ -215,7 +215,7 @@ export default function Usuarios() {
 function InviteDialog({
   open, setOpen, onCreated, storeId,
 }: { open: boolean; setOpen: (v: boolean) => void; onCreated: () => void; storeId: string }) {
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" as AppRole | "outro" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", role: "vendedor" as AppRole });
   const [busy, setBusy] = useState(false);
   const [permissions, setPermissions] = useState<PermissionMap>(() => defaultsForRole("vendedor"));
   const [permOpen, setPermOpen] = useState(false);
@@ -281,22 +281,15 @@ function InviteDialog({
             <div className="space-y-1.5"><Label className="text-xs">Senha inicial *</Label><Input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 8 caracteres" required /></div>
             <div className="space-y-1.5 col-span-2">
               <Label className="text-xs">Cargo</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole | "outro" })}>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLE_CATALOG.filter((r) => r.value !== "admin_master").map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label} — {r.description}</SelectItem>
                   ))}
-                  <SelectItem value="outro">Outro — especificar cargo personalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {form.role === "outro" && (
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Especifique o cargo</Label>
-                <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} placeholder="Ex.: Coordenador de Marketing" />
-              </div>
-            )}
             <div className="col-span-2 mt-1 rounded-md border border-border bg-surface-elevated/40 p-3 flex items-center justify-between gap-3">
               <div className="flex items-start gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary mt-0.5" />
