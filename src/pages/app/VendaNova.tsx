@@ -393,7 +393,7 @@ Cliente: ${customer || "—"}
 Produto(s):
 ${prodLine || "—"}
 Valor total: ${brl(totalSale)}
-Forma de pagamento: ${payMethod.toUpperCase()}
+Forma de pagamento: ${isMulti ? "MISTO" : primaryMethod.toUpperCase()}
 Entrega: ${expectedDate ? `prevista para ${new Date(expectedDate).toLocaleDateString("pt-BR")}` : "a combinar"}
 
 Obrigado pela preferência.`;
@@ -418,14 +418,14 @@ Obrigado pela preferência.`;
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
-            <Button onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
+            <Button onClick={onSubmitClick} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar venda"}
             </Button>
           </div>
         }
       />
 
-      <form onSubmit={submit} className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <form onSubmit={onSubmitClick} className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 space-y-4">
           {/* CLIENTE */}
           <Card className="p-5">
