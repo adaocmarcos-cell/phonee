@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [evoCustom, setEvoCustom] = useState<CustomRange>({});
   const [evoSeries, setEvoSeries] = useState<{ label: string; total: number }[]>([]);
   const [trendPeriod, setTrendPeriod] = useState<PeriodValue>("1y");
-  const [trendSeries, setTrendSeries] = useState<{ label: string; total: number }[]>([]);
+  const [trendSeries, setTrendSeries] = useState<{ label: string; total: number; count: number }[]>([]);
 
   useEffect(() => {
     if (!store) return;
@@ -225,28 +225,30 @@ export default function Dashboard() {
         .gte("created_at", since.toISOString())
         .lte("created_at", until.toISOString());
       const groupByMonth = days > 60;
-      const buckets: Record<string, number> = {};
+      const buckets: Record<string, { total: number; count: number }> = {};
       (data ?? []).forEach((s: any) => {
         const d = new Date(s.created_at);
         const k = groupByMonth
           ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`
           : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-        buckets[k] = (buckets[k] || 0) + Number(s.total || 0);
+        if (!buckets[k]) buckets[k] = { total: 0, count: 0 };
+        buckets[k].total += Number(s.total || 0);
+        buckets[k].count += 1;
       });
-      const out: { label: string; total: number }[] = [];
+      const out: { label: string; total: number; count: number }[] = [];
       const cursor = new Date(since);
       const end = new Date(until);
       if (groupByMonth) {
         cursor.setDate(1);
         while (cursor <= end) {
           const k = `${String(cursor.getMonth() + 1).padStart(2, "0")}/${String(cursor.getFullYear()).slice(2)}`;
-          out.push({ label: k, total: buckets[k] || 0 });
+          out.push({ label: k, total: buckets[k]?.total || 0, count: buckets[k]?.count || 0 });
           cursor.setMonth(cursor.getMonth() + 1);
         }
       } else {
         while (cursor <= end) {
           const k = `${String(cursor.getDate()).padStart(2, "0")}/${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-          out.push({ label: k, total: buckets[k] || 0 });
+          out.push({ label: k, total: buckets[k]?.total || 0, count: buckets[k]?.count || 0 });
           cursor.setDate(cursor.getDate() + 1);
         }
       }
