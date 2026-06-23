@@ -16,6 +16,19 @@ export interface StoreSummary {
   instagram?: string | null;
   price_table_note?: string | null;
   logo_url?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_neighborhood?: string | null;
+  address_city?: string | null;
+  address_uf?: string | null;
+  show_tax_id_on_docs?: boolean | null;
+  show_legal_name_on_docs?: boolean | null;
+  show_non_fiscal_notice?: boolean | null;
+  pdf_primary_color?: string | null;
+  pdf_accent_color?: string | null;
+  pdf_logo_url?: string | null;
+  pdf_footer_text?: string | null;
 }
 
 interface AuthContextValue {
@@ -39,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadStoreAndRole = async (uid: string) => {
     // 1. Try owned store
-    const storeCols = "id, name, slug, trade_name, tax_id, phone, address, email, instagram, price_table_note, logo_url" as any;
+    const storeCols = "id, name, slug, trade_name, tax_id, phone, address, email, instagram, price_table_note, logo_url, address_street, address_number, address_complement, address_neighborhood, address_city, address_uf, show_tax_id_on_docs, show_legal_name_on_docs, show_non_fiscal_notice, pdf_primary_color, pdf_accent_color, pdf_logo_url, pdf_footer_text" as any;
     const { data: owned } = await (supabase
       .from("stores") as any)
       .select(storeCols)

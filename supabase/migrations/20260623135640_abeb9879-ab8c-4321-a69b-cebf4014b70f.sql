@@ -1,0 +1,1 @@
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS show_non_fiscal_notice boolean NOT NULL DEFAULT true;

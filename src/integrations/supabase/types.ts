@@ -1080,6 +1080,7 @@ export type Database = {
           price_table_note: string | null
           primary_color: string | null
           show_legal_name_on_docs: boolean
+          show_non_fiscal_notice: boolean
           show_tax_id_on_docs: boolean
           slug: string
           tax_id: string | null
@@ -1110,6 +1111,7 @@ export type Database = {
           price_table_note?: string | null
           primary_color?: string | null
           show_legal_name_on_docs?: boolean
+          show_non_fiscal_notice?: boolean
           show_tax_id_on_docs?: boolean
           slug: string
           tax_id?: string | null
@@ -1140,6 +1142,7 @@ export type Database = {
           price_table_note?: string | null
           primary_color?: string | null
           show_legal_name_on_docs?: boolean
+          show_non_fiscal_notice?: boolean
           show_tax_id_on_docs?: boolean
           slug?: string
           tax_id?: string | null
