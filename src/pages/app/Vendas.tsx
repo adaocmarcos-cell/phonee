@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, Sparkles, RotateCcw } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, Sparkles, RotateCcw, Sliders } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select as Select2, SelectContent as Select2Content, SelectItem as Select2Item, SelectTrigger as Select2Trigger, SelectValue as Select2Value } from "@/components/ui/select";
 import { toast } from "sonner";
 
 const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, "0")}`;
@@ -30,6 +31,16 @@ const DEFAULT_REMINDER =
   "Olá {cliente}! Passando para lembrar da sua compra {numero} no valor de {valor} junto à {loja}, com vencimento em {vencimento}. Caso já tenha efetuado o pagamento, por favor desconsidere esta mensagem. Qualquer dúvida estamos à disposição.";
 
 const onlyDigits = (s: string) => (s || "").replace(/\D+/g, "");
+
+const NET_REASONS = [
+  "Taxa cartão de crédito",
+  "Taxa cartão de débito",
+  "Antecipação",
+  "Cashback / desconto",
+  "Outro",
+];
+
+const eff = (s: any) => Number(s?.net_value ?? s?.total ?? 0);
 
 export default function Vendas() {
   const { store, role } = useAuth();
@@ -45,6 +56,10 @@ export default function Vendas() {
   const [reminderSale, setReminderSale] = useState<any | null>(null);
   const [reminderText, setReminderText] = useState("");
   const [receiverOpen, setReceiverOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustSale, setAdjustSale] = useState<any | null>(null);
+  const [adjustNet, setAdjustNet] = useState<string>("");
+  const [adjustReason, setAdjustReason] = useState<string>("Taxa cartão de crédito");
 
   const tplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
   const getTemplate = () => {
@@ -87,8 +102,9 @@ export default function Vendas() {
   }, [sales, payment, q, tab]);
 
   const total = filtered.reduce((a, b) => a + Number(b.total || 0), 0);
+  const totalLiquido = filtered.reduce((a, b) => a + eff(b), 0);
   const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente"), [sales]);
-  const pendingTotal = pendingSales.reduce((a, b) => a + Number(b.total || 0), 0);
+  const pendingTotal = pendingSales.reduce((a, b) => a + eff(b), 0);
   const overdueCount = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     return pendingSales.filter((s) => s.due_date && new Date(s.due_date + "T00:00:00") < today).length;
@@ -100,7 +116,7 @@ export default function Vendas() {
       const k = s.payment_method || "outro";
       if (!map[k]) map[k] = { count: 0, total: 0 };
       map[k].count += 1;
-      map[k].total += Number(s.total || 0);
+      map[k].total += eff(s);
     });
     return map;
   }, [sales]);
@@ -111,7 +127,7 @@ export default function Vendas() {
       const key = (s.customer_name || "Avulso").toLowerCase();
       const cur = map.get(key) ?? { name: s.customer_name || "Avulso", whatsapp: s.customer_whatsapp || null, count: 0, total: 0, nextDue: null };
       cur.count += 1;
-      cur.total += Number(s.total || 0);
+      cur.total += eff(s);
       if (s.due_date && (!cur.nextDue || s.due_date < cur.nextDue)) cur.nextDue = s.due_date;
       if (!cur.whatsapp && s.customer_whatsapp) cur.whatsapp = s.customer_whatsapp;
       map.set(key, cur);
@@ -193,6 +209,28 @@ export default function Vendas() {
     const { error } = await supabase.from("sales").update({ payment_status: "pago" }).eq("id", sale.id);
     if (error) return toast.error(error.message);
     toast.success("Venda marcada como paga");
+    load();
+  };
+
+  const openAdjust = (sale: any) => {
+    setAdjustSale(sale);
+    setAdjustNet(sale.net_value != null ? String(sale.net_value) : String(sale.total ?? ""));
+    setAdjustReason(sale.net_value_reason || (sale.payment_method === "debito" ? "Taxa cartão de débito" : "Taxa cartão de crédito"));
+    setAdjustOpen(true);
+  };
+
+  const saveAdjust = async () => {
+    if (!adjustSale) return;
+    const v = Number(String(adjustNet).replace(",", "."));
+    if (!Number.isFinite(v) || v < 0) return toast.error("Informe um valor líquido válido");
+    const { error } = await (supabase.from("sales") as any).update({
+      net_value: v,
+      net_value_reason: adjustReason || null,
+    }).eq("id", adjustSale.id);
+    if (error) return toast.error(error.message);
+    toast.success("Valor líquido atualizado · financeiro sincronizado");
+    setAdjustOpen(false);
+    setAdjustSale(null);
     load();
   };
 
@@ -367,6 +405,9 @@ export default function Vendas() {
         </Select>
         <div className="ml-auto text-xs font-mono text-muted-foreground">
           {filtered.length} venda(s) · <span className="text-foreground font-semibold">{brl(total)}</span>
+          {totalLiquido !== total && (
+            <span> · líq. <span className="text-emerald-700 font-semibold">{brl(totalLiquido)}</span></span>
+          )}
         </div>
       </Card>
 
@@ -416,9 +457,21 @@ export default function Vendas() {
                     </td>
                   )}
                   <td className="px-4 py-3 text-right metric text-muted-foreground">{brl(Number(s.discount))}</td>
-                  <td className="px-4 py-3 text-right metric font-semibold">{brl(Number(s.total))}</td>
+                  <td className="px-4 py-3 text-right metric font-semibold">
+                    {brl(Number(s.total))}
+                    {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
+                      <div className="text-[10px] font-mono text-emerald-700">
+                        líq. {brl(Number(s.net_value))}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-2 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      {(s.payment_method === "credito" || s.payment_method === "debito") && (
+                        <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" onClick={() => openAdjust(s)}>
+                          <Sliders className="h-4 w-4 text-info" />
+                        </Button>
+                      )}
                       {s.payment_status === "pendente" && (
                         <>
                           <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" onClick={() => openReminder(s)}>
@@ -603,6 +656,50 @@ export default function Vendas() {
           <span className="font-medium text-foreground/80">Em breve · Catálogo de Fornecedores</span> — gratuito, exclusivo para Gestores. Fornecedores de todas as categorias em diversos estados do Brasil.
         </span>
       </div>
+
+      {/* Ajustar valor líquido — taxas de cartão */}
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sliders className="h-4 w-4 text-info" />
+              Ajustar valor líquido · Venda {adjustSale ? fmtNum(adjustSale.sale_number) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md bg-muted/40 p-3 text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Total bruto da venda</span><span className="metric font-semibold">{adjustSale ? brl(Number(adjustSale.total)) : "—"}</span></div>
+              <div className="flex justify-between mt-1"><span className="text-muted-foreground">Pagamento</span><span className="font-mono capitalize">{adjustSale?.payment_method}</span></div>
+            </div>
+            <div>
+              <Label>Valor líquido recebido (R$)</Label>
+              <Input type="number" step="0.01" min="0" value={adjustNet} onChange={(e) => setAdjustNet(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Será refletido em Financeiro, Dashboard e relatórios automaticamente.
+              </p>
+            </div>
+            <div>
+              <Label>Motivo do abatimento</Label>
+              <Select2 value={adjustReason} onValueChange={setAdjustReason}>
+                <Select2Trigger><Select2Value /></Select2Trigger>
+                <Select2Content>
+                  {NET_REASONS.map((r) => <Select2Item key={r} value={r}>{r}</Select2Item>)}
+                </Select2Content>
+              </Select2>
+            </div>
+            {adjustSale && Number(adjustNet) > 0 && (
+              <div className="text-xs flex justify-between rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                <span className="text-amber-700">Diferença (taxa)</span>
+                <span className="metric text-amber-700">{brl(Math.max(0, Number(adjustSale.total) - Number(adjustNet)))}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
+            <Button onClick={saveAdjust}>Salvar ajuste</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

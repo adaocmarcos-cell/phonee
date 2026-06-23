@@ -60,8 +60,33 @@ export default function MinhasLojas() {
       await supabase.from("user_stores").insert({ user_id: user.id, store_id: created.id });
       await supabase.from("user_roles").insert({ user_id: user.id, store_id: created.id, role: "dono" });
 
-      const expiresAt = cycle === "annual" ? new Date(Date.now() + 365 * 86400000).toISOString() : null;
+      // Tenta gerar uma cobrança real via Asaas (mesma estrutura do checkout de planos).
+      const asaasMethod = paymentMethod === "credit_card" ? "CREDIT_CARD" : "PIX";
+      const { data: charge, error: chargeErr } = await supabase.functions.invoke("asaas-create-charge", {
+        body: {
+          plan_code: cycle,
+          customer_name: user.user_metadata?.full_name || user.email || "Cliente",
+          customer_email: user.email || "",
+          customer_phone: user.user_metadata?.phone || "11999999999",
+          customer_doc: user.user_metadata?.doc || "00000000000",
+          payment_method: asaasMethod,
+          installments: 1,
+          store_id: created.id,
+          user_id: user.id,
+          billing_cycle: cycle,
+        },
+      });
 
+      if (!chargeErr && (charge as any)?.subscription_id) {
+        toast.success("Loja criada — cobrança gerada");
+        setOpen(false); setName(""); setCycle("annual");
+        await reloadStores();
+        navigate(`/comprar/sucesso/${(charge as any).subscription_id}`);
+        return;
+      }
+
+      // Fallback (Asaas indisponível): cria assinatura pendente direto na base.
+      const expiresAt = cycle === "annual" ? new Date(Date.now() + 365 * 86400000).toISOString() : null;
       const { error: e2 } = await (supabase.from("subscriptions") as any).insert({
         user_id: user.id,
         store_id: created.id,

@@ -58,9 +58,9 @@ export default function Financeiro() {
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
       const [{ data: s }, { data: ps }, { data: o }, { data: e }] = await Promise.all([
-        supabase.from("sales").select("id,sale_number,total,created_at,payment_status,due_date,customer_name,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
-        supabase.from("parts_sales").select("id,total,created_at,payment_method,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
-        supabase.from("service_orders").select("id,os_number,total_value,status,budget_status,created_at,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
+        supabase.from("sales").select("id,sale_number,total,net_value,created_at,payment_status,due_date,customer_name,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
+        supabase.from("parts_sales").select("id,total,net_value,created_at,payment_method,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
+        supabase.from("service_orders").select("id,os_number,total_value,net_value,status,budget_status,created_at,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         (supabase as any).from("expenses").select("id,amount,expense_date,description,category_name,payment_method").eq("store_id", store.id).gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: false }),
       ]);
       setSales((s as any) ?? []);
@@ -82,24 +82,25 @@ export default function Financeiro() {
       const status: Receivable["status"] = isPaid ? "pago" : dueDate && dueDate < today ? "vencido" : "aberto";
       items.push({
         id: s.id, ref: `#${s.sale_number ?? "—"}`, source: "venda",
-        customer: s.customer_name || "—", total: Number(s.total || 0),
+        customer: s.customer_name || "—", total: Number((s as any).net_value ?? s.total ?? 0),
         date: s.created_at, due: s.due_date, status, method: s.payment_method,
       });
     });
     partsSales.forEach((p) => {
       items.push({
         id: p.id, ref: "peça", source: "peça",
-        customer: p.customer_name || "—", total: Number(p.total || 0),
+        customer: p.customer_name || "—", total: Number((p as any).net_value ?? p.total ?? 0),
         date: p.created_at, due: null, status: "pago", method: p.payment_method,
       });
     });
     os.forEach((o) => {
       const concluida = ["concluida","concluído","entregue","finalizada","finalizado"].includes((o.status ?? "").toLowerCase());
       const status: Receivable["status"] = concluida ? "pago" : "aberto";
-      if (Number(o.total_value || 0) > 0) {
+      const osVal = Number((o as any).net_value ?? o.total_value ?? 0);
+      if (osVal > 0) {
         items.push({
           id: o.id, ref: `OS #${o.os_number ?? "—"}`, source: "serviço",
-          customer: o.customer_name || "—", total: Number(o.total_value || 0),
+          customer: o.customer_name || "—", total: osVal,
           date: o.created_at, due: null, status, method: "—",
         });
       }

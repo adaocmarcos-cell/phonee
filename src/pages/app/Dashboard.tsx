@@ -47,19 +47,20 @@ export default function Dashboard() {
 
       const { data: sales } = await supabase
         .from("sales")
-        .select("id, total, payment_method, created_at, customer_name")
+        .select("id, total, net_value, payment_method, created_at, customer_name")
         .eq("store_id", store.id)
         .gte("created_at", monthISO.toISOString())
         .lte("created_at", (to ?? new Date()).toISOString())
         .order("created_at", { ascending: false });
 
       const safeSales = sales ?? [];
+      const eff = (x: any) => Number(x?.net_value ?? x?.total ?? 0);
       setSalesCount(safeSales.length);
-      setRevenueMonth(safeSales.reduce((s, x) => s + Number(x.total || 0), 0));
+      setRevenueMonth(safeSales.reduce((s, x) => s + eff(x), 0));
       setRevenueToday(
         safeSales
           .filter((s) => new Date(s.created_at) >= todayISO)
-          .reduce((s, x) => s + Number(x.total || 0), 0)
+          .reduce((s, x) => s + eff(x), 0)
       );
 
       // Daily series for the month
@@ -67,7 +68,7 @@ export default function Dashboard() {
       safeSales.forEach((s) => {
         const d = new Date(s.created_at);
         const k = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-        buckets[k] = (buckets[k] || 0) + Number(s.total || 0);
+        buckets[k] = (buckets[k] || 0) + eff(s);
       });
       const sorted = Object.entries(buckets)
         .map(([day, total]) => ({ day, total }))
@@ -77,7 +78,7 @@ export default function Dashboard() {
       // Payment pie
       const payMap: Record<string, number> = {};
       safeSales.forEach((s) => {
-        payMap[s.payment_method] = (payMap[s.payment_method] || 0) + Number(s.total || 0);
+        payMap[s.payment_method] = (payMap[s.payment_method] || 0) + eff(s);
       });
       setPay(Object.entries(payMap).map(([name, value]) => ({ name, value })));
 
