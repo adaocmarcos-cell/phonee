@@ -13,7 +13,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Building2, Plus, Check, AlertTriangle, ArrowRightLeft, CalendarClock, Crown } from "lucide-react";
+import { Building2, Plus, Check, AlertTriangle, ArrowRightLeft, CalendarClock, Crown, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -124,6 +128,25 @@ export default function MinhasLojas() {
     return { label: "Pendente", cls: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: <CalendarClock className="h-3 w-3" /> };
   };
 
+  const isActiveSub = (s: MyStore) =>
+    ["ativa", "active", "aprovado"].includes(s.subscription_status);
+
+  const deleteStore = async (s: MyStore) => {
+    if (!s.is_owner) { toast.error("Apenas o dono pode excluir a loja"); return; }
+    if (isActiveSub(s)) { toast.error("Loja com assinatura ativa não pode ser excluída"); return; }
+    try {
+      await supabase.from("subscriptions").delete().eq("store_id", s.store_id);
+      await supabase.from("user_roles").delete().eq("store_id", s.store_id);
+      await supabase.from("user_stores").delete().eq("store_id", s.store_id);
+      const { error } = await supabase.from("stores").delete().eq("id", s.store_id);
+      if (error) throw error;
+      toast.success(`Loja "${s.name}" removida`);
+      await reloadStores();
+    } catch (err: any) {
+      toast.error(err.message ?? "Falha ao remover loja");
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -194,6 +217,30 @@ export default function MinhasLojas() {
                   <Button size="sm" variant="outline" onClick={() => navigate("/planos")}>
                     Pagar
                   </Button>
+                )}
+                {!isActive && !isActiveSub(s) && s.is_owner && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" title="Excluir loja" className="text-danger hover:text-danger hover:bg-danger/10 border-danger/30">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir loja "{s.name}"?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação remove permanentemente a loja, seus vínculos de usuários e a assinatura pendente.
+                          Disponível apenas para lojas que <strong>não tiveram o pagamento finalizado</strong>.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteStore(s)} className="bg-danger text-danger-foreground hover:bg-danger/90">
+                          Excluir loja
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </Card>
