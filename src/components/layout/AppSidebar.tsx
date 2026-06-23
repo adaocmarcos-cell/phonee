@@ -33,11 +33,11 @@ const ops: Item[] = [
   { title: "Clientes", url: "/app/clientes", icon: Users },
   { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
   { title: "Assistência & Serviços", url: "/app/os", icon: Wrench },
+  { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
   { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
 ];
 
 const config = [
-  { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
   { title: "Configurações", url: "/app/admin/configuracoes", icon: Settings },
   { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
   { title: "Suporte", url: "/app/suporte", icon: LifeBuoy },
