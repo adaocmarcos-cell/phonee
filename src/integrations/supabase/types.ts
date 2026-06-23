@@ -1055,6 +1055,76 @@ export type Database = {
           },
         ]
       }
+      stock_adjustments: {
+        Row: {
+          created_at: string
+          id: string
+          item_kind: Database["public"]["Enums"]["stock_item_kind"]
+          item_name: string
+          justification: string | null
+          new_stock: number
+          part_id: string | null
+          prev_stock: number
+          product_id: string | null
+          qty_change: number
+          reason: Database["public"]["Enums"]["stock_adjustment_reason"]
+          store_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_kind: Database["public"]["Enums"]["stock_item_kind"]
+          item_name: string
+          justification?: string | null
+          new_stock: number
+          part_id?: string | null
+          prev_stock: number
+          product_id?: string | null
+          qty_change: number
+          reason?: Database["public"]["Enums"]["stock_adjustment_reason"]
+          store_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_kind?: Database["public"]["Enums"]["stock_item_kind"]
+          item_name?: string
+          justification?: string | null
+          new_stock?: number
+          part_id?: string | null
+          prev_stock?: number
+          product_id?: string | null
+          qty_change?: number
+          reason?: Database["public"]["Enums"]["stock_adjustment_reason"]
+          store_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_adjustments_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_brands: {
         Row: {
           brand: string
@@ -1603,6 +1673,14 @@ export type Database = {
         | "recebido"
         | "parcial"
         | "cancelado"
+      stock_adjustment_reason:
+        | "perda"
+        | "brinde"
+        | "uso_interno"
+        | "correcao"
+        | "entrada_manual"
+        | "outros"
+      stock_item_kind: "product" | "part"
       trade_in_status:
         | "em_avaliacao"
         | "aprovado"
@@ -1795,6 +1873,15 @@ export const Constants = {
         "parcial",
         "cancelado",
       ],
+      stock_adjustment_reason: [
+        "perda",
+        "brinde",
+        "uso_interno",
+        "correcao",
+        "entrada_manual",
+        "outros",
+      ],
+      stock_item_kind: ["product", "part"],
       trade_in_status: [
         "em_avaliacao",
         "aprovado",
