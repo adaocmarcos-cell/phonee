@@ -20,7 +20,7 @@ const main: Item[] = [
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
-  { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
+  { title: "Alertas", url: "/app/alertas", icon: Bell },
 ];
 
 const ops: Item[] = [
@@ -36,7 +36,7 @@ const ops: Item[] = [
       { title: "Vendas de Peças", url: "/app/pecas/vendas", icon: Receipt },
     ],
   },
-  { title: "Alertas", url: "/app/alertas", icon: Bell },
+  { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
 ];
 
 const config = [
