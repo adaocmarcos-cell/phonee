@@ -468,8 +468,8 @@ export default function Landing() {
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="metric text-6xl md:text-7xl text-primary">R$ 127</span>
                 </div>
-                <div className="mt-1 text-xl font-extrabold">por ano à vista</div>
-                <div className="mt-1 text-lg font-semibold text-foreground/80">ou parcelado no cartão</div>
+                <div className="mt-1 text-xl font-extrabold">/anual</div>
+                <div className="mt-1 text-lg font-semibold text-foreground/80">ou Parcelado em até 12x no cartão</div>
 
                 <ul className="mt-6 space-y-3">
                   {[
@@ -505,14 +505,14 @@ export default function Landing() {
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="metric text-6xl md:text-7xl text-primary">R$ 197</span>
                 </div>
-                <div className="mt-1 text-xl font-extrabold">pague uma vez, use para sempre</div>
+                <div className="mt-1 text-xl font-extrabold">Pague uma vez, use para sempre</div>
                 <div className="mt-1 text-lg font-semibold text-foreground/80">
                   Em menos de 2 anos já se paga frente ao anual — depois disso, é 100% economia.
                 </div>
 
                 <ul className="mt-6 space-y-3">
                   {[
-                    "Acesso vitalício ao sistema",
+                    "Acesso vitalício ao sistema. *Condição por tempo limitado.",
                     "Sem renovação anual",
                     "Sem mensalidade nunca mais",
                     "Todas as atualizações futuras incluídas",
@@ -523,6 +523,10 @@ export default function Landing() {
                     "Garantia de 7 dias",
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
+                <p className="mt-3 text-xs text-foreground/70 leading-relaxed">
+                  A assinatura do Plano Vitalício garante acesso permanente aos benefícios contratados,
+                  sem cobranças de mensalidade ou renovação.
+                </p>
 
                 <Link to="/comprar?plano=lifetime" className="block mt-7">
                   <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
