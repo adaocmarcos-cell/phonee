@@ -194,7 +194,6 @@ export default function Suporte() {
       <PageHeader
         title="Suporte"
         description="Tire dúvidas sobre o sistema, consulte a base de ajuda ou abra um chamado com nossa equipe."
-        icon={LifeBuoy}
       />
 
       <Tabs defaultValue="ajuda">
