@@ -22,6 +22,7 @@ import TradeInForm from "./pages/app/TradeInForm";
 import Pedidos from "./pages/app/Pedidos";
 import PedidoNovo from "./pages/app/PedidoNovo";
 import Despesas from "./pages/app/Despesas";
+import Financeiro from "./pages/app/Financeiro";
 import OrdensServico from "./pages/app/OrdensServico";
 import OrdemServicoForm from "./pages/app/OrdemServicoForm";
 import PartsInventory from "./pages/app/PartsInventory";
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="vendas" element={<Vendas />} />
               <Route path="vendas/nova" element={<VendaNova />} />
               <Route path="despesas" element={<Despesas />} />
+              <Route path="financeiro" element={<Financeiro />} />
               <Route path="clientes" element={<Clientes />} />
               <Route path="os" element={<OrdensServico />} />
               <Route path="os/nova" element={<OrdemServicoForm />} />
