@@ -333,17 +333,19 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Pagamento</TableHead>
+                  <TableHead>Situação</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Nenhuma despesa neste período.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma despesa neste período.</TableCell></TableRow>
                 ) : filtered.map((e) => {
                   const cat = categories.find((c) => c.id === e.category_id);
+                  const status = expenseStatus(e);
                   return (
                     <TableRow key={e.id}>
                       <TableCell className="font-mono text-xs">{new Date(e.expense_date).toLocaleDateString("pt-BR")}</TableCell>
@@ -362,6 +364,13 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
                         )}
                       </TableCell>
                       <TableCell className="text-xs">{e.payment_method}</TableCell>
+                      <TableCell>
+                        {status === "paga" ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Paga</Badge>
+                        ) : (
+                          <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30">Em aberto</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right metric font-semibold">{brl(Number(e.amount))}</TableCell>
                       <TableCell className="text-right">
                         {isAdmin && (
