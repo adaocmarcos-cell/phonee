@@ -2152,7 +2152,16 @@ export type Database = {
         }[]
       }
       mobileplus_overview: { Args: never; Returns: Json }
-      mobileplus_sales_traffic: { Args: { _days?: number }; Returns: Json }
+      mobileplus_sales_traffic: {
+        Args: {
+          _days?: number
+          _from?: string
+          _path?: string
+          _store_id?: string
+          _to?: string
+        }
+        Returns: Json
+      }
       mobileplus_stores: {
         Args: never
         Returns: {
@@ -2168,6 +2177,13 @@ export type Database = {
           store_name: string
           subscription_status: string
           total_sales: number
+        }[]
+      }
+      mobileplus_traffic_paths: {
+        Args: never
+        Returns: {
+          path: string
+          visits: number
         }[]
       }
       mobileplus_users: {
