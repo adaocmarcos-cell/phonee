@@ -14,7 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2 } from "lucide-react";
+import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_CATALOG, roleLabel, canManageUsers, type AppRole } from "@/lib/roles";
 import {
@@ -47,6 +47,7 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Row | null>(null);
 
   const load = async () => {
     if (!store) return;
@@ -156,13 +157,14 @@ export default function Usuarios() {
                 <th className="text-left px-4 py-3 font-medium">Função</th>
                 <th className="text-left px-4 py-3 font-medium">Último acesso</th>
                 <th className="text-center px-4 py-3 font-medium">Status</th>
+                <th className="text-right px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-xs font-mono text-muted-foreground tracking-widest">CARREGANDO…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-xs font-mono text-muted-foreground tracking-widest">CARREGANDO…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">Nenhum colaborador encontrado.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Nenhum colaborador encontrado.</td></tr>
               ) : filtered.map((r) => (
                 <tr key={r.user_id} className="hover:bg-surface-elevated/40">
                   <td className="px-4 py-3">
@@ -188,12 +190,24 @@ export default function Usuarios() {
                       </span>
                     </div>
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button variant="outline" size="sm" onClick={() => setEditing(r)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      <EditUserDialog
+        row={editing}
+        storeId={store?.id ?? ""}
+        onClose={() => setEditing(null)}
+        onSaved={() => { setEditing(null); load(); }}
+      />
     </div>
   );
 }
@@ -218,6 +232,7 @@ function InviteDialog({
     if (!form.email.trim()) return toast.error("Informe o e-mail.");
     if (form.password.length < 8) return toast.error("Senha deve ter ao menos 8 caracteres.");
     setBusy(true);
+    if (!form.full_name.trim()) { setBusy(false); return toast.error("Informe o nome completo."); }
     const { data, error } = await supabase.functions.invoke("admin-create-user", {
       body: {
         full_name: form.full_name.trim(),
