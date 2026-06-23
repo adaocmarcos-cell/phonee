@@ -13,7 +13,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Building2, Plus, Check, AlertTriangle, ArrowRightLeft, CalendarClock, Crown } from "lucide-react";
+import { Building2, Plus, Check, AlertTriangle, ArrowRightLeft, CalendarClock, Crown, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
