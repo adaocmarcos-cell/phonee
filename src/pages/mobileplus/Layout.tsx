@@ -25,9 +25,14 @@ export default function PhoneeLayout() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-100">
       <aside className="hidden md:flex w-60 shrink-0 border-r border-slate-800 bg-slate-900 flex-col">
-        <div className="px-5 py-5 border-b border-slate-800">
-          <img src={logoAsset.url} alt="Phonee" className="h-8 w-auto" />
-          <div className="text-[10px] uppercase tracking-widest text-slate-500 mt-2">
+        <div className="px-5 py-4 border-b border-slate-800 flex flex-col items-start gap-1.5">
+          <img
+            src={logoAsset.url}
+            alt="Phonee"
+            className="h-7 w-auto object-contain select-none"
+            draggable={false}
+          />
+          <div className="text-[10px] uppercase tracking-widest text-slate-500">
             Console do Gestor
           </div>
         </div>
@@ -54,9 +59,14 @@ export default function PhoneeLayout() {
       </aside>
       {/* Topbar mobile */}
       <header className="md:hidden sticky top-0 z-30 bg-slate-900 border-b border-slate-800">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex flex-col gap-0.5">
-            <img src={logoAsset.url} alt="Phonee" className="h-6 w-auto" />
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <img
+              src={logoAsset.url}
+              alt="Phonee"
+              className="h-5 w-auto object-contain select-none"
+              draggable={false}
+            />
             <div className="text-[9px] uppercase tracking-widest text-slate-500">Console do Gestor</div>
           </div>
           <Button size="sm" variant="ghost" onClick={logout}
