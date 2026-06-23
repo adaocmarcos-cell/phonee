@@ -114,7 +114,7 @@ export default function OrdensServico() {
         description="Assistência técnica com rastreabilidade completa."
         actions={
           <Button onClick={() => navigate("/app/os/nova")} className="bg-primary text-primary-foreground shadow-glow">
-            <Plus className="h-4 w-4 mr-1" />Nova OS
+            <Plus className="h-4 w-4 mr-1" />Nova ordem de serviço
           </Button>
         }
       />
