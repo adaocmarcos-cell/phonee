@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import {
   LifeBuoy, Search, Send, MessageCircle, BookOpen, HelpCircle, CheckCircle2, Clock, AlertCircle,
+  Bug, Lightbulb, Wrench,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -115,6 +116,35 @@ export default function Suporte() {
 
   const [form, setForm] = useState({ subject: "", category: "duvida", priority: "normal", message: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [tab, setTab] = useState("ajuda");
+
+  const applyTemplate = (kind: "bug" | "ajuste" | "melhoria") => {
+    const templates = {
+      bug: {
+        category: "bug",
+        priority: "alta",
+        subject: "[BUG] ",
+        message:
+          "Tela onde ocorre:\n\nO que aconteceu:\n\nO que era esperado:\n\nPassos para reproduzir:\n1.\n2.\n3.\n\nMensagem de erro (se houver):",
+      },
+      ajuste: {
+        category: "sugestao",
+        priority: "normal",
+        subject: "[AJUSTE] ",
+        message:
+          "Funcionalidade a ajustar:\n\nComportamento atual:\n\nComo deveria funcionar:\n\nPor que esse ajuste ajudaria sua rotina:",
+      },
+      melhoria: {
+        category: "sugestao",
+        priority: "normal",
+        subject: "[MELHORIA] ",
+        message:
+          "Melhoria sugerida:\n\nOnde no sistema:\n\nQual problema ela resolve:\n\nExemplo de uso:",
+      },
+    } as const;
+    setForm({ ...templates[kind] });
+    setTab("novo");
+  };
 
   const loadTickets = async () => {
     if (!user) return;
@@ -196,7 +226,7 @@ export default function Suporte() {
         description="Tire dúvidas sobre o sistema, consulte a base de ajuda ou abra um chamado com nossa equipe."
       />
 
-      <Tabs defaultValue="ajuda">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="ajuda"><BookOpen className="h-4 w-4 mr-2" />Central de ajuda</TabsTrigger>
           <TabsTrigger value="novo"><HelpCircle className="h-4 w-4 mr-2" />Abrir chamado</TabsTrigger>
@@ -245,7 +275,56 @@ export default function Suporte() {
         </TabsContent>
 
         <TabsContent value="novo" className="mt-4">
-          <Card className="p-6 max-w-2xl space-y-4">
+          <div className="max-w-2xl space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => applyTemplate("bug")}
+                className="text-left rounded-lg border border-border bg-card hover:bg-surface-elevated/40 hover:border-rose-500/40 transition p-4 group"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="h-8 w-8 rounded-md bg-rose-500/15 text-rose-600 flex items-center justify-center">
+                    <Bug className="h-4 w-4" />
+                  </span>
+                  <span className="font-medium text-sm">Reportar bug</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Algo travou, deu erro ou está se comportando diferente do esperado.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => applyTemplate("ajuste")}
+                className="text-left rounded-lg border border-border bg-card hover:bg-surface-elevated/40 hover:border-amber-500/40 transition p-4 group"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="h-8 w-8 rounded-md bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                    <Wrench className="h-4 w-4" />
+                  </span>
+                  <span className="font-medium text-sm">Pedir ajuste</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Funciona, mas precisa ser ajustado para a rotina da sua loja.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => applyTemplate("melhoria")}
+                className="text-left rounded-lg border border-border bg-card hover:bg-surface-elevated/40 hover:border-emerald-500/40 transition p-4 group"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="h-8 w-8 rounded-md bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+                    <Lightbulb className="h-4 w-4" />
+                  </span>
+                  <span className="font-medium text-sm">Sugerir melhoria</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Tem uma ideia que pode deixar o sistema mais útil para você.
+                </p>
+              </button>
+            </div>
+
+            <Card className="p-6 space-y-4">
             <div>
               <Label>Assunto</Label>
               <Input
@@ -297,7 +376,8 @@ export default function Suporte() {
               <Send className="h-4 w-4 mr-2" />
               {submitting ? "Enviando..." : "Enviar chamado"}
             </Button>
-          </Card>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="meus" className="mt-4 space-y-3">
