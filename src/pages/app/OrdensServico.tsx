@@ -11,7 +11,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { brl, num } from "@/lib/format";
 import {
   Plus, Wrench, Search, Clock, CheckCircle2, AlertCircle, PackageCheck, Timer, TrendingUp,
-  Hammer, Receipt,
+  Hammer, Receipt, ShoppingCart,
 } from "lucide-react";
 
 const STATUS_LABEL: Record<string, string> = {
