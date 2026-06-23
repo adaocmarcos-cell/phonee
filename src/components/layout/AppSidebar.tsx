@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
-  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText, ClipboardCheck,
+  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -23,7 +23,6 @@ const main: Item[] = [
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
   { title: "Logs e Auditoria", url: "/app/admin/logs", icon: FileSearch },
-  { title: "Ajustes de Estoque", url: "/app/admin/ajustes-estoque", icon: ClipboardCheck },
   { title: "Alertas", url: "/app/alertas", icon: Bell, badgeKey: "alerts" },
 ];
 
@@ -175,6 +174,12 @@ export function AppSidebar() {
           adminItems.filter((it) => it.url !== "/app/admin/logs" || showLogsOnly)
         )}
         {isAdminMaster(role as any) && renderGroup("Financeiro / Admin Master", adminMasterItems)}
+        <div className="mt-auto px-3 py-3 border-t border-sidebar-border">
+          <div className={`flex items-center gap-2 text-[10px] text-muted-foreground/80 ${collapsed ? "justify-center" : ""}`}>
+            <Lock className="h-3 w-3 text-success shrink-0" />
+            {!collapsed && <span className="leading-tight">Dados protegidos com segurança e criptografia.</span>}
+          </div>
+        </div>
       </SidebarContent>
     </Sidebar>
   );
