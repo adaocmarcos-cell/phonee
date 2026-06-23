@@ -435,7 +435,7 @@ export default function Landing() {
           <div className="grid md:grid-cols-2 gap-5">
             <Card className="p-7 border-2 border-danger/40 bg-danger/[0.04]">
               <h3 className="font-extrabold text-2xl mb-5 flex items-center gap-2 text-danger">
-                <X className="h-7 w-7" strokeWidth={3.5} /> SEM MOBILE+
+                <X className="h-7 w-7" strokeWidth={3.5} /> SEM PHONEE
               </h3>
               <ul className="space-y-3.5">
                 {["Planilhas", "Informações espalhadas", "Processos manuais", "Dependência de funcionários",
@@ -445,7 +445,7 @@ export default function Landing() {
             </Card>
             <Card className="p-7 border-2 border-success/50 bg-success/[0.05] shadow-glow">
               <h3 className="font-extrabold text-2xl mb-5 flex items-center gap-2 text-success">
-                <CheckCircle2 className="h-7 w-7" /> COM MOBILE+
+                <CheckCircle2 className="h-7 w-7" /> COM PHONEE
               </h3>
               <ul className="space-y-3.5">
                 {["Operação centralizada", "Controle profissional", "Dados organizados", "Menos erros",
