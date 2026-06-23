@@ -242,6 +242,28 @@ export default function Financeiro() {
         <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" />
       </div>
 
+      {/* Recebimentos por método */}
+      <Card className="p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" />Recebimentos por método</h3>
+          <span className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+            Total: {brl(receiptsByMethod.reduce((s, r) => s + r.total, 0))}
+          </span>
+        </div>
+        {receiptsByMethod.length === 0 ? (
+          <div className="text-xs text-muted-foreground">Sem recebimentos no período.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {receiptsByMethod.map((r) => (
+              <div key={r.method} className="rounded-md bg-muted/40 px-3 py-2">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground capitalize">{r.method}</div>
+                <div className="text-sm font-semibold metric">{brl(r.total)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       <Tabs defaultValue="receber" className="mb-3">
         <TabsList>
           <TabsTrigger value="receber" className="gap-2"><Clock className="h-3.5 w-3.5" />A Receber</TabsTrigger>
