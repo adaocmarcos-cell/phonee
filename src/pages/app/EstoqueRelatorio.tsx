@@ -20,6 +20,11 @@ import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FileText, FileSpreadsheet, Printer, ChevronDown } from "lucide-react";
 
 type Reason = "perda" | "brinde" | "uso_interno" | "correcao" | "entrada_manual" | "outros";
 const REASONS: { value: Reason; label: string }[] = [
@@ -289,6 +294,73 @@ export default function EstoqueRelatorio() {
     doc.save(`relatorio-estoque-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
+  const buildTabular = () => {
+    const header = ["Item", "SKU", "Tipo", "Categoria", "Base", "Entradas", "Saídas", "Atual", "Preço venda", ...(showCost ? ["Custo unit."] : []), "Valor venda", ...(showCost ? ["Valor custo"] : []), "Status"];
+    const body = visibleRows.map((r) => [
+      r.name,
+      r.sku ?? "",
+      r.kind === "product" ? "Produto" : "Peça",
+      r.category ?? "",
+      r.baseline,
+      r.movements.in,
+      r.movements.out,
+      r.stock_current,
+      r.sale_price,
+      ...(showCost ? [r.cost_price] : []),
+      r.stock_current * r.sale_price,
+      ...(showCost ? [r.stock_current * r.cost_price] : []),
+      r.inconsistent ? "INCONSISTÊNCIA" : r.stock_current <= r.stock_min ? "Baixo" : "OK",
+    ]);
+    return { header, body };
+  };
+
+  const exportCsv = () => {
+    const { header, body } = buildTabular();
+    const esc = (v: any) => {
+      const s = String(v ?? "");
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [header, ...body].map((row) => row.map(esc).join(";")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `relatorio-estoque-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportExcel = () => {
+    const { header, body } = buildTabular();
+    const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Estoque");
+    XLSX.writeFile(wb, `relatorio-estoque-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const exportPrint = () => {
+    const { header, body } = buildTabular();
+    const win = window.open("", "_blank");
+    if (!win) { toast.error("Não foi possível abrir a janela de impressão"); return; }
+    const rows = body.map((r) => `<tr>${r.map((c) => `<td>${String(c ?? "")}</td>`).join("")}</tr>`).join("");
+    win.document.write(`
+      <html><head><title>Relatório de Estoque</title>
+      <style>
+        body{font-family:system-ui,sans-serif;padding:24px;color:#111}
+        h1{font-size:18px;margin:0 0 4px} .meta{font-size:11px;color:#555;margin-bottom:12px}
+        table{width:100%;border-collapse:collapse;font-size:11px}
+        th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}
+        th{background:#f5f5f5}
+      </style></head><body>
+      <h1>Relatório de Estoque — ${store?.name ?? ""}</h1>
+      <div class="meta">Período: ${periodStart.toLocaleDateString("pt-BR")} → ${periodEnd.toLocaleDateString("pt-BR")} · Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+      <table><thead><tr>${header.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>
+      <script>window.onload=()=>{window.print();}</script>
+      </body></html>
+    `);
+    win.document.close();
+  };
+
   return (
     <div>
       <PageHeader
@@ -302,9 +374,27 @@ export default function EstoqueRelatorio() {
             <Button variant="outline" onClick={load} title="Recarregar">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button onClick={exportPdf} className="bg-gradient-primary shadow-glow">
-              <FileDown className="h-4 w-4 mr-1" /> Exportar PDF
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-gradient-primary shadow-glow">
+                  <FileDown className="h-4 w-4 mr-1" /> Exportar <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={exportPdf}>
+                  <FileText className="h-4 w-4 mr-2" /> PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportCsv}>
+                  <FileDown className="h-4 w-4 mr-2" /> CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" /> Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportPrint}>
+                  <Printer className="h-4 w-4 mr-2" /> Imprimir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
