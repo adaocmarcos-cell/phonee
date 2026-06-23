@@ -50,6 +50,7 @@ export default function Auth() {
     // Verifica se há assinatura ativa OU se é admin_master (acesso interno)
     const userId = signin.user?.id;
     let allowed = false;
+    let initialPath = "/app";
     if (userId) {
       const [{ data: roles }, { data: subs }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
@@ -58,6 +59,10 @@ export default function Auth() {
       const isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
       const hasActive = (subs ?? []).length > 0;
       allowed = isAdminMaster || hasActive;
+      // Rota inicial: gestores → Dashboard; demais → Vendas
+      const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
+      const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
+      initialPath = isGestor ? "/app" : "/app/vendas";
     }
     if (!allowed) {
       await supabase.auth.signOut();
@@ -68,7 +73,7 @@ export default function Auth() {
     if (remember) localStorage.setItem("mobileplus.rememberedEmail", eRes.data);
     else localStorage.removeItem("mobileplus.rememberedEmail");
     toast.success("Bem-vindo de volta!");
-    navigate("/app");
+    navigate(initialPath);
   };
 
   return (
