@@ -55,7 +55,9 @@ export default function AppLayout() {
                     </Avatar>
                     <div className="hidden md:flex flex-col items-start leading-tight">
                       <span className="text-xs font-medium truncate max-w-[140px]">{user?.email}</span>
-                      <span className="text-[10px] text-muted-foreground capitalize">{role ?? "—"}</span>
+                      <span className="text-[10px] text-muted-foreground capitalize">
+                        {role === "dono" ? "Administrador" : (role ?? "—")}
+                      </span>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
