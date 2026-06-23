@@ -44,7 +44,6 @@ const config = [
 
 const adminItems: Item[] = [
   { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
-  { title: "Cargos e Funções", url: "/app/admin/cargos", icon: UserCog },
 ];
 
 const adminMasterItems: Item[] = [

@@ -14,7 +14,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2, Pencil } from "lucide-react";
+import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2, Pencil, UserCog } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ROLE_CATALOG, roleLabel, canManageUsers, type AppRole } from "@/lib/roles";
 import {
@@ -43,6 +44,7 @@ type Row = {
 export default function Usuarios() {
   const { store, role: myRole } = useAuth();
   const allowed = canManageUsers(myRole as any);
+  const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -130,7 +132,17 @@ export default function Usuarios() {
         title="Usuários"
         description="Gestão dos colaboradores da loja, cargos e status de acesso."
         actions={
-          <InviteDialog open={open} setOpen={setOpen} onCreated={load} storeId={store?.id ?? ""} />
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/app/admin/cargos")}
+              className="bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+            >
+              <UserCog className="h-4 w-4 mr-1" /> Cargos e Funções
+            </Button>
+            <InviteDialog open={open} setOpen={setOpen} onCreated={load} storeId={store?.id ?? ""} />
+          </>
         }
       />
 

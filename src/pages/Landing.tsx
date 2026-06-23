@@ -633,7 +633,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src={logo} alt="Mobile+" className="h-10 w-auto invert" />
+          <img src={logo} alt="Mobile+" className="h-10 w-auto" />
           <div className="text-xs">© {new Date().getFullYear()} Mobile+. Todos os direitos reservados.</div>
         </div>
       </footer>
