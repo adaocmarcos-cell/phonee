@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [evoCustom, setEvoCustom] = useState<CustomRange>({});
   const [evoSeries, setEvoSeries] = useState<{ label: string; total: number }[]>([]);
   const [trendPeriod, setTrendPeriod] = useState<PeriodValue>("1y");
-  const [trendSeries, setTrendSeries] = useState<{ label: string; total: number }[]>([]);
+  const [trendSeries, setTrendSeries] = useState<{ label: string; total: number; count: number }[]>([]);
 
   useEffect(() => {
     if (!store) return;
@@ -225,28 +225,30 @@ export default function Dashboard() {
         .gte("created_at", since.toISOString())
         .lte("created_at", until.toISOString());
       const groupByMonth = days > 60;
-      const buckets: Record<string, number> = {};
+      const buckets: Record<string, { total: number; count: number }> = {};
       (data ?? []).forEach((s: any) => {
         const d = new Date(s.created_at);
         const k = groupByMonth
           ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`
           : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-        buckets[k] = (buckets[k] || 0) + Number(s.total || 0);
+        if (!buckets[k]) buckets[k] = { total: 0, count: 0 };
+        buckets[k].total += Number(s.total || 0);
+        buckets[k].count += 1;
       });
-      const out: { label: string; total: number }[] = [];
+      const out: { label: string; total: number; count: number }[] = [];
       const cursor = new Date(since);
       const end = new Date(until);
       if (groupByMonth) {
         cursor.setDate(1);
         while (cursor <= end) {
           const k = `${String(cursor.getMonth() + 1).padStart(2, "0")}/${String(cursor.getFullYear()).slice(2)}`;
-          out.push({ label: k, total: buckets[k] || 0 });
+          out.push({ label: k, total: buckets[k]?.total || 0, count: buckets[k]?.count || 0 });
           cursor.setMonth(cursor.getMonth() + 1);
         }
       } else {
         while (cursor <= end) {
           const k = `${String(cursor.getDate()).padStart(2, "0")}/${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-          out.push({ label: k, total: buckets[k] || 0 });
+          out.push({ label: k, total: buckets[k]?.total || 0, count: buckets[k]?.count || 0 });
           cursor.setDate(cursor.getDate() + 1);
         }
       }
@@ -381,10 +383,7 @@ export default function Dashboard() {
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
-                <Tooltip
-                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: number) => brl(v)}
-                />
+                <Tooltip content={<TrendTooltip series={trendSeries} />} />
                 <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="url(#trendRev)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -554,6 +553,51 @@ function EmptyChart({ label }: { label: string }) {
   return (
     <div className="h-full bg-grid rounded-md flex items-center justify-center">
       <span className="text-xs text-muted-foreground font-mono tracking-widest">{label.toUpperCase()}</span>
+    </div>
+  );
+}
+
+function TrendTooltip({
+  active,
+  payload,
+  label,
+  series,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  series: { label: string; total: number; count: number }[];
+}) {
+  if (!active || !payload?.length) return null;
+  const idx = series.findIndex((p) => p.label === label);
+  const curr = series[idx];
+  if (!curr) return null;
+  const prev = idx > 0 ? series[idx - 1] : null;
+  const diff = prev ? curr.total - prev.total : 0;
+  const pctVar = prev && prev.total > 0 ? (diff / prev.total) * 100 : null;
+  const ticket = curr.count > 0 ? curr.total / curr.count : 0;
+  const up = diff >= 0;
+  return (
+    <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs shadow-md min-w-[180px]">
+      <div className="font-medium text-foreground mb-1.5">{label}</div>
+      <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">Total</span>
+        <span className="metric font-semibold text-foreground">{brl(curr.total)}</span>
+      </div>
+      <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">vs período anterior</span>
+        <span className={`metric font-semibold ${prev ? (up ? "text-success" : "text-danger") : "text-muted-foreground"}`}>
+          {prev
+            ? `${up ? "+" : ""}${brl(diff)}${pctVar !== null ? ` (${up ? "+" : ""}${pctVar.toFixed(1)}%)` : ""}`
+            : "—"}
+        </span>
+      </div>
+      <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">Ticket médio</span>
+        <span className="metric font-semibold text-foreground">
+          {curr.count > 0 ? `${brl(ticket)} · ${curr.count} venda${curr.count > 1 ? "s" : ""}` : "—"}
+        </span>
+      </div>
     </div>
   );
 }
