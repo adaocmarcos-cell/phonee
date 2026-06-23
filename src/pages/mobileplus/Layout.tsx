@@ -73,7 +73,7 @@ export default function MobilePlusLayout() {
                     ? "bg-[#00abfb] text-slate-900 font-semibold"
                     : "bg-slate-800/60 text-slate-300 hover:bg-slate-800"
                 }`}>
-              <n.icon className="h-3.5 w-3.5" />
+              <n.icon className="h-[1.15rem] w-[1.15rem]" />
               {n.label}
             </NavLink>
           ))}
