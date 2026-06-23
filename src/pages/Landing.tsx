@@ -573,6 +573,28 @@ export default function Landing() {
 
       {/* FOOTER */}
       <footer className="bg-black text-slate-300 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-5 pt-10 pb-2">
+          <div className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 hover:bg-white/[0.07] transition-colors">
+              <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                <Apple className="h-5 w-5 text-white" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-mono">Em breve</div>
+                <div className="text-sm font-semibold text-white">Disponível na App Store</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 hover:bg-white/[0.07] transition-colors">
+              <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                <Smartphone className="h-5 w-5 text-white" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-mono">Em breve</div>
+                <div className="text-sm font-semibold text-white">Disponível no Google Play</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <img src={logo} alt="Mobile+" className="h-10 w-auto invert" />
           <div className="text-xs">© {new Date().getFullYear()} Mobile+. Todos os direitos reservados.</div>
