@@ -10,6 +10,9 @@ const Schema = z.object({
   customer_doc: z.string().trim().min(11).max(20),
   payment_method: z.enum(["PIX", "CREDIT_CARD"]),
   installments: z.number().int().min(1).max(12).default(1),
+  store_id: z.string().uuid().optional(),
+  user_id: z.string().uuid().optional(),
+  billing_cycle: z.enum(["annual", "lifetime"]).optional(),
 });
 
 function onlyDigits(s: string) { return s.replace(/\D/g, ""); }
@@ -94,6 +97,9 @@ Deno.serve(async (req) => {
 
     const { data: sub, error: subErr } = await admin.from("subscriptions").insert({
       plan_id: plan.id,
+      user_id: input.user_id ?? null,
+      store_id: input.store_id ?? null,
+      billing_cycle: input.billing_cycle ?? input.plan_code,
       customer_name: input.customer_name,
       customer_email: input.customer_email.toLowerCase(),
       customer_phone: phoneDigits,
@@ -107,6 +113,10 @@ Deno.serve(async (req) => {
       invoice_url: invoiceUrl,
       pix_qr_code: pixQr,
       pix_copy_paste: pixCopy,
+      started_at: new Date().toISOString(),
+      expires_at: (input.billing_cycle ?? input.plan_code) === "annual"
+        ? new Date(Date.now() + 365 * 86400000).toISOString()
+        : null,
     }).select().single();
     if (subErr) return jsonResponse({ error: "Falha ao salvar assinatura", details: subErr.message }, 500);
 
