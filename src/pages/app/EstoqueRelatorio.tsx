@@ -374,9 +374,27 @@ export default function EstoqueRelatorio() {
             <Button variant="outline" onClick={load} title="Recarregar">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button onClick={exportPdf} className="bg-gradient-primary shadow-glow">
-              <FileDown className="h-4 w-4 mr-1" /> Exportar PDF
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-gradient-primary shadow-glow">
+                  <FileDown className="h-4 w-4 mr-1" /> Exportar <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={exportPdf}>
+                  <FileText className="h-4 w-4 mr-2" /> PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportCsv}>
+                  <FileDown className="h-4 w-4 mr-2" /> CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" /> Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportPrint}>
+                  <Printer className="h-4 w-4 mr-2" /> Imprimir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
