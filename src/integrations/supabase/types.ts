@@ -817,39 +817,48 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          expected_delivery_at: string | null
           id: string
           notes: string | null
+          payment_method: string | null
           received_at: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["purchase_order_status"]
           store_id: string
           supplier: string
+          supplier_id: string | null
           total_cost: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          expected_delivery_at?: string | null
           id?: string
           notes?: string | null
+          payment_method?: string | null
           received_at?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["purchase_order_status"]
           store_id: string
           supplier: string
+          supplier_id?: string | null
           total_cost?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          expected_delivery_at?: string | null
           id?: string
           notes?: string | null
+          payment_method?: string | null
           received_at?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["purchase_order_status"]
           store_id?: string
           supplier?: string
+          supplier_id?: string | null
           total_cost?: number
           updated_at?: string
         }
@@ -859,6 +868,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -1523,6 +1539,74 @@ export type Database = {
           },
           {
             foreignKeyName: "subscriptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          active: boolean
+          avg_delivery_days: number | null
+          brands: string[]
+          city: string | null
+          cnpj: string | null
+          company_name: string
+          created_at: string
+          email: string | null
+          id: string
+          notes: string | null
+          payment_terms: string | null
+          phone: string | null
+          representative_name: string | null
+          state: string | null
+          store_id: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          active?: boolean
+          avg_delivery_days?: number | null
+          brands?: string[]
+          city?: string | null
+          cnpj?: string | null
+          company_name: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          representative_name?: string | null
+          state?: string | null
+          store_id: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          active?: boolean
+          avg_delivery_days?: number | null
+          brands?: string[]
+          city?: string | null
+          cnpj?: string | null
+          company_name?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
+          representative_name?: string | null
+          state?: string | null
+          store_id?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
