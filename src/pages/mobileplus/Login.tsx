@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
+import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
 export default function PhoneeLogin() {
   const nav = useNavigate();
@@ -20,7 +20,7 @@ export default function PhoneeLogin() {
       const { data } = await supabase
         .from("user_roles").select("role")
         .eq("user_id", user.id).eq("role", "admin_master").maybeSingle();
-      if (data) nav("/mobileplus/visao-geral", { replace: true });
+      if (data) nav("/phonee/visao-geral", { replace: true });
     })();
   }, [nav]);
 
@@ -42,7 +42,7 @@ export default function PhoneeLogin() {
       toast.error("Acesso restrito ao gestor da plataforma.");
       return;
     }
-    nav("/mobileplus/visao-geral", { replace: true });
+    nav("/phonee/visao-geral", { replace: true });
   };
 
   return (

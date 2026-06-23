@@ -33,7 +33,7 @@ export default function AdminMasterRoute({ children }: Props) {
     );
   }
   if (state === "deny") {
-    return <Navigate to="/mobileplus" replace state={{ from: location }} />;
+    return <Navigate to="/phonee" replace state={{ from: location }} />;
   }
   return <>{children ?? <Outlet />}</>;
 }

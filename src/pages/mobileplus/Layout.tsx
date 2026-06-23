@@ -4,23 +4,23 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut,
 } from "lucide-react";
-import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
+import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
 const nav = [
-  { to: "/mobileplus/visao-geral", label: "Visão Geral", icon: LayoutDashboard },
-  { to: "/mobileplus/lojas",       label: "Lojas",        icon: Building2 },
-  { to: "/mobileplus/usuarios",    label: "Usuários",     icon: Users },
-  { to: "/mobileplus/assinaturas", label: "Assinaturas",  icon: Receipt },
-  { to: "/mobileplus/financeiro",  label: "Financeiro",   icon: DollarSign },
-  { to: "/mobileplus/crescimento", label: "Crescimento",  icon: TrendingUp },
-  { to: "/mobileplus/suporte",     label: "Suporte",      icon: Inbox },
+  { to: "/phonee/visao-geral", label: "Visão Geral", icon: LayoutDashboard },
+  { to: "/phonee/lojas",       label: "Lojas",        icon: Building2 },
+  { to: "/phonee/usuarios",    label: "Usuários",     icon: Users },
+  { to: "/phonee/assinaturas", label: "Assinaturas",  icon: Receipt },
+  { to: "/phonee/financeiro",  label: "Financeiro",   icon: DollarSign },
+  { to: "/phonee/crescimento", label: "Crescimento",  icon: TrendingUp },
+  { to: "/phonee/suporte",     label: "Suporte",      icon: Inbox },
 ];
 
 export default function PhoneeLayout() {
   const navigate = useNavigate();
   const logout = async () => {
     await supabase.auth.signOut();
-    navigate("/mobileplus", { replace: true });
+    navigate("/phonee", { replace: true });
   };
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-100">

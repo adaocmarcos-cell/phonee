@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+import logoAsset from "@/assets/phonee-logo.png.asset.json";
 const logo = logoAsset.url;
 
 const passwordSchema = z.string().min(6, "Mínimo 6 caracteres").max(72);
@@ -47,7 +47,7 @@ export default function ResetPassword() {
       const { data: roles } = await supabase
         .from("user_roles").select("role").eq("user_id", uid);
       if ((roles ?? []).some((r: any) => r.role === "admin_master")) {
-        dest = "/mobileplus/visao-geral";
+        dest = "/phonee/visao-geral";
       }
     }
     setBusy(false);

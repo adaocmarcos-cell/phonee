@@ -51,14 +51,14 @@ import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
 import ComprarSucesso from "./pages/ComprarSucesso";
 import { Navigate, useLocation } from "react-router-dom";
-import PhoneeLogin from "./pages/mobileplus/Login";
-import PhoneeLayout from "./pages/mobileplus/Layout";
-import PhoneeVisaoGeral from "./pages/mobileplus/VisaoGeral";
-import PhoneeLojas from "./pages/mobileplus/Lojas";
-import PhoneeUsuarios from "./pages/mobileplus/Usuarios";
-import PhoneeAssinaturas from "./pages/mobileplus/Assinaturas";
-import PhoneeFinanceiro from "./pages/mobileplus/Financeiro";
-import PhoneeCrescimento from "./pages/mobileplus/Crescimento";
+import PhoneeLogin from "./pages/phonee/Login";
+import PhoneeLayout from "./pages/phonee/Layout";
+import PhoneeVisaoGeral from "./pages/phonee/VisaoGeral";
+import PhoneeLojas from "./pages/phonee/Lojas";
+import PhoneeUsuarios from "./pages/phonee/Usuarios";
+import PhoneeAssinaturas from "./pages/phonee/Assinaturas";
+import PhoneeFinanceiro from "./pages/phonee/Financeiro";
+import PhoneeCrescimento from "./pages/phonee/Crescimento";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
 const queryClient = new QueryClient();
@@ -127,8 +127,8 @@ const App = () => (
             <Route path="/app" element={<Navigate to="/painel" replace />} />
 
             {/* Painel oculto Phonee (gestor da plataforma) */}
-            <Route path="/mobileplus" element={<PhoneeLogin />} />
-            <Route path="/mobileplus" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
+            <Route path="/phonee" element={<PhoneeLogin />} />
+            <Route path="/phonee" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
               <Route path="visao-geral" element={<PhoneeVisaoGeral />} />
               <Route path="lojas" element={<PhoneeLojas />} />
               <Route path="usuarios" element={<PhoneeUsuarios />} />
