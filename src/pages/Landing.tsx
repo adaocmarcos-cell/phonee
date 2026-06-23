@@ -142,7 +142,7 @@ export default function Landing() {
             <img
               src={logo}
               alt="Phonee"
-              className="h-60 sm:h-80 md:h-[400px] lg:h-[480px] w-auto bg-transparent border-0 shadow-none"
+              className="h-[168px] sm:h-[224px] md:h-[280px] lg:h-[336px] w-auto bg-transparent border-0 shadow-none"
               style={{ background: "transparent", boxShadow: "none", border: 0 }}
             />
           </div>
