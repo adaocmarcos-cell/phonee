@@ -163,7 +163,7 @@ export function AppSidebar() {
             <img
               src={logoAsset.url}
               alt="Phonee"
-              className="h-[126px] w-auto bg-transparent border-0 shadow-none"
+              className="h-[378px] w-auto bg-transparent border-0 shadow-none"
               style={{ background: "transparent", boxShadow: "none", border: 0 }}
             />
           )}
