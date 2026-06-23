@@ -22,7 +22,9 @@ export function DemoBanner() {
           variant="secondary"
           className="h-7 px-3 text-xs bg-white text-primary hover:bg-white/90"
           onClick={() => {
-            window.open("/comprar?plano=annual", "_blank");
+            const host = typeof window !== "undefined" ? window.location.hostname : "";
+            const base = host.endsWith("phonee.com.br") ? window.location.origin : "https://www.phonee.com.br";
+            window.open(`${base}/comprar?plano=annual`, "_blank");
           }}
         >
           <ShoppingCart className="h-3.5 w-3.5 mr-1" />
