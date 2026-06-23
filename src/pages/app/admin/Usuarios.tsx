@@ -239,8 +239,7 @@ function InviteDialog({
         email: form.email.trim(),
         phone: form.phone.trim(),
         password: form.password,
-        role: form.role === "outro" ? "vendedor" : form.role,
-        job_title: form.job_title.trim(),
+        role: form.role,
         store_id: storeId,
         permissions,
       },
@@ -253,7 +252,7 @@ function InviteDialog({
     }
     toast.success("Colaborador cadastrado com sucesso.");
     setOpen(false);
-    setForm({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" });
+    setForm({ full_name: "", email: "", phone: "", password: "", role: "vendedor" });
     setPermissions(defaultsForRole("vendedor"));
     setPermTouched(false);
     onCreated();
@@ -322,7 +321,7 @@ function InviteDialog({
           value={permissions}
           onChange={(v) => { setPermissions(v); setPermTouched(true); }}
           onResetToRole={() => { setPermissions(defaultsForRole(form.role)); setPermTouched(false); }}
-          roleLabelText={form.role === "outro" ? (form.job_title || "Cargo personalizado") : roleLabel(form.role)}
+          roleLabelText={roleLabel(form.role)}
         />
       </DialogContent>
     </Dialog>
