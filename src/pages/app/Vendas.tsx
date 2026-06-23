@@ -220,7 +220,7 @@ export default function Vendas() {
           <button
             type="button"
             onClick={() => navigate("/app/vendas/nova")}
-            className="sm:col-span-2 lg:col-span-2 min-h-[150px] rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-5 flex items-center justify-center gap-2 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-5 flex items-center justify-center gap-2 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <Plus className="h-5 w-5" />
             Nova venda
@@ -241,6 +241,7 @@ export default function Vendas() {
             delta={`${pendingSales.length} venda(s) · ${overdueCount} vencida(s)`}
             icon={Wallet}
             tone={overdueCount > 0 ? "danger" : "warning"}
+            className="py-[18px]"
           />
         </button>
         {(["dinheiro", "pix", "debito", "credito", "boleto"] as const).slice(0, 3).map((m) => {
@@ -253,6 +254,7 @@ export default function Vendas() {
               delta={`${d?.count || 0} venda(s)`}
               icon={pmIcon[m]}
               tone={pmTone[m]}
+              className="py-[18px]"
             />
           );
         })}
