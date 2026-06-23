@@ -18,6 +18,42 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
+    // Parse lead info (required)
+    let payload: any = {};
+    try { payload = await req.json(); } catch {}
+    const name = String(payload?.name ?? "").trim();
+    const instagram = String(payload?.instagram ?? "").trim().replace(/^@+/, "");
+    const whatsapp = String(payload?.whatsapp ?? "").trim();
+    if (!name || name.length < 2 || name.length > 120) {
+      return new Response(JSON.stringify({ ok: false, error: "Nome inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!instagram || instagram.length > 60) {
+      return new Response(JSON.stringify({ ok: false, error: "Instagram inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const onlyDigits = whatsapp.replace(/\D/g, "");
+    if (onlyDigits.length < 10 || onlyDigits.length > 15) {
+      return new Response(JSON.stringify({ ok: false, error: "WhatsApp inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Record lead (best-effort; failure does not block demo)
+    try {
+      await admin.from("demo_leads").insert({
+        name,
+        instagram,
+        whatsapp,
+        user_agent: req.headers.get("user-agent") ?? null,
+        referrer: req.headers.get("referer") ?? null,
+      });
+    } catch (e) {
+      console.error("demo_leads insert error", e);
+    }
+
     // 1. Get or create demo user
     let userId: string | null = null;
     const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
