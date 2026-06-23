@@ -383,10 +383,7 @@ export default function Dashboard() {
                 <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
-                <Tooltip
-                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: number) => brl(v)}
-                />
+                <Tooltip content={<TrendTooltip series={trendSeries} />} />
                 <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="url(#trendRev)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
