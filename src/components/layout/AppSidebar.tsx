@@ -3,7 +3,6 @@ import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet,
   ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText,
-  ShieldCheck as ShieldCheckIcon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -20,7 +19,7 @@ const main: Item[] = [
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
-  { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheckIcon },
+  { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
 ];
 
 const ops: Item[] = [
