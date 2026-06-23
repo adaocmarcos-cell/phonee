@@ -14,9 +14,19 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserPlus, Search, ShieldAlert, KeyRound } from "lucide-react";
+import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_CATALOG, roleLabel, canManageUsers, type AppRole } from "@/lib/roles";
+import {
+  PERMISSION_CATALOG,
+  ACTION_LABEL,
+  defaultsForRole,
+  countAllowed,
+  countTotal,
+  type PermissionMap,
+  type PermissionAction,
+} from "@/lib/permissions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Row = {
   user_id: string;
@@ -193,6 +203,14 @@ function InviteDialog({
 }: { open: boolean; setOpen: (v: boolean) => void; onCreated: () => void; storeId: string }) {
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" as AppRole | "outro" });
   const [busy, setBusy] = useState(false);
+  const [permissions, setPermissions] = useState<PermissionMap>(() => defaultsForRole("vendedor"));
+  const [permOpen, setPermOpen] = useState(false);
+  const [permTouched, setPermTouched] = useState(false);
+
+  // Reset permissions to role defaults whenever role changes (unless user customized)
+  useEffect(() => {
+    if (!permTouched) setPermissions(defaultsForRole(form.role));
+  }, [form.role, permTouched]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -209,6 +227,7 @@ function InviteDialog({
         role: form.role === "outro" ? "vendedor" : form.role,
         job_title: form.job_title.trim(),
         store_id: storeId,
+        permissions,
       },
     });
     setBusy(false);
@@ -220,8 +239,13 @@ function InviteDialog({
     toast.success("Colaborador cadastrado com sucesso.");
     setOpen(false);
     setForm({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" });
+    setPermissions(defaultsForRole("vendedor"));
+    setPermTouched(false);
     onCreated();
   };
+
+  const allowedCount = countAllowed(permissions);
+  const totalCount = countTotal();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -258,6 +282,20 @@ function InviteDialog({
                 <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} placeholder="Ex.: Coordenador de Marketing" />
               </div>
             )}
+            <div className="col-span-2 mt-1 rounded-md border border-border bg-surface-elevated/40 p-3 flex items-center justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary mt-0.5" />
+                <div>
+                  <div className="text-xs font-medium">Permissões do colaborador</div>
+                  <div className="text-[11px] text-muted-foreground font-mono">
+                    {allowedCount}/{totalCount} habilitadas {permTouched ? "· personalizadas" : "· padrão do cargo"}
+                  </div>
+                </div>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => setPermOpen(true)}>
+                <Settings2 className="h-3.5 w-3.5 mr-1" /> Configurar
+              </Button>
+            </div>
           </div>
           <p className="text-[11px] text-muted-foreground border-t border-border pt-3 flex items-start gap-2">
             <KeyRound className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
@@ -270,6 +308,120 @@ function InviteDialog({
             </Button>
           </DialogFooter>
         </form>
+        <PermissionsDialog
+          open={permOpen}
+          setOpen={setPermOpen}
+          value={permissions}
+          onChange={(v) => { setPermissions(v); setPermTouched(true); }}
+          onResetToRole={() => { setPermissions(defaultsForRole(form.role)); setPermTouched(false); }}
+          roleLabelText={form.role === "outro" ? (form.job_title || "Cargo personalizado") : roleLabel(form.role)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PermissionsDialog({
+  open, setOpen, value, onChange, onResetToRole, roleLabelText,
+}: {
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  value: PermissionMap;
+  onChange: (v: PermissionMap) => void;
+  onResetToRole: () => void;
+  roleLabelText: string;
+}) {
+  const toggle = (modKey: string, action: PermissionAction) => {
+    const next: PermissionMap = JSON.parse(JSON.stringify(value));
+    next[modKey] = next[modKey] || ({} as Record<PermissionAction, boolean>);
+    next[modKey][action] = !next[modKey][action];
+    onChange(next);
+  };
+  const toggleModule = (modKey: string, allOn: boolean) => {
+    const next: PermissionMap = JSON.parse(JSON.stringify(value));
+    const mod = PERMISSION_CATALOG.find((m) => m.key === modKey);
+    if (!mod) return;
+    next[modKey] = next[modKey] || ({} as Record<PermissionAction, boolean>);
+    mod.actions.forEach((a) => (next[modKey][a] = !allOn));
+    onChange(next);
+  };
+  const allOn = (modKey: string) => {
+    const mod = PERMISSION_CATALOG.find((m) => m.key === modKey);
+    if (!mod) return false;
+    return mod.actions.every((a) => !!value[modKey]?.[a]);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Permissões — {roleLabelText}
+          </DialogTitle>
+          <p className="text-[11px] text-muted-foreground">
+            Marque apenas o que o colaborador pode acessar. As escolhas substituem as permissões padrão do cargo.
+          </p>
+        </DialogHeader>
+        <div className="overflow-y-auto flex-1 -mx-6 px-6">
+          <div className="border border-border rounded-md overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-elevated text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Módulo</th>
+                  <th className="text-center px-3 py-2 font-medium w-20">Visualizar</th>
+                  <th className="text-center px-3 py-2 font-medium w-16">Criar</th>
+                  <th className="text-center px-3 py-2 font-medium w-16">Editar</th>
+                  <th className="text-center px-3 py-2 font-medium w-16">Excluir</th>
+                  <th className="text-center px-3 py-2 font-medium w-20">Tudo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {PERMISSION_CATALOG.map((mod) => {
+                  const everyOn = allOn(mod.key);
+                  return (
+                    <tr key={mod.key} className="hover:bg-surface-elevated/40">
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-xs">{mod.label}</div>
+                        {mod.description && (
+                          <div className="text-[10px] text-muted-foreground">{mod.description}</div>
+                        )}
+                      </td>
+                      {(["view", "create", "edit", "delete"] as PermissionAction[]).map((a) => (
+                        <td key={a} className="px-3 py-2 text-center">
+                          {mod.actions.includes(a) ? (
+                            <Checkbox
+                              checked={!!value[mod.key]?.[a]}
+                              onCheckedChange={() => toggle(mod.key, a)}
+                              aria-label={`${mod.label} — ${ACTION_LABEL[a]}`}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground/40 text-xs">—</span>
+                          )}
+                        </td>
+                      ))}
+                      <td className="px-3 py-2 text-center">
+                        <Checkbox
+                          checked={everyOn}
+                          onCheckedChange={() => toggleModule(mod.key, everyOn)}
+                          aria-label={`Marcar/desmarcar todas em ${mod.label}`}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <DialogFooter className="pt-3 border-t border-border">
+          <Button type="button" variant="ghost" onClick={onResetToRole}>
+            Restaurar padrão do cargo
+          </Button>
+          <Button type="button" className="bg-primary text-primary-foreground" onClick={() => setOpen(false)}>
+            Aplicar permissões
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
