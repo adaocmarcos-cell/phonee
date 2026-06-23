@@ -115,11 +115,14 @@ export default function OrdensServico() {
         description="Assistência técnica com rastreabilidade completa."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate("/app/pecas")}>
-              <Hammer className="h-4 w-4 mr-1" />Peças e ferramentas
+            <Button variant="outline" onClick={() => navigate("/app/pecas?tab=pecas")}>
+              <Hammer className="h-4 w-4 mr-1" />Peças
             </Button>
-            <Button variant="outline" onClick={() => navigate("/app/pecas/vendas")}>
-              <Receipt className="h-4 w-4 mr-1" />Peças utilizadas
+            <Button variant="outline" onClick={() => navigate("/app/pecas?tab=ferramentas")}>
+              <Wrench className="h-4 w-4 mr-1" />Ferramentas
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/app/pecas?tab=compras")}>
+              <ShoppingCart className="h-4 w-4 mr-1" />Centro de compras
             </Button>
             <Button onClick={() => navigate("/app/os/nova")} className="bg-primary text-primary-foreground shadow-glow">
               <Plus className="h-4 w-4 mr-1" />Nova ordem de serviço
