@@ -599,6 +599,15 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
   const [saving, setSaving] = useState(false);
 
   const selectedCat = categories.find((c) => c.id === categoryId);
+  const sortedCats = useMemo(() => {
+    const isOutros = (n: string) => /^outros$/i.test((n || "").trim());
+    return [...categories].sort((a, b) => {
+      const aO = isOutros(a.name), bO = isOutros(b.name);
+      if (aO && !bO) return 1;
+      if (!aO && bO) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [categories]);
   const isOther = selectedCat?.name === "Outros";
 
   useEffect(() => {
