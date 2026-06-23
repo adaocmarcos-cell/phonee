@@ -7,11 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { VendaRapidaModal } from "@/components/VendaRapidaModal";
+import { MarcasModal } from "@/components/MarcasModal";
 import { canRegisterSale } from "@/contexts/AuthContext";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -41,6 +42,7 @@ export default function Estoque() {
   const [delTarget, setDelTarget] = useState<Product | null>(null);
   const [saleTarget, setSaleTarget] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [marcasOpen, setMarcasOpen] = useState(false);
 
   const load = async () => {
     if (!store) return;
@@ -102,9 +104,20 @@ export default function Estoque() {
         description={`${num(totals.count)} produtos · ${brl(totals.value)} em valor de vitrine · ${num(totals.low)} em ponto de pedido`}
         actions={
           canManageProducts(role) && (
-            <Button onClick={() => navigate("/app/estoque/novo")} className="bg-gradient-primary shadow-glow">
-              <Plus className="h-4 w-4 mr-1" /> Novo produto
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setMarcasOpen(true)}
+                title="Marcas que você trabalha"
+                aria-label="Marcas"
+              >
+                <Tag className="h-4 w-4" />
+              </Button>
+              <Button onClick={() => navigate("/app/estoque/novo")} className="bg-gradient-primary shadow-glow">
+                <Plus className="h-4 w-4 mr-1" /> Novo produto
+              </Button>
+            </div>
           )
         }
       />
@@ -240,6 +253,8 @@ export default function Estoque() {
         product={saleTarget}
         onDone={() => { setSaleTarget(null); load(); }}
       />
+
+      <MarcasModal open={marcasOpen} onOpenChange={setMarcasOpen} />
     </div>
   );
 }
