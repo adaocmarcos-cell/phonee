@@ -389,11 +389,47 @@ export default function Vendas() {
               Venda: <strong className="text-foreground">{reminderSale ? fmtNum(reminderSale.sale_number) : ""}</strong> ·
               WhatsApp: <strong className="text-foreground font-mono">{reminderSale?.customer_whatsapp || "—"}</strong>
             </div>
+
+            {/* Prévia estilo WhatsApp */}
+            <div>
+              <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
+                Prévia da mensagem
+              </Label>
+              <div
+                className="mt-1 rounded-lg p-3 border border-emerald-200"
+                style={{
+                  backgroundColor: "#e7f5ec",
+                  backgroundImage:
+                    "radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)",
+                  backgroundSize: "14px 14px",
+                }}
+              >
+                <div className="ml-auto max-w-[88%] rounded-lg rounded-tr-sm bg-[#dcf8c6] text-slate-900 px-3 py-2 shadow-sm relative">
+                  <div className="text-[10px] font-semibold text-emerald-700 mb-1">
+                    {store?.name || "Sua loja"}
+                  </div>
+                  <div className="text-[13px] whitespace-pre-wrap leading-snug">
+                    {reminderText || "—"}
+                  </div>
+                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500">
+                    <span>{new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                    <CheckCircle2 className="h-3 w-3 text-sky-500" />
+                  </div>
+                </div>
+                {reminderSale && (
+                  <div className="mt-2 text-[10px] text-emerald-900/70 text-right font-mono">
+                    Venda {fmtNum(reminderSale.sale_number)} · {brl(Number(reminderSale.total || 0))}
+                    {reminderSale.due_date && ` · vence ${new Date(reminderSale.due_date + "T00:00:00").toLocaleDateString("pt-BR")}`}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div>
               <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground flex items-center gap-1">
-                <Pencil className="h-3 w-3" /> Mensagem (editável)
+                <Pencil className="h-3 w-3" /> Editar mensagem
               </Label>
-              <Textarea rows={7} value={reminderText} onChange={(e) => setReminderText(e.target.value)} className="mt-1 text-sm" />
+              <Textarea rows={6} value={reminderText} onChange={(e) => setReminderText(e.target.value)} className="mt-1 text-sm" />
               <p className="text-[10px] text-muted-foreground mt-1">
                 Mensagem padrão amigável e dentro da lei (lembrete cordial, sem cobrança coercitiva). Será salva como padrão para próximos envios.
               </p>
@@ -404,6 +440,62 @@ export default function Vendas() {
             <Button onClick={sendReminder} className="bg-success text-success-foreground hover:bg-success/90">
               <MessageCircle className="h-4 w-4 mr-1" />Abrir no WhatsApp
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clientes com vendas em aberto */}
+      <Dialog open={receiverOpen} onOpenChange={setReceiverOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UsersIcon className="h-4 w-4 text-warning" />
+              Clientes com vendas em aberto · {brl(pendingTotal)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {receivablesByCustomer.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                Nenhum cliente com vendas em aberto.
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">Cliente</th>
+                    <th className="text-left px-3 py-2 font-medium">Próx. venc.</th>
+                    <th className="text-right px-3 py-2 font-medium">Vendas</th>
+                    <th className="text-right px-3 py-2 font-medium">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {receivablesByCustomer.map((c) => {
+                    const due = c.nextDue ? new Date(c.nextDue + "T00:00:00") : null;
+                    const overdue = due && due < today0;
+                    return (
+                      <tr key={c.name} className="hover:bg-surface-elevated/40">
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{c.name}</div>
+                          {c.whatsapp && <div className="text-[11px] text-muted-foreground font-mono">{c.whatsapp}</div>}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">
+                          {due ? (
+                            <span className={overdue ? "text-danger" : "text-foreground"}>
+                              {due.toLocaleDateString("pt-BR")}
+                            </span>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right metric">{c.count}</td>
+                        <td className="px-3 py-2 text-right metric font-semibold text-warning">{brl(c.total)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReceiverOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
