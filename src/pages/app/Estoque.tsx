@@ -287,11 +287,23 @@ export default function Estoque() {
                 <tr><td colSpan={9} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
-                  {canManageProducts(role) && (
-                    <Button onClick={() => navigate("/app/estoque/novo")} className="bg-gradient-primary">
-                      <Plus className="h-4 w-4 mr-1" /> Cadastrar primeiro produto
-                    </Button>
-                  )}
+                  <div className="flex flex-col items-center gap-2">
+                    {canManageProducts(role) && (
+                      <Button onClick={() => navigate("/app/estoque/novo")} className="bg-gradient-primary">
+                        <Plus className="h-4 w-4 mr-1" /> Cadastrar primeiro produto
+                      </Button>
+                    )}
+                    {(q || filter !== "all") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setQ(""); setFilter("all"); }}
+                        className="bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      >
+                        Ver todos
+                      </Button>
+                    )}
+                  </div>
                 </td></tr>
               ) : filtered.map((p) => {
                 const margin = p.sale_price > 0 ? ((p.sale_price - p.cost_price) / p.sale_price) * 100 : 0;
