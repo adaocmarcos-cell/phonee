@@ -97,10 +97,10 @@ export default function Auth() {
       <div className="hidden lg:flex flex-col items-center justify-center p-10 relative overflow-hidden bg-gradient-surface border-r border-border">
         <div className="absolute inset-0 bg-grid opacity-[0.18] pointer-events-none" />
         <div className="relative flex flex-col items-center text-center">
-          <img src={logo} alt="Phonee" className="h-32 w-auto object-contain mb-6" />
+          <img src={logo} alt="Phonee" className="h-32 w-auto object-contain mb-6" style={{ filter: "invert(1) hue-rotate(180deg)" }} />
           <div className="text-[11px] font-mono text-muted-foreground tracking-widest">ERP · SMARTPHONES</div>
         </div>
-        <div className="absolute bottom-6 text-[11px] font-mono text-muted-foreground tracking-widest">© MOBILE+ · 2026</div>
+        <div className="absolute bottom-6 text-[11px] font-mono text-muted-foreground tracking-widest">© PHONEE · 2026</div>
       </div>
 
       {/* Right: form */}
@@ -108,7 +108,7 @@ export default function Auth() {
         <Card className="w-full max-w-md p-8 bg-card border-border shadow-card">
           {/* Logo centralizado acima do formulário */}
           <div className="flex flex-col items-center text-center mb-8 lg:hidden">
-            <img src={logo} alt="Phonee" className="h-20 w-auto object-contain" />
+            <img src={logo} alt="Phonee" className="h-20 w-auto object-contain" style={{ filter: "invert(1) hue-rotate(180deg)" }} />
           </div>
 
           <h2 className="text-xl font-semibold mb-1 text-center">Acesse sua conta</h2>
