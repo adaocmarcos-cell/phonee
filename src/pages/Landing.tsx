@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Reveal, useParallax } from "@/components/Reveal";
 import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
@@ -105,6 +106,8 @@ function DashStat({
 /* ---------- page ---------- */
 
 export default function Landing() {
+  const heroLogoOffset = useParallax(0.12);
+  const heroGlowOffset = useParallax(0.25);
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* NAV — mesma cor do hero */}
@@ -133,12 +136,21 @@ export default function Landing() {
       <section className="relative overflow-hidden bg-[hsl(226_50%_15%)] text-white">
         <div className="absolute inset-0 opacity-[0.22] pointer-events-none"
              style={{ backgroundImage: "radial-gradient(hsl(200 100% 49% / 0.4) 1px, transparent 1px)", backgroundSize: "26px 26px" }} />
-        <div className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[140px] pointer-events-none" />
-        <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none" />
+        <div
+          className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[140px] pointer-events-none will-change-transform"
+          style={{ transform: `translate3d(0, ${heroGlowOffset}px, 0)` }}
+        />
+        <div
+          className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none will-change-transform"
+          style={{ transform: `translate3d(0, ${-heroGlowOffset}px, 0)` }}
+        />
 
         <div className="relative max-w-7xl mx-auto px-5 pt-3 pb-16 lg:pt-4 lg:pb-20">
           {/* LOGO PRINCIPAL — totalmente transparente, tamanho padrão */}
-          <div className="flex justify-center mt-0 mb-2 md:mb-3">
+          <div
+            className="flex justify-center mt-0 mb-2 md:mb-3 will-change-transform"
+            style={{ transform: `translate3d(0, ${heroLogoOffset}px, 0)` }}
+          >
             <img
               src={logo}
               alt="Phonee"
@@ -148,7 +160,7 @@ export default function Landing() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+          <Reveal direction="up" duration={1000}>
             <Badge className="mb-6 bg-primary/20 text-white border-primary/40 hover:bg-primary/25 text-sm py-1.5 px-3">
               Sistema especializado para lojas de smartphones, eletrônicos e assistências técnicas
             </Badge>
@@ -180,10 +192,10 @@ export default function Landing() {
               <UsersRound className="h-4 w-4 text-success" />
               Multiusuário incluso · sem cobrança adicional por colaborador
             </div>
-          </div>
+          </Reveal>
 
           {/* Imagem/destaque do produto — CTAs e preços ficam após as vantagens */}
-          <div className="relative hidden lg:block">
+          <Reveal direction="right" duration={1100} delay={150} className="relative hidden lg:block">
             <div className="absolute -inset-1 bg-gradient-to-br from-primary/30 to-info/20 blur-2xl rounded-3xl" />
             <Card className="relative p-10 bg-[hsl(224_25%_18%)] border border-white/10 text-white shadow-2xl">
               <div className="text-xs font-mono tracking-[0.3em] text-primary font-bold mb-3">VISÃO GERAL</div>
@@ -216,7 +228,7 @@ export default function Landing() {
                 <Lock className="h-3 w-3 text-success" /> Dados protegidos com criptografia
               </div>
             </Card>
-          </div>
+          </Reveal>
           </div>
         </div>
       </section>
@@ -224,18 +236,26 @@ export default function Landing() {
       {/* BENEFITS */}
       <section id="beneficios" className="py-20 md:py-28 bg-background">
         <div className="max-w-7xl mx-auto px-5">
-          <SectionTitle
-            eyebrow="POR QUE MOBILE+"
-            title="O que o Phonee faz pela sua loja?"
-            subtitle="Desenvolvido para eliminar processos manuais, reduzir falhas operacionais e entregar informações estratégicas para decisões mais rápidas e inteligentes."
-          />
+          <Reveal direction="up">
+            <SectionTitle
+              eyebrow="POR QUE MOBILE+"
+              title="O que o Phonee faz pela sua loja?"
+              subtitle="Desenvolvido para eliminar processos manuais, reduzir falhas operacionais e entregar informações estratégicas para decisões mais rápidas e inteligentes."
+            />
+          </Reveal>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <BenefitCard icon={ShieldCheck} title="Reduz erros operacionais" desc="Menos retrabalho, menos esquecimentos e mais padronização do começo ao fim do processo." />
-            <BenefitCard icon={TrendingUp} title="Maximiza o lucro" desc="Saiba exatamente quais produtos dão mais retorno e onde está sua margem real." />
-            <BenefitCard icon={AlertTriangle} title="Evita falta de estoque" desc="Receba alertas e acompanhe movimentações em tempo real." />
-            <BenefitCard icon={Users} title="Diminui dependência de funcionários" desc="A informação fica registrada no sistema — não na cabeça das pessoas." />
-            <BenefitCard icon={Workflow} title="Automatiza a operação" desc="Vendas, estoque, assistência técnica e finanças em um único ambiente." />
-            <BenefitCard icon={Building2} title="Escale para múltiplas lojas" desc="Gerencie uma ou várias unidades com a mesma facilidade e visão consolidada." />
+            {([
+              { icon: ShieldCheck,   title: "Reduz erros operacionais",         desc: "Menos retrabalho, menos esquecimentos e mais padronização do começo ao fim do processo.", dir: "left"  },
+              { icon: TrendingUp,    title: "Maximiza o lucro",                 desc: "Saiba exatamente quais produtos dão mais retorno e onde está sua margem real.",         dir: "up"    },
+              { icon: AlertTriangle, title: "Evita falta de estoque",           desc: "Receba alertas e acompanhe movimentações em tempo real.",                                dir: "right" },
+              { icon: Users,         title: "Diminui dependência de funcionários", desc: "A informação fica registrada no sistema — não na cabeça das pessoas.",              dir: "left"  },
+              { icon: Workflow,      title: "Automatiza a operação",            desc: "Vendas, estoque, assistência técnica e finanças em um único ambiente.",                 dir: "up"    },
+              { icon: Building2,     title: "Escale para múltiplas lojas",      desc: "Gerencie uma ou várias unidades com a mesma facilidade e visão consolidada.",          dir: "right" },
+            ] as const).map((b, i) => (
+              <Reveal key={b.title} direction={b.dir} delay={i * 80} distance={56}>
+                <BenefitCard icon={b.icon} title={b.title} desc={b.desc} />
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
@@ -243,11 +263,13 @@ export default function Landing() {
       {/* PAIN SECTION */}
       <section className="py-20 md:py-28 bg-[hsl(0_0%_98%)]">
         <div className="max-w-6xl mx-auto px-5">
-          <SectionTitle
-            eyebrow="DORES COMUNS"
-            title="Sua loja sofre com algum destes problemas?"
-          />
-          <div className="grid md:grid-cols-2 gap-x-12 gap-y-4 max-w-4xl mx-auto">
+          <Reveal direction="up">
+            <SectionTitle
+              eyebrow="DORES COMUNS"
+              title="Sua loja sofre com algum destes problemas?"
+            />
+          </Reveal>
+          <Reveal direction="up" delay={80} className="grid md:grid-cols-2 gap-x-12 gap-y-4 max-w-4xl mx-auto">
             {[
               "Produtos sem controle",
               "Estoque desorganizado",
@@ -262,10 +284,12 @@ export default function Landing() {
             ].map((p) => (
               <CheckItem key={p} negative big>{p}</CheckItem>
             ))}
-          </div>
-          <p className="text-center mt-12 text-xl md:text-2xl font-bold">
-            O Phonee foi criado exatamente para resolver esses problemas.
-          </p>
+          </Reveal>
+          <Reveal direction="up" delay={150}>
+            <p className="text-center mt-12 text-xl md:text-2xl font-bold">
+              O Phonee foi criado exatamente para resolver esses problemas.
+            </p>
+          </Reveal>
         </div>
       </section>
 
@@ -274,7 +298,7 @@ export default function Landing() {
         <div className="absolute inset-0 opacity-[0.15] pointer-events-none"
              style={{ backgroundImage: "radial-gradient(hsl(200 100% 49% / 0.5) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div className="relative max-w-7xl mx-auto px-5">
-          <div className="max-w-4xl mx-auto text-center mb-14">
+          <Reveal direction="up" className="max-w-4xl mx-auto text-center mb-14">
             <div className="text-sm md:text-base font-mono tracking-[0.3em] mb-4 text-primary font-bold">
               EM TEMPO REAL
             </div>
@@ -284,9 +308,9 @@ export default function Landing() {
             <p className="mt-6 text-xl md:text-2xl text-white/90 font-semibold">
               Mesmo em dias corridos você sabe exatamente como está sua operação.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="rounded-2xl border border-white/10 bg-[hsl(224_25%_18%)] shadow-2xl p-5 md:p-7">
+          <Reveal direction="up" delay={100} className="rounded-2xl border border-white/10 bg-[hsl(224_25%_18%)] shadow-2xl p-5 md:p-7 block">
             <div className="flex items-center gap-2 pb-4 border-b border-white/10 mb-5">
               <div className="h-2.5 w-2.5 rounded-full bg-danger" />
               <div className="h-2.5 w-2.5 rounded-full bg-warning" />
@@ -295,19 +319,20 @@ export default function Landing() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <DashStat label="Faturamento hoje"          value="R$ 12.847"  sub="Lucro bruto hoje: R$ 4.218" tone="primary" icon={DollarSign} />
-              <DashStat label="Faturamento — mês atual"   value="R$ 284.560" sub="248 vendas"                  tone="info"    icon={TrendingUp} />
-              <DashStat label="Margem média"              value="32,4%"      sub="Curva A em destaque"         tone="violet"  icon={Percent} />
-              <DashStat label="Estoque encalhado"         value="47"         sub="+30 dias sem venda"          tone="danger"  icon={Package} />
-              <DashStat
-                className="md:col-span-2"
-                label="Lucro líquido do período"
-                value="R$ 86.120"
-                sub="Receita − custo − despesas (R$ 18.940 desp.)"
-                tone="success"
-                icon={Wallet}
-                highlight
-              />
+              <Reveal direction="left"  delay={120}><DashStat label="Faturamento hoje"        value="R$ 12.847"  sub="Lucro bruto hoje: R$ 4.218" tone="primary" icon={DollarSign} /></Reveal>
+              <Reveal direction="right" delay={180}><DashStat label="Faturamento — mês atual" value="R$ 284.560" sub="248 vendas"                  tone="info"    icon={TrendingUp} /></Reveal>
+              <Reveal direction="left"  delay={240}><DashStat label="Margem média"            value="32,4%"      sub="Curva A em destaque"         tone="violet"  icon={Percent} /></Reveal>
+              <Reveal direction="right" delay={300}><DashStat label="Estoque encalhado"       value="47"         sub="+30 dias sem venda"          tone="danger"  icon={Package} /></Reveal>
+              <Reveal direction="up"    delay={380} className="md:col-span-2">
+                <DashStat
+                  label="Lucro líquido do período"
+                  value="R$ 86.120"
+                  sub="Receita − custo − despesas (R$ 18.940 desp.)"
+                  tone="success"
+                  icon={Wallet}
+                  highlight
+                />
+              </Reveal>
             </div>
 
             <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
@@ -319,7 +344,7 @@ export default function Landing() {
               </div>
               <div className="mt-3 text-xs text-slate-300 font-mono">Vendas dos últimos 13 dias</div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -391,8 +416,9 @@ export default function Landing() {
               { c: "A", tone: "success", t: "Classe A", d: "Produtos responsáveis pela maior parte do faturamento." },
               { c: "B", tone: "primary", t: "Classe B", d: "Produtos intermediários — bom giro, margem moderada." },
               { c: "C", tone: "warning", t: "Classe C", d: "Produtos com menor impacto — atenção ao giro e ao capital parado." },
-            ].map((x) => (
-              <Card key={x.c} className="p-7 text-center border-2 border-border">
+            ].map((x, i) => (
+              <Reveal key={x.c} direction={i === 0 ? "left" : i === 2 ? "right" : "up"} delay={i * 120}>
+              <Card className="p-7 text-center border-2 border-border">
                 <div className={`mx-auto h-16 w-16 rounded-2xl flex items-center justify-center text-3xl font-bold
                   ${x.tone === "success" ? "bg-success/10 text-success" :
                     x.tone === "primary" ? "bg-primary/10 text-primary" :
@@ -402,6 +428,7 @@ export default function Landing() {
                 <h3 className="mt-4 font-extrabold text-xl">{x.t}</h3>
                 <p className="mt-2 text-base text-foreground/80 font-medium">{x.d}</p>
               </Card>
+              </Reveal>
             ))}
           </div>
           <p className="text-center mt-10 text-xl font-bold">
@@ -433,6 +460,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-5">
           <SectionTitle eyebrow="ANTES × DEPOIS" title="A diferença é clara" />
           <div className="grid md:grid-cols-2 gap-5">
+            <Reveal direction="left">
             <Card className="p-7 border-2 border-danger/40 bg-danger/[0.04]">
               <h3 className="font-extrabold text-2xl mb-5 flex items-center gap-2 text-danger">
                 <X className="h-7 w-7" strokeWidth={3.5} /> SEM PHONEE
@@ -443,6 +471,8 @@ export default function Landing() {
                 ].map((i) => <CheckItem key={i} negative big>{i}</CheckItem>)}
               </ul>
             </Card>
+            </Reveal>
+            <Reveal direction="right" delay={120}>
             <Card className="p-7 border-2 border-success/50 bg-success/[0.05] shadow-glow">
               <h3 className="font-extrabold text-2xl mb-5 flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-7 w-7" /> COM PHONEE
@@ -453,6 +483,7 @@ export default function Landing() {
                 ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
               </ul>
             </Card>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -460,7 +491,7 @@ export default function Landing() {
       {/* GARANTIA */}
       <section id="garantia" className="relative py-20 md:py-28 bg-[hsl(226_50%_15%)] text-white overflow-hidden">
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-[420px] w-[420px] rounded-full bg-success/20 blur-[140px]" />
-        <div className="relative max-w-3xl mx-auto px-5 text-center">
+        <Reveal direction="scale" duration={1000} className="relative max-w-3xl mx-auto px-5 text-center">
           <div className="mx-auto h-24 w-24 rounded-3xl bg-success/15 border border-success/40 flex items-center justify-center shadow-2xl">
             <ShieldCheck className="h-12 w-12 text-success" />
           </div>
@@ -475,7 +506,7 @@ export default function Landing() {
             <span className="flex items-center gap-2"><Check className="h-5 w-5 text-success" strokeWidth={3} /> Sem complicações</span>
             <span className="flex items-center gap-2"><Check className="h-5 w-5 text-success" strokeWidth={3} /> Sem risco</span>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* PREÇO — Anual primeiro */}
@@ -489,7 +520,7 @@ export default function Landing() {
 
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Anual — destaque */}
-            <div className="relative">
+            <Reveal direction="left" duration={1000} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/40 to-info/25 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full">
                 <Badge className="bg-success/15 text-success border-success/40 text-sm">
@@ -523,10 +554,10 @@ export default function Landing() {
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
               </Card>
-            </div>
+            </Reveal>
 
             {/* Vitalício — destaque máximo */}
-            <div className="relative">
+            <Reveal direction="right" duration={1000} delay={120} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/50 to-info/30 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full shadow-glow">
                 <Badge className="bg-primary/15 text-primary border-primary/40 text-sm">
@@ -570,7 +601,7 @@ export default function Landing() {
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
               </Card>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -579,7 +610,7 @@ export default function Landing() {
       <section className="relative py-24 bg-[hsl(226_50%_15%)] text-white overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none"
              style={{ backgroundImage: "radial-gradient(hsl(200 100% 49% / 0.5) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-        <div className="relative max-w-4xl mx-auto px-5 text-center">
+        <Reveal direction="up" duration={1100} className="relative max-w-4xl mx-auto px-5 text-center">
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">
             Menos tempo organizando a loja. <br />
             <span className="bg-gradient-to-r from-primary to-info bg-clip-text text-transparent">Mais tempo vendendo.</span>
@@ -605,13 +636,13 @@ export default function Landing() {
             "Quem controla seus números toma decisões melhores. Quem toma decisões melhores
             <span className="text-primary not-italic font-bold"> vende mais, erra menos e cresce com mais segurança.</span>"
           </blockquote>
-        </div>
+        </Reveal>
       </section>
 
       {/* FOOTER */}
       <footer className="bg-black text-slate-300 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-5 pt-10 pb-2">
-          <div className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+          <Reveal direction="up" className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
             <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 hover:bg-white/[0.07] transition-colors">
               <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                 <Apple className="h-5 w-5 text-white" />
@@ -630,12 +661,12 @@ export default function Landing() {
                 <div className="text-sm font-semibold text-white">Disponível no Google Play</div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
-        <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src={logo} alt="Phonee" className="h-10 w-auto" />
+        <Reveal direction="scale" duration={1100} className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <img src={logo} alt="Phonee" className="h-16 md:h-20 w-auto drop-shadow-[0_8px_30px_rgba(59,130,246,0.35)]" />
           <div className="text-xs">© {new Date().getFullYear()} Phonee. Todos os direitos reservados.</div>
-        </div>
+        </Reveal>
       </footer>
     </div>
   );
@@ -648,18 +679,20 @@ function FeatureBlock({ icon: Icon, eyebrow, title, text, items, reverse = false
 }) {
   return (
     <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
-      <div>
+      <Reveal direction={reverse ? "right" : "left"} duration={1000}>
         <div className="inline-flex items-center gap-2 text-sm font-mono tracking-[0.3em] text-primary font-bold mb-4">
           <Icon className="h-5 w-5" /> {eyebrow}
         </div>
         <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight">{title}</h3>
         <p className="mt-4 text-foreground/80 text-lg md:text-xl leading-relaxed font-semibold">{text}</p>
-      </div>
-      <Card className="p-6 md:p-8 border-2 border-border bg-card">
-        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5">
-          {items.map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
-        </ul>
-      </Card>
+      </Reveal>
+      <Reveal direction={reverse ? "left" : "right"} duration={1000} delay={120}>
+        <Card className="p-6 md:p-8 border-2 border-border bg-card">
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5">
+            {items.map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
+          </ul>
+        </Card>
+      </Reveal>
     </div>
   );
 }
