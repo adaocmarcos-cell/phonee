@@ -58,6 +58,11 @@ export default function Auth() {
       const isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
       const hasActive = (subs ?? []).length > 0;
       allowed = isAdminMaster || hasActive;
+      // Define rota inicial com base no papel: gestores → dashboard; demais → vendas
+      var initialPath = "/app";
+      const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
+      const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
+      if (!isGestor) initialPath = "/app/vendas";
     }
     if (!allowed) {
       await supabase.auth.signOut();
@@ -68,7 +73,7 @@ export default function Auth() {
     if (remember) localStorage.setItem("mobileplus.rememberedEmail", eRes.data);
     else localStorage.removeItem("mobileplus.rememberedEmail");
     toast.success("Bem-vindo de volta!");
-    navigate("/app");
+    navigate((typeof initialPath !== "undefined" ? initialPath : "/app"));
   };
 
   return (
