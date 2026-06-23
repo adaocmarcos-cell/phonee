@@ -520,6 +520,14 @@ export default function Vendas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rodapé: aviso discreto sobre Catálogo de Fornecedores */}
+      <div className="mt-8 pt-4 border-t border-border/60 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <Truck className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+        <span>
+          <span className="font-medium text-foreground/80">Em breve · Catálogo de Fornecedores</span> — gratuito, exclusivo para Gestores. Fornecedores de todas as categorias em diversos estados do Brasil.
+        </span>
+      </div>
     </div>
   );
 }
