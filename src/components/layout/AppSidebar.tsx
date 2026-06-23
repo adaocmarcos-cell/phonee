@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
   ArrowRightLeft, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
+  DollarSign,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -31,7 +32,7 @@ const ops: Item[] = [
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
   { title: "Estoque", url: "/app/estoque", icon: Boxes },
   { title: "Clientes", url: "/app/clientes", icon: Users },
-  { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
+  { title: "Financeiro", url: "/app/financeiro", icon: DollarSign },
   { title: "Assistência & Serviços", url: "/app/os", icon: Wrench },
   { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
   { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
