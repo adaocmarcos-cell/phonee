@@ -294,15 +294,20 @@ export default function Landing() {
               <div className="ml-3 text-xs font-mono text-slate-300">mobile+ / dashboard</div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              <DashStat label="Faturamento do dia"  value="R$ 12.847" sub="+18% vs ontem"   accent="success" />
-              <DashStat label="Faturamento do mês"  value="R$ 284.560" sub="Meta 92%"        accent="primary" />
-              <DashStat label="Lucro do período"    value="R$ 86.120"  sub="Margem real"    accent="success" />
-              <DashStat label="Margem média"        value="32,4%"      sub="Curva A"        accent="primary" />
-              <DashStat label="Estoque encalhado"   value="R$ 18.300"  sub="47 itens"       accent="warning" />
-              <DashStat label="Mais vendidos"       value="iPhone 13"  sub="32 unid · mês"  accent="primary" />
-              <DashStat label="Mais lucrativos"     value="Película"   sub="61% margem"     accent="success" />
-              <DashStat label="OS abertas"          value="14"         sub="3 atrasadas"    accent="warning" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <DashStat label="Faturamento hoje"          value="R$ 12.847"  sub="Lucro bruto hoje: R$ 4.218" tone="primary" icon={DollarSign} />
+              <DashStat label="Faturamento — mês atual"   value="R$ 284.560" sub="248 vendas"                  tone="info"    icon={TrendingUp} />
+              <DashStat label="Margem média"              value="32,4%"      sub="Curva A em destaque"         tone="violet"  icon={Percent} />
+              <DashStat label="Estoque encalhado"         value="47"         sub="+30 dias sem venda"          tone="danger"  icon={Package} />
+              <DashStat
+                className="md:col-span-2"
+                label="Lucro líquido do período"
+                value="R$ 86.120"
+                sub="Receita − custo − despesas (R$ 18.940 desp.)"
+                tone="success"
+                icon={Wallet}
+                highlight
+              />
             </div>
 
             <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
