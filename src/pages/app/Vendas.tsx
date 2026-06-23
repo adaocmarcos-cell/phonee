@@ -286,6 +286,7 @@ export default function Vendas() {
                 delta={`${d?.count || 0} venda(s)`}
                 icon={pmIcon[m]}
                 tone={pmTone[m]}
+                className="py-[18px]"
               />
             );
           })}
