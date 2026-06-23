@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar as CalendarComp } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,9 @@ import {
   Plus, Trash2, Download, Paperclip, Wallet, TrendingUp, Calendar,
   FileDown, FileSpreadsheet, FileText as FileTextIcon,
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Legend,
@@ -51,7 +55,9 @@ export default function Despesas() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [periodMonths, setPeriodMonths] = useState("12");
+  const [periodKey, setPeriodKey] = useState("current");
+  const [customStart, setCustomStart] = useState<Date | undefined>(undefined);
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(undefined);
   const [filterCat, setFilterCat] = useState<string>("all");
 
   const [openNew, setOpenNew] = useState(false);
@@ -78,10 +84,29 @@ export default function Despesas() {
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [store]);
 
+  const { rangeStart, rangeEnd } = useMemo(() => {
+    const now = new Date();
+    if (periodKey === "current") {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      return { rangeStart: s, rangeEnd: e };
+    }
+    if (periodKey === "custom") {
+      const s = customStart ? new Date(customStart.getFullYear(), customStart.getMonth(), customStart.getDate()) : new Date(0);
+      const e = customEnd ? new Date(customEnd.getFullYear(), customEnd.getMonth(), customEnd.getDate(), 23, 59, 59) : new Date(8640000000000000);
+      return { rangeStart: s, rangeEnd: e };
+    }
+    const months = Number(periodKey);
+    const s = new Date(now); s.setMonth(s.getMonth() - months);
+    return { rangeStart: s, rangeEnd: new Date(8640000000000000) };
+  }, [periodKey, customStart, customEnd]);
+
   const filtered = useMemo(() => {
-    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - Number(periodMonths));
-    return expenses.filter((e) => new Date(e.expense_date) >= cutoff && (filterCat === "all" || e.category_id === filterCat));
-  }, [expenses, periodMonths, filterCat]);
+    return expenses.filter((e) => {
+      const d = new Date(e.expense_date);
+      return d >= rangeStart && d <= rangeEnd && (filterCat === "all" || e.category_id === filterCat);
+    });
+  }, [expenses, rangeStart, rangeEnd, filterCat]);
 
   const totalMonth = useMemo(() => {
     const now = new Date(); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -158,7 +183,7 @@ ${rows}
 <style>body{font-family:Inter,system-ui,sans-serif;padding:24px;color:#111}h1{margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f4f4f5}.t{text-align:right}.total{margin-top:16px;font-weight:700;font-size:14px}</style>
 </head><body>
 <h1>Relatório de Despesas</h1>
-<div>Loja: ${escapeXml(store?.name ?? "")} · Período: últimos ${periodMonths} meses · Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+<div>Loja: ${escapeXml(store?.name ?? "")} · Gerado em ${new Date().toLocaleString("pt-BR")}</div>
 <table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Pagamento</th><th class="t">Valor</th></tr></thead><tbody>
 ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt-BR")}</td><td>${escapeXml(e.category_name)}</td><td>${escapeXml(e.description)}</td><td>${escapeXml(e.payment_method)}</td><td class="t">${brl(Number(e.amount))}</td></tr>`).join("")}
 </tbody></table>
@@ -223,17 +248,44 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
             <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
             <TabsTrigger value="categorias">Categorias</TabsTrigger>
           </TabsList>
-          <div className="flex gap-2 items-center">
-            <Select value={periodMonths} onValueChange={setPeriodMonths}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+          <div className="flex gap-2 items-center flex-wrap">
+            <Select value={periodKey} onValueChange={setPeriodKey}>
+              <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Último mês</SelectItem>
+                <SelectItem value="current">Mês atual</SelectItem>
                 <SelectItem value="3">Últimos 3 meses</SelectItem>
                 <SelectItem value="6">Últimos 6 meses</SelectItem>
                 <SelectItem value="12">Últimos 12 meses</SelectItem>
                 <SelectItem value="36">Últimos 3 anos</SelectItem>
+                <SelectItem value="custom">Período personalizado</SelectItem>
               </SelectContent>
             </Select>
+            {periodKey === "custom" && (
+              <>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customStart && "text-muted-foreground")}>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {customStart ? format(customStart, "dd/MM/yyyy") : "Início"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComp mode="single" selected={customStart} onSelect={setCustomStart} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customEnd && "text-muted-foreground")}>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {customEnd ? format(customEnd, "dd/MM/yyyy") : "Fim"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComp mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus locale={ptBR} className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </>
+            )}
             <Select value={filterCat} onValueChange={setFilterCat}>
               <SelectTrigger className="w-[200px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
               <SelectContent>
