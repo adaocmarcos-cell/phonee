@@ -126,12 +126,12 @@ async function reseed(admin: any, storeId: string, userId: string) {
 
   // Products
   const productsSeed = [
-    { name: "iPhone 15 Pro 256GB Titânio", brand: "Apple",    category: "smartphone",       cost: 6200, price: 8499, stock: 7 },
-    { name: "iPhone 13 128GB Estelar",     brand: "Apple",    category: "smartphone",       cost: 3100, price: 4299, stock: 5 },
-    { name: "Galaxy S24 256GB Preto",      brand: "Samsung",  category: "smartphone",       cost: 4200, price: 5799, stock: 4 },
-    { name: "Galaxy A55 128GB Azul",       brand: "Samsung",  category: "smartphone",       cost: 1850, price: 2599, stock: 9 },
-    { name: "Xiaomi Redmi Note 13 Pro",    brand: "Xiaomi",   category: "smartphone",       cost: 1200, price: 1799, stock: 12 },
-    { name: "Motorola Edge 50 Fusion",     brand: "Motorola", category: "smartphone",       cost: 1700, price: 2399, stock: 6 },
+    { name: "iPhone 15 Pro 256GB Titânio", brand: "Apple",    category: "aparelho_novo",    cost: 6200, price: 8499, stock: 7 },
+    { name: "iPhone 13 128GB Estelar",     brand: "Apple",    category: "aparelho_novo",    cost: 3100, price: 4299, stock: 5 },
+    { name: "Galaxy S24 256GB Preto",      brand: "Samsung",  category: "aparelho_novo",    cost: 4200, price: 5799, stock: 4 },
+    { name: "Galaxy A55 128GB Azul",       brand: "Samsung",  category: "aparelho_novo",    cost: 1850, price: 2599, stock: 9 },
+    { name: "Xiaomi Redmi Note 13 Pro",    brand: "Xiaomi",   category: "aparelho_novo",    cost: 1200, price: 1799, stock: 12 },
+    { name: "Motorola Edge 50 Fusion",     brand: "Motorola", category: "aparelho_novo",    cost: 1700, price: 2399, stock: 6 },
     { name: "Capa MagSafe iPhone 15 Pro",  brand: "Apple",    category: "acessorio",        cost: 90,   price: 199,  stock: 30 },
     { name: "Película 3D Galaxy S24",      brand: "Generic",  category: "acessorio",        cost: 8,    price: 39,   stock: 80 },
     { name: "Carregador USB-C 30W",        brand: "Anker",    category: "acessorio",        cost: 55,   price: 129,  stock: 25 },
@@ -139,7 +139,7 @@ async function reseed(admin: any, storeId: string, userId: string) {
     { name: "iPhone 12 64GB Seminovo",     brand: "Apple",    category: "aparelho_seminovo",cost: 1800, price: 2499, stock: 3 },
     { name: "Galaxy S22 128GB Seminovo",   brand: "Samsung",  category: "aparelho_seminovo",cost: 1600, price: 2299, stock: 2 },
   ];
-  const { data: products } = await admin.from("products").insert(
+  const { data: products, error: prodErr } = await admin.from("products").insert(
     productsSeed.map((p, i) => ({
       store_id: storeId, name: p.name, sku: `DEMO-${String(i + 1).padStart(3, "0")}`,
       brand: p.brand, category: p.category, condition: p.category === "aparelho_seminovo" ? "seminovo" : "novo",
@@ -147,6 +147,7 @@ async function reseed(admin: any, storeId: string, userId: string) {
       visible_in_catalog: true, status: "ativo",
     })),
   ).select("id, name, sale_price, cost_price");
+  if (prodErr) console.error("seed products error", prodErr);
 
   // Sales over the last 30 days
   if (products && customers) {
@@ -187,10 +188,10 @@ async function reseed(admin: any, storeId: string, userId: string) {
 
   // Service orders
   if (customers) {
-    await admin.from("service_orders").insert([
+    const { error: osErr } = await admin.from("service_orders").insert([
       { store_id: storeId, customer_name: customers[0].name, customer_whatsapp: "(11) 98888-1111",
         device_category: "smartphone", device_brand: "Apple", device_model: "iPhone 13", device_color: "Estelar",
-        issue_description: "Troca de tela quebrada", status: "em_servico", reasons: ["tela_quebrada"] },
+        issue_description: "Troca de tela quebrada", status: "em_reparo", reasons: ["tela_quebrada"] },
       { store_id: storeId, customer_name: customers[1].name, customer_whatsapp: "(11) 98888-2222",
         device_category: "smartphone", device_brand: "Samsung", device_model: "Galaxy S22",
         issue_description: "Bateria viciada — troca", status: "aguardando_aprovacao", reasons: ["bateria"] },
@@ -199,8 +200,9 @@ async function reseed(admin: any, storeId: string, userId: string) {
         issue_description: "Não liga após queda", status: "recebido", reasons: ["nao_liga"] },
       { store_id: storeId, customer_name: customers[3].name, customer_whatsapp: "(11) 98888-4444",
         device_category: "smartphone", device_brand: "Apple", device_model: "iPhone 11",
-        issue_description: "Troca de conector de carga", status: "concluido", reasons: ["nao_carrega"] },
+        issue_description: "Troca de conector de carga", status: "entregue", reasons: ["nao_carrega"] },
     ]);
+    if (osErr) console.error("seed os error", osErr);
   }
 
   // Expenses
