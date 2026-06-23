@@ -432,6 +432,30 @@ export default function Vendas() {
                       <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
                         <Printer className="h-4 w-4" />
                       </Button>
+                      {canRegisterSale(role) && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost" title="Estornar venda">
+                              <RotateCcw className="h-4 w-4 text-danger" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Estornar venda #{s.sale_number}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O valor de <strong>{brl(Number(s.total))}</strong> será debitado do faturamento e os itens
+                                voltarão ao estoque automaticamente. Esta ação é registrada na auditoria.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => estornarVenda(s)} className="bg-danger text-danger-foreground hover:bg-danger/90">
+                                Confirmar estorno
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </td>
                 </tr>
