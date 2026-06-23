@@ -17,14 +17,17 @@ import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageI
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isDemoMode, isDemoUserEmail } from "@/lib/demoMode";
+import { Sparkles } from "lucide-react";
 
 const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
 export default function Configuracoes() {
   const [font, setFont] = useState<number>(getFontSize());
   const [theme, setThemeState] = useState<Theme>(getTheme());
-  const { store, refresh, role } = useAuth();
-  const canEdit = role === "dono" || role === "gerente";
+  const { store, refresh, role, user } = useAuth();
+  const demo = isDemoMode() || isDemoUserEmail(user?.email);
+  const canEdit = !demo && (role === "dono" || role === "gerente");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [storeForm, setStoreForm] = useState({
@@ -151,7 +154,20 @@ export default function Configuracoes() {
     <div>
       <PageHeader title="Configurações" />
 
-      <div className="grid gap-4 max-w-2xl">
+      {demo && (
+        <div className="mb-4 max-w-2xl rounded-md border border-primary/30 bg-primary/10 px-4 py-3 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <div className="font-semibold text-foreground">Modo demonstração</div>
+            <div className="text-muted-foreground">
+              As configurações são apenas para exibição nesta demonstração. Adquira o Phonee para personalizar a sua loja.
+            </div>
+          </div>
+        </div>
+      )}
+
+      <fieldset disabled={demo} className={demo ? "max-w-2xl opacity-90 pointer-events-none select-none" : "max-w-2xl"}>
+      <div className="grid gap-4">
         <Card className="p-5 bg-card border-border">
           <div className="flex items-start gap-3 mb-4">
             <Store className="h-5 w-5 text-primary mt-0.5" />
@@ -418,6 +434,7 @@ export default function Configuracoes() {
           )}
         </Card>
       </div>
+      </fieldset>
     </div>
   );
 }

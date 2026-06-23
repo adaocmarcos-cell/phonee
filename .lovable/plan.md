@@ -1,110 +1,56 @@
+## Objetivo
+Adicionar um botão "Ver demonstração" na página de vendas (Landing) que abre o painel real do Phonee com dados fictícios, totalmente navegável pelo lead. Apenas a página de Configurações fica em modo somente-leitura.
 
-## 1. URLs do sistema em português simplificado
+## Abordagem técnica
 
-Hoje as rotas usam `/app/...` em inglês como base e alguns segmentos ainda em inglês (`trade-in`, `os`, `auth`, `forgot-password`, `reset-password`). Vou renomear para PT, mantendo apenas o segmento raiz e os submenus 100% em português curto.
+O painel atual carrega tudo do banco (Supabase) por loja/usuário autenticado. Para o modo demo, vamos isolar o usuário em uma **loja-demo real e compartilhada** no próprio banco, com dados fictícios já populados. Isso evita reescrever 40+ páginas com mocks e garante que toda a UI funcione de verdade (criar venda, abrir OS, lançar despesa etc.) — só que dentro de uma sandbox que o lead não consegue corromper.
 
-**Mudanças de rota (visíveis ao usuário):**
+### 1. Botão na Landing
+- Adicionar CTA secundário "Ver demonstração" ao lado de "Comprar agora" no header e no hero da `src/pages/Landing.tsx`.
+- Clique chama `enterDemoMode()` e navega para `/painel`.
 
-| Antes | Depois |
-|---|---|
-| `/app` | `/painel` |
-| `/app/estoque` | `/painel/estoque` |
-| `/app/estoque/novo` | `/painel/estoque/novo` |
-| `/app/estoque/relatorio` | `/painel/estoque/relatorio` |
-| `/app/estoque/transferencia` | `/painel/estoque/transferencia` |
-| `/app/curva-abc` | `/painel/curva-abc` |
-| `/app/trade-in` | `/painel/troca` |
-| `/app/trade-in/novo` | `/painel/troca/novo` |
-| `/app/pedidos` | `/painel/pedidos` |
-| `/app/pedidos/novo` | `/painel/pedidos/novo` |
-| `/app/vendas` | `/painel/vendas` |
-| `/app/vendas/nova` | `/painel/vendas/nova` |
-| `/app/despesas` | `/painel/despesas` |
-| `/app/financeiro` | `/painel/financeiro` |
-| `/app/clientes` | `/painel/clientes` |
-| `/app/os` | `/painel/ordens` |
-| `/app/os/nova` | `/painel/ordens/nova` |
-| `/app/pecas` | `/painel/pecas` |
-| `/app/pecas/vendas` | `/painel/pecas/vendas` |
-| `/app/alertas` | `/painel/alertas` |
-| `/app/tabelas-preco` | `/painel/tabelas` |
-| `/app/suporte` | `/painel/suporte` |
-| `/app/admin/lojas` | `/painel/lojas` |
-| `/app/admin/usuarios` | `/painel/usuarios` |
-| `/app/admin/cargos` | `/painel/cargos` |
-| `/app/admin/garantias` | `/painel/garantias` |
-| `/app/admin/permissoes` | `/painel/permissoes` |
-| `/app/admin/logs` | `/painel/logs` |
-| `/app/admin/ajustes-estoque` | `/painel/ajustes-estoque` |
-| `/app/admin/configuracoes` | `/painel/configuracoes` |
-| `/app/admin/pagamentos` | `/painel/pagamentos` |
-| `/app/admin/planos` | `/painel/planos` |
-| `/app/admin/assinaturas` | `/painel/assinaturas` |
-| `/app/admin/logs-pagamento` | `/painel/logs-pagamento` |
-| `/app/admin/suporte` | `/painel/suporte-admin` |
-| `/auth` | `/entrar` |
-| `/forgot-password` | `/esqueci-senha` |
-| `/reset-password` | `/redefinir-senha` |
+### 2. Modo demo (frontend)
+- Novo arquivo `src/lib/demoMode.ts` com:
+  - `isDemoMode()` — lê `sessionStorage["phonee.demo"]`
+  - `enterDemoMode()` — faz signIn anônimo (ou login fixo em uma conta `demo@phonee.com.br`) e marca a flag
+  - `exitDemoMode()` — signOut + limpa flag
+- `ProtectedRoute` continua exigindo sessão (mantemos segurança); o demo usa uma conta real `demo@phonee.com.br` com senha pública.
+- `AppLayout` exibe banner fixo no topo: "Modo demonstração — dados fictícios. [Sair da demo] [Comprar agora]".
 
-**Compatibilidade:** as rotas antigas (`/app/*`, `/auth`, etc.) continuam funcionando como **redirect 301-style** (`<Navigate replace>`) para não quebrar links existentes ou abas abertas.
+### 3. Página de Configurações somente-leitura no demo
+- Em `src/pages/app/Configuracoes.tsx`, ler `isDemoMode()` e:
+  - Desabilitar todos os `<Input>`, `<Switch>`, `<Button>` de salvar (props `disabled` + `pointer-events-none` no formulário).
+  - Mostrar alerta no topo: "Configurações são apenas para exibição na demonstração."
+- Demais páginas permanecem 100% clicáveis.
 
-**Arquivos afetados:** `src/App.tsx`, `AppSidebar.tsx`, `AppLayout.tsx`, `StoreSwitcher.tsx`, `StoreSubscriptionBanner.tsx`, `PageHeader.tsx`, `Auth.tsx`, e os 15 arquivos em `src/pages/app/*` que fazem `navigate("/app/...")`.
+### 4. Conta e dados demo (backend)
+Migration que cria:
+- Usuário `demo@phonee.com.br` com senha fixa pública (ex: `demo123456`).
+- Loja "Loja Demonstração Phonee" vinculada ao usuário como dono.
+- Seed de dados fictícios: ~15 produtos, ~8 clientes, ~20 vendas dos últimos 30 dias, ~5 OS abertas/concluídas, ~6 despesas, 1 fornecedor, 1 tabela de preço.
+- **Reset automático**: trigger ou edge function `demo-reset` que, periodicamente (ou a cada login na conta demo), restaura os dados para o estado inicial — evita que leads "sujem" o ambiente.
 
----
+### 5. Banner / proteções extras
+- `AppLayout` esconde o link "Comprar plano" e troca por "Voltar ao site".
+- `AdminMasterRoute` e `/phonee/*` continuam bloqueados (demo não vê painel master).
 
-## 2. Painel oculto Mobile+ (você, dono da plataforma)
+## Arquivos a criar/editar
 
-Painel separado, **fora** do `/painel` do usuário, só acessível por quem tem o papel `admin_master` (já existe no banco via `is_admin_master`).
+**Criar**
+- `src/lib/demoMode.ts`
+- `src/components/layout/DemoBanner.tsx`
+- `supabase/migrations/<timestamp>_demo_account.sql` (cria usuário + loja + seed)
+- `supabase/functions/demo-reset/index.ts` (limpa e recria dados da loja demo)
 
-**URL:** `/mobileplus`  → tela de login dedicada
-**Após login válido + checagem `admin_master`:** `/mobileplus/visao-geral`
+**Editar**
+- `src/pages/Landing.tsx` — botões "Ver demonstração" no header e hero
+- `src/components/layout/AppLayout.tsx` — renderiza `<DemoBanner />` quando `isDemoMode()`
+- `src/pages/app/Configuracoes.tsx` — modo somente-leitura
 
-### Submenus do painel Mobile+
+## Pontos de atenção
+- Senha do usuário demo será pública (intencional); RLS continua isolando dados por loja, então o lead só vê/edita a loja demo.
+- O reset automático é essencial — sem ele, em 1 semana a loja demo vira lixo. Posso rodar o reset toda vez que alguém entra em `/painel` em modo demo (debounced a cada 30 min) ou via cron.
+- Cadastro de novos usuários/lojas dentro da demo deve ser bloqueado (botões desabilitados nas páginas Usuários/Lojas).
 
-| Rota | Conteúdo |
-|---|---|
-| `/mobileplus/visao-geral` | KPIs da plataforma: lojas ativas, MRR estimado, ticket médio por loja, churn, novas assinaturas no mês, crescimento mês a mês |
-| `/mobileplus/lojas` | Lista todas as lojas: dono, plano, ciclo (anual/vitalício), status da assinatura, faturamento da loja, última atividade |
-| `/mobileplus/usuarios` | Lista todos os usuários da plataforma com filtro por loja, papel, último login |
-| `/mobileplus/assinaturas` | Todas as assinaturas, status no Asaas, próximas renovações, inadimplência |
-| `/mobileplus/financeiro` | Receita Mobile+ por mês, por plano, por ciclo, lojas adicionais |
-| `/mobileplus/crescimento` | Análise de crescimento: funil de signup → trial → ativação → pagamento, lojas com maior ticket médio, recomendações para upgrade |
-| `/mobileplus/suporte` | Tickets globais (já existe `SuporteAdmin`, reutilizado aqui) |
-
-### Acesso (autenticação)
-
-- Tela `/mobileplus` reaproveita o fluxo de e-mail/senha do Supabase (mesma base de usuários — você já tem conta).
-- Após signIn, faz `select role from user_roles where user_id = auth.uid() and role = 'admin_master'`. Se não retornar nada, faz signOut imediato e mostra "Acesso restrito".
-- Guard `AdminMasterRoute` envolve todas rotas `/mobileplus/*`.
-- O link **não aparece** em nenhum menu do sistema normal — você acessa digitando a URL.
-
-### Como você ganha o papel `admin_master`
-
-Como hoje ainda não há registro, vou rodar uma migração de dados que insere na tabela `user_roles` o seu user_id (do auth) como `admin_master`. **Preciso que você me passe o e-mail da conta** que vai administrar a plataforma — eu busco o ID e faço o INSERT.
-
-### Componentes / arquivos novos
-
-- `src/pages/mobileplus/Login.tsx`
-- `src/pages/mobileplus/Layout.tsx` (sidebar própria, identidade Mobile+, separada visualmente)
-- `src/pages/mobileplus/VisaoGeral.tsx`
-- `src/pages/mobileplus/Lojas.tsx`
-- `src/pages/mobileplus/Usuarios.tsx`
-- `src/pages/mobileplus/Assinaturas.tsx`
-- `src/pages/mobileplus/Financeiro.tsx`
-- `src/pages/mobileplus/Crescimento.tsx`
-- `src/components/layout/AdminMasterRoute.tsx`
-- 1 RPC SQL `mobileplus_overview()` (SECURITY DEFINER, restrita a `admin_master`) que devolve as métricas agregadas — evita N queries no front.
-
-### Segurança
-
-- Todas as queries do painel passam pela RPC `SECURITY DEFINER` que internamente faz `IF NOT is_admin_master(auth.uid()) THEN RAISE EXCEPTION 'forbidden'`.
-- Nenhuma rota `/mobileplus/*` aparece no `sitemap` nem no menu — discoverability zero.
-- RLS continua valendo no resto do sistema; o `admin_master` só vê dados agregados via RPC, não burla o tenant das lojas.
-
----
-
-## Confirmar antes de executar
-
-1. Posso renomear `/app` → `/painel` em massa e adicionar redirects das URLs antigas?
-2. **Qual o e-mail da sua conta Mobile+** para eu marcar como `admin_master`?
-3. URL do painel oculto: `/mobileplus` está bom, ou prefere algo menos óbvio (ex: `/gestao-mobile`, `/m-plus`)?
+## Pergunta antes de implementar
+Confirma a abordagem de **conta demo real + seed + reset automático**? Ou prefere uma alternativa mais simples sem banco (tudo mockado no frontend, mais leve mas algumas ações como "salvar" não funcionariam de verdade)?
