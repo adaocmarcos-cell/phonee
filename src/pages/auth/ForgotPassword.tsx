@@ -23,7 +23,7 @@ export default function ForgotPassword() {
     if (!r.success) return toast.error(r.error.issues[0].message);
     setBusy(true);
     const { error } = await supabase.auth.resetPasswordForEmail(r.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/redefinir-senha`,
     });
     setBusy(false);
     if (error) return toast.error(error.message);
