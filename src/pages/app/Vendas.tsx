@@ -220,11 +220,11 @@ export default function Vendas() {
       />
 
       {/* Dashboard de vendas — padrão visual do Dashboard principal */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
         <button
           type="button"
           onClick={() => { setTab("receber"); setReceiverOpen(true); }}
-          className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xl"
+          className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xl sm:col-span-2 lg:col-span-2 h-full"
           title="Ver clientes com vendas em aberto"
         >
           <MetricCard
@@ -233,6 +233,7 @@ export default function Vendas() {
             delta={`${pendingSales.length} venda(s) · ${overdueCount} vencida(s)`}
             icon={Wallet}
             tone={overdueCount > 0 ? "danger" : "warning"}
+            className="h-full py-7"
           />
         </button>
         {(["dinheiro", "pix", "debito", "credito", "boleto"] as const).slice(0, 3).map((m) => {
