@@ -575,6 +575,71 @@ export type Database = {
         }
         Relationships: []
       }
+      product_transfers: {
+        Row: {
+          created_at: string
+          from_product_id: string
+          from_store_id: string
+          id: string
+          note: string | null
+          quantity: number
+          to_product_id: string | null
+          to_store_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_product_id: string
+          from_store_id: string
+          id?: string
+          note?: string | null
+          quantity: number
+          to_product_id?: string | null
+          to_store_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_product_id?: string
+          from_store_id?: string
+          id?: string
+          note?: string | null
+          quantity?: number
+          to_product_id?: string | null
+          to_store_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_transfers_from_product_id_fkey"
+            columns: ["from_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_transfers_from_store_id_fkey"
+            columns: ["from_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_transfers_to_product_id_fkey"
+            columns: ["to_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_transfers_to_store_id_fkey"
+            columns: ["to_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           brand: string | null
@@ -1356,6 +1421,7 @@ export type Database = {
           amount_cents: number
           asaas_charge_id: string | null
           asaas_customer_id: string | null
+          billing_cycle: string
           created_at: string
           customer_doc: string
           customer_email: string
@@ -1373,6 +1439,7 @@ export type Database = {
           refund_status: string | null
           started_at: string | null
           status: string
+          store_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -1380,6 +1447,7 @@ export type Database = {
           amount_cents: number
           asaas_charge_id?: string | null
           asaas_customer_id?: string | null
+          billing_cycle?: string
           created_at?: string
           customer_doc: string
           customer_email: string
@@ -1397,6 +1465,7 @@ export type Database = {
           refund_status?: string | null
           started_at?: string | null
           status?: string
+          store_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1404,6 +1473,7 @@ export type Database = {
           amount_cents?: number
           asaas_charge_id?: string | null
           asaas_customer_id?: string | null
+          billing_cycle?: string
           created_at?: string
           customer_doc?: string
           customer_email?: string
@@ -1421,6 +1491,7 @@ export type Database = {
           refund_status?: string | null
           started_at?: string | null
           status?: string
+          store_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1430,6 +1501,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -1793,6 +1871,21 @@ export type Database = {
       is_owner: {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
+      }
+      my_stores: {
+        Args: { _user_id: string }
+        Returns: {
+          billing_cycle: string
+          expires_at: string
+          is_owner: boolean
+          logo_url: string
+          name: string
+          plan_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          slug: string
+          store_id: string
+          subscription_status: string
+        }[]
       }
       user_has_store_access: {
         Args: { _store_id: string; _user_id: string }

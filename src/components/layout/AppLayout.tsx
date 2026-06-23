@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
+import { StoreSubscriptionBanner } from "./StoreSubscriptionBanner";
 import { Bell, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,7 +70,8 @@ export default function AppLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <main className="flex-1 p-6 overflow-auto">
+          <StoreSubscriptionBanner />
+          <main className="flex-1 p-6 overflow-auto" key={store?.id ?? "no-store"}>
             <Outlet />
           </main>
         </div>
