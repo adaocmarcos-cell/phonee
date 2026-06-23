@@ -236,18 +236,26 @@ export default function Landing() {
       {/* BENEFITS */}
       <section id="beneficios" className="py-20 md:py-28 bg-background">
         <div className="max-w-7xl mx-auto px-5">
-          <SectionTitle
-            eyebrow="POR QUE MOBILE+"
-            title="O que o Phonee faz pela sua loja?"
-            subtitle="Desenvolvido para eliminar processos manuais, reduzir falhas operacionais e entregar informações estratégicas para decisões mais rápidas e inteligentes."
-          />
+          <Reveal direction="up">
+            <SectionTitle
+              eyebrow="POR QUE MOBILE+"
+              title="O que o Phonee faz pela sua loja?"
+              subtitle="Desenvolvido para eliminar processos manuais, reduzir falhas operacionais e entregar informações estratégicas para decisões mais rápidas e inteligentes."
+            />
+          </Reveal>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <BenefitCard icon={ShieldCheck} title="Reduz erros operacionais" desc="Menos retrabalho, menos esquecimentos e mais padronização do começo ao fim do processo." />
-            <BenefitCard icon={TrendingUp} title="Maximiza o lucro" desc="Saiba exatamente quais produtos dão mais retorno e onde está sua margem real." />
-            <BenefitCard icon={AlertTriangle} title="Evita falta de estoque" desc="Receba alertas e acompanhe movimentações em tempo real." />
-            <BenefitCard icon={Users} title="Diminui dependência de funcionários" desc="A informação fica registrada no sistema — não na cabeça das pessoas." />
-            <BenefitCard icon={Workflow} title="Automatiza a operação" desc="Vendas, estoque, assistência técnica e finanças em um único ambiente." />
-            <BenefitCard icon={Building2} title="Escale para múltiplas lojas" desc="Gerencie uma ou várias unidades com a mesma facilidade e visão consolidada." />
+            {([
+              { icon: ShieldCheck,   title: "Reduz erros operacionais",         desc: "Menos retrabalho, menos esquecimentos e mais padronização do começo ao fim do processo.", dir: "left"  },
+              { icon: TrendingUp,    title: "Maximiza o lucro",                 desc: "Saiba exatamente quais produtos dão mais retorno e onde está sua margem real.",         dir: "up"    },
+              { icon: AlertTriangle, title: "Evita falta de estoque",           desc: "Receba alertas e acompanhe movimentações em tempo real.",                                dir: "right" },
+              { icon: Users,         title: "Diminui dependência de funcionários", desc: "A informação fica registrada no sistema — não na cabeça das pessoas.",              dir: "left"  },
+              { icon: Workflow,      title: "Automatiza a operação",            desc: "Vendas, estoque, assistência técnica e finanças em um único ambiente.",                 dir: "up"    },
+              { icon: Building2,     title: "Escale para múltiplas lojas",      desc: "Gerencie uma ou várias unidades com a mesma facilidade e visão consolidada.",          dir: "right" },
+            ] as const).map((b, i) => (
+              <Reveal key={b.title} direction={b.dir} delay={i * 80} distance={56}>
+                <BenefitCard icon={b.icon} title={b.title} desc={b.desc} />
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
