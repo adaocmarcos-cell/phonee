@@ -218,6 +218,30 @@ export default function MinhasLojas() {
                     Pagar
                   </Button>
                 )}
+                {!isActive && !isActiveSub(s) && s.is_owner && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" title="Excluir loja" className="text-danger hover:text-danger hover:bg-danger/10 border-danger/30">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir loja "{s.name}"?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação remove permanentemente a loja, seus vínculos de usuários e a assinatura pendente.
+                          Disponível apenas para lojas que <strong>não tiveram o pagamento finalizado</strong>.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteStore(s)} className="bg-danger text-danger-foreground hover:bg-danger/90">
+                          Excluir loja
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             </Card>
           );
