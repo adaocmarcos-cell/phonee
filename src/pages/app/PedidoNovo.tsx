@@ -58,10 +58,8 @@ export default function PedidoNovo() {
   const [coverageDays, setCoverageDays] = useState<number>(DEFAULT_COVERAGE_DAYS);
   const [allProducts, setAllProducts] = useState<ProductLite[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [customName, setCustomName] = useState("");
-  const [customSupplier, setCustomSupplier] = useState("");
   const [customQty, setCustomQty] = useState(1);
-  const [customCost, setCustomCost] = useState(0);
+  const [customNote, setCustomNote] = useState("");
 
   useEffect(() => {
     if (!store) return;
@@ -166,22 +164,22 @@ export default function PedidoNovo() {
   };
 
   const addCustomItem = () => {
-    if (!customName.trim()) return toast.error("Informe o nome do produto.");
+    if (!customNote.trim()) return toast.error("Descreva a encomenda na observação.");
     setSuggestions((arr) => [{
       product_id: null,
-      product_name: customName.trim(),
-      supplier: customSupplier.trim() || "Encomenda",
+      product_name: customNote.trim(),
+      supplier: "Encomenda",
       stock_current: 0,
       stock_min: 0,
-      cost_price: customCost,
+      cost_price: 0,
       daily_velocity: 0,
       days_to_rupture: null,
       suggested_qty: Math.max(1, customQty),
-      unit_cost: customCost,
+      unit_cost: 0,
       selected: true,
       custom: true,
     }, ...arr]);
-    setCustomName(""); setCustomSupplier(""); setCustomQty(1); setCustomCost(0);
+    setCustomQty(1); setCustomNote("");
     toast.success("Encomenda adicionada.");
   };
 
@@ -307,14 +305,12 @@ export default function PedidoNovo() {
               <PackagePlus className="h-3.5 w-3.5" /> Pedir novo produto / encomenda
             </Label>
             <div className="grid grid-cols-12 gap-2">
-              <Input className="col-span-6" placeholder="Nome do produto" value={customName} onChange={(e) => setCustomName(e.target.value)} />
-              <Input className="col-span-6" placeholder="Fornecedor (opcional)" value={customSupplier} onChange={(e) => setCustomSupplier(e.target.value)} />
-              <Input className="col-span-4 font-mono h-10" type="number" min={1} placeholder="Qtd" value={customQty} onChange={(e) => setCustomQty(Math.max(1, Number(e.target.value) || 1))} />
-              <Input className="col-span-8 font-mono h-10" type="number" step="0.01" placeholder="Custo unit." value={customCost} onChange={(e) => setCustomCost(Number(e.target.value) || 0)} />
+              <Input className="col-span-3 font-mono h-10" type="number" min={1} placeholder="Qtd" value={customQty} onChange={(e) => setCustomQty(Math.max(1, Number(e.target.value) || 1))} />
+              <Input className="col-span-9 h-10" placeholder="Observação (ex: capa iPhone 15 transparente)" value={customNote} onChange={(e) => setCustomNote(e.target.value)} />
               <Button
                 type="button"
                 onClick={addCustomItem}
-                disabled={!customName.trim()}
+                disabled={!customNote.trim()}
                 className="col-span-12 h-10 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-medium whitespace-nowrap"
               >
                 <Plus className="h-4 w-4 shrink-0" />
