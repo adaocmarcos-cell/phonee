@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, Sparkles } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { exportSalesPDF, exportSalesXLSX, printSaleReceipt } from "@/lib/salesExport";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
@@ -219,6 +219,57 @@ export default function Vendas() {
         }
       />
 
+      {/* Dashboard de vendas — padrão visual do Dashboard principal */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <button
+          type="button"
+          onClick={() => { setTab("receber"); setReceiverOpen(true); }}
+          className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xl"
+          title="Ver clientes com vendas em aberto"
+        >
+          <MetricCard
+            label="A receber"
+            value={brl(pendingTotal)}
+            delta={`${pendingSales.length} venda(s) · ${overdueCount} vencida(s)`}
+            icon={Wallet}
+            tone={overdueCount > 0 ? "danger" : "warning"}
+          />
+        </button>
+        {(["dinheiro", "pix", "debito", "credito", "boleto"] as const).slice(0, 3).map((m) => {
+          const d = paymentBreakdown[m];
+          return (
+            <MetricCard
+              key={m}
+              label={pmLabel[m]}
+              value={brl(d?.total || 0)}
+              delta={`${d?.count || 0} venda(s)`}
+              icon={pmIcon[m]}
+              tone={pmTone[m]}
+            />
+          );
+        })}
+      </div>
+
+      {/* Aviso: módulo de Fornecedores em breve (exclusivo Gestor) */}
+      <Card className="mb-4 p-4 border-dashed border-2 border-primary/40 bg-primary/[0.04] flex items-start gap-3">
+        <div className="h-9 w-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+          <Truck className="h-4.5 w-4.5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold">Em breve: Catálogo de Fornecedores</span>
+            <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">
+              <Sparkles className="h-3 w-3 mr-1" />Gratuito
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">Exclusivo Gestor</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Uma seção de fornecedores <span className="font-semibold text-foreground">completamente gratuita</span> dentro da
+            plataforma Mobile+, com fornecedores de todas as categorias em diversos estados do Brasil — disponível em breve para Gestores.
+          </p>
+        </div>
+      </Card>
+
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
         <TabsList>
           <TabsTrigger value="all">Todas</TabsTrigger>
@@ -234,39 +285,21 @@ export default function Vendas() {
       </Tabs>
 
       {tab === "receber" && (
-        <>
-          {/* Cards no padrão visual do Dashboard */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-            <button
-              type="button"
-              onClick={() => setReceiverOpen(true)}
-              className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xl"
-              title="Ver clientes com vendas em aberto"
-            >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {(["credito", "boleto"] as const).map((m) => {
+            const d = paymentBreakdown[m];
+            return (
               <MetricCard
-                label="A receber"
-                value={brl(pendingTotal)}
-                delta={`${pendingSales.length} venda(s) · ${overdueCount} vencida(s)`}
-                icon={Wallet}
-                tone={overdueCount > 0 ? "danger" : "warning"}
+                key={m}
+                label={pmLabel[m]}
+                value={brl(d?.total || 0)}
+                delta={`${d?.count || 0} venda(s)`}
+                icon={pmIcon[m]}
+                tone={pmTone[m]}
               />
-            </button>
-            {(["dinheiro", "pix", "debito", "credito", "boleto"] as const).map((m) => {
-              const d = paymentBreakdown[m];
-              if (!d) return null;
-              return (
-                <MetricCard
-                  key={m}
-                  label={pmLabel[m]}
-                  value={brl(d.total)}
-                  delta={`${d.count} venda(s)`}
-                  icon={pmIcon[m]}
-                  tone={pmTone[m]}
-                />
-              );
-            })}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
 
       <Card className="bg-card border-border shadow-card p-3 mb-4 flex flex-wrap items-center gap-2">
