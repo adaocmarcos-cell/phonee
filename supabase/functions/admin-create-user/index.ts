@@ -46,6 +46,9 @@ Deno.serve(async (req) => {
     if (!email || !password || !store_id) {
       return json({ error: "E-mail, senha e loja são obrigatórios." }, 400);
     }
+    if (!String(full_name).trim()) {
+      return json({ error: "Nome completo é obrigatório." }, 400);
+    }
     if (String(password).length < 8) {
       return json({ error: "A senha deve ter pelo menos 8 caracteres." }, 400);
     }
