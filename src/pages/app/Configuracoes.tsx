@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,40 +13,95 @@ import {
   FONT_SIZE_OPTIONS, getFontSize, setFontSize,
   getTheme, setTheme, type Theme,
 } from "@/lib/preferences";
-import { Moon, Sun, Type, FileText, Store, Save, Palette } from "lucide-react";
+import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
 export default function Configuracoes() {
   const [font, setFont] = useState<number>(getFontSize());
   const [theme, setThemeState] = useState<Theme>(getTheme());
   const { store, refresh, role } = useAuth();
+  const canEdit = role === "dono" || role === "gerente";
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [storeForm, setStoreForm] = useState({
-    trade_name: "", name: "", instagram: "", phone: "", address: "", tax_id: "", price_table_note: "",
-    pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B", pdf_logo_url: "", pdf_footer_text: "",
+    trade_name: "", name: "", instagram: "", phone: "", tax_id: "", price_table_note: "",
+    address_street: "", address_number: "", address_complement: "",
+    address_neighborhood: "", address_city: "", address_uf: "",
+    show_tax_id_on_docs: true, show_legal_name_on_docs: true,
+    pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B",
+    pdf_logo_url: "", pdf_footer_text: "",
   });
   const [savingStore, setSavingStore] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+
+  const loadLogoPreview = async (path: string) => {
+    if (!path) { setLogoPreview(""); return; }
+    if (/^https?:\/\//i.test(path)) { setLogoPreview(path); return; }
+    const { data } = await supabase.storage.from("store-logos").createSignedUrl(path, 3600);
+    setLogoPreview(data?.signedUrl ?? "");
+  };
 
   useEffect(() => {
     if (!store) return;
+    const s = store as any;
     setStoreForm({
-      trade_name: store.trade_name ?? "",
-      name: store.name ?? "",
-      instagram: store.instagram ?? "",
-      phone: store.phone ?? "",
-      address: store.address ?? "",
-      tax_id: store.tax_id ?? "",
-      price_table_note: store.price_table_note ?? "",
-      pdf_primary_color: (store as any).pdf_primary_color ?? "#0EA5E9",
-      pdf_accent_color: (store as any).pdf_accent_color ?? "#1E293B",
-      pdf_logo_url: (store as any).pdf_logo_url ?? "",
-      pdf_footer_text: (store as any).pdf_footer_text ?? "",
+      trade_name: s.trade_name ?? "",
+      name: s.name ?? "",
+      instagram: s.instagram ?? "",
+      phone: s.phone ?? "",
+      tax_id: s.tax_id ?? "",
+      price_table_note: s.price_table_note ?? "",
+      address_street: s.address_street ?? "",
+      address_number: s.address_number ?? "",
+      address_complement: s.address_complement ?? "",
+      address_neighborhood: s.address_neighborhood ?? "",
+      address_city: s.address_city ?? "",
+      address_uf: s.address_uf ?? "",
+      show_tax_id_on_docs: s.show_tax_id_on_docs ?? true,
+      show_legal_name_on_docs: s.show_legal_name_on_docs ?? true,
+      pdf_primary_color: s.pdf_primary_color ?? "#0EA5E9",
+      pdf_accent_color: s.pdf_accent_color ?? "#1E293B",
+      pdf_logo_url: s.pdf_logo_url ?? "",
+      pdf_footer_text: s.pdf_footer_text ?? "",
     });
+    loadLogoPreview(s.pdf_logo_url ?? "");
   }, [store]);
 
-  const setSF = (k: string, v: string) => setStoreForm((f) => ({ ...f, [k]: v }));
+  const setSF = (k: string, v: any) => setStoreForm((f) => ({ ...f, [k]: v }));
+
+  const onUploadLogo = async (file: File) => {
+    if (!store) return;
+    if (!file.type.startsWith("image/")) { toast.error("Selecione uma imagem"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Máximo 2MB"); return; }
+    setUploading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${store.id}/logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("store-logos").upload(path, file, {
+      upsert: true, contentType: file.type,
+    });
+    if (error) { setUploading(false); toast.error(error.message); return; }
+    // remove previous file (best-effort)
+    if (storeForm.pdf_logo_url && !/^https?:\/\//i.test(storeForm.pdf_logo_url)) {
+      await supabase.storage.from("store-logos").remove([storeForm.pdf_logo_url]);
+    }
+    setSF("pdf_logo_url", path);
+    await loadLogoPreview(path);
+    setUploading(false);
+    toast.success("Logotipo enviado. Não esqueça de salvar.");
+  };
+
+  const onRemoveLogo = async () => {
+    if (storeForm.pdf_logo_url && !/^https?:\/\//i.test(storeForm.pdf_logo_url)) {
+      await supabase.storage.from("store-logos").remove([storeForm.pdf_logo_url]);
+    }
+    setSF("pdf_logo_url", "");
+    setLogoPreview("");
+  };
 
   const saveStore = async () => {
     if (!store) return;
@@ -56,9 +111,16 @@ export default function Configuracoes() {
       name: storeForm.name || store.name,
       instagram: storeForm.instagram || null,
       phone: storeForm.phone || null,
-      address: storeForm.address || null,
       tax_id: storeForm.tax_id || null,
       price_table_note: storeForm.price_table_note || null,
+      address_street: storeForm.address_street || null,
+      address_number: storeForm.address_number || null,
+      address_complement: storeForm.address_complement || null,
+      address_neighborhood: storeForm.address_neighborhood || null,
+      address_city: storeForm.address_city || null,
+      address_uf: storeForm.address_uf || null,
+      show_tax_id_on_docs: storeForm.show_tax_id_on_docs,
+      show_legal_name_on_docs: storeForm.show_legal_name_on_docs,
       pdf_primary_color: storeForm.pdf_primary_color || null,
       pdf_accent_color: storeForm.pdf_accent_color || null,
       pdf_logo_url: storeForm.pdf_logo_url || null,
@@ -94,34 +156,104 @@ export default function Configuracoes() {
           <div className="flex items-start gap-3 mb-4">
             <Store className="h-5 w-5 text-primary mt-0.5" />
             <div>
-              <h3 className="font-semibold">Dados da loja (rodapé dos PDFs)</h3>
-              <p className="text-xs text-muted-foreground">Esses dados aparecem no rodapé das tabelas de preço, garantias e vendas exportadas.</p>
+              <h3 className="font-semibold">Dados da loja</h3>
+              <p className="text-xs text-muted-foreground">Aparecem nas notas de pedido, vendas, garantia e ordens de serviço.</p>
             </div>
           </div>
+
+          {/* Logo upload */}
+          <div className="flex items-center gap-4 mb-4 p-3 rounded-md border border-dashed">
+            <div className="h-[76px] w-[76px] shrink-0 rounded-md border bg-muted/30 overflow-hidden flex items-center justify-center">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="h-full w-full object-contain" />
+              ) : (
+                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs">Logotipo da loja</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Formato quadrado, ~2×2 cm nos documentos. PNG ou JPG, até 2 MB.
+              </p>
+              {canEdit && (
+                <div className="flex gap-2 mt-2">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) onUploadLogo(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                    <Upload className="h-3.5 w-3.5 mr-1" />
+                    {uploading ? "Enviando…" : logoPreview ? "Substituir" : "Enviar logotipo"}
+                  </Button>
+                  {logoPreview && (
+                    <Button size="sm" variant="ghost" onClick={onRemoveLogo}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1 text-destructive" />Remover
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Nome fantasia</Label>
-              <Input value={storeForm.trade_name} onChange={(e) => setSF("trade_name", e.target.value)} disabled={role !== "dono" && role !== "gerente"} />
+              <Input value={storeForm.trade_name} onChange={(e) => setSF("trade_name", e.target.value)} disabled={!canEdit} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Razão social / nome interno</Label>
-              <Input value={storeForm.name} onChange={(e) => setSF("name", e.target.value)} disabled={role !== "dono" && role !== "gerente"} />
+              <Label className="text-xs">Razão social</Label>
+              <Input value={storeForm.name} onChange={(e) => setSF("name", e.target.value)} disabled={!canEdit} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Instagram</Label>
-              <Input value={storeForm.instagram} onChange={(e) => setSF("instagram", e.target.value)} placeholder="@sualoja" disabled={role !== "dono" && role !== "gerente"} />
+              <Input value={storeForm.instagram} onChange={(e) => setSF("instagram", e.target.value)} placeholder="@sualoja" disabled={!canEdit} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">WhatsApp</Label>
-              <Input value={storeForm.phone} onChange={(e) => setSF("phone", e.target.value)} placeholder="(31) 99771-8170" disabled={role !== "dono" && role !== "gerente"} />
+              <Input value={storeForm.phone} onChange={(e) => setSF("phone", e.target.value)} placeholder="(31) 99771-8170" disabled={!canEdit} />
             </div>
+
+            {/* Endereço estruturado */}
             <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-xs">Endereço</Label>
-              <Input value={storeForm.address} onChange={(e) => setSF("address", e.target.value)} placeholder="Rua, número — Bairro, Cidade/UF" disabled={role !== "dono" && role !== "gerente"} />
+              <Label className="text-xs">Rua / Logradouro</Label>
+              <Input value={storeForm.address_street} onChange={(e) => setSF("address_street", e.target.value)} disabled={!canEdit} />
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs">Número</Label>
+              <Input value={storeForm.address_number} onChange={(e) => setSF("address_number", e.target.value)} disabled={!canEdit} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Complemento</Label>
+              <Input value={storeForm.address_complement} onChange={(e) => setSF("address_complement", e.target.value)} placeholder="Sala, andar…" disabled={!canEdit} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Bairro</Label>
+              <Input value={storeForm.address_neighborhood} onChange={(e) => setSF("address_neighborhood", e.target.value)} disabled={!canEdit} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cidade</Label>
+              <Input value={storeForm.address_city} onChange={(e) => setSF("address_city", e.target.value)} disabled={!canEdit} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">UF</Label>
+              <Select value={storeForm.address_uf || undefined} onValueChange={(v) => setSF("address_uf", v)} disabled={!canEdit}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {UF_LIST.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
               <Label className="text-xs">CNPJ / CPF</Label>
-              <Input value={storeForm.tax_id} onChange={(e) => setSF("tax_id", e.target.value)} disabled={role !== "dono" && role !== "gerente"} />
+              <Input value={storeForm.tax_id} onChange={(e) => setSF("tax_id", e.target.value)} disabled={!canEdit} />
             </div>
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-xs">Observação final do PDF</Label>
@@ -129,11 +261,32 @@ export default function Configuracoes() {
                 value={storeForm.price_table_note}
                 onChange={(e) => setSF("price_table_note", e.target.value)}
                 placeholder="Valores sujeitos à disponibilidade de estoque e alteração sem aviso prévio."
-                disabled={role !== "dono" && role !== "gerente"}
+                disabled={!canEdit}
               />
             </div>
+
+            {/* Exibição em documentos */}
+            <div className="md:col-span-2 space-y-2 rounded-md border p-3 bg-muted/20">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Exibição em pedidos e garantia</Label>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Exibir CNPJ/CPF nas notas</span>
+                <Switch
+                  checked={storeForm.show_tax_id_on_docs}
+                  onCheckedChange={(v) => setSF("show_tax_id_on_docs", v)}
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Exibir razão social nas notas</span>
+                <Switch
+                  checked={storeForm.show_legal_name_on_docs}
+                  onCheckedChange={(v) => setSF("show_legal_name_on_docs", v)}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
           </div>
-          {(role === "dono" || role === "gerente") && (
+          {canEdit && (
             <div className="flex justify-end mt-3">
               <Button onClick={saveStore} disabled={savingStore} className="bg-gradient-primary shadow-glow">
                 <Save className="h-4 w-4 mr-1" /> {savingStore ? "Salvando…" : "Salvar dados da loja"}
@@ -213,12 +366,12 @@ export default function Configuracoes() {
                   className="h-10 w-16 p-1"
                   value={storeForm.pdf_primary_color}
                   onChange={(e) => setSF("pdf_primary_color", e.target.value)}
-                  disabled={role !== "dono" && role !== "gerente"}
+                  disabled={!canEdit}
                 />
                 <Input
                   value={storeForm.pdf_primary_color}
                   onChange={(e) => setSF("pdf_primary_color", e.target.value)}
-                  disabled={role !== "dono" && role !== "gerente"}
+                  disabled={!canEdit}
                 />
               </div>
             </div>
@@ -230,23 +383,14 @@ export default function Configuracoes() {
                   className="h-10 w-16 p-1"
                   value={storeForm.pdf_accent_color}
                   onChange={(e) => setSF("pdf_accent_color", e.target.value)}
-                  disabled={role !== "dono" && role !== "gerente"}
+                  disabled={!canEdit}
                 />
                 <Input
                   value={storeForm.pdf_accent_color}
                   onChange={(e) => setSF("pdf_accent_color", e.target.value)}
-                  disabled={role !== "dono" && role !== "gerente"}
+                  disabled={!canEdit}
                 />
               </div>
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-xs">URL do logotipo (PNG/JPG)</Label>
-              <Input
-                value={storeForm.pdf_logo_url}
-                onChange={(e) => setSF("pdf_logo_url", e.target.value)}
-                placeholder="https://..."
-                disabled={role !== "dono" && role !== "gerente"}
-              />
             </div>
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-xs">Texto institucional do rodapé dos PDFs</Label>
@@ -254,11 +398,11 @@ export default function Configuracoes() {
                 value={storeForm.pdf_footer_text}
                 onChange={(e) => setSF("pdf_footer_text", e.target.value)}
                 placeholder="Frase de marca, slogan ou aviso legal exibido em todos os PDFs"
-                disabled={role !== "dono" && role !== "gerente"}
+                disabled={!canEdit}
               />
             </div>
           </div>
-          {(role === "dono" || role === "gerente") && (
+          {canEdit && (
             <div className="flex justify-end mt-3">
               <Button onClick={saveStore} disabled={savingStore} className="bg-gradient-primary shadow-glow">
                 <Save className="h-4 w-4 mr-1" /> Salvar identidade dos PDFs
