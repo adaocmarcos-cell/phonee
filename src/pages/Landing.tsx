@@ -263,11 +263,13 @@ export default function Landing() {
       {/* PAIN SECTION */}
       <section className="py-20 md:py-28 bg-[hsl(0_0%_98%)]">
         <div className="max-w-6xl mx-auto px-5">
-          <SectionTitle
-            eyebrow="DORES COMUNS"
-            title="Sua loja sofre com algum destes problemas?"
-          />
-          <div className="grid md:grid-cols-2 gap-x-12 gap-y-4 max-w-4xl mx-auto">
+          <Reveal direction="up">
+            <SectionTitle
+              eyebrow="DORES COMUNS"
+              title="Sua loja sofre com algum destes problemas?"
+            />
+          </Reveal>
+          <Reveal direction="up" delay={80} className="grid md:grid-cols-2 gap-x-12 gap-y-4 max-w-4xl mx-auto">
             {[
               "Produtos sem controle",
               "Estoque desorganizado",
@@ -282,10 +284,12 @@ export default function Landing() {
             ].map((p) => (
               <CheckItem key={p} negative big>{p}</CheckItem>
             ))}
-          </div>
-          <p className="text-center mt-12 text-xl md:text-2xl font-bold">
-            O Phonee foi criado exatamente para resolver esses problemas.
-          </p>
+          </Reveal>
+          <Reveal direction="up" delay={150}>
+            <p className="text-center mt-12 text-xl md:text-2xl font-bold">
+              O Phonee foi criado exatamente para resolver esses problemas.
+            </p>
+          </Reveal>
         </div>
       </section>
 
