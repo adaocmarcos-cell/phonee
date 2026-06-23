@@ -30,7 +30,7 @@ export function PageHeader({ title, description, actions, showBack = true }: Pro
       )}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight break-words">{title}</h1>
+          {title && <h1 className="text-xl sm:text-2xl font-bold tracking-tight break-words">{title}</h1>}
           {description && <p className="text-[13px] sm:text-sm text-muted-foreground mt-1 break-words">{description}</p>}
         </div>
         {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
