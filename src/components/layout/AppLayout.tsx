@@ -32,10 +32,10 @@ export default function AppLayout() {
           <header className="h-14 flex items-center gap-2 sm:gap-3 border-b border-border bg-surface/40 backdrop-blur px-3 sm:px-4 sticky top-0 z-30">
             <SidebarTrigger />
             <div className="flex-1 max-w-md relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[1.15rem] w-[1.15rem] text-muted-foreground" />
               <Input
                 placeholder="Buscar produto, SKU, IMEI, cliente…"
-                className="pl-9 h-9 bg-background/60 border-border"
+                className="pl-10 h-9 bg-background/60 border-border"
               />
             </div>
             <div className="flex-1 sm:hidden" />
@@ -46,12 +46,12 @@ export default function AppLayout() {
                 </Badge>
               )}
               <Button variant="ghost" size="icon" onClick={() => navigate("/painel/alertas")}>
-                <Bell className="h-4 w-4" />
+                <Bell className="h-[1.15rem] w-[1.15rem]" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-9 px-1.5 sm:px-2 gap-2">
-                    <Avatar className="h-7 w-7">
+                    <Avatar className="h-[2.1rem] w-[2.1rem]">
                       <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">{initials}</AvatarFallback>
                     </Avatar>
                     <div className="hidden md:flex flex-col items-start leading-tight">
