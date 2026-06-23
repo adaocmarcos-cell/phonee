@@ -165,9 +165,12 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        {renderGroup("Gestão", ops)}
-        {renderGroup("Inteligência", main)}
+      <SidebarContent className="sidebar-scroll">
+        {renderGroup("Gestão e Inteligência", ops)}
+        <div className="px-3 -mt-1 mb-1">
+          <div className="h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
+        </div>
+        {renderGroup("", main, { hideLabel: true })}
         {renderGroup("Configuração", config.filter((it) => it.url !== "/app/admin/usuarios" || showAdmin))}
         {isAdminMaster(role as any) && renderGroup("Financeiro / Admin Master", adminMasterItems)}
         <div className="mt-auto px-3 py-3 border-t border-sidebar-border">
