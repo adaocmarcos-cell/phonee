@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -91,11 +91,20 @@ export default function Estoque() {
     });
   }, [products, q, filter]);
 
-  const totals = useMemo(() => ({
-    count: products.length,
-    low: products.filter((p) => p.stock_current <= p.stock_min).length,
-    value: products.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
-  }), [products]);
+  const totals = useMemo(() => {
+    const units = products.reduce((s, p) => s + (p.stock_current || 0), 0);
+    const partsUnits = parts.reduce((s, p) => s + (p.stock_current || 0), 0);
+    const partsLow = parts.filter((p) => p.stock_current <= p.stock_min).length;
+    return {
+      count: products.length,
+      units,
+      low: products.filter((p) => p.stock_current <= p.stock_min).length + partsLow,
+      value: products.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0)
+           + parts.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
+      partsCount: parts.length,
+      partsUnits,
+    };
+  }, [products, parts]);
 
   const handleDelete = async () => {
     if (!delTarget) return;
@@ -205,7 +214,7 @@ export default function Estoque() {
   return (
     <div>
       <PageHeader
-        title="Estoque"
+        title=""
         description={undefined}
         actions={
           canManageProducts(role) && (
@@ -249,6 +258,57 @@ export default function Estoque() {
           )
         }
       />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <Card className="bg-card border-border shadow-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Produtos</div>
+              <div className="metric text-2xl font-bold mt-1">{num(totals.count)}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">{num(totals.units)} unidades</div>
+            </div>
+            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <Package className="h-4 w-4" />
+            </div>
+          </div>
+        </Card>
+        <Card className="bg-card border-border shadow-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Valor em estoque</div>
+              <div className="metric text-2xl font-bold mt-1">{brl(totals.value)}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">preço de venda</div>
+            </div>
+            <div className="h-9 w-9 rounded-md bg-success/10 flex items-center justify-center text-success">
+              <DollarSign className="h-4 w-4" />
+            </div>
+          </div>
+        </Card>
+        <Card className="bg-card border-border shadow-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Em alerta</div>
+              <div className={`metric text-2xl font-bold mt-1 ${totals.low > 0 ? "text-warning" : ""}`}>{num(totals.low)}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">abaixo do mínimo</div>
+            </div>
+            <div className="h-9 w-9 rounded-md bg-warning/10 flex items-center justify-center text-warning">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+          </div>
+        </Card>
+        <Card className="bg-card border-border shadow-card p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Peças</div>
+              <div className="metric text-2xl font-bold mt-1">{num(totals.partsCount)}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">{num(totals.partsUnits)} unidades</div>
+            </div>
+            <div className="h-9 w-9 rounded-md bg-info/10 flex items-center justify-center text-info">
+              <Wrench className="h-4 w-4" />
+            </div>
+          </div>
+        </Card>
+      </div>
 
       {canManageProducts(role) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
