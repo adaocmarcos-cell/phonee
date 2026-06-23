@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -55,6 +55,7 @@ export default function Estoque() {
   const [saleTarget, setSaleTarget] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [marcasOpen, setMarcasOpen] = useState(false);
+  const fileInputId = "estoque-csv-import";
 
   const load = async () => {
     if (!store) return;
@@ -117,6 +118,90 @@ export default function Estoque() {
     toast.success(next ? "Produto ativado" : "Produto desativado");
   };
 
+  const CSV_HEADERS = [
+    "name","sku","brand","category","condition","cost_price","sale_price","stock_current","stock_min","status",
+  ];
+
+  const csvEscape = (v: any) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const exportCSV = () => {
+    const rows = products.map((p) =>
+      [p.name, p.sku, p.brand, p.category, p.condition, p.cost_price, p.sale_price, p.stock_current, p.stock_min, p.status]
+        .map(csvEscape).join(",")
+    );
+    const csv = [CSV_HEADERS.join(","), ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `estoque-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${products.length} produtos exportados`);
+  };
+
+  const parseCSV = (text: string): Record<string, string>[] => {
+    const lines: string[][] = [];
+    let cur: string[] = [], field = "", inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQuotes) {
+        if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (ch === '"') inQuotes = false;
+        else field += ch;
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === ',') { cur.push(field); field = ""; }
+        else if (ch === '\n' || ch === '\r') {
+          if (field.length || cur.length) { cur.push(field); lines.push(cur); cur = []; field = ""; }
+          if (ch === '\r' && text[i + 1] === '\n') i++;
+        } else field += ch;
+      }
+    }
+    if (field.length || cur.length) { cur.push(field); lines.push(cur); }
+    if (lines.length < 2) return [];
+    const headers = lines[0].map((h) => h.trim().replace(/^\uFEFF/, ""));
+    return lines.slice(1).filter((r) => r.some((c) => c.trim() !== "")).map((row) => {
+      const obj: Record<string, string> = {};
+      headers.forEach((h, i) => { obj[h] = (row[i] ?? "").trim(); });
+      return obj;
+    });
+  };
+
+  const importCSV = async (file: File) => {
+    if (!store) return;
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      if (rows.length === 0) { toast.error("CSV vazio ou inválido"); return; }
+      const payload = rows
+        .filter((r) => (r.name || r.nome || "").trim())
+        .map((r) => ({
+          store_id: store.id,
+          name: (r.name || r.nome || "").trim().slice(0, 200),
+          sku: (r.sku || "").trim() || null,
+          brand: (r.brand || r.marca || "").trim() || null,
+          category: (r.category || r.categoria || "acessorio").trim(),
+          condition: (r.condition || r.condicao || "novo").trim(),
+          cost_price: Number((r.cost_price || r.custo || "0").replace(",", ".")) || 0,
+          sale_price: Number((r.sale_price || r.venda || "0").replace(",", ".")) || 0,
+          stock_current: parseInt(r.stock_current || r.estoque || "0", 10) || 0,
+          stock_min: parseInt(r.stock_min || r.minimo || "0", 10) || 0,
+          status: (r.status || "ativo").trim(),
+        }));
+      if (payload.length === 0) { toast.error("Nenhuma linha válida (coluna 'name' é obrigatória)"); return; }
+      const { error } = await supabase.from("products").insert(payload as any);
+      if (error) { toast.error(`Erro: ${error.message}`); return; }
+      toast.success(`${payload.length} produto(s) importado(s)`);
+      load();
+    } catch (e: any) {
+      toast.error(`Falha ao processar CSV: ${e?.message ?? "erro"}`);
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -131,6 +216,23 @@ export default function Estoque() {
               <Button variant="outline" onClick={() => navigate("/app/admin/ajustes-estoque")}>
                 <ClipboardCheck className="h-4 w-4 mr-1" /> Ajustes de Estoque
               </Button>
+              <Button variant="outline" onClick={exportCSV} title="Exportar estoque em CSV">
+                <Download className="h-4 w-4 mr-1" /> Exportar CSV
+              </Button>
+              <Button variant="outline" onClick={() => document.getElementById(fileInputId)?.click()} title="Importar produtos via CSV">
+                <Upload className="h-4 w-4 mr-1" /> Importar CSV
+              </Button>
+              <input
+                id={fileInputId}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importCSV(f);
+                  e.target.value = "";
+                }}
+              />
               <Button
                 variant="outline"
                 size="icon"
