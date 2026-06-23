@@ -671,7 +671,7 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger><SelectValue placeholder="Escolha…" /></SelectTrigger>
             <SelectContent>
-              {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{!c.is_system && " (personalizada)"}</SelectItem>)}
+              {sortedCats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{!c.is_system && " (personalizada)"}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
