@@ -437,7 +437,7 @@ export default function Suporte() {
                 {thread.map((m) => (
                   <Card key={m.id} className={`p-3 ${m.is_admin ? "bg-primary/5 border-primary/30" : "bg-surface-elevated/40"}`}>
                     <p className="text-xs text-muted-foreground mb-1">
-                      {m.is_admin ? "Suporte Mobile+" : "Você"} · {new Date(m.created_at).toLocaleString("pt-BR")}
+                      {m.is_admin ? "Suporte Phonee" : "Você"} · {new Date(m.created_at).toLocaleString("pt-BR")}
                     </p>
                     <p className="text-sm whitespace-pre-wrap">{m.message}</p>
                   </Card>

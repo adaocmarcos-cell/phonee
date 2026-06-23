@@ -93,7 +93,7 @@ export default function LogsPage() {
     <div>
       <PageHeader
         title="Logs e Auditoria"
-        description="Histórico de ações de cada usuário do sistema · Mobile+"
+        description="Histórico de ações de cada usuário do sistema · Phonee"
         actions={
           <Button variant="outline" onClick={load}>
             <RefreshCw className="h-4 w-4 mr-1" /> Atualizar

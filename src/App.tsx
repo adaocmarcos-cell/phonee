@@ -51,14 +51,14 @@ import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
 import ComprarSucesso from "./pages/ComprarSucesso";
 import { Navigate, useLocation } from "react-router-dom";
-import MobilePlusLogin from "./pages/mobileplus/Login";
-import MobilePlusLayout from "./pages/mobileplus/Layout";
-import MobilePlusVisaoGeral from "./pages/mobileplus/VisaoGeral";
-import MobilePlusLojas from "./pages/mobileplus/Lojas";
-import MobilePlusUsuarios from "./pages/mobileplus/Usuarios";
-import MobilePlusAssinaturas from "./pages/mobileplus/Assinaturas";
-import MobilePlusFinanceiro from "./pages/mobileplus/Financeiro";
-import MobilePlusCrescimento from "./pages/mobileplus/Crescimento";
+import PhoneeLogin from "./pages/mobileplus/Login";
+import PhoneeLayout from "./pages/mobileplus/Layout";
+import PhoneeVisaoGeral from "./pages/mobileplus/VisaoGeral";
+import PhoneeLojas from "./pages/mobileplus/Lojas";
+import PhoneeUsuarios from "./pages/mobileplus/Usuarios";
+import PhoneeAssinaturas from "./pages/mobileplus/Assinaturas";
+import PhoneeFinanceiro from "./pages/mobileplus/Financeiro";
+import PhoneeCrescimento from "./pages/mobileplus/Crescimento";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
 const queryClient = new QueryClient();
@@ -126,15 +126,15 @@ const App = () => (
             <Route path="/app/*" element={<RedirectAppToPainel />} />
             <Route path="/app" element={<Navigate to="/painel" replace />} />
 
-            {/* Painel oculto Mobile+ (gestor da plataforma) */}
-            <Route path="/mobileplus" element={<MobilePlusLogin />} />
-            <Route path="/mobileplus" element={<AdminMasterRoute><MobilePlusLayout /></AdminMasterRoute>}>
-              <Route path="visao-geral" element={<MobilePlusVisaoGeral />} />
-              <Route path="lojas" element={<MobilePlusLojas />} />
-              <Route path="usuarios" element={<MobilePlusUsuarios />} />
-              <Route path="assinaturas" element={<MobilePlusAssinaturas />} />
-              <Route path="financeiro" element={<MobilePlusFinanceiro />} />
-              <Route path="crescimento" element={<MobilePlusCrescimento />} />
+            {/* Painel oculto Phonee (gestor da plataforma) */}
+            <Route path="/mobileplus" element={<PhoneeLogin />} />
+            <Route path="/mobileplus" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
+              <Route path="visao-geral" element={<PhoneeVisaoGeral />} />
+              <Route path="lojas" element={<PhoneeLojas />} />
+              <Route path="usuarios" element={<PhoneeUsuarios />} />
+              <Route path="assinaturas" element={<PhoneeAssinaturas />} />
+              <Route path="financeiro" element={<PhoneeFinanceiro />} />
+              <Route path="crescimento" element={<PhoneeCrescimento />} />
               <Route path="suporte" element={<SuporteAdmin />} />
             </Route>
             <Route path="*" element={<NotFound />} />

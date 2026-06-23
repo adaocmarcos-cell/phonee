@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile+ design system — dark first, electric blue + emerald accents.
+/* Phonee design system — dark first, electric blue + emerald accents.
    All colors MUST be HSL. Use semantic tokens — never raw classes in components. */
 
 @layer base {
@@ -19,7 +19,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 29% 24%;
 
-    /* Brand — azul elétrico Mobile+ */
+    /* Brand — azul elétrico Phonee */
     --primary: 200 100% 49%;          /* #00ABFB */
     --primary-foreground: 0 0% 100%;
     --primary-glow: 200 100% 58%;

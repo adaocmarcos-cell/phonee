@@ -36,7 +36,7 @@ export default function ForgotPassword() {
       <Card className="w-full max-w-md p-8 bg-card border-border shadow-card">
         <div className="mb-6 flex items-center gap-3">
           <img src={logo} alt="" width={32} height={32} className="h-8 w-8" />
-          <span className="text-lg font-bold">Mobile+</span>
+          <span className="text-lg font-bold">Phonee</span>
         </div>
         <h1 className="text-2xl font-bold mb-1">Esqueceu sua senha?</h1>
         <p className="text-sm text-muted-foreground mb-6">

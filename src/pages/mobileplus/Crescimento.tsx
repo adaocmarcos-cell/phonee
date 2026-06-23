@@ -13,7 +13,7 @@ type StoreRow = {
 
 const brl = (n: number) => (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export default function MobilePlusCrescimento() {
+export default function PhoneeCrescimento() {
   const [o, setO] = useState<Overview | null>(null);
   const [rows, setRows] = useState<StoreRow[]>([]);
 

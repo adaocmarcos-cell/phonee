@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
 
-export default function MobilePlusLogin() {
+export default function PhoneeLogin() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +52,7 @@ export default function MobilePlusLogin() {
         className="w-full max-w-sm space-y-5 rounded-xl border border-slate-800 bg-slate-900 p-7 shadow-2xl"
       >
         <div className="text-center flex flex-col items-center">
-          <img src={logoAsset.url} alt="Mobile+" className="h-10 w-auto" />
+          <img src={logoAsset.url} alt="Phonee" className="h-10 w-auto" />
           <div className="mt-2 text-xs uppercase tracking-widest text-slate-400">
             Painel do Gestor da Plataforma
           </div>

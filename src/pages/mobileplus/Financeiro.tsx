@@ -8,7 +8,7 @@ type Growth = { month_start: string; new_stores: number; new_subscriptions: numb
 
 const brl = (n: number) => (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export default function MobilePlusFinanceiro() {
+export default function PhoneeFinanceiro() {
   const [o, setO] = useState<Overview | null>(null);
   const [g, setG] = useState<Growth[]>([]);
 
@@ -28,7 +28,7 @@ export default function MobilePlusFinanceiro() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">Financeiro Mobile+</h1>
+      <h1 className="text-2xl font-bold mb-1">Financeiro Phonee</h1>
       <p className="text-sm text-slate-400 mb-6">Receita recorrente, GMV processado e séries mensais.</p>
 
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-8">

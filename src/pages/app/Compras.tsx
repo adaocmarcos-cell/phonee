@@ -234,125 +234,41 @@ export default function Compras() {
     if (validItems.length === 0) { toast.error("Adicione ao menos um item"); return; }
     setSaving(true);
     const supplierObj = suppliers.find((s) => s.id === form.supplier_id);
-    // Toda compra finalizada já entra no estoque automaticamente.
-    const status: Order["status"] = "recebido";
-    const payload: any = {
-      store_id: store.id,
-      supplier_id: form.supplier_id || null,
-      supplier: supplierObj?.company_name ?? null,
-      status,
-      total_cost: orderTotal,
-      notes: form.notes || null,
-      payment_method: form.payment_method || null,
-      expected_delivery_at: form.expected_delivery_at || null,
-      received_at: new Date().toISOString(),
-      sent_at: new Date().toISOString(),
-      payment_status: form.payment_status || "a_pagar",
-      paid_at: form.payment_status === "pago" ? new Date().toISOString() : null,
-      due_date: form.due_date || null,
-      tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
-    };
-    const { data: ord, error } = await supabase.from("purchase_orders").insert(payload).select("id").single();
-    if (error || !ord) { setSaving(false); toast.error(error?.message ?? "Erro ao salvar"); return; }
-
-    toast.info("Registrando entrada de mercadorias…");
-
-    // Sincroniza com o estoque geral: vincula ao produto existente ou cria novo.
-    const syncedItems: Item[] = [];
-    let created = 0;
-    let updated = 0;
-    let totalUnits = 0;
-    for (const it of validItems) {
-      const name = it.product_name.trim();
-      let productId = it.product_id || null;
-      if (!productId) {
-        const { data: found } = await supabase
-          .from("products")
-          .select("id, stock_current")
-          .eq("store_id", store.id)
-          .ilike("name", name)
-          .limit(1)
-          .maybeSingle();
-        if (found) {
-          productId = found.id;
-          await supabase
-            .from("products")
-            .update({
-              stock_current: Number(found.stock_current ?? 0) + Number(it.quantity),
-              cost_price: Number(it.unit_cost) || undefined,
-            })
-            .eq("id", productId);
-          updated++;
-        } else {
-          const { data: np, error: ep } = await supabase
-            .from("products")
-            .insert({
-              store_id: store.id,
-              name,
-              category: "acessorio",
-              condition: "novo",
-              status: "ativo",
-              cost_price: Number(it.unit_cost) || 0,
-              sale_price: Number(it.unit_cost) || 0,
-              stock_current: Number(it.quantity),
-              stock_min: 0,
-            })
-            .select("id")
-            .single();
-          if (!ep && np) {
-            productId = np.id;
-            created++;
-          }
-        }
-      } else {
-        const { data: prod } = await supabase
-          .from("products")
-          .select("stock_current")
-          .eq("id", productId)
-          .maybeSingle();
-        if (prod) {
-          await supabase
-            .from("products")
-            .update({ stock_current: Number(prod.stock_current ?? 0) + Number(it.quantity) })
-            .eq("id", productId);
-          updated++;
-        }
-      }
-      totalUnits += Number(it.quantity);
-      syncedItems.push({ ...it, product_id: productId });
-    }
-
-    const itemsPayload = syncedItems.map((it) => ({
-      order_id: ord.id,
+    const tagList = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+    const itemsPayload = validItems.map((it) => ({
       product_id: it.product_id || null,
       product_name: it.product_name.trim(),
+      sku: it.sku || null,
       quantity: Number(it.quantity),
       unit_cost: Number(it.unit_cost),
-      total: Number(it.quantity) * Number(it.unit_cost),
       notes: it.notes || null,
     }));
-    const { error: e2 } = await supabase.from("purchase_order_items").insert(itemsPayload);
-    if (e2) { setSaving(false); toast.error(e2.message); return; }
 
-    // Sincroniza com Financeiro: registra despesa quando pago
-    if (form.payment_status === "pago" && orderTotal > 0) {
-      const tagList = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
-      await supabase.from("expenses").insert({
-        store_id: store.id,
-        category_name: "Compras / Mercadorias",
-        subcategory: supplierObj?.company_name ?? null,
-        description: `Entrada de mercadorias${supplierObj ? ` · ${supplierObj.company_name}` : ""}${tagList.length ? ` · ${tagList.join(", ")}` : ""}`,
-        amount: orderTotal,
-        expense_date: new Date().toISOString().slice(0, 10),
-        payment_method: form.payment_method || null,
-        notes: form.notes || null,
-      } as any);
-      toast.message("Despesa lançada no financeiro");
+    toast.info("Registrando entrada de mercadorias…");
+    // Gravação atômica: compra + itens + estoque (+ despesa) em uma única transação.
+    const { data, error } = await supabase.rpc("create_purchase_with_stock" as any, {
+      _store_id: store.id,
+      _supplier_id: form.supplier_id || null,
+      _supplier_name: supplierObj?.company_name ?? null,
+      _payment_method: form.payment_method || null,
+      _payment_status: form.payment_status || "a_pagar",
+      _due_date: form.due_date || null,
+      _expected_delivery_at: form.expected_delivery_at || null,
+      _notes: form.notes || null,
+      _tags: tagList,
+      _items: itemsPayload,
+      _create_expense: true,
+    });
+    if (error) {
+      setSaving(false);
+      toast.error(`Falha na entrada de mercadorias — nada foi gravado: ${error.message}`);
+      return;
     }
-
-    toast.success(`Entrada de mercadorias concluída · ${totalUnits} un. no estoque`);
-    if (created > 0) toast.message(`${created} produto(s) novo(s) cadastrado(s) no estoque`);
-    if (updated > 0) toast.message(`${updated} produto(s) tiveram saldo atualizado`);
+    const res = (data ?? {}) as { total_units?: number; created?: number; updated?: number };
+    toast.success(`Entrada concluída · ${res.total_units ?? 0} un. no estoque`);
+    if ((res.created ?? 0) > 0) toast.message(`${res.created} produto(s) novo(s) cadastrado(s)`);
+    if ((res.updated ?? 0) > 0) toast.message(`${res.updated} produto(s) tiveram saldo atualizado`);
+    if (form.payment_status === "pago" && orderTotal > 0) toast.message("Despesa lançada no financeiro");
     setSaving(false);
     setPreviewOpen(false);
     setOpen(false);

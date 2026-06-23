@@ -6,7 +6,7 @@ type Row = {
   created_at: string; stores_count: number; roles: string[];
 };
 
-export default function MobilePlusUsuarios() {
+export default function PhoneeUsuarios() {
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
 

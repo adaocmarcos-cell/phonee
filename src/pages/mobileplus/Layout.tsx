@@ -16,7 +16,7 @@ const nav = [
   { to: "/mobileplus/suporte",     label: "Suporte",      icon: Inbox },
 ];
 
-export default function MobilePlusLayout() {
+export default function PhoneeLayout() {
   const navigate = useNavigate();
   const logout = async () => {
     await supabase.auth.signOut();
@@ -26,7 +26,7 @@ export default function MobilePlusLayout() {
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-100">
       <aside className="hidden md:flex w-60 shrink-0 border-r border-slate-800 bg-slate-900 flex-col">
         <div className="px-5 py-5 border-b border-slate-800">
-          <img src={logoAsset.url} alt="Mobile+" className="h-8 w-auto" />
+          <img src={logoAsset.url} alt="Phonee" className="h-8 w-auto" />
           <div className="text-[10px] uppercase tracking-widest text-slate-500 mt-2">
             Console do Gestor
           </div>
@@ -56,7 +56,7 @@ export default function MobilePlusLayout() {
       <header className="md:hidden sticky top-0 z-30 bg-slate-900 border-b border-slate-800">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex flex-col gap-0.5">
-            <img src={logoAsset.url} alt="Mobile+" className="h-6 w-auto" />
+            <img src={logoAsset.url} alt="Phonee" className="h-6 w-auto" />
             <div className="text-[9px] uppercase tracking-widest text-slate-500">Console do Gestor</div>
           </div>
           <Button size="sm" variant="ghost" onClick={logout}

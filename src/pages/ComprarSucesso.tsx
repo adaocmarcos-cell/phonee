@@ -33,7 +33,7 @@ export default function ComprarSucesso() {
       <header className="border-b border-white/10">
         <div className="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between">
           <Link to="/" className="text-sm text-white/70 hover:text-white">← Voltar</Link>
-          <div className="bg-white rounded-xl px-4 py-1.5"><img src={logoAsset.url} alt="Mobile+" className="h-8 w-auto" /></div>
+          <div className="bg-white rounded-xl px-4 py-1.5"><img src={logoAsset.url} alt="Phonee" className="h-8 w-auto" /></div>
         </div>
       </header>
 
@@ -43,7 +43,7 @@ export default function ComprarSucesso() {
             <div className="text-center space-y-4">
               <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
               <h1 className="text-3xl font-extrabold">Pagamento confirmado!</h1>
-              <p className="text-white/80">Enviamos um e-mail para <strong>{sub.customer_email}</strong> com o link para você definir sua senha e acessar o Mobile+.</p>
+              <p className="text-white/80">Enviamos um e-mail para <strong>{sub.customer_email}</strong> com o link para você definir sua senha e acessar o Phonee.</p>
               <Link to="/entrar"><Button size="lg" className="bg-gradient-primary shadow-glow">Ir para o login</Button></Link>
             </div>
           ) : (

@@ -69,13 +69,13 @@ export default function Comprar() {
       <header className="border-b border-white/10">
         <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3"><ArrowLeft className="h-4 w-4" /> Voltar</Link>
-          <div className="bg-white rounded-xl px-4 py-1.5"><img src={logoAsset.url} alt="Mobile+" className="h-8 w-auto" /></div>
+          <div className="bg-white rounded-xl px-4 py-1.5"><img src={logoAsset.url} alt="Phonee" className="h-8 w-auto" /></div>
         </div>
       </header>
 
       <div className="max-w-5xl mx-auto px-5 py-10 grid lg:grid-cols-[1fr_1.1fr] gap-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold leading-tight">Garanta seu acesso ao <span className="text-primary">Mobile+</span></h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold leading-tight">Garanta seu acesso ao <span className="text-primary">Phonee</span></h1>
           <p className="mt-3 text-white/80">Pagamento seguro via Asaas. Acesso liberado automaticamente após a confirmação.</p>
 
           <div className="mt-6 grid sm:grid-cols-2 gap-3">

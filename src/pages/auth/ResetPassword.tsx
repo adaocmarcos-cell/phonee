@@ -40,7 +40,7 @@ export default function ResetPassword() {
       data: { must_change_password: false },
     });
     if (error) { setBusy(false); return toast.error(error.message); }
-    // Decide destino: admin_master → painel Mobile+
+    // Decide destino: admin_master → painel Phonee
     let dest = "/painel";
     const uid = upd.user?.id;
     if (uid) {
@@ -60,7 +60,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md p-8 bg-card border-border shadow-card">
         <div className="mb-6 flex items-center gap-3">
           <img src={logo} alt="" width={32} height={32} className="h-8 w-8" />
-          <span className="text-lg font-bold">Mobile+</span>
+          <span className="text-lg font-bold">Phonee</span>
         </div>
         <h1 className="text-2xl font-bold mb-1">Redefinir senha</h1>
         <p className="text-sm text-muted-foreground mb-6">

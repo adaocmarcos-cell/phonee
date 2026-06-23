@@ -9,7 +9,7 @@ export default function Cargos() {
     <div>
       <PageHeader
         title="Cargos e Funções"
-        description="Cargos padrão do Mobile+. Cada cargo possui um conjunto de permissões editável em Permissões."
+        description="Cargos padrão do Phonee. Cada cargo possui um conjunto de permissões editável em Permissões."
       />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {ROLE_CATALOG.map((r) => {
