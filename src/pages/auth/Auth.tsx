@@ -49,20 +49,23 @@ export default function Auth() {
 
     // Verifica se há assinatura ativa OU se é admin_master (acesso interno)
     const userId = signin.user?.id;
+    const mustChangePw = signin.user?.user_metadata?.must_change_password === true;
     let allowed = false;
     let initialPath = "/painel";
+    let isAdminMaster = false;
     if (userId) {
       const [{ data: roles }, { data: subs }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("subscriptions").select("id,status").eq("user_id", userId).eq("status", "active").limit(1),
       ]);
-      const isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
+      isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
       const hasActive = (subs ?? []).length > 0;
       allowed = isAdminMaster || hasActive;
-      // Rota inicial: gestores → Dashboard; demais → Vendas
       const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
       const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
-      initialPath = isGestor ? "/painel" : "/painel/vendas";
+      initialPath = isAdminMaster
+        ? "/mobileplus/visao-geral"
+        : (isGestor ? "/painel" : "/painel/vendas");
     }
     if (!allowed) {
       await supabase.auth.signOut();
@@ -72,6 +75,11 @@ export default function Auth() {
     setBusy(false);
     if (remember) localStorage.setItem("mobileplus.rememberedEmail", eRes.data);
     else localStorage.removeItem("mobileplus.rememberedEmail");
+    if (mustChangePw) {
+      toast.info("Defina sua nova senha para continuar.");
+      navigate("/redefinir-senha");
+      return;
+    }
     toast.success("Bem-vindo de volta!");
     navigate(initialPath);
   };
