@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Users, Wrench } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
@@ -209,6 +209,8 @@ export default function Dashboard() {
 
   const lucroMes = revenueMonth - costMonth - expensesMonth;
   const lucroBrutoHoje = revenueToday - costToday;
+  const ticketMedio = salesCount > 0 ? revenueMonth / salesCount : 0;
+  const itensAlerta = productsLow + stalled;
   const periodLabel =
     period === "today" ? "hoje" :
     period === "7d" ? "últimos 7 dias" :
@@ -269,6 +271,47 @@ export default function Dashboard() {
         ) : (
           <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} tone="warning" />
         )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <MetricCard
+          label="Ticket médio"
+          value={brl(ticketMedio)}
+          delta={`${num(salesCount)} vendas no período`}
+          icon={ShoppingCart}
+          tone="primary"
+        />
+        <MetricCard
+          label="Despesas do período"
+          value={brl(expensesMonth)}
+          delta="Custos operacionais"
+          icon={Receipt}
+          tone="warning"
+        />
+        {canSeeCost(role) ? (
+          <MetricCard
+            label="Custo de produtos"
+            value={brl(costMonth)}
+            delta="CMV + peças O.S."
+            icon={Boxes}
+            tone="violet"
+          />
+        ) : (
+          <MetricCard
+            label="Estoque baixo"
+            value={num(productsLow)}
+            delta="Itens abaixo do mínimo"
+            icon={AlertTriangle}
+            tone="warning"
+          />
+        )}
+        <MetricCard
+          label="Itens em alerta"
+          value={num(itensAlerta)}
+          delta={`${num(productsLow)} baixo · ${num(stalled)} encalhado`}
+          icon={Wrench}
+          tone="danger"
+        />
       </div>
 
       <div className="flex items-center justify-end mb-6">
