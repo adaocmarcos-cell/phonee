@@ -160,7 +160,7 @@ export default function Landing() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+          <Reveal direction="up" duration={1000}>
             <Badge className="mb-6 bg-primary/20 text-white border-primary/40 hover:bg-primary/25 text-sm py-1.5 px-3">
               Sistema especializado para lojas de smartphones, eletrônicos e assistências técnicas
             </Badge>
@@ -192,10 +192,10 @@ export default function Landing() {
               <UsersRound className="h-4 w-4 text-success" />
               Multiusuário incluso · sem cobrança adicional por colaborador
             </div>
-          </div>
+          </Reveal>
 
           {/* Imagem/destaque do produto — CTAs e preços ficam após as vantagens */}
-          <div className="relative hidden lg:block">
+          <Reveal direction="right" duration={1100} delay={150} className="relative hidden lg:block">
             <div className="absolute -inset-1 bg-gradient-to-br from-primary/30 to-info/20 blur-2xl rounded-3xl" />
             <Card className="relative p-10 bg-[hsl(224_25%_18%)] border border-white/10 text-white shadow-2xl">
               <div className="text-xs font-mono tracking-[0.3em] text-primary font-bold mb-3">VISÃO GERAL</div>
@@ -228,7 +228,7 @@ export default function Landing() {
                 <Lock className="h-3 w-3 text-success" /> Dados protegidos com criptografia
               </div>
             </Card>
-          </div>
+          </Reveal>
           </div>
         </div>
       </section>
