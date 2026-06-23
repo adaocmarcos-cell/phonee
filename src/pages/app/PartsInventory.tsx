@@ -235,7 +235,7 @@ export default function PartsInventory() {
     const head = [["Nome", "Categoria", "Marca", "Estoque", "Mín.", showCost ? "Custo" : "", "Venda"].filter(Boolean)];
     const body = filtered.map((p) => {
       const row = [
-        `${p.name}${p.is_tool ? " (ferramenta)" : ""}`,
+        p.name,
         catLabel(p.category, p.category_other),
         p.brand ?? "—",
         String(p.stock_current),
@@ -280,14 +280,6 @@ export default function PartsInventory() {
             {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
-          <SelectTrigger className="md:w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tudo</SelectItem>
-            <SelectItem value="part">Peças</SelectItem>
-            <SelectItem value="tool">Ferramentas</SelectItem>
-          </SelectContent>
-        </Select>
       </Card>
 
       <Card className="overflow-hidden">
@@ -317,7 +309,6 @@ export default function PartsInventory() {
                       <div className="font-medium">{p.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {p.sku || "sem SKU"}{p.compatible_models ? ` · ${p.compatible_models}` : ""}
-                        {p.is_tool && <Badge variant="outline" className="ml-2">Ferramenta</Badge>}
                       </div>
                     </td>
                     <td className="p-3">{catLabel(p.category, p.category_other)}</td>
@@ -333,11 +324,6 @@ export default function PartsInventory() {
                     <td className="p-3 text-right">{brl(Number(p.sale_price))}</td>
                     <td className="p-3">
                       <div className="flex justify-end gap-1">
-                        {p.stock_current > 0 && (
-                          <Button size="icon" variant="ghost" title="Venda rápida" onClick={() => setSaleTarget(p)}>
-                            <ShoppingBag className="h-4 w-4" />
-                          </Button>
-                        )}
                         {p.stock_current > 0 && (
                           <Button size="icon" variant="ghost" title="Lançar em OS" onClick={() => openLinkOS(p)}>
                             <Wrench className="h-4 w-4" />
