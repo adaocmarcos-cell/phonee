@@ -434,6 +434,7 @@ export default function Configuracoes() {
           )}
         </Card>
       </div>
+      </fieldset>
     </div>
   );
 }
