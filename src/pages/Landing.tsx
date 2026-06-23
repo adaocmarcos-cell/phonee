@@ -136,12 +136,21 @@ export default function Landing() {
       <section className="relative overflow-hidden bg-[hsl(226_50%_15%)] text-white">
         <div className="absolute inset-0 opacity-[0.22] pointer-events-none"
              style={{ backgroundImage: "radial-gradient(hsl(200 100% 49% / 0.4) 1px, transparent 1px)", backgroundSize: "26px 26px" }} />
-        <div className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[140px] pointer-events-none" />
-        <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none" />
+        <div
+          className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[140px] pointer-events-none will-change-transform"
+          style={{ transform: `translate3d(0, ${heroGlowOffset}px, 0)` }}
+        />
+        <div
+          className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none will-change-transform"
+          style={{ transform: `translate3d(0, ${-heroGlowOffset}px, 0)` }}
+        />
 
         <div className="relative max-w-7xl mx-auto px-5 pt-3 pb-16 lg:pt-4 lg:pb-20">
           {/* LOGO PRINCIPAL — totalmente transparente, tamanho padrão */}
-          <div className="flex justify-center mt-0 mb-2 md:mb-3">
+          <div
+            className="flex justify-center mt-0 mb-2 md:mb-3 will-change-transform"
+            style={{ transform: `translate3d(0, ${heroLogoOffset}px, 0)` }}
+          >
             <img
               src={logo}
               alt="Phonee"
