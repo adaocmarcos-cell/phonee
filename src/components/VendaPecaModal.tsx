@@ -20,16 +20,15 @@ type Part = {
   stock_current: number;
 };
 
-type PaymentMethod = "dinheiro" | "pix" | "debito" | "credito" | "parcelado" | "boleto" | "cheque";
+type PaymentMethod = "dinheiro" | "pix" | "debito" | "credito" | "crediario" | "boleto";
 
 const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "pix", label: "PIX" },
   { value: "dinheiro", label: "Dinheiro" },
   { value: "debito", label: "Débito" },
   { value: "credito", label: "Crédito" },
-  { value: "parcelado", label: "Parcelado" },
+  { value: "crediario", label: "Parcelado" },
   { value: "boleto", label: "Boleto" },
-  { value: "cheque", label: "Cheque" },
 ];
 
 interface Props {
@@ -74,7 +73,7 @@ export function VendaPecaModal({ part, open, onClose, onDone }: Props) {
       discount,
       total,
       payment_method: payment,
-      installments: payment === "parcelado" ? installments : null,
+      installments: payment === "crediario" ? installments : null,
       customer_name: customer || null,
     });
     if (e1) { setSaving(false); toast.error(e1.message); return; }
@@ -135,7 +134,7 @@ export function VendaPecaModal({ part, open, onClose, onDone }: Props) {
                 ))}
               </div>
             </div>
-            {payment === "parcelado" && (
+            {payment === "crediario" && (
               <div>
                 <Label>Parcelas</Label>
                 <Select value={String(installments)} onValueChange={(v) => setInstallments(Number(v))}>
