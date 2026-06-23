@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
       role = "vendedor",
       job_title = "",
       store_id = "",
+      permissions = {},
     } = body ?? {};
 
     if (!email || !password || !store_id) {
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       .eq("store_id", store_id);
     if (callerRolesErr) return json({ error: callerRolesErr.message }, 500);
     const allowed = (callerRoles ?? []).some((r: any) =>
-      ["admin_master", "admin", "gerente", "proprietario"].includes(r.role),
+      ["admin_master", "dono", "administrador", "gerente"].includes(r.role),
     );
     if (!allowed) return json({ error: "Sem permissão para cadastrar colaboradores." }, 403);
 
@@ -98,6 +99,7 @@ Deno.serve(async (req) => {
       store_id,
       job_title: job_title || null,
       status: "ativo",
+      permissions: permissions ?? {},
     });
     if (extraErr) return json({ error: extraErr.message }, 500);
 
