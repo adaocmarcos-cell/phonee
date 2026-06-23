@@ -8,7 +8,7 @@ export default function NotFound() {
         <div className="metric text-7xl font-bold text-primary mb-2">404</div>
         <h1 className="text-xl font-bold mb-2">Página não encontrada</h1>
         <p className="text-sm text-muted-foreground mb-6">A rota que você acessou não existe no Mobile+.</p>
-        <Button asChild className="bg-gradient-primary"><Link to="/app">Voltar ao dashboard</Link></Button>
+        <Button asChild className="bg-gradient-primary"><Link to="/painel">Voltar ao dashboard</Link></Button>
       </div>
     </div>
   );

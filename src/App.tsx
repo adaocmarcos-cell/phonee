@@ -9,41 +9,41 @@ import AppLayout from "@/components/layout/AppLayout";
 import Auth from "./pages/auth/Auth";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
-import Dashboard from "./pages/app/Dashboard";
-import Estoque from "./pages/app/Estoque";
-import ProductForm from "./pages/app/ProductForm";
-import EstoqueRelatorio from "./pages/app/EstoqueRelatorio";
-import Vendas from "./pages/app/Vendas";
-import VendaNova from "./pages/app/VendaNova";
-import Alertas from "./pages/app/Alertas";
-import CurvaABC from "./pages/app/CurvaABC";
-import TradeIn from "./pages/app/TradeIn";
-import TradeInForm from "./pages/app/TradeInForm";
-import Pedidos from "./pages/app/Pedidos";
-import PedidoNovo from "./pages/app/PedidoNovo";
-import Despesas from "./pages/app/Despesas";
-import Financeiro from "./pages/app/Financeiro";
-import OrdensServico from "./pages/app/OrdensServico";
-import OrdemServicoForm from "./pages/app/OrdemServicoForm";
-import PartsInventory from "./pages/app/PartsInventory";
-import VendasPecas from "./pages/app/VendasPecas";
-import Configuracoes from "./pages/app/Configuracoes";
-import TabelasPreco from "./pages/app/TabelasPreco";
-import ComingSoon from "./pages/app/ComingSoon";
-import Usuarios from "./pages/app/admin/Usuarios";
-import Cargos from "./pages/app/admin/Cargos";
-import Garantias from "./pages/app/admin/Garantias";
-import PagamentosAsaas from "./pages/app/admin/PagamentosAsaas";
-import Planos from "./pages/app/admin/Planos";
-import Assinaturas from "./pages/app/admin/Assinaturas";
-import LogsPagamento from "./pages/app/admin/LogsPagamento";
-import LogsPage from "./pages/app/admin/Logs";
-import AjustesEstoque from "./pages/app/admin/AjustesEstoque";
-import Suporte from "./pages/app/Suporte";
-import SuporteAdmin from "./pages/app/admin/SuporteAdmin";
-import Clientes from "./pages/app/Clientes";
-import MinhasLojas from "./pages/app/MinhasLojas";
-import TransferenciaProdutos from "./pages/app/TransferenciaProdutos";
+import Dashboard from "./pages/painel/Dashboard";
+import Estoque from "./pages/painel/Estoque";
+import ProductForm from "./pages/painel/ProductForm";
+import EstoqueRelatorio from "./pages/painel/EstoqueRelatorio";
+import Vendas from "./pages/painel/Vendas";
+import VendaNova from "./pages/painel/VendaNova";
+import Alertas from "./pages/painel/Alertas";
+import CurvaABC from "./pages/painel/CurvaABC";
+import TradeIn from "./pages/painel/TradeIn";
+import TradeInForm from "./pages/painel/TradeInForm";
+import Pedidos from "./pages/painel/Pedidos";
+import PedidoNovo from "./pages/painel/PedidoNovo";
+import Despesas from "./pages/painel/Despesas";
+import Financeiro from "./pages/painel/Financeiro";
+import OrdensServico from "./pages/painel/OrdensServico";
+import OrdemServicoForm from "./pages/painel/OrdemServicoForm";
+import PartsInventory from "./pages/painel/PartsInventory";
+import VendasPecas from "./pages/painel/VendasPecas";
+import Configuracoes from "./pages/painel/Configuracoes";
+import TabelasPreco from "./pages/painel/TabelasPreco";
+import ComingSoon from "./pages/painel/ComingSoon";
+import Usuarios from "./pages/painel/admin/Usuarios";
+import Cargos from "./pages/painel/admin/Cargos";
+import Garantias from "./pages/painel/admin/Garantias";
+import PagamentosAsaas from "./pages/painel/admin/PagamentosAsaas";
+import Planos from "./pages/painel/admin/Planos";
+import Assinaturas from "./pages/painel/admin/Assinaturas";
+import LogsPagamento from "./pages/painel/admin/LogsPagamento";
+import LogsPage from "./pages/painel/admin/Logs";
+import AjustesEstoque from "./pages/painel/admin/AjustesEstoque";
+import Suporte from "./pages/painel/Suporte";
+import SuporteAdmin from "./pages/painel/admin/SuporteAdmin";
+import Clientes from "./pages/painel/Clientes";
+import MinhasLojas from "./pages/painel/MinhasLojas";
+import TransferenciaProdutos from "./pages/painel/TransferenciaProdutos";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
@@ -60,12 +60,12 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/entrar" element={<Auth />} />
+            <Route path="/esqueci-senha" element={<ForgotPassword />} />
+            <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/comprar" element={<Comprar />} />
             <Route path="/comprar/sucesso/:id" element={<ComprarSucesso />} />
-            <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route path="/painel" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="estoque" element={<Estoque />} />
               <Route path="estoque/novo" element={<ProductForm />} />

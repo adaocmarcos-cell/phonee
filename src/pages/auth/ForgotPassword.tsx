@@ -45,7 +45,7 @@ export default function ForgotPassword() {
         {sent ? (
           <div className="space-y-4">
             <p className="text-sm">Se o e-mail existir, você receberá as instruções em instantes.</p>
-            <Link to="/auth" className="text-sm text-primary hover:underline">Voltar ao login</Link>
+            <Link to="/entrar" className="text-sm text-primary hover:underline">Voltar ao login</Link>
           </div>
         ) : (
           <form onSubmit={handle} className="space-y-4">
@@ -57,7 +57,7 @@ export default function ForgotPassword() {
               {busy ? "Enviando…" : "Enviar link de recuperação"}
             </Button>
             <div className="text-center">
-              <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground">Voltar ao login</Link>
+              <Link to="/entrar" className="text-sm text-muted-foreground hover:text-foreground">Voltar ao login</Link>
             </div>
           </form>
         )}

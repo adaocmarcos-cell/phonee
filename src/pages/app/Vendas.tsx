@@ -287,7 +287,7 @@ export default function Vendas() {
         description="Histórico de vendas e PDV rápido."
         actions={
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => navigate("/app/estoque/relatorio")} title="Inventário em tempo real">
+            <Button variant="outline" onClick={() => navigate("/painel/estoque/relatorio")} title="Inventário em tempo real">
               <Activity className="h-4 w-4 mr-1 text-success" />Estoque em tempo real
             </Button>
             <Button variant="outline" onClick={onExportPDF} disabled={filtered.length === 0}>
@@ -305,7 +305,7 @@ export default function Vendas() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <button
             type="button"
-            onClick={() => navigate("/app/vendas/nova")}
+            onClick={() => navigate("/painel/vendas/nova")}
             className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-5 flex items-center justify-center gap-2 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <Plus className="h-5 w-5" />

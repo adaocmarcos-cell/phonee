@@ -115,16 +115,16 @@ export default function OrdensServico() {
         description="Assistência técnica com rastreabilidade completa."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => navigate("/app/pecas?tab=pecas")}>
+            <Button variant="outline" onClick={() => navigate("/painel/pecas?tab=pecas")}>
               <Hammer className="h-4 w-4 mr-1" />Peças
             </Button>
-            <Button variant="outline" onClick={() => navigate("/app/pecas?tab=ferramentas")}>
+            <Button variant="outline" onClick={() => navigate("/painel/pecas?tab=ferramentas")}>
               <Wrench className="h-4 w-4 mr-1" />Ferramentas
             </Button>
-            <Button variant="outline" onClick={() => navigate("/app/pecas?tab=compras")}>
+            <Button variant="outline" onClick={() => navigate("/painel/pecas?tab=compras")}>
               <ShoppingCart className="h-4 w-4 mr-1" />Centro de compras
             </Button>
-            <Button onClick={() => navigate("/app/os/nova")} className="bg-primary text-primary-foreground shadow-glow">
+            <Button onClick={() => navigate("/painel/ordens/nova")} className="bg-primary text-primary-foreground shadow-glow">
               <Plus className="h-4 w-4 mr-1" />Nova ordem de serviço
             </Button>
           </div>
@@ -195,7 +195,7 @@ export default function OrdensServico() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((r) => (
-                <tr key={r.id} onClick={() => navigate(`/app/os/${r.id}`)} className="hover:bg-surface-elevated/40 cursor-pointer">
+                <tr key={r.id} onClick={() => navigate(`/painel/ordens/${r.id}`)} className="hover:bg-surface-elevated/40 cursor-pointer">
                   <td className="px-4 py-3 font-mono text-xs text-primary font-bold">{fmtOS(r.os_number)}</td>
                   <td className="px-4 py-3 font-medium">{r.customer_name}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">

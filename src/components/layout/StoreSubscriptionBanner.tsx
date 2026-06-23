@@ -24,7 +24,7 @@ export function StoreSubscriptionBanner() {
         <span className="text-amber-700/80">Você ainda pode usar normalmente, mas regularize para evitar bloqueios.</span>
       </div>
       <button
-        onClick={() => navigate("/app/admin/lojas")}
+        onClick={() => navigate("/painel/lojas")}
         className="text-amber-700 hover:text-amber-900 text-xs font-semibold inline-flex items-center gap-1"
       >
         Regularizar <ExternalLink className="h-3 w-3" />

@@ -192,7 +192,7 @@ export default function Financeiro() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <button
           type="button"
-          onClick={() => navigate("/app/despesas")}
+          onClick={() => navigate("/painel/despesas")}
           className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-rose-500 via-red-600 to-red-700 text-white shadow-glow hover:brightness-110 transition-all border border-red-500/60 px-6 py-5 flex items-center justify-between gap-3 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <span className="flex items-center gap-2"><Receipt className="h-5 w-5" /> Custos & Despesas</span>
@@ -203,7 +203,7 @@ export default function Financeiro() {
         </button>
         <button
           type="button"
-          onClick={() => navigate("/app/vendas")}
+          onClick={() => navigate("/painel/vendas")}
           className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-700 text-white shadow-glow hover:brightness-110 transition-all border border-blue-500/60 px-6 py-5 flex items-center justify-between gap-3 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <span className="flex items-center gap-2"><TrendingUp className="h-5 w-5" /> Vendas & Recebimentos</span>
@@ -271,7 +271,7 @@ export default function Financeiro() {
           <Card className="bg-card border-border shadow-card overflow-hidden">
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <span className="text-xs uppercase tracking-widest font-mono text-muted-foreground">Despesas e contas a pagar</span>
-              <Button size="sm" variant="outline" onClick={() => navigate("/app/despesas")}>Lançar nova despesa <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
+              <Button size="sm" variant="outline" onClick={() => navigate("/painel/despesas")}>Lançar nova despesa <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
             </div>
             <table className="w-full text-sm">
               <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
@@ -378,7 +378,7 @@ export default function Financeiro() {
               </p>
               <div className="flex gap-2 flex-wrap">
                 <Button onClick={exportReport} className="bg-gradient-primary shadow-glow"><FileDown className="h-4 w-4 mr-1" />Relatório completo (PDF)</Button>
-                <Button variant="outline" onClick={() => navigate("/app/despesas")}>Abrir Despesas</Button>
+                <Button variant="outline" onClick={() => navigate("/painel/despesas")}>Abrir Despesas</Button>
               </div>
             </Card>
           </div>

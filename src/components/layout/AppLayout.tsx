@@ -21,7 +21,7 @@ export default function AppLayout() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/auth");
+    navigate("/entrar");
   };
 
   return (
@@ -44,7 +44,7 @@ export default function AppLayout() {
                   {store.name}
                 </Badge>
               )}
-              <Button variant="ghost" size="icon" onClick={() => navigate("/app/alertas")}>
+              <Button variant="ghost" size="icon" onClick={() => navigate("/painel/alertas")}>
                 <Bell className="h-4 w-4" />
               </Button>
               <DropdownMenu>
@@ -62,7 +62,7 @@ export default function AppLayout() {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/app/admin/configuracoes")}>Configurações</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/painel/configuracoes")}>Configurações</DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-danger focus:text-danger">
                     <LogOut className="h-4 w-4 mr-2" /> Sair
                   </DropdownMenuItem>

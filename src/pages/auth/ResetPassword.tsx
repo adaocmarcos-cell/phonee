@@ -39,7 +39,7 @@ export default function ResetPassword() {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Senha atualizada!");
-    navigate("/app");
+    navigate("/painel");
   };
 
   return (

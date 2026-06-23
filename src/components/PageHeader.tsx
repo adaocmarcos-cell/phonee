@@ -13,7 +13,7 @@ export function PageHeader({ title, description, actions, showBack = true }: Pro
   const navigate = useNavigate();
   const { pathname } = useLocation();
   // Hide back arrow on the main dashboard route
-  const hide = pathname === "/app" || pathname === "/app/";
+  const hide = pathname === "/painel" || pathname === "/painel/";
 
   return (
     <div className="mb-6">

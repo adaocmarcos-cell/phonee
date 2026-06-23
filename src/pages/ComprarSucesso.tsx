@@ -44,7 +44,7 @@ export default function ComprarSucesso() {
               <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
               <h1 className="text-3xl font-extrabold">Pagamento confirmado!</h1>
               <p className="text-white/80">Enviamos um e-mail para <strong>{sub.customer_email}</strong> com o link para você definir sua senha e acessar o Mobile+.</p>
-              <Link to="/auth"><Button size="lg" className="bg-gradient-primary shadow-glow">Ir para o login</Button></Link>
+              <Link to="/entrar"><Button size="lg" className="bg-gradient-primary shadow-glow">Ir para o login</Button></Link>
             </div>
           ) : (
             <>

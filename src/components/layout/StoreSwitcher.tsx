@@ -96,7 +96,7 @@ export function StoreSwitcher() {
           );
         })}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/app/admin/lojas")} className="cursor-pointer text-primary">
+        <DropdownMenuItem onClick={() => navigate("/painel/lojas")} className="cursor-pointer text-primary">
           <Plus className="h-4 w-4 mr-2" />
           Gerenciar / adicionar loja
         </DropdownMenuItem>

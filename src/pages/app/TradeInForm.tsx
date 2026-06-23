@@ -178,7 +178,7 @@ export default function TradeInForm() {
       setBusy(false);
       if (error) return toast.error(error.message);
       toast.success("Ficha atualizada");
-      navigate("/app/trade-in");
+      navigate("/painel/troca");
       return;
     }
 
@@ -188,7 +188,7 @@ export default function TradeInForm() {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`${payloads.length} ficha(s) criada(s)`);
-    navigate("/app/trade-in");
+    navigate("/painel/troca");
   };
 
   const margin = form.intended_sale_value > 0
@@ -199,7 +199,7 @@ export default function TradeInForm() {
       <PageHeader
         title={editing ? "Editar ficha de Compra & Troca" : "Nova ficha de Compra & Troca"}
         description="Cadastro completo do aparelho seminovo recebido."
-        actions={<Button variant="ghost" onClick={() => navigate("/app/trade-in")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>}
+        actions={<Button variant="ghost" onClick={() => navigate("/painel/troca")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>}
       />
 
       <form onSubmit={save} className="space-y-6">
@@ -357,7 +357,7 @@ export default function TradeInForm() {
         </Card>
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={() => navigate("/app/trade-in")}>Cancelar</Button>
+          <Button type="button" variant="ghost" onClick={() => navigate("/painel/troca")}>Cancelar</Button>
           <Button type="submit" disabled={busy} className="bg-gradient-primary shadow-glow">
             {busy ? "Salvando…" : editing ? "Salvar alterações" : pendingDevices.length > 0 ? `Criar ${pendingDevices.length + (form.model.trim() ? 1 : 0)} fichas` : "Criar ficha"}
           </Button>

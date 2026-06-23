@@ -210,10 +210,10 @@ export default function Estoque() {
         actions={
           canManageProducts(role) && (
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate("/app/estoque/relatorio")}>
+              <Button variant="outline" onClick={() => navigate("/painel/estoque/relatorio")}>
                 <FileBarChart className="h-4 w-4 mr-1" /> Relatório
               </Button>
-              <Button variant="outline" onClick={() => navigate("/app/admin/ajustes-estoque")}>
+              <Button variant="outline" onClick={() => navigate("/painel/ajustes-estoque")}>
                 <ClipboardCheck className="h-4 w-4 mr-1" /> Ajustes de Estoque
               </Button>
               <Button variant="outline" onClick={exportCSV} title="Exportar estoque em CSV">
@@ -242,7 +242,7 @@ export default function Estoque() {
               >
                 <Tag className="h-4 w-4" />
               </Button>
-              <Button onClick={() => navigate("/app/estoque/novo")} className="bg-gradient-primary shadow-glow">
+              <Button onClick={() => navigate("/painel/estoque/novo")} className="bg-gradient-primary shadow-glow">
                 <Plus className="h-4 w-4 mr-1" /> Novo produto
               </Button>
             </div>
@@ -289,7 +289,7 @@ export default function Estoque() {
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
                   <div className="flex flex-col items-center gap-2">
                     {canManageProducts(role) && (
-                      <Button onClick={() => navigate("/app/estoque/novo")} className="bg-gradient-primary">
+                      <Button onClick={() => navigate("/painel/estoque/novo")} className="bg-gradient-primary">
                         <Plus className="h-4 w-4 mr-1" /> Cadastrar primeiro produto
                       </Button>
                     )}
@@ -354,7 +354,7 @@ export default function Estoque() {
                         )}
                         {canManageProducts(role) && (
                           <>
-                            <Button size="icon" variant="ghost" onClick={() => navigate(`/app/estoque/${p.id}`)}>
+                            <Button size="icon" variant="ghost" onClick={() => navigate(`/painel/estoque/${p.id}`)}>
                               <Edit3 className="h-3.5 w-3.5" />
                             </Button>
                             <Button size="icon" variant="ghost" onClick={() => setDelTarget(p)} className="text-danger hover:text-danger">
@@ -406,7 +406,7 @@ export default function Estoque() {
               sincronizado com Assistência · {num(parts.length)} itens
             </span>
           </div>
-          <Button size="sm" variant="outline" onClick={() => navigate("/app/pecas")}>
+          <Button size="sm" variant="outline" onClick={() => navigate("/painel/pecas")}>
             Gerenciar peças
           </Button>
         </div>

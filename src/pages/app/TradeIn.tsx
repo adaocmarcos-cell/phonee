@@ -53,7 +53,7 @@ export default function TradeIn() {
         title="Compra & Troca"
         description="Fichas de entrada de aparelhos usados com checklist, fotos e status."
         actions={
-          <Button onClick={() => navigate("/app/trade-in/novo")} className="bg-gradient-primary shadow-glow">
+          <Button onClick={() => navigate("/painel/troca/novo")} className="bg-gradient-primary shadow-glow">
             <Plus className="h-4 w-4 mr-1" /> Nova ficha
           </Button>
         }
@@ -81,12 +81,12 @@ export default function TradeIn() {
                 <tr><td colSpan={8} className="px-4 py-16 text-center">
                   <Smartphone className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum aparelho registrado ainda.</p>
-                  <Button onClick={() => navigate("/app/trade-in/novo")} className="bg-gradient-primary"><Plus className="h-4 w-4 mr-1" /> Cadastrar primeira ficha</Button>
+                  <Button onClick={() => navigate("/painel/troca/novo")} className="bg-gradient-primary"><Plus className="h-4 w-4 mr-1" /> Cadastrar primeira ficha</Button>
                 </td></tr>
               ) : rows.map((r) => {
                 const margin = r.intended_sale_value > 0 ? ((r.intended_sale_value - r.entry_value) / r.intended_sale_value) * 100 : 0;
                 return (
-                  <tr key={r.id} className="hover:bg-surface-elevated/40 cursor-pointer" onClick={() => navigate(`/app/trade-in/${r.id}`)}>
+                  <tr key={r.id} className="hover:bg-surface-elevated/40 cursor-pointer" onClick={() => navigate(`/painel/troca/${r.id}`)}>
                     <td className="px-4 py-3">
                       <div className="font-medium">{r.customer_name}</div>
                       <div className="text-[11px] text-muted-foreground font-mono">{new Date(r.created_at).toLocaleDateString("pt-BR")}</div>
