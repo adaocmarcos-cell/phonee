@@ -19,7 +19,7 @@ import { brl } from "@/lib/format";
 import { toast } from "sonner";
 
 type Supplier = { id: string; company_name: string; brands: string[]; avg_delivery_days: number | null };
-type Item = { id?: string; product_id?: string | null; product_name: string; quantity: number; unit_cost: number; notes?: string | null };
+type Item = { id?: string; product_id?: string | null; product_name: string; sku?: string | null; quantity: number; unit_cost: number; notes?: string | null };
 type Preview = {
   name: string;
   quantity: number;
@@ -42,7 +42,17 @@ type Order = {
   sent_at: string | null;
   received_at: string | null;
   created_at: string;
+  payment_status?: string | null;
+  paid_at?: string | null;
+  due_date?: string | null;
+  tags?: string[] | null;
 };
+
+const PAYMENT_METHODS = [
+  "Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito",
+  "Boleto", "Transferência", "Cheque",
+  "Crediário 30 dias", "Crediário 30/60", "Crediário 30/60/90", "Outro",
+];
 
 const STATUS_LABEL: Record<Order["status"], string> = {
   rascunho: "Rascunho", enviado: "Enviado", recebido: "Recebido", parcial: "Parcial", cancelado: "Cancelado",
