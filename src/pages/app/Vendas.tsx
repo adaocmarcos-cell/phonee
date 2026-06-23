@@ -200,7 +200,7 @@ export default function Vendas() {
     // 1. Buscar itens da venda para devolver ao estoque
     const { data: items, error: itemsErr } = await supabase
       .from("sale_items")
-      .select("product_id, qty")
+      .select("product_id, quantity")
       .eq("sale_id", sale.id);
     if (itemsErr) return toast.error("Erro ao ler itens: " + itemsErr.message);
 
@@ -208,7 +208,7 @@ export default function Vendas() {
     for (const it of items ?? []) {
       if (!it.product_id) continue;
       const { data: prod } = await supabase.from("products").select("stock_current").eq("id", it.product_id).maybeSingle();
-      const novoEstoque = Number(prod?.stock_current ?? 0) + Number(it.qty || 0);
+      const novoEstoque = Number(prod?.stock_current ?? 0) + Number(it.quantity || 0);
       const { error: updErr } = await supabase.from("products").update({ stock_current: novoEstoque }).eq("id", it.product_id);
       if (updErr) return toast.error("Erro ao devolver estoque: " + updErr.message);
     }
@@ -223,7 +223,7 @@ export default function Vendas() {
         item_kind: "product",
         product_id: it.product_id,
         item_name: `Estorno venda #${sale.sale_number ?? "-"}`,
-        qty_change: Number(it.qty || 0),
+        qty_change: Number(it.quantity || 0),
         prev_stock: 0,
         new_stock: 0,
         reason: "correcao",
