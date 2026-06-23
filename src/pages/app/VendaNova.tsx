@@ -871,7 +871,7 @@ Obrigado pela preferência.`;
             <div><strong>Telefone:</strong> {phone || "—"}</div>
             <div><strong>Cidade:</strong> {city || "—"}</div>
             <div><strong>Vendedor:</strong> {seller || "—"}</div>
-            <div><strong>Pagamento:</strong> {payMethod.toUpperCase()} {installments > 1 ? `(${installments}x)` : ""}</div>
+            <div><strong>Pagamento:</strong> {isMulti ? "MISTO" : primaryMethod.toUpperCase()} {(payments[0]?.installments ?? 1) > 1 ? `(${payments[0]?.installments}x)` : ""}</div>
           </div>
 
           <table className="w-full border-collapse text-xs mb-4">
