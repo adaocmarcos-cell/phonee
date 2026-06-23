@@ -17,6 +17,8 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +33,7 @@ import {
   CartesianGrid, Legend,
 } from "recharts";
 
-const PAY_METHODS = ["PIX", "Dinheiro", "Cartão de Débito", "Cartão de Crédito", "Boleto", "Transferência", "Outros"];
+const PAY_METHODS = ["PIX", "Dinheiro", "Cartão de Débito", "Cartão de Crédito", "Boleto", "Transferência", "Cheque", "Outros"];
 const COLOR_PALETTE = ["#2563EB", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4", "#EC4899", "#6B7280"];
 
 type Category = { id: string; name: string; color: string | null; icon: string | null; is_system: boolean; store_id: string | null };
@@ -509,13 +511,37 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState(PAY_METHODS[0]);
-  const [costCenter, setCostCenter] = useState("");
+  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
+  const [selectedStores, setSelectedStores] = useState<string[]>([]);
+  const [otherCenter, setOtherCenter] = useState("");
+  const [otherChecked, setOtherChecked] = useState(false);
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const selectedCat = categories.find((c) => c.id === categoryId);
   const isOther = selectedCat?.name === "Outros";
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      if (!uid) return;
+      const { data } = await (supabase.from("user_stores") as any)
+        .select("stores(id,name)")
+        .eq("user_id", uid);
+      const list = ((data ?? []) as any[])
+        .map((r) => r.stores)
+        .filter(Boolean);
+      setStores(list);
+    })();
+  }, []);
+
+  const costCenterLabel = (() => {
+    const names = stores.filter((s) => selectedStores.includes(s.id)).map((s) => s.name);
+    if (otherChecked && otherCenter.trim()) names.push(otherCenter.trim());
+    return names.length ? names.join(", ") : "";
+  })();
 
   const save = async () => {
     if (!categoryId) return toast({ title: "Selecione a categoria", variant: "destructive" });
@@ -539,7 +565,7 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
       store_id: storeId, category_id: categoryId, category_name: selectedCat?.name ?? "Outros",
       subcategory: subcategory.trim() || null, description: description.trim(),
       amount: Number(amount), expense_date: date, payment_method: paymentMethod,
-      cost_center: costCenter.trim() || null, notes: notes.trim() || null,
+      cost_center: costCenterLabel || null, notes: notes.trim() || null,
       receipt_url, created_by: userId,
     });
     setSaving(false);
@@ -567,7 +593,50 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
         </div>
         <div>
           <Label>Centro de custo</Label>
-          <Input value={costCenter} onChange={(e) => setCostCenter(e.target.value)} placeholder="Ex: Loja Centro" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" type="button" className="w-full justify-start font-normal">
+                {costCenterLabel || <span className="text-muted-foreground">Selecione lojas…</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-2" align="start">
+              <div className="max-h-60 overflow-y-auto space-y-1">
+                {stores.length === 0 && (
+                  <div className="text-xs text-muted-foreground p-2">Nenhuma loja cadastrada.</div>
+                )}
+                {stores.map((s) => {
+                  const checked = selectedStores.includes(s.id);
+                  return (
+                    <label key={s.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) =>
+                          setSelectedStores((prev) =>
+                            v ? [...prev, s.id] : prev.filter((x) => x !== s.id)
+                          )
+                        }
+                      />
+                      <span className="text-sm">{s.name}</span>
+                    </label>
+                  );
+                })}
+                <div className="border-t pt-1 mt-1">
+                  <label className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
+                    <Checkbox checked={otherChecked} onCheckedChange={(v) => setOtherChecked(!!v)} />
+                    <span className="text-sm">Outros</span>
+                  </label>
+                  {otherChecked && (
+                    <Input
+                      className="mt-1"
+                      value={otherCenter}
+                      onChange={(e) => setOtherCenter(e.target.value)}
+                      placeholder="Descreva o centro de custo"
+                    />
+                  )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="sm:col-span-2">
           <Label>{isOther ? "Descreva a despesa *" : "Descrição *"}</Label>
@@ -591,7 +660,7 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
           </Select>
         </div>
         <div>
-          <Label>Anexar comprovante</Label>
+          <Label className="flex items-center gap-1.5"><Paperclip className="h-3.5 w-3.5" /> Anexar comprovante</Label>
           <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </div>
         <div className="sm:col-span-2">
