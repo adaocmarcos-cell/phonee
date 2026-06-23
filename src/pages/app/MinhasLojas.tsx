@@ -100,7 +100,7 @@ export default function MinhasLojas() {
         customer_email: user.email || "",
         customer_doc: user.user_metadata?.doc || "",
         payment_method: paymentMethod,
-        status: "pendente",
+        status: "pending",
         amount_cents: selectedPlan.price_cents,
         installments: 1,
         started_at: new Date().toISOString(),
