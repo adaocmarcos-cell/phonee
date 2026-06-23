@@ -141,7 +141,7 @@ export default function Landing() {
           <div className="flex justify-center pt-2 pb-2 mb-7 lg:mb-9 mt-1">
             <img
               src={logo}
-              alt="Mobile+"
+              alt="Phonee"
               className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto bg-transparent border-0 shadow-none"
               style={{ background: "transparent", boxShadow: "none", border: 0 }}
             />
@@ -226,7 +226,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-5">
           <SectionTitle
             eyebrow="POR QUE MOBILE+"
-            title="O que o Mobile+ faz pela sua loja?"
+            title="O que o Phonee faz pela sua loja?"
             subtitle="Desenvolvido para eliminar processos manuais, reduzir falhas operacionais e entregar informações estratégicas para decisões mais rápidas e inteligentes."
           />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -264,7 +264,7 @@ export default function Landing() {
             ))}
           </div>
           <p className="text-center mt-12 text-xl md:text-2xl font-bold">
-            O Mobile+ foi criado exatamente para resolver esses problemas.
+            O Phonee foi criado exatamente para resolver esses problemas.
           </p>
         </div>
       </section>
@@ -467,7 +467,7 @@ export default function Landing() {
           <div className="mt-6 text-sm font-mono tracking-[0.3em] text-success font-bold">GARANTIA PREMIUM</div>
           <h2 className="mt-3 text-4xl md:text-6xl font-extrabold tracking-tight text-white">7 dias para testar sem risco</h2>
           <p className="mt-6 text-white/90 text-lg md:text-xl leading-relaxed font-medium">
-            Experimente o Mobile+ com tranquilidade. Se nos primeiros 7 dias você concluir que o sistema
+            Experimente o Phonee com tranquilidade. Se nos primeiros 7 dias você concluir que o sistema
             não atende sua necessidade, devolvemos <span className="text-white font-bold">100% do valor</span> investido.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-6 text-base text-white font-semibold">
@@ -633,8 +633,8 @@ export default function Landing() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src={logo} alt="Mobile+" className="h-10 w-auto" />
-          <div className="text-xs">© {new Date().getFullYear()} Mobile+. Todos os direitos reservados.</div>
+          <img src={logo} alt="Phonee" className="h-10 w-auto" />
+          <div className="text-xs">© {new Date().getFullYear()} Phonee. Todos os direitos reservados.</div>
         </div>
       </footer>
     </div>

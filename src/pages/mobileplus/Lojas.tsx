@@ -11,7 +11,7 @@ type Row = {
 const brl = (n: number) =>
   (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export default function MobilePlusLojas() {
+export default function PhoneeLojas() {
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
 

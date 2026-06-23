@@ -21,7 +21,7 @@ function Card({ label, value, hint }: { label: string; value: React.ReactNode; h
   );
 }
 
-export default function MobilePlusVisaoGeral() {
+export default function PhoneeVisaoGeral() {
   const [d, setD] = useState<Overview | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export default function MobilePlusVisaoGeral() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-1">Visão geral da plataforma</h1>
-      <p className="text-sm text-slate-400 mb-6">Indicadores consolidados do Mobile+.</p>
+      <p className="text-sm text-slate-400 mb-6">Indicadores consolidados do Phonee.</p>
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         <Card label="Lojas totais" value={d.total_stores} />
         <Card label="Assinaturas ativas" value={d.active_subscriptions}

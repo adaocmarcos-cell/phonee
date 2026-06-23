@@ -175,7 +175,7 @@ export default function OrdemServicoForm() {
   const saveDraft = () => persist(true);
 
   const summary = useMemo(() => {
-    const storeName = (store as any)?.trade_name || store?.name || "Mobile+";
+    const storeName = (store as any)?.trade_name || store?.name || "Phonee";
     return `*${storeName} — Ordem de Serviço #${String(os.os_number ?? "—").padStart(4, "0")}*
 
 Cliente: ${os.customer_name || "—"}
@@ -199,7 +199,7 @@ Status: ${os.status}`;
   };
   const sendMail = () => {
     if (!os.customer_email) return toast.error("Informe o e-mail do cliente");
-    const storeName = (store as any)?.trade_name || store?.name || "Mobile+";
+    const storeName = (store as any)?.trade_name || store?.name || "Phonee";
     const subject = encodeURIComponent(`Ordem de Serviço #${String(os.os_number ?? "").padStart(4, "0")} — ${storeName}`);
     window.open(`mailto:${os.customer_email}?subject=${subject}&body=${encodeURIComponent(summary)}`);
   };

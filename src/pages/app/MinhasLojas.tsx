@@ -320,7 +320,7 @@ export default function MinhasLojas() {
           <div className="space-y-3">
             <div>
               <Label>Nome da loja *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Mobile+ Filial Centro" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Phonee Filial Centro" />
             </div>
             <div>
               <Label>Modalidade de cobrança *</Label>

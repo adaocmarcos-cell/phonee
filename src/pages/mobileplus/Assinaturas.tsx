@@ -7,7 +7,7 @@ type Row = {
   subscription_status: string | null; expires_at: string | null;
 };
 
-export default function MobilePlusAssinaturas() {
+export default function PhoneeAssinaturas() {
   const [rows, setRows] = useState<Row[]>([]);
   useEffect(() => {
     (async () => {

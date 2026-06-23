@@ -236,7 +236,7 @@ export default function PedidoNovo() {
         <div className="flex items-start gap-3">
           <Zap className="h-5 w-5 text-primary mt-0.5" />
           <div className="text-sm flex-1">
-            <p className="font-semibold mb-1">Como o Mobile+ sugere a quantidade?</p>
+            <p className="font-semibold mb-1">Como o Phonee sugere a quantidade?</p>
             <p className="text-muted-foreground font-normal">
               Cruzamos o giro médio dos últimos {WINDOW_DAYS} dias com o estoque mínimo e prevemos a ruptura. A sugestão garante {coverageDays} dias de venda + buffer do ponto de pedido.
             </p>

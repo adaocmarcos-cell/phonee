@@ -313,7 +313,7 @@ export default function VendaNova() {
 
   const buildSummary = () => {
     const prodLine = items.map((i) => `• ${i.quantity}× ${i.name} — ${brl(i.unit_price * i.quantity)}`).join("\n");
-    const storeName = (store as any)?.trade_name || store?.name || "Mobile+";
+    const storeName = (store as any)?.trade_name || store?.name || "Phonee";
     return `Olá, segue o resumo da sua compra na ${storeName}:
 
 Cliente: ${customer || "—"}
