@@ -332,7 +332,7 @@ function EditUserDialog({
   row, storeId, onClose, onSaved,
 }: { row: Row | null; storeId: string; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
-    full_name: "", email: "", phone: "", job_title: "",
+    full_name: "", email: "", phone: "",
     role: "vendedor" as AppRole, status: "ativo" as Row["status"], new_password: "",
   });
   const [busy, setBusy] = useState(false);
@@ -343,7 +343,6 @@ function EditUserDialog({
       full_name: row.full_name === "Sem nome" ? "" : row.full_name,
       email: row.email,
       phone: row.phone ?? "",
-      job_title: row.job_title ?? "",
       role: row.role,
       status: row.status,
       new_password: "",
@@ -365,7 +364,6 @@ function EditUserDialog({
         full_name: form.full_name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        job_title: form.job_title.trim(),
         role: form.role,
         status: form.status,
         new_password: form.new_password || undefined,
