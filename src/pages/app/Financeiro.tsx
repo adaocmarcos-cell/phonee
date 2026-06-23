@@ -82,24 +82,25 @@ export default function Financeiro() {
       const status: Receivable["status"] = isPaid ? "pago" : dueDate && dueDate < today ? "vencido" : "aberto";
       items.push({
         id: s.id, ref: `#${s.sale_number ?? "—"}`, source: "venda",
-        customer: s.customer_name || "—", total: Number(s.total || 0),
+        customer: s.customer_name || "—", total: Number((s as any).net_value ?? s.total ?? 0),
         date: s.created_at, due: s.due_date, status, method: s.payment_method,
       });
     });
     partsSales.forEach((p) => {
       items.push({
         id: p.id, ref: "peça", source: "peça",
-        customer: p.customer_name || "—", total: Number(p.total || 0),
+        customer: p.customer_name || "—", total: Number((p as any).net_value ?? p.total ?? 0),
         date: p.created_at, due: null, status: "pago", method: p.payment_method,
       });
     });
     os.forEach((o) => {
       const concluida = ["concluida","concluído","entregue","finalizada","finalizado"].includes((o.status ?? "").toLowerCase());
       const status: Receivable["status"] = concluida ? "pago" : "aberto";
-      if (Number(o.total_value || 0) > 0) {
+      const osVal = Number((o as any).net_value ?? o.total_value ?? 0);
+      if (osVal > 0) {
         items.push({
           id: o.id, ref: `OS #${o.os_number ?? "—"}`, source: "serviço",
-          customer: o.customer_name || "—", total: Number(o.total_value || 0),
+          customer: o.customer_name || "—", total: osVal,
           date: o.created_at, due: null, status, method: "—",
         });
       }
