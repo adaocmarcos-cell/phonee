@@ -15,7 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, FileDown, AlertTriangle, Wrench, RefreshCw, ClipboardEdit } from "lucide-react";
+import { ArrowLeft, FileDown, AlertTriangle, Wrench, RefreshCw, ClipboardEdit, Filter } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -49,11 +49,39 @@ type Row = {
 function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
 }
+function startOfWeek(d = new Date()) {
+  const x = new Date(d);
+  const day = x.getDay();
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - day);
+  return x;
+}
 function endOfPrevMonth(d = new Date()) {
   const x = startOfMonth(d);
   x.setMilliseconds(-1);
   return x;
 }
+
+type Granularity = "mes" | "semana" | "custom";
+
+type Prefs = {
+  granularity: Granularity;
+  customStart: string;
+  customEnd: string;
+  categories: string[];
+  kind: "all" | "product" | "part";
+};
+const PREF_KEY = "mobileplus.estoqueRelatorio.prefs";
+const loadPrefs = (): Prefs => {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(PREF_KEY) : null;
+    if (raw) return { granularity: "mes", customStart: "", customEnd: "", categories: [], kind: "all", ...JSON.parse(raw) };
+  } catch {}
+  return { granularity: "mes", customStart: "", customEnd: "", categories: [], kind: "all" };
+};
+const savePrefs = (p: Prefs) => {
+  try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch {}
+};
 
 export default function EstoqueRelatorio() {
   const { store, role } = useAuth();
@@ -62,7 +90,22 @@ export default function EstoqueRelatorio() {
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
-  const [periodStart] = useState<Date>(startOfMonth());
+  const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
+  useEffect(() => { savePrefs(prefs); }, [prefs]);
+
+  const periodStart = useMemo<Date>(() => {
+    if (prefs.granularity === "semana") return startOfWeek();
+    if (prefs.granularity === "custom" && prefs.customStart) return new Date(prefs.customStart + "T00:00:00");
+    return startOfMonth();
+  }, [prefs]);
+  const periodEnd = useMemo<Date>(() => {
+    if (prefs.granularity === "custom" && prefs.customEnd) {
+      const d = new Date(prefs.customEnd + "T23:59:59");
+      return d;
+    }
+    return new Date();
+  }, [prefs]);
+
   const [adjOpen, setAdjOpen] = useState(false);
   const [adjTarget, setAdjTarget] = useState<Row | null>(null);
   const [adjQty, setAdjQty] = useState<number>(0);
@@ -73,6 +116,7 @@ export default function EstoqueRelatorio() {
     if (!store) return;
     setLoading(true);
     const startIso = periodStart.toISOString();
+    const endIso = periodEnd.toISOString();
 
     const [{ data: prods }, { data: parts }] = await Promise.all([
       supabase.from("products")
@@ -88,17 +132,20 @@ export default function EstoqueRelatorio() {
       .from("sale_items")
       .select("product_id, qty, sales!inner(store_id, created_at)")
       .eq("sales.store_id", store.id)
-      .gte("sales.created_at", startIso);
+      .gte("sales.created_at", startIso)
+      .lte("sales.created_at", endIso);
     const { data: osParts } = await supabase
       .from("service_order_parts")
       .select("part_id, qty, created_at")
       .eq("store_id", store.id)
-      .gte("created_at", startIso);
+      .gte("created_at", startIso)
+      .lte("created_at", endIso);
     const { data: adjustments } = await supabase
       .from("stock_adjustments")
       .select("item_kind, product_id, part_id, qty_change")
       .eq("store_id", store.id)
-      .gte("created_at", startIso);
+      .gte("created_at", startIso)
+      .lte("created_at", endIso);
 
     const movMap = new Map<string, { in: number; out: number }>();
     const bump = (key: string, delta: number) => {
@@ -138,16 +185,31 @@ export default function EstoqueRelatorio() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [store]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [store, periodStart.getTime(), periodEnd.getTime()]);
+
+  const allCategories = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => r.category && set.add(r.category));
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const visibleRows = useMemo(() => rows.filter((r) => {
+    if (prefs.kind !== "all" && r.kind !== prefs.kind) return false;
+    if (prefs.categories.length > 0) {
+      const tag = r.kind === "part" ? `peca:${r.category ?? "outros"}` : (r.category ?? "");
+      if (!prefs.categories.includes(tag) && !prefs.categories.includes(r.category ?? "")) return false;
+    }
+    return true;
+  }), [rows, prefs]);
 
   const totals = useMemo(() => ({
-    items: rows.length,
-    units: rows.reduce((s, r) => s + r.stock_current, 0),
-    cashCost: rows.reduce((s, r) => s + r.stock_current * r.cost_price, 0),
-    cashSale: rows.reduce((s, r) => s + r.stock_current * r.sale_price, 0),
-    inconsistencies: rows.filter((r) => r.inconsistent).length,
-    baselineUnits: rows.reduce((s, r) => s + r.baseline, 0),
-  }), [rows]);
+    items: visibleRows.length,
+    units: visibleRows.reduce((s, r) => s + r.stock_current, 0),
+    cashCost: visibleRows.reduce((s, r) => s + r.stock_current * r.cost_price, 0),
+    cashSale: visibleRows.reduce((s, r) => s + r.stock_current * r.sale_price, 0),
+    inconsistencies: visibleRows.filter((r) => r.inconsistent).length,
+    baselineUnits: visibleRows.reduce((s, r) => s + r.baseline, 0),
+  }), [visibleRows]);
 
   const openAdjust = (r: Row) => {
     setAdjTarget(r);
@@ -206,8 +268,8 @@ export default function EstoqueRelatorio() {
       doc.setTextColor(0, 0, 0);
     }
 
-    const head = [["Item", "Tipo", "Base (mês-1)", "Entradas", "Saídas", "Atual", `Valor venda${showCost ? " | custo" : ""}`, "Status"]];
-    const body = rows.map((r) => [
+    const head = [["Item", "Tipo", "Base", "Entradas", "Saídas", "Atual", `Valor venda${showCost ? " | custo" : ""}`, "Status"]];
+    const body = visibleRows.map((r) => [
       `${r.name}${r.sku ? ` (${r.sku})` : ""}`,
       r.kind === "product" ? "Produto" : "Peça",
       String(r.baseline),
@@ -227,7 +289,7 @@ export default function EstoqueRelatorio() {
     <div>
       <PageHeader
         title="Relatório de Estoque"
-        description={`Inventário em tempo real · Período: ${periodStart.toLocaleDateString("pt-BR")} até hoje · Base = fechamento de ${endOfPrevMonth().toLocaleDateString("pt-BR")}`}
+        description={`Inventário em tempo real · ${periodStart.toLocaleDateString("pt-BR")} → ${periodEnd.toLocaleDateString("pt-BR")} · Base = fechamento de ${endOfPrevMonth().toLocaleDateString("pt-BR")}`}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate("/app/estoque")}>
@@ -242,6 +304,72 @@ export default function EstoqueRelatorio() {
           </div>
         }
       />
+
+      {/* Filters */}
+      <Card className="p-3 mb-3">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
+          <div className="flex-1 min-w-0">
+            <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground flex items-center gap-1">
+              <Filter className="h-3 w-3" /> Período
+            </Label>
+            <div className="flex gap-1 mt-1">
+              {(["semana", "mes", "custom"] as const).map((g) => (
+                <Button key={g} size="sm" variant={prefs.granularity === g ? "default" : "outline"} onClick={() => setPrefs({ ...prefs, granularity: g })} className={prefs.granularity === g ? "bg-primary text-primary-foreground" : ""}>
+                  {g === "semana" ? "Esta semana" : g === "mes" ? "Este mês" : "Personalizado"}
+                </Button>
+              ))}
+            </div>
+            {prefs.granularity === "custom" && (
+              <div className="flex gap-2 mt-2">
+                <Input type="date" value={prefs.customStart} onChange={(e) => setPrefs({ ...prefs, customStart: e.target.value })} className="h-8" />
+                <Input type="date" value={prefs.customEnd} onChange={(e) => setPrefs({ ...prefs, customEnd: e.target.value })} className="h-8" />
+              </div>
+            )}
+          </div>
+          <div>
+            <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Tipo</Label>
+            <Select value={prefs.kind} onValueChange={(v) => setPrefs({ ...prefs, kind: v as any })}>
+              <SelectTrigger className="h-8 w-40 mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="product">Produtos</SelectItem>
+                <SelectItem value="part">Peças</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {allCategories.length > 0 && (
+            <div className="flex-1 min-w-0">
+              <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Categorias</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {allCategories.map((c) => {
+                  const active = prefs.categories.includes(c);
+                  return (
+                    <Button
+                      key={c}
+                      size="sm"
+                      variant={active ? "default" : "outline"}
+                      onClick={() => setPrefs({
+                        ...prefs,
+                        categories: active
+                          ? prefs.categories.filter((x) => x !== c)
+                          : [...prefs.categories, c],
+                      })}
+                      className={`h-7 text-xs ${active ? "bg-primary text-primary-foreground" : ""}`}
+                    >
+                      {c}
+                    </Button>
+                  );
+                })}
+                {prefs.categories.length > 0 && (
+                  <Button size="sm" variant="ghost" onClick={() => setPrefs({ ...prefs, categories: [] })} className="h-7 text-xs">
+                    Limpar
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
@@ -291,9 +419,9 @@ export default function EstoqueRelatorio() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono">CARREGANDO…</td></tr>
-              ) : rows.length === 0 ? (
+              ) : visibleRows.length === 0 ? (
                 <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">Nenhum item no estoque.</td></tr>
-              ) : rows.map((r) => (
+              ) : visibleRows.map((r) => (
                 <tr key={`${r.kind}-${r.id}`} className={`hover:bg-surface-elevated/40 ${r.inconsistent ? "bg-danger/5" : ""}`}>
                   <td className="px-4 py-3">
                     <div className="font-medium">{r.name}</div>

@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Trash2, ShieldCheck, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Upload, Trash2, ShieldCheck, ShieldAlert, Plus, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
 function CurrencyBRLInput({
@@ -74,7 +74,9 @@ export default function TradeInForm() {
     checklist: {} as Record<string, boolean>,
     photos_in: [] as string[],
     notes: "", status: "em_avaliacao",
+    add_to_stock: false,
   });
+  const [pendingDevices, setPendingDevices] = useState<TradeIn[]>([]);
 
   useEffect(() => {
     if (!editing || !store) return;
@@ -116,41 +118,76 @@ export default function TradeInForm() {
     update({ photos_in: form.photos_in.filter((p: string) => p !== path) });
   };
 
+  const buildPayload = (src: TradeIn) => ({
+    store_id: store!.id,
+    created_by: user!.id,
+    customer_name: src.customer_name.trim(),
+    customer_doc: src.customer_doc || null,
+    customer_phone: src.customer_phone || null,
+    customer_email: src.customer_email || null,
+    imei: src.imei || null,
+    imei_status: src.imei_status,
+    brand: src.brand || null,
+    model: src.model.trim(),
+    storage_gb: src.storage_gb || null,
+    color: src.color || null,
+    condition: src.condition,
+    battery_health: Number(src.battery_health) || null,
+    entry_value: Number(src.entry_value) || 0,
+    intended_sale_value: Number(src.intended_sale_value) || 0,
+    checklist: src.checklist,
+    photos_in: src.photos_in,
+    notes: src.notes || null,
+    // If "include in stock now" is checked, send straight to em_estoque so the trigger creates a product
+    status: src.add_to_stock ? "em_estoque" : src.status,
+  });
+
+  const resetDeviceFields = () =>
+    setForm((f: TradeIn) => ({
+      ...f,
+      imei: "", imei_status: "nao_verificado",
+      brand: "", model: "", storage_gb: "", color: "",
+      condition: "bom", battery_health: 100,
+      entry_value: 0, intended_sale_value: 0,
+      checklist: {},
+      photos_in: [],
+      notes: "",
+      add_to_stock: false,
+    }));
+
+  const addAnother = () => {
+    if (!form.model.trim()) return toast.error("Preencha o modelo antes de adicionar outro.");
+    setPendingDevices((arr) => [...arr, { ...form }]);
+    toast.success("Aparelho adicionado à entrega. Preencha o próximo.");
+    resetDeviceFields();
+  };
+
+  const removePending = (idx: number) =>
+    setPendingDevices((arr) => arr.filter((_, i) => i !== idx));
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     if (!store || !user) return;
     if (!form.customer_name.trim()) return toast.error("Informe o nome do cliente.");
-    if (!form.model.trim()) return toast.error("Informe o modelo do aparelho.");
+    if (!form.model.trim() && pendingDevices.length === 0)
+      return toast.error("Informe o modelo do aparelho ou adicione pelo menos um aparelho.");
     setBusy(true);
-    const payload = {
-      store_id: store.id,
-      created_by: user.id,
-      customer_name: form.customer_name.trim(),
-      customer_doc: form.customer_doc || null,
-      customer_phone: form.customer_phone || null,
-      customer_email: form.customer_email || null,
-      imei: form.imei || null,
-      imei_status: form.imei_status,
-      brand: form.brand || null,
-      model: form.model.trim(),
-      storage_gb: form.storage_gb || null,
-      color: form.color || null,
-      condition: form.condition,
-      battery_health: Number(form.battery_health) || null,
-      entry_value: Number(form.entry_value) || 0,
-      intended_sale_value: Number(form.intended_sale_value) || 0,
-      checklist: form.checklist,
-      photos_in: form.photos_in,
-      notes: form.notes || null,
-      status: form.status,
-    };
-    const q = editing
-      ? supabase.from("trade_ins").update(payload).eq("id", id!)
-      : supabase.from("trade_ins").insert(payload);
-    const { error } = await q;
+
+    if (editing) {
+      const { error } = await supabase.from("trade_ins").update(buildPayload(form)).eq("id", id!);
+      setBusy(false);
+      if (error) return toast.error(error.message);
+      toast.success("Ficha atualizada");
+      navigate("/app/trade-in");
+      return;
+    }
+
+    const all = form.model.trim() ? [...pendingDevices, form] : pendingDevices;
+    const payloads = all.map(buildPayload);
+    const { error } = await supabase.from("trade_ins").insert(payloads);
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success(editing ? "Ficha atualizada" : "Ficha de Compra & Troca criada");
+    toast.success(`${payloads.length} ficha(s) criada(s)`);
     navigate("/app/trade-in");
   };
 
@@ -179,7 +216,14 @@ export default function TradeInForm() {
 
         {/* Aparelho */}
         <Card className="p-5 bg-card border-border">
-          <h3 className="font-semibold mb-4">Aparelho</h3>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 className="font-semibold">Aparelho{!editing && pendingDevices.length > 0 ? ` ${pendingDevices.length + 1}` : ""}</h3>
+            {!editing && (
+              <Button type="button" variant="outline" size="sm" onClick={addAnother}>
+                <Plus className="h-4 w-4 mr-1" /> Adicionar outro aparelho a esta entrega
+              </Button>
+            )}
+          </div>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-2"><Label>Marca</Label><Input value={form.brand} onChange={(e) => update({ brand: e.target.value })} placeholder="Apple, Samsung…" /></div>
             <div className="space-y-2 md:col-span-2"><Label>Modelo *</Label><Input value={form.model} onChange={(e) => update({ model: e.target.value })} placeholder="iPhone 14 Pro 256GB" /></div>
@@ -211,7 +255,45 @@ export default function TradeInForm() {
             <div className="space-y-2"><Label>Valor de venda pretendido (R$)</Label><CurrencyBRLInput value={form.intended_sale_value} onChange={(n) => update({ intended_sale_value: n })} className="font-mono" /></div>
             <div className="space-y-2"><Label>Margem estimada</Label><div className={`px-3 py-2 rounded-md border border-border bg-surface-elevated font-mono font-semibold ${margin >= 25 ? "text-success" : margin >= 10 ? "text-warning" : "text-danger"}`}>{margin.toFixed(1)}%</div></div>
           </div>
+
+          {!editing && (
+            <label className="mt-4 flex items-start gap-3 p-3 rounded-md border border-border bg-surface-elevated/50 cursor-pointer">
+              <Checkbox checked={!!form.add_to_stock} onCheckedChange={(v) => update({ add_to_stock: !!v })} />
+              <div className="text-sm">
+                <div className="font-medium">Incluir agora no estoque (vitrine)</div>
+                <div className="text-xs text-muted-foreground">Quando marcado, este aparelho entra direto como seminovo disponível para venda. Caso contrário, fica em avaliação.</div>
+              </div>
+            </label>
+          )}
         </Card>
+
+        {!editing && pendingDevices.length > 0 && (
+          <Card className="p-5 bg-primary/5 border-primary/30">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-primary" />
+                Aparelhos nesta entrega ({pendingDevices.length})
+              </h3>
+              <span className="text-[11px] text-muted-foreground">Serão salvos junto ao apertar "Criar fichas".</span>
+            </div>
+            <div className="space-y-2">
+              {pendingDevices.map((d, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded-md bg-card border border-border">
+                  <div className="text-sm">
+                    <span className="font-medium">{d.brand ? `${d.brand} ` : ""}{d.model}</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {d.storage_gb ? `${d.storage_gb} · ` : ""}{d.color || "—"} · entrada R$ {Number(d.entry_value || 0).toFixed(2)}
+                      {d.add_to_stock && <Badge className="ml-2 bg-success/15 text-success border-success/30 text-[10px]">vai p/ estoque</Badge>}
+                    </span>
+                  </div>
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removePending(i)}>
+                    <Trash2 className="h-3.5 w-3.5 text-danger" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Checklist */}
         <Card className="p-5 bg-card border-border">
@@ -277,7 +359,7 @@ export default function TradeInForm() {
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => navigate("/app/trade-in")}>Cancelar</Button>
           <Button type="submit" disabled={busy} className="bg-gradient-primary shadow-glow">
-            {busy ? "Salvando…" : editing ? "Salvar alterações" : "Criar ficha"}
+            {busy ? "Salvando…" : editing ? "Salvar alterações" : pendingDevices.length > 0 ? `Criar ${pendingDevices.length + (form.model.trim() ? 1 : 0)} fichas` : "Criar ficha"}
           </Button>
         </div>
       </form>

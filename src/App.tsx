@@ -36,6 +36,8 @@ import PagamentosAsaas from "./pages/app/admin/PagamentosAsaas";
 import Planos from "./pages/app/admin/Planos";
 import Assinaturas from "./pages/app/admin/Assinaturas";
 import LogsPagamento from "./pages/app/admin/LogsPagamento";
+import LogsPage from "./pages/app/admin/Logs";
+import AjustesEstoque from "./pages/app/admin/AjustesEstoque";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
@@ -84,7 +86,8 @@ const App = () => (
               <Route path="admin/cargos" element={<Cargos />} />
               <Route path="admin/garantias" element={<Garantias />} />
               <Route path="admin/permissoes" element={<ComingSoon title="Permissões" description="Matriz de permissões por cargo × módulo × ação. Disponível na próxima fase." />} />
-              <Route path="admin/logs" element={<ComingSoon title="Logs e Auditoria" description="Histórico permanente de ações. Disponível na próxima fase." />} />
+              <Route path="admin/logs" element={<LogsPage />} />
+              <Route path="admin/ajustes-estoque" element={<AjustesEstoque />} />
               <Route path="admin/configuracoes" element={<Configuracoes />} />
               <Route path="admin/pagamentos" element={<PagamentosAsaas />} />
               <Route path="admin/planos" element={<Planos />} />

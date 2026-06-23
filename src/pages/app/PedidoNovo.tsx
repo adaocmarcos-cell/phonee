@@ -320,11 +320,28 @@ export default function PedidoNovo() {
       </Card>
 
       <Card className="bg-card border-border overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <h3 className="font-semibold">Itens sugeridos</h3>
-          <span className="text-[11px] font-mono text-muted-foreground tracking-widest">
-            {num(suggestions.filter((s) => s.selected).length)} / {num(suggestions.length)} SELECIONADOS
-          </span>
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="font-semibold">Itens sugeridos</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              <span className="inline-flex items-center gap-1 text-warning">
+                <AlertTriangle className="h-3 w-3" />
+                {num(suggestions.filter((s) => s.stock_current <= s.stock_min).length)} abaixo do mínimo
+              </span>
+              {" "}· pré-selecionados. Desmarque o que não quiser pedir.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setSuggestions((arr) => arr.map((s) => ({ ...s, selected: s.stock_current <= s.stock_min })))}>
+              Selecionar só abaixo do mínimo
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSuggestions((arr) => arr.map((s) => ({ ...s, selected: false })))}>
+              Limpar
+            </Button>
+            <span className="text-[11px] font-mono text-muted-foreground tracking-widest">
+              {num(suggestions.filter((s) => s.selected).length)} / {num(suggestions.length)} SELECIONADOS
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
