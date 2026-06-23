@@ -80,9 +80,11 @@ export function AppSidebar() {
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [store, pathname]);
 
-  const renderGroup = (label: string, items: typeof main) => (
+  const renderGroup = (label: string, items: typeof main, opts?: { hideLabel?: boolean }) => (
     <SidebarGroup>
-      {!collapsed && <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">{label}</SidebarGroupLabel>}
+      {!collapsed && !opts?.hideLabel && label && (
+        <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">{label}</SidebarGroupLabel>
+      )}
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
