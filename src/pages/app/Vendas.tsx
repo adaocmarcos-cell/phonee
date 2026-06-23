@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer } from "lucide-react";
+import { exportSalesPDF, exportSalesXLSX, printSaleReceipt } from "@/lib/salesExport";
+import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 
 const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, "0")}`;
 
@@ -22,6 +24,12 @@ export default function Vendas() {
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [payment, setPayment] = useState<string>("all");
   const [q, setQ] = useState("");
+  const [warranty, setWarranty] = useState<WarrantySettings | null>(null);
+
+  useEffect(() => {
+    if (!store) return;
+    loadWarrantySettings(store.id).then(setWarranty);
+  }, [store]);
 
   const load = async () => {
     if (!store) return;
@@ -54,17 +62,54 @@ export default function Vendas() {
 
   const total = filtered.reduce((a, b) => a + Number(b.total || 0), 0);
 
+  const periodLabel = (() => {
+    const map: Record<string, string> = { "7d": "Últimos 7 dias", "30d": "Últimos 30 dias", "90d": "Últimos 90 dias", "1y": "Último ano", "all": "Tudo", "custom": "Personalizado" };
+    return map[period] || period;
+  })();
+
+  const onExportPDF = () => {
+    if (filtered.length === 0) return;
+    exportSalesPDF({ storeName: store?.name || "", periodLabel, sales: filtered });
+  };
+  const onExportXLSX = () => {
+    if (filtered.length === 0) return;
+    exportSalesXLSX({ periodLabel, sales: filtered });
+  };
+
+  const onPrintReceipt = async (sale: any) => {
+    const { data: items } = await supabase
+      .from("sale_items")
+      .select("quantity, unit_price, total, products(name, sku)")
+      .eq("sale_id", sale.id);
+    const list = (items ?? []).map((it: any) => ({
+      name: it.products?.name ?? "Produto",
+      sku: it.products?.sku ?? null,
+      quantity: it.quantity,
+      unit_price: Number(it.unit_price),
+      total: Number(it.total),
+    }));
+    printSaleReceipt({ sale, items: list, store, warranty });
+  };
+
   return (
     <div>
       <PageHeader
         title="Vendas"
         description="Histórico de vendas e PDV rápido."
         actions={
-          canRegisterSale(role) && (
-            <Button onClick={() => navigate("/app/vendas/nova")} className="bg-primary text-primary-foreground shadow-glow">
-              <Plus className="h-4 w-4 mr-1" />Nova venda
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={onExportPDF} disabled={filtered.length === 0}>
+              <FileDown className="h-4 w-4 mr-1" />PDF
             </Button>
-          )
+            <Button variant="outline" onClick={onExportXLSX} disabled={filtered.length === 0}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+            </Button>
+            {canRegisterSale(role) && (
+              <Button onClick={() => navigate("/app/vendas/nova")} className="bg-primary text-primary-foreground shadow-glow">
+                <Plus className="h-4 w-4 mr-1" />Nova venda
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -113,6 +158,7 @@ export default function Vendas() {
                 <th className="text-left px-4 py-3 font-medium">Pagamento</th>
                 <th className="text-right px-4 py-3 font-medium">Desconto</th>
                 <th className="text-right px-4 py-3 font-medium">Total</th>
+                <th className="text-right px-4 py-3 font-medium w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -124,6 +170,11 @@ export default function Vendas() {
                   <td className="px-4 py-3"><Badge variant="outline" className="capitalize text-xs">{s.payment_method}</Badge></td>
                   <td className="px-4 py-3 text-right metric text-muted-foreground">{brl(Number(s.discount))}</td>
                   <td className="px-4 py-3 text-right metric font-semibold">{brl(Number(s.total))}</td>
+                  <td className="px-2 py-3 text-right">
+                    <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
