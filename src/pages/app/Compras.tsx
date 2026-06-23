@@ -433,10 +433,16 @@ export default function Compras() {
             <div className="mt-3 text-right text-sm">Total: <span className="font-semibold metric">{brl(orderTotal)}</span></div>
           </div>
 
+          <div className="mt-3 flex items-start gap-2 text-[12px] text-muted-foreground bg-success/5 border border-success/20 rounded-md p-2">
+            <PackagePlus className="h-4 w-4 text-success mt-0.5 shrink-0" />
+            <span>Ao salvar, as quantidades entram automaticamente no estoque geral da loja. Itens novos são cadastrados; itens existentes têm o saldo somado.</span>
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={() => save(false)} className="bg-gradient-primary">Salvar</Button>
-            <Button onClick={() => save(true)} variant="outline" className="border-success text-success hover:bg-success/10"><CheckCircle2 className="h-4 w-4 mr-1" /> Salvar e receber</Button>
+            <Button onClick={() => save(true)} className="bg-gradient-primary">
+              <CheckCircle2 className="h-4 w-4 mr-1" /> Salvar compra e dar entrada
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
