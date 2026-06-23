@@ -61,7 +61,7 @@ export default function MobilePlusLayout() {
           </div>
           <Button size="sm" variant="ghost" onClick={logout}
             className="text-slate-300 hover:bg-slate-800 hover:text-slate-100 h-8 px-2">
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-[1.15rem] w-[1.15rem]" />
           </Button>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-2 sidebar-scroll">
