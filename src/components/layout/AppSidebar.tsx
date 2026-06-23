@@ -1,4 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
@@ -14,13 +16,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { canManageUsers, isAdminMaster } from "@/lib/roles";
 import logoAsset from "@/assets/mobileplus-logo-sidebar.png.asset.json";
 
-type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[] };
+type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" };
 
 const main: Item[] = [
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
-  { title: "Alertas", url: "/app/alertas", icon: Bell },
+  { title: "Alertas", url: "/app/alertas", icon: Bell, badgeKey: "alerts" },
 ];
 
 const ops: Item[] = [
@@ -56,9 +58,29 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { role } = useAuth();
+  const { role, store } = useAuth();
   const showAdmin = canManageUsers(role as any);
   const showLogsOnly = isAdminMaster(role as any) || role === "dono";
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
+
+  useEffect(() => {
+    if (!store) return;
+    let cancelled = false;
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from("alerts")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", store.id)
+        .eq("is_read", false);
+      if (!cancelled) setUnreadAlerts(count ?? 0);
+    };
+    fetchCount();
+    const channel = supabase
+      .channel(`sidebar-alerts-${store.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "alerts", filter: `store_id=eq.${store.id}` }, fetchCount)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
+  }, [store, pathname]);
 
   const renderGroup = (label: string, items: typeof main) => (
     <SidebarGroup>
@@ -77,10 +99,25 @@ export function AppSidebar() {
                   className="data-[active=true]:bg-[#00abfb] data-[active=true]:text-blue-900 data-[active=true]:font-semibold data-[active=true]:hover:bg-[#00abfb] data-[active=true]:hover:text-blue-900 hover:bg-sidebar-accent"
                 >
                   <NavLink to={item.url} end={item.end}>
-                    <item.icon className="h-4 w-4" />
+                    <span className="relative inline-flex">
+                      <item.icon className="h-4 w-4" />
+                      {item.badgeKey === "alerts" && unreadAlerts > 0 && (
+                        <span
+                          className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-[14px] text-center ring-2 ring-sidebar"
+                          aria-label={`${unreadAlerts} alertas não lidos`}
+                        >
+                          {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                        </span>
+                      )}
+                    </span>
                     {!collapsed && (
-                      <span className={isDashboard && !active ? "text-[#00abfb] font-semibold" : ""}>
+                      <span className={`flex items-center gap-2 ${isDashboard && !active ? "text-[#00abfb] font-semibold" : ""}`}>
                         {item.title}
+                        {item.badgeKey === "alerts" && unreadAlerts > 0 && (
+                          <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                            {unreadAlerts > 99 ? "99+" : unreadAlerts}
+                          </span>
+                        )}
                       </span>
                     )}
                   </NavLink>

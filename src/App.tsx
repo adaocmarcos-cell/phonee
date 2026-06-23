@@ -12,6 +12,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/app/Dashboard";
 import Estoque from "./pages/app/Estoque";
 import ProductForm from "./pages/app/ProductForm";
+import EstoqueRelatorio from "./pages/app/EstoqueRelatorio";
 import Vendas from "./pages/app/Vendas";
 import VendaNova from "./pages/app/VendaNova";
 import Alertas from "./pages/app/Alertas";
@@ -60,6 +61,7 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="estoque" element={<Estoque />} />
               <Route path="estoque/novo" element={<ProductForm />} />
+              <Route path="estoque/relatorio" element={<EstoqueRelatorio />} />
               <Route path="estoque/:id" element={<ProductForm />} />
               <Route path="curva-abc" element={<CurvaABC />} />
               <Route path="trade-in" element={<TradeIn />} />
