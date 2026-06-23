@@ -188,11 +188,11 @@ export default function Financeiro() {
       />
 
       {/* CTA Custos & Despesas (integração) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <button
           type="button"
           onClick={() => navigate("/app/despesas")}
-          className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-rose-500 via-red-600 to-red-700 text-white shadow-glow hover:brightness-110 transition-all border border-red-500/60 px-6 py-5 flex items-center justify-between gap-3 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
+          className="h-[88px] rounded-xl bg-gradient-to-br from-rose-500 via-red-600 to-red-700 text-white shadow-glow hover:brightness-110 transition-all border border-red-500/60 px-6 flex items-center justify-between gap-3 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <span className="flex items-center gap-2"><Receipt className="h-5 w-5" /> Custos & Despesas</span>
           <span className="flex items-center gap-2 text-sm font-normal text-white/90">
@@ -202,23 +202,23 @@ export default function Financeiro() {
         </button>
         <button
           type="button"
-          onClick={() => navigate("/app/vendas")}
-          className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-700 text-white shadow-glow hover:brightness-110 transition-all border border-blue-500/60 px-6 py-5 flex items-center justify-between gap-3 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
+          onClick={() => navigate("/app/financeiro")}
+          className="h-[88px] rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 text-white shadow-glow hover:brightness-110 transition-all border border-emerald-500/60 px-6 flex items-center justify-between gap-3 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <span className="flex items-center gap-2"><TrendingUp className="h-5 w-5" /> Vendas & Recebimentos</span>
-          <span className="flex items-center gap-2 text-sm font-normal text-white/90">
-            {loading ? "…" : brl(totals.receita)} no período
+          <span className="flex items-center gap-2"><Wallet className="h-5 w-5" /> Resultado líquido</span>
+          <span className={`flex items-center gap-2 text-sm font-normal ${totals.liquido >= 0 ? "text-white/90" : "text-white/90"}`}>
+            {loading ? "…" : brl(totals.liquido)}
             <ArrowRight className="h-4 w-4" />
           </span>
         </button>
       </div>
 
-      {/* KPIs principais */}
+      {/* KPIs principais — mesma altura dos dois primeiros */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <MetricCard label="A receber" value={brl(totals.aReceber)} delta={`${receivables.filter(r => r.status !== "pago").length} título(s)`} icon={Clock} tone="warning" className="py-[18px]" />
-        <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="py-[18px]" />
-        <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" />
-        <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" />
+        <MetricCard label="A receber" value={brl(totals.aReceber)} delta={`${receivables.filter(r => r.status !== "pago").length} título(s)`} icon={Clock} tone="warning" className="h-[88px] py-0 flex flex-col justify-center" />
+        <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="h-[88px] py-0 flex flex-col justify-center" />
+        <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="h-[88px] py-0 flex flex-col justify-center" />
+        <MetricCard label="Despesas" value={brl(totals.despesa)} delta="Pago + a pagar" icon={TrendingDown} tone="info" className="h-[88px] py-0 flex flex-col justify-center" />
       </div>
 
       <Tabs defaultValue="receber" className="mb-3">
@@ -378,7 +378,6 @@ export default function Financeiro() {
               <div className="flex gap-2 flex-wrap">
                 <Button onClick={exportReport} className="bg-gradient-primary shadow-glow"><FileDown className="h-4 w-4 mr-1" />Relatório completo (PDF)</Button>
                 <Button variant="outline" onClick={() => navigate("/app/despesas")}>Abrir Despesas</Button>
-                <Button variant="outline" onClick={() => navigate("/app/vendas")}>Abrir Vendas</Button>
               </div>
             </Card>
           </div>
