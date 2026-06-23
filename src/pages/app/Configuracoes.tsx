@@ -17,14 +17,17 @@ import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageI
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isDemoMode, isDemoUserEmail } from "@/lib/demoMode";
+import { Sparkles } from "lucide-react";
 
 const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
 export default function Configuracoes() {
   const [font, setFont] = useState<number>(getFontSize());
   const [theme, setThemeState] = useState<Theme>(getTheme());
-  const { store, refresh, role } = useAuth();
-  const canEdit = role === "dono" || role === "gerente";
+  const { store, refresh, role, user } = useAuth();
+  const demo = isDemoMode() || isDemoUserEmail(user?.email);
+  const canEdit = !demo && (role === "dono" || role === "gerente");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [storeForm, setStoreForm] = useState({

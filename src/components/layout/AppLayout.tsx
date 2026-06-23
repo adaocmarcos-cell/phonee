@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { DemoBanner } from "./DemoBanner";
+import { isDemoMode, isDemoUserEmail, clearDemoMode } from "@/lib/demoMode";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -16,12 +18,14 @@ import {
 export default function AppLayout() {
   const { user, store, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const demo = isDemoMode() || isDemoUserEmail(user?.email);
 
   const initials = (user?.email ?? "U").slice(0, 2).toUpperCase();
 
   const handleSignOut = async () => {
+    clearDemoMode();
     await signOut();
-    navigate("/entrar");
+    navigate(demo ? "/" : "/entrar");
   };
 
   return (
@@ -29,6 +33,7 @@ export default function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
+          {demo && <DemoBanner />}
           <header className="h-14 flex items-center gap-2 sm:gap-3 border-b border-border bg-surface/40 backdrop-blur px-3 sm:px-4 sticky top-0 z-30">
             <SidebarTrigger />
             <div className="flex-1 max-w-md relative hidden sm:block">

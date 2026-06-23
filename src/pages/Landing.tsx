@@ -1,4 +1,8 @@
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { toast } from "sonner";
+import { enterDemoMode } from "@/lib/demoMode";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +10,7 @@ import { Reveal, useParallax } from "@/components/Reveal";
 import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
-  ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound,
+  ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play, Loader2,
   DollarSign, Percent, Package, type LucideIcon,
 } from "lucide-react";
 import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
@@ -108,6 +112,22 @@ function DashStat({
 export default function Landing() {
   const heroLogoOffset = useParallax(0.12);
   const heroGlowOffset = useParallax(0.25);
+  const navigate = useNavigate();
+  const [demoBusy, setDemoBusy] = useState(false);
+
+  const handleDemo = async () => {
+    if (demoBusy) return;
+    setDemoBusy(true);
+    toast.loading("Preparando ambiente de demonstração…", { id: "demo" });
+    const res = await enterDemoMode();
+    if (!res.ok) {
+      setDemoBusy(false);
+      toast.error(res.error ?? "Não foi possível abrir a demonstração", { id: "demo" });
+      return;
+    }
+    toast.success("Bem-vindo à demonstração!", { id: "demo" });
+    navigate("/painel");
+  };
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* NAV — mesma cor do hero */}
@@ -120,6 +140,15 @@ export default function Landing() {
             <a href="#garantia" className="hover:text-primary transition">Garantia</a>
           </nav>
           <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              onClick={handleDemo}
+              disabled={demoBusy}
+              className="hidden sm:inline-flex border-primary/60 text-white bg-primary/15 hover:bg-primary/25 hover:text-white"
+            >
+              {demoBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Play className="h-4 w-4 mr-1.5" />}
+              Ver demonstração
+            </Button>
             <Link to="/entrar">
               <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10">
                 Fazer login
@@ -178,6 +207,15 @@ export default function Landing() {
                   Ver vantagens <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
               </a>
+              <Button
+                size="lg"
+                onClick={handleDemo}
+                disabled={demoBusy}
+                className="text-base h-12 px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg"
+              >
+                {demoBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Play className="h-4 w-4 mr-1.5" />}
+                Ver demonstração
+              </Button>
               <a href="#preco">
                 <Button size="lg" variant="outline" className="text-base h-12 px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                   Ver planos
