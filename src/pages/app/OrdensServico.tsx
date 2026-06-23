@@ -11,6 +11,7 @@ import { MetricCard } from "@/components/MetricCard";
 import { brl, num } from "@/lib/format";
 import {
   Plus, Wrench, Search, Clock, CheckCircle2, AlertCircle, PackageCheck, Timer, TrendingUp,
+  Hammer, Receipt,
 } from "lucide-react";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -113,9 +114,17 @@ export default function OrdensServico() {
         title="Ordens de Serviço"
         description="Assistência técnica com rastreabilidade completa."
         actions={
-          <Button onClick={() => navigate("/app/os/nova")} className="bg-primary text-primary-foreground shadow-glow">
-            <Plus className="h-4 w-4 mr-1" />Nova ordem de serviço
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => navigate("/app/pecas")}>
+              <Hammer className="h-4 w-4 mr-1" />Peças e ferramentas
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/app/pecas/vendas")}>
+              <Receipt className="h-4 w-4 mr-1" />Peças utilizadas
+            </Button>
+            <Button onClick={() => navigate("/app/os/nova")} className="bg-primary text-primary-foreground shadow-glow">
+              <Plus className="h-4 w-4 mr-1" />Nova ordem de serviço
+            </Button>
+          </div>
         }
       />
 

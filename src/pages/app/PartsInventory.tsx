@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
@@ -19,8 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Edit3, Trash2, FileDown, Wrench, AlertTriangle, ShoppingBag } from "lucide-react";
-import { VendaPecaModal } from "@/components/VendaPecaModal";
+import { Plus, Search, Edit3, Trash2, FileDown, Wrench, AlertTriangle, X } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -28,7 +26,7 @@ import autoTable from "jspdf-autotable";
 
 type Category =
   | "telas" | "baterias" | "tampas" | "cameras"
-  | "flex" | "componentes" | "outros";
+  | "flex" | "componentes" | "ferramentas" | "outros";
 
 const CATEGORIES: { value: Category; label: string }[] = [
   { value: "telas", label: "Telas" },
@@ -37,6 +35,7 @@ const CATEGORIES: { value: Category; label: string }[] = [
   { value: "cameras", label: "Câmeras" },
   { value: "flex", label: "Flex" },
   { value: "componentes", label: "Componentes" },
+  { value: "ferramentas", label: "Ferramentas" },
   { value: "outros", label: "Outros" },
 ];
 
@@ -59,17 +58,16 @@ type Part = {
   supplier: string | null;
   location: string | null;
   notes: string | null;
-  is_tool: boolean;
 };
 
-type FormState = Omit<Part, "id" | "store_id">;
+type FormState = Omit<Part, "id" | "store_id" | "compatible_models"> & { models: string[] };
 
 const emptyForm = (): FormState => ({
   name: "", category: "telas", category_other: "",
-  sku: "", brand: "", compatible_models: "",
+  sku: "", brand: "", models: [],
   cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 0,
-  supplier: "", location: "", notes: "", is_tool: false,
+  supplier: "", location: "", notes: "",
 });
 
 export default function PartsInventory() {
@@ -80,7 +78,6 @@ export default function PartsInventory() {
   const [parts, setParts] = useState<Part[]>([]);
   const [q, setQ] = useState("");
   const [catFilter, setCatFilter] = useState<"all" | Category>("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "part" | "tool">("all");
   const [loading, setLoading] = useState(true);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -89,10 +86,10 @@ export default function PartsInventory() {
 
   const [delTarget, setDelTarget] = useState<Part | null>(null);
   const [osTarget, setOsTarget] = useState<Part | null>(null);
-  const [saleTarget, setSaleTarget] = useState<Part | null>(null);
   const [osList, setOsList] = useState<{ id: string; os_number: number; customer_name: string | null }[]>([]);
   const [osPick, setOsPick] = useState<string>("");
   const [osQty, setOsQty] = useState<number>(1);
+  const [modelInput, setModelInput] = useState("");
 
   const load = async () => {
     if (!store) return;
@@ -112,19 +109,18 @@ export default function PartsInventory() {
   const filtered = useMemo(() => {
     return parts.filter((p) => {
       if (catFilter !== "all" && p.category !== catFilter) return false;
-      if (typeFilter === "part" && p.is_tool) return false;
-      if (typeFilter === "tool" && !p.is_tool) return false;
       if (q) {
         const s = q.toLowerCase();
         if (!`${p.name} ${p.sku ?? ""} ${p.brand ?? ""} ${p.compatible_models ?? ""}`.toLowerCase().includes(s)) return false;
       }
       return true;
     });
-  }, [parts, q, catFilter, typeFilter]);
+  }, [parts, q, catFilter]);
 
   const openNew = () => {
     setEditing(null);
     setForm(emptyForm());
+    setModelInput("");
     setDialogOpen(true);
   };
 
@@ -132,13 +128,21 @@ export default function PartsInventory() {
     setEditing(p);
     setForm({
       name: p.name, category: p.category, category_other: p.category_other ?? "",
-      sku: p.sku ?? "", brand: p.brand ?? "", compatible_models: p.compatible_models ?? "",
+      sku: p.sku ?? "", brand: p.brand ?? "",
+      models: (p.compatible_models ?? "").split(",").map(s => s.trim()).filter(Boolean),
       cost_price: Number(p.cost_price) || 0, sale_price: Number(p.sale_price) || 0,
       stock_current: p.stock_current, stock_min: p.stock_min,
       supplier: p.supplier ?? "", location: p.location ?? "", notes: p.notes ?? "",
-      is_tool: p.is_tool,
     });
+    setModelInput("");
     setDialogOpen(true);
+  };
+
+  const commitModelInput = (raw: string) => {
+    const parts = raw.split(",").map(s => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    setForm((f) => ({ ...f, models: Array.from(new Set([...f.models, ...parts])) }));
+    setModelInput("");
   };
 
   const save = async () => {
@@ -147,13 +151,18 @@ export default function PartsInventory() {
     if (form.category === "outros" && !form.category_other?.trim()) {
       toast.error("Descreva a categoria 'Outros'"); return;
     }
+    const { models, ...rest } = form;
+    // include any unsubmitted tag still in the input
+    const allModels = modelInput.trim()
+      ? Array.from(new Set([...models, ...modelInput.split(",").map(s => s.trim()).filter(Boolean)]))
+      : models;
     const payload = {
-      ...form,
+      ...rest,
       store_id: store.id,
       category_other: form.category === "outros" ? form.category_other : null,
       sku: form.sku || null,
       brand: form.brand || null,
-      compatible_models: form.compatible_models || null,
+      compatible_models: allModels.length ? allModels.join(", ") : null,
       supplier: form.supplier || null,
       location: form.location || null,
       notes: form.notes || null,
@@ -226,7 +235,7 @@ export default function PartsInventory() {
     const head = [["Nome", "Categoria", "Marca", "Estoque", "Mín.", showCost ? "Custo" : "", "Venda"].filter(Boolean)];
     const body = filtered.map((p) => {
       const row = [
-        `${p.name}${p.is_tool ? " (ferramenta)" : ""}`,
+        p.name,
         catLabel(p.category, p.category_other),
         p.brand ?? "—",
         String(p.stock_current),
@@ -271,14 +280,6 @@ export default function PartsInventory() {
             {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
-          <SelectTrigger className="md:w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tudo</SelectItem>
-            <SelectItem value="part">Peças</SelectItem>
-            <SelectItem value="tool">Ferramentas</SelectItem>
-          </SelectContent>
-        </Select>
       </Card>
 
       <Card className="overflow-hidden">
@@ -308,7 +309,6 @@ export default function PartsInventory() {
                       <div className="font-medium">{p.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {p.sku || "sem SKU"}{p.compatible_models ? ` · ${p.compatible_models}` : ""}
-                        {p.is_tool && <Badge variant="outline" className="ml-2">Ferramenta</Badge>}
                       </div>
                     </td>
                     <td className="p-3">{catLabel(p.category, p.category_other)}</td>
@@ -324,11 +324,6 @@ export default function PartsInventory() {
                     <td className="p-3 text-right">{brl(Number(p.sale_price))}</td>
                     <td className="p-3">
                       <div className="flex justify-end gap-1">
-                        {p.stock_current > 0 && (
-                          <Button size="icon" variant="ghost" title="Venda rápida" onClick={() => setSaleTarget(p)}>
-                            <ShoppingBag className="h-4 w-4" />
-                          </Button>
-                        )}
                         {p.stock_current > 0 && (
                           <Button size="icon" variant="ghost" title="Lançar em OS" onClick={() => openLinkOS(p)}>
                             <Wrench className="h-4 w-4" />
@@ -390,7 +385,38 @@ export default function PartsInventory() {
             </div>
             <div className="md:col-span-2">
               <Label>Modelos compatíveis</Label>
-              <Input value={form.compatible_models ?? ""} onChange={(e) => setForm({ ...form, compatible_models: e.target.value })} placeholder="Ex.: iPhone 11, 12, 13" />
+              <div className="rounded-md border bg-background px-2 py-1.5 min-h-10 flex flex-wrap gap-1 items-center">
+                {form.models.map((m) => (
+                  <Badge key={m} variant="secondary" className="gap-1 pr-1">
+                    {m}
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, models: form.models.filter((x) => x !== m) })}
+                      className="hover:bg-muted rounded-sm p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <input
+                  className="flex-1 min-w-[120px] bg-transparent outline-none text-sm py-1"
+                  value={modelInput}
+                  placeholder={form.models.length === 0 ? "Ex.: iPhone 11, 12, 13" : "Adicionar…"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.includes(",")) commitModelInput(v);
+                    else setModelInput(v);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); commitModelInput(modelInput); }
+                    if (e.key === "Backspace" && !modelInput && form.models.length) {
+                      setForm({ ...form, models: form.models.slice(0, -1) });
+                    }
+                  }}
+                  onBlur={() => modelInput.trim() && commitModelInput(modelInput)}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Separe por vírgulas para criar uma tag.</p>
             </div>
             <div>
               <Label>Custo (R$)</Label>
@@ -417,16 +443,12 @@ export default function PartsInventory() {
               <Input value={form.supplier ?? ""} onChange={(e) => setForm({ ...form, supplier: e.target.value })} />
             </div>
             <div>
-              <Label>Localização</Label>
+              <Label>Localização no estoque</Label>
               <Input value={form.location ?? ""} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Ex.: Gaveta A2" />
             </div>
             <div className="md:col-span-2">
               <Label>Observações</Label>
               <Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
-            <div className="md:col-span-2 flex items-center gap-2">
-              <Switch checked={form.is_tool} onCheckedChange={(v) => setForm({ ...form, is_tool: v })} />
-              <Label>É uma ferramenta (não uma peça de reposição)</Label>
             </div>
           </div>
           <DialogFooter>
@@ -489,12 +511,6 @@ export default function PartsInventory() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <VendaPecaModal
-        part={saleTarget}
-        open={!!saleTarget}
-        onClose={() => setSaleTarget(null)}
-        onDone={load}
-      />
     </div>
   );
 }

@@ -29,13 +29,7 @@ const ops: Item[] = [
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
   { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
   { title: "Clientes", url: "/app/clientes", icon: Users },
-  {
-    title: "Assistência & Serviços", url: "/app/os", icon: Wrench,
-    children: [
-      { title: "Peças e Ferramentas", url: "/app/pecas", icon: Hammer },
-      { title: "Vendas de Peças", url: "/app/pecas/vendas", icon: Receipt },
-    ],
-  },
+  { title: "Assistência & Serviços", url: "/app/os", icon: Wrench },
   { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
 ];
 
