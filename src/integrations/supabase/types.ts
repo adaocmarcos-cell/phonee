@@ -817,48 +817,60 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          due_date: string | null
           expected_delivery_at: string | null
           id: string
           notes: string | null
+          paid_at: string | null
           payment_method: string | null
+          payment_status: string
           received_at: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["purchase_order_status"]
           store_id: string
           supplier: string
           supplier_id: string | null
+          tags: string[]
           total_cost: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          due_date?: string | null
           expected_delivery_at?: string | null
           id?: string
           notes?: string | null
+          paid_at?: string | null
           payment_method?: string | null
+          payment_status?: string
           received_at?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["purchase_order_status"]
           store_id: string
           supplier: string
           supplier_id?: string | null
+          tags?: string[]
           total_cost?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          due_date?: string | null
           expected_delivery_at?: string | null
           id?: string
           notes?: string | null
+          paid_at?: string | null
           payment_method?: string | null
+          payment_status?: string
           received_at?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["purchase_order_status"]
           store_id?: string
           supplier?: string
           supplier_id?: string | null
+          tags?: string[]
           total_cost?: number
           updated_at?: string
         }

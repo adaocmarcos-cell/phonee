@@ -19,7 +19,7 @@ import { brl } from "@/lib/format";
 import { toast } from "sonner";
 
 type Supplier = { id: string; company_name: string; brands: string[]; avg_delivery_days: number | null };
-type Item = { id?: string; product_id?: string | null; product_name: string; quantity: number; unit_cost: number; notes?: string | null };
+type Item = { id?: string; product_id?: string | null; product_name: string; sku?: string | null; quantity: number; unit_cost: number; notes?: string | null };
 type Preview = {
   name: string;
   quantity: number;
@@ -42,7 +42,17 @@ type Order = {
   sent_at: string | null;
   received_at: string | null;
   created_at: string;
+  payment_status?: string | null;
+  paid_at?: string | null;
+  due_date?: string | null;
+  tags?: string[] | null;
 };
+
+const PAYMENT_METHODS = [
+  "Dinheiro", "PIX", "Cartão de crédito", "Cartão de débito",
+  "Boleto", "Transferência", "Cheque",
+  "Crediário 30 dias", "Crediário 30/60", "Crediário 30/60/90", "Outro",
+];
 
 const STATUS_LABEL: Record<Order["status"], string> = {
   rascunho: "Rascunho", enviado: "Enviado", recebido: "Recebido", parcial: "Parcial", cancelado: "Cancelado",
@@ -71,6 +81,8 @@ export default function Compras() {
   const [items, setItems] = useState<Item[]>([]);
   const [bulk, setBulk] = useState("");
   const [delTarget, setDelTarget] = useState<Order | null>(null);
+  const [skuQuery, setSkuQuery] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
 
   // financial summary (mês atual)
   const [monthSales, setMonthSales] = useState(0);
@@ -130,9 +142,11 @@ export default function Compras() {
   }, [filtered]);
 
   const startNew = () => {
-    setForm({ status: "rascunho", payment_method: "", expected_delivery_at: "", notes: "", supplier_id: null });
+    setForm({ status: "rascunho", payment_method: "", expected_delivery_at: "", notes: "", supplier_id: null, payment_status: "a_pagar", due_date: "", tags: [] });
     setItems([{ product_name: "", quantity: 1, unit_cost: 0 }]);
     setBulk("");
+    setSkuQuery("");
+    setTagsInput("");
     setOpen(true);
   };
 
@@ -152,6 +166,36 @@ export default function Compras() {
     setItems((arr) => [...arr.filter((i) => i.product_name), ...parsed]);
     setBulk("");
     toast.success(`${parsed.length} item(s) adicionado(s)`);
+  };
+
+  const addBySku = async () => {
+    if (!store || !skuQuery.trim()) return;
+    const sku = skuQuery.trim();
+    const { data: prod } = await supabase
+      .from("products")
+      .select("id, name, sku, cost_price")
+      .eq("store_id", store.id)
+      .ilike("sku", sku)
+      .limit(1)
+      .maybeSingle();
+    if (!prod) {
+      toast.error(`Nenhum produto encontrado com SKU "${sku}"`);
+      return;
+    }
+    setItems((arr) => {
+      const exists = arr.find((x) => x.product_id === prod.id);
+      if (exists) {
+        return arr.map((x) => x.product_id === prod.id ? { ...x, quantity: x.quantity + 1 } : x);
+      }
+      const empty = arr.findIndex((x) => !x.product_name.trim());
+      const next: Item = { product_id: prod.id, product_name: prod.name, sku: prod.sku, quantity: 1, unit_cost: Number(prod.cost_price ?? 0) };
+      if (empty >= 0) {
+        return arr.map((x, i) => i === empty ? next : x);
+      }
+      return [...arr, next];
+    });
+    setSkuQuery("");
+    toast.success(`${prod.name} adicionado`);
   };
 
   // Antes de salvar, valida cada item: existe no estoque? saldo atual e após entrada
@@ -203,6 +247,10 @@ export default function Compras() {
       expected_delivery_at: form.expected_delivery_at || null,
       received_at: new Date().toISOString(),
       sent_at: new Date().toISOString(),
+      payment_status: form.payment_status || "a_pagar",
+      paid_at: form.payment_status === "pago" ? new Date().toISOString() : null,
+      due_date: form.due_date || null,
+      tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
     };
     const { data: ord, error } = await supabase.from("purchase_orders").insert(payload).select("id").single();
     if (error || !ord) { setSaving(false); toast.error(error?.message ?? "Erro ao salvar"); return; }
@@ -285,6 +333,22 @@ export default function Compras() {
     }));
     const { error: e2 } = await supabase.from("purchase_order_items").insert(itemsPayload);
     if (e2) { setSaving(false); toast.error(e2.message); return; }
+
+    // Sincroniza com Financeiro: registra despesa quando pago
+    if (form.payment_status === "pago" && orderTotal > 0) {
+      const tagList = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+      await supabase.from("expenses").insert({
+        store_id: store.id,
+        category_name: "Compras / Mercadorias",
+        subcategory: supplierObj?.company_name ?? null,
+        description: `Entrada de mercadorias${supplierObj ? ` · ${supplierObj.company_name}` : ""}${tagList.length ? ` · ${tagList.join(", ")}` : ""}`,
+        amount: orderTotal,
+        expense_date: new Date().toISOString().slice(0, 10),
+        payment_method: form.payment_method || null,
+        notes: form.notes || null,
+      } as any);
+      toast.message("Despesa lançada no financeiro");
+    }
 
     toast.success(`Entrada de mercadorias concluída · ${totalUnits} un. no estoque`);
     if (created > 0) toast.message(`${created} produto(s) novo(s) cadastrado(s) no estoque`);
@@ -474,7 +538,38 @@ export default function Compras() {
             </div>
             <div>
               <Label>Forma de pagamento</Label>
-              <Input value={form.payment_method ?? ""} onChange={(e) => setForm({ ...form, payment_method: e.target.value })} placeholder="ex.: PIX, 30/60/90, Boleto" />
+              <Select value={form.payment_method ?? ""} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="mt-2 flex items-center gap-1 p-1 bg-surface-elevated border border-border rounded-md w-fit">
+                <Button
+                  size="sm"
+                  variant={form.payment_status === "pago" ? "default" : "ghost"}
+                  className={form.payment_status === "pago" ? "bg-success text-white hover:bg-success/90 h-7" : "h-7"}
+                  onClick={() => setForm({ ...form, payment_status: "pago" })}
+                  type="button"
+                >
+                  Pago
+                </Button>
+                <Button
+                  size="sm"
+                  variant={form.payment_status === "a_pagar" ? "default" : "ghost"}
+                  className={form.payment_status === "a_pagar" ? "bg-warning text-white hover:bg-warning/90 h-7" : "h-7"}
+                  onClick={() => setForm({ ...form, payment_status: "a_pagar" })}
+                  type="button"
+                >
+                  A pagar
+                </Button>
+              </div>
+              {form.payment_status === "a_pagar" && (
+                <div className="mt-2">
+                  <Label className="text-[11px] text-muted-foreground">Vencimento</Label>
+                  <Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                </div>
+              )}
             </div>
             <div>
               <Label>Previsão de entrega</Label>
@@ -486,6 +581,17 @@ export default function Compras() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{(Object.keys(STATUS_LABEL) as Order["status"][]).map((s) => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div className="md:col-span-2">
+              <Label>Tags (separadas por vírgula)</Label>
+              <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="ex.: capa, iPhone 15, importado" />
+              {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).map((t, i) => (
+                    <Badge key={i} variant="outline" className="border-border text-[11px]">{t}</Badge>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="md:col-span-2">
               <Label>Observações</Label>
@@ -500,6 +606,23 @@ export default function Compras() {
                 <Plus className="h-3 w-3 mr-1" /> Adicionar item
               </Button>
             </div>
+
+            <div className="mb-3 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={skuQuery}
+                  onChange={(e) => setSkuQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBySku(); } }}
+                  placeholder="Adicionar via SKU (busca produto existente)"
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addBySku}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar por SKU
+              </Button>
+            </div>
+
             <div className="space-y-2">
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
