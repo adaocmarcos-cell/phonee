@@ -298,7 +298,7 @@ export default function Landing() {
         <div className="absolute inset-0 opacity-[0.15] pointer-events-none"
              style={{ backgroundImage: "radial-gradient(hsl(200 100% 49% / 0.5) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div className="relative max-w-7xl mx-auto px-5">
-          <div className="max-w-4xl mx-auto text-center mb-14">
+          <Reveal direction="up" className="max-w-4xl mx-auto text-center mb-14">
             <div className="text-sm md:text-base font-mono tracking-[0.3em] mb-4 text-primary font-bold">
               EM TEMPO REAL
             </div>
@@ -308,9 +308,9 @@ export default function Landing() {
             <p className="mt-6 text-xl md:text-2xl text-white/90 font-semibold">
               Mesmo em dias corridos você sabe exatamente como está sua operação.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="rounded-2xl border border-white/10 bg-[hsl(224_25%_18%)] shadow-2xl p-5 md:p-7">
+          <Reveal direction="up" delay={100} className="rounded-2xl border border-white/10 bg-[hsl(224_25%_18%)] shadow-2xl p-5 md:p-7 block">
             <div className="flex items-center gap-2 pb-4 border-b border-white/10 mb-5">
               <div className="h-2.5 w-2.5 rounded-full bg-danger" />
               <div className="h-2.5 w-2.5 rounded-full bg-warning" />
@@ -319,19 +319,20 @@ export default function Landing() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <DashStat label="Faturamento hoje"          value="R$ 12.847"  sub="Lucro bruto hoje: R$ 4.218" tone="primary" icon={DollarSign} />
-              <DashStat label="Faturamento — mês atual"   value="R$ 284.560" sub="248 vendas"                  tone="info"    icon={TrendingUp} />
-              <DashStat label="Margem média"              value="32,4%"      sub="Curva A em destaque"         tone="violet"  icon={Percent} />
-              <DashStat label="Estoque encalhado"         value="47"         sub="+30 dias sem venda"          tone="danger"  icon={Package} />
-              <DashStat
-                className="md:col-span-2"
-                label="Lucro líquido do período"
-                value="R$ 86.120"
-                sub="Receita − custo − despesas (R$ 18.940 desp.)"
-                tone="success"
-                icon={Wallet}
-                highlight
-              />
+              <Reveal direction="left"  delay={120}><DashStat label="Faturamento hoje"        value="R$ 12.847"  sub="Lucro bruto hoje: R$ 4.218" tone="primary" icon={DollarSign} /></Reveal>
+              <Reveal direction="right" delay={180}><DashStat label="Faturamento — mês atual" value="R$ 284.560" sub="248 vendas"                  tone="info"    icon={TrendingUp} /></Reveal>
+              <Reveal direction="left"  delay={240}><DashStat label="Margem média"            value="32,4%"      sub="Curva A em destaque"         tone="violet"  icon={Percent} /></Reveal>
+              <Reveal direction="right" delay={300}><DashStat label="Estoque encalhado"       value="47"         sub="+30 dias sem venda"          tone="danger"  icon={Package} /></Reveal>
+              <Reveal direction="up"    delay={380} className="md:col-span-2">
+                <DashStat
+                  label="Lucro líquido do período"
+                  value="R$ 86.120"
+                  sub="Receita − custo − despesas (R$ 18.940 desp.)"
+                  tone="success"
+                  icon={Wallet}
+                  highlight
+                />
+              </Reveal>
             </div>
 
             <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
@@ -343,7 +344,7 @@ export default function Landing() {
               </div>
               <div className="mt-3 text-xs text-slate-300 font-mono">Vendas dos últimos 13 dias</div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
