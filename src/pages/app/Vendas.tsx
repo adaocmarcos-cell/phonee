@@ -457,9 +457,21 @@ export default function Vendas() {
                     </td>
                   )}
                   <td className="px-4 py-3 text-right metric text-muted-foreground">{brl(Number(s.discount))}</td>
-                  <td className="px-4 py-3 text-right metric font-semibold">{brl(Number(s.total))}</td>
+                  <td className="px-4 py-3 text-right metric font-semibold">
+                    {brl(Number(s.total))}
+                    {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
+                      <div className="text-[10px] font-mono text-emerald-700">
+                        líq. {brl(Number(s.net_value))}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-2 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      {(s.payment_method === "credito" || s.payment_method === "debito") && (
+                        <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" onClick={() => openAdjust(s)}>
+                          <Sliders className="h-4 w-4 text-info" />
+                        </Button>
+                      )}
                       {s.payment_status === "pendente" && (
                         <>
                           <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" onClick={() => openReminder(s)}>
