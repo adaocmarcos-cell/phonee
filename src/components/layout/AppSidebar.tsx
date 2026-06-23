@@ -22,6 +22,8 @@ const main: Item[] = [
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
+  { title: "Logs e Auditoria", url: "/app/admin/logs", icon: FileSearch },
+  { title: "Ajustes de Estoque", url: "/app/admin/ajustes-estoque", icon: ClipboardCheck },
   { title: "Alertas", url: "/app/alertas", icon: Bell, badgeKey: "alerts" },
 ];
 
@@ -44,7 +46,6 @@ const adminItems: Item[] = [
   { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
   { title: "Cargos e Funções", url: "/app/admin/cargos", icon: UserCog },
   { title: "Permissões", url: "/app/admin/permissoes", icon: KeyRound },
-  { title: "Logs e Auditoria", url: "/app/admin/logs", icon: FileSearch },
 ];
 
 const adminMasterItems: Item[] = [
