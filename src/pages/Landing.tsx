@@ -610,7 +610,7 @@ export default function Landing() {
       <section className="relative py-24 bg-[hsl(226_50%_15%)] text-white overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none"
              style={{ backgroundImage: "radial-gradient(hsl(200 100% 49% / 0.5) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-        <div className="relative max-w-4xl mx-auto px-5 text-center">
+        <Reveal direction="up" duration={1100} className="relative max-w-4xl mx-auto px-5 text-center">
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">
             Menos tempo organizando a loja. <br />
             <span className="bg-gradient-to-r from-primary to-info bg-clip-text text-transparent">Mais tempo vendendo.</span>
@@ -636,7 +636,7 @@ export default function Landing() {
             "Quem controla seus números toma decisões melhores. Quem toma decisões melhores
             <span className="text-primary not-italic font-bold"> vende mais, erra menos e cresce com mais segurança.</span>"
           </blockquote>
-        </div>
+        </Reveal>
       </section>
 
       {/* FOOTER */}
