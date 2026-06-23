@@ -15,7 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, FileDown, AlertTriangle, Wrench, RefreshCw, ClipboardEdit, Filter } from "lucide-react";
+import { ArrowLeft, FileDown, AlertTriangle, Wrench, RefreshCw, ClipboardEdit, Calendar as CalendarIcon } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -49,35 +49,45 @@ type Row = {
 function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
 }
-function startOfWeek(d = new Date()) {
-  const x = new Date(d);
-  const day = x.getDay();
-  x.setHours(0, 0, 0, 0);
-  x.setDate(x.getDate() - day);
-  return x;
+function endOfMonth(d = new Date()) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 function endOfPrevMonth(d = new Date()) {
   const x = startOfMonth(d);
   x.setMilliseconds(-1);
   return x;
 }
-
-type Granularity = "mes" | "semana" | "custom";
+const toInputDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+};
 
 type Prefs = {
-  granularity: Granularity;
-  customStart: string;
-  customEnd: string;
+  startDate: string;
+  endDate: string;
   categories: string[];
   kind: "all" | "product" | "part";
 };
 const PREF_KEY = "mobileplus.estoqueRelatorio.prefs";
 const loadPrefs = (): Prefs => {
+  const defaults: Prefs = {
+    startDate: toInputDate(startOfMonth()),
+    endDate: toInputDate(endOfMonth()),
+    categories: [],
+    kind: "all",
+  };
   try {
     const raw = typeof window !== "undefined" ? localStorage.getItem(PREF_KEY) : null;
-    if (raw) return { granularity: "mes", customStart: "", customEnd: "", categories: [], kind: "all", ...JSON.parse(raw) };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // migrate old prefs (granularity-based)
+      if (parsed.granularity || !parsed.startDate) return defaults;
+      return { ...defaults, ...parsed };
+    }
   } catch {}
-  return { granularity: "mes", customStart: "", customEnd: "", categories: [], kind: "all" };
+  return defaults;
 };
 const savePrefs = (p: Prefs) => {
   try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch {}
@@ -94,16 +104,10 @@ export default function EstoqueRelatorio() {
   useEffect(() => { savePrefs(prefs); }, [prefs]);
 
   const periodStart = useMemo<Date>(() => {
-    if (prefs.granularity === "semana") return startOfWeek();
-    if (prefs.granularity === "custom" && prefs.customStart) return new Date(prefs.customStart + "T00:00:00");
-    return startOfMonth();
+    return prefs.startDate ? new Date(prefs.startDate + "T00:00:00") : startOfMonth();
   }, [prefs]);
   const periodEnd = useMemo<Date>(() => {
-    if (prefs.granularity === "custom" && prefs.customEnd) {
-      const d = new Date(prefs.customEnd + "T23:59:59");
-      return d;
-    }
-    return new Date();
+    return prefs.endDate ? new Date(prefs.endDate + "T23:59:59") : endOfMonth();
   }, [prefs]);
 
   const [adjOpen, setAdjOpen] = useState(false);
@@ -289,7 +293,7 @@ export default function EstoqueRelatorio() {
     <div>
       <PageHeader
         title="Relatório de Estoque"
-        description={`Inventário em tempo real · ${periodStart.toLocaleDateString("pt-BR")} → ${periodEnd.toLocaleDateString("pt-BR")} · Base = fechamento de ${endOfPrevMonth().toLocaleDateString("pt-BR")}`}
+        description="Inventário em tempo real · Selecione o período abaixo"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate("/app/estoque")}>
@@ -308,28 +312,46 @@ export default function EstoqueRelatorio() {
       {/* Filters */}
       <Card className="p-3 mb-3">
         <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
-          <div className="flex-1 min-w-0">
-            <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground flex items-center gap-1">
-              <Filter className="h-3 w-3" /> Período
-            </Label>
-            <div className="flex gap-1 mt-1">
-              {(["semana", "mes", "custom"] as const).map((g) => (
-                <Button key={g} size="sm" variant={prefs.granularity === g ? "default" : "outline"} onClick={() => setPrefs({ ...prefs, granularity: g })} className={prefs.granularity === g ? "bg-primary text-primary-foreground" : ""}>
-                  {g === "semana" ? "Esta semana" : g === "mes" ? "Este mês" : "Personalizado"}
-                </Button>
-              ))}
-            </div>
-            {prefs.granularity === "custom" && (
-              <div className="flex gap-2 mt-2">
-                <Input type="date" value={prefs.customStart} onChange={(e) => setPrefs({ ...prefs, customStart: e.target.value })} className="h-8" />
-                <Input type="date" value={prefs.customEnd} onChange={(e) => setPrefs({ ...prefs, customEnd: e.target.value })} className="h-8" />
+          <div className="flex flex-wrap gap-3">
+            <div>
+              <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Data início</Label>
+              <div className="relative mt-1">
+                <CalendarIcon className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="date"
+                  value={prefs.startDate}
+                  onChange={(e) => setPrefs({ ...prefs, startDate: e.target.value || toInputDate(startOfMonth()) })}
+                  className="h-9 pl-8 w-[170px]"
+                />
               </div>
-            )}
+            </div>
+            <div>
+              <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Data fim</Label>
+              <div className="relative mt-1">
+                <CalendarIcon className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="date"
+                  value={prefs.endDate}
+                  onChange={(e) => setPrefs({ ...prefs, endDate: e.target.value || toInputDate(endOfMonth()) })}
+                  className="h-9 pl-8 w-[170px]"
+                />
+              </div>
+            </div>
+            <div className="flex items-end">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-9 text-xs"
+                onClick={() => setPrefs({ ...prefs, startDate: toInputDate(startOfMonth()), endDate: toInputDate(endOfMonth()) })}
+              >
+                Mês atual
+              </Button>
+            </div>
           </div>
           <div>
             <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Tipo</Label>
             <Select value={prefs.kind} onValueChange={(v) => setPrefs({ ...prefs, kind: v as any })}>
-              <SelectTrigger className="h-8 w-40 mt-1"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-40 mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="product">Produtos</SelectItem>
@@ -371,31 +393,41 @@ export default function EstoqueRelatorio() {
         </div>
       </Card>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-        <Card className="p-4">
-          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Itens</div>
-          <div className="text-2xl font-semibold mt-1">{num(totals.items)}</div>
+      {/* KPI cards — 2 colunas, formato linha */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <Card className="divide-y divide-border">
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Itens distintos</span>
+            <span className="text-base font-semibold metric">{num(totals.items)}</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Unidades em estoque</span>
+            <span className="text-base font-semibold metric">{num(totals.units)}</span>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Base ({endOfPrevMonth().toLocaleDateString("pt-BR")})</span>
+            <span className="text-base font-semibold metric text-muted-foreground">{num(totals.baselineUnits)}</span>
+          </div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Unidades</div>
-          <div className="text-2xl font-semibold mt-1">{num(totals.units)}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">base: {num(totals.baselineUnits)}</div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Valor venda</div>
-          <div className="text-2xl font-semibold mt-1 text-success">{brl(totals.cashSale)}</div>
-        </Card>
-        {showCost && (
-          <Card className="p-4">
-            <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Valor custo</div>
-            <div className="text-2xl font-semibold mt-1">{brl(totals.cashCost)}</div>
-          </Card>
-        )}
-        <Card className={`p-4 ${totals.inconsistencies > 0 ? "border-danger/40 bg-danger/5" : ""}`}>
-          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Inconsistências</div>
-          <div className={`text-2xl font-semibold mt-1 ${totals.inconsistencies > 0 ? "text-danger" : "text-success"}`}>
-            {num(totals.inconsistencies)}
+        <Card className={`divide-y divide-border ${totals.inconsistencies > 0 ? "border-danger/40" : ""}`}>
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Valor de venda</span>
+            <span className="text-base font-semibold metric text-success">{brl(totals.cashSale)}</span>
+          </div>
+          {showCost && (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Valor de custo</span>
+              <span className="text-base font-semibold metric">{brl(totals.cashCost)}</span>
+            </div>
+          )}
+          <div className={`flex items-center justify-between px-4 py-2.5 ${totals.inconsistencies > 0 ? "bg-danger/5" : ""}`}>
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono flex items-center gap-1">
+              {totals.inconsistencies > 0 && <AlertTriangle className="h-3 w-3 text-danger" />}
+              Inconsistências
+            </span>
+            <span className={`text-base font-semibold metric ${totals.inconsistencies > 0 ? "text-danger" : "text-success"}`}>
+              {num(totals.inconsistencies)}
+            </span>
           </div>
         </Card>
       </div>

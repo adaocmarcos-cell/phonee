@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -127,6 +127,9 @@ export default function Estoque() {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate("/app/estoque/relatorio")}>
                 <FileBarChart className="h-4 w-4 mr-1" /> Relatório
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/app/admin/ajustes-estoque")}>
+                <ClipboardCheck className="h-4 w-4 mr-1" /> Ajustes de Estoque
               </Button>
               <Button
                 variant="outline"

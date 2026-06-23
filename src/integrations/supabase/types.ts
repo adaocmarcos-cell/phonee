@@ -805,10 +805,13 @@ export type Database = {
           customer_name: string | null
           customer_whatsapp: string | null
           discount: number
+          due_date: string | null
           id: string
           installments: number | null
+          last_reminder_sent_at: string | null
           notes: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_status: string
           sale_number: number | null
           seller_id: string | null
           store_id: string
@@ -821,10 +824,13 @@ export type Database = {
           customer_name?: string | null
           customer_whatsapp?: string | null
           discount?: number
+          due_date?: string | null
           id?: string
           installments?: number | null
+          last_reminder_sent_at?: string | null
           notes?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_status?: string
           sale_number?: number | null
           seller_id?: string | null
           store_id: string
@@ -837,10 +843,13 @@ export type Database = {
           customer_name?: string | null
           customer_whatsapp?: string | null
           discount?: number
+          due_date?: string | null
           id?: string
           installments?: number | null
+          last_reminder_sent_at?: string | null
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_status?: string
           sale_number?: number | null
           seller_id?: string | null
           store_id?: string
