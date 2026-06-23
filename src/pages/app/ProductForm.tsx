@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Wand2 } from "lucide-react";
 import { z } from "zod";
 import { DEFAULT_CATEGORIES, getCustomCategories, addCustomCategory } from "@/lib/categories";
+import { brl } from "@/lib/format";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 function buildSkuPrefix(name: string): string {
   const words = name
@@ -65,6 +68,7 @@ type FormState = {
   supplier: string; cost_price: number; sale_price: number;
   stock_current: number; stock_min: number; stock_max: number;
   location: string; visible_in_catalog: boolean; status: string;
+  data_entrada: string;
 };
 
 const empty: FormState = {
@@ -73,6 +77,7 @@ const empty: FormState = {
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 3, stock_max: 0,
   location: "", visible_in_catalog: false, status: "ativo",
+  data_entrada: new Date().toISOString().slice(0, 10),
 };
 
 export default function ProductForm() {
@@ -85,18 +90,26 @@ export default function ProductForm() {
   const [customCats, setCustomCats] = useState(() => getCustomCategories());
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherName, setOtherName] = useState("");
+  const [entryOpen, setEntryOpen] = useState(true);
 
   useEffect(() => {
     if (isNew || !store) return;
     (async () => {
       const { data } = await supabase.from("products").select("*").eq("id", id!).single();
-      if (data) setForm({ ...empty, ...data, cost_price: Number(data.cost_price), sale_price: Number(data.sale_price) });
+      if (data) setForm({
+        ...empty,
+        ...(data as any),
+        cost_price: Number(data.cost_price),
+        sale_price: Number(data.sale_price),
+        data_entrada: (data as any).data_entrada || empty.data_entrada,
+      });
     })();
   }, [id, isNew, store]);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const margin = form.sale_price > 0 ? ((form.sale_price - form.cost_price) / form.sale_price) * 100 : 0;
+  const marginBrl = Number(form.sale_price) - Number(form.cost_price);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -132,6 +145,7 @@ export default function ProductForm() {
       location: form.location || null,
       visible_in_catalog: form.visible_in_catalog,
       status: form.status,
+      data_entrada: form.data_entrada || null,
     };
 
     const { error } = isNew
