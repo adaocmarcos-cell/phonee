@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SignaturePad } from "@/components/SignaturePad";
+import { PatternLock } from "@/components/PatternLock";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import {
