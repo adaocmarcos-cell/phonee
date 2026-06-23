@@ -96,7 +96,7 @@ export default function Landing() {
               </Button>
             </Link>
             <Link to="/comprar?plano=annual">
-              <Button className="bg-gradient-primary shadow-glow hidden sm:inline-flex">Comprar agora</Button>
+              <Button className="bg-gradient-primary shadow-glow hidden sm:inline-flex animate-neon-pulse rounded-md">Comprar agora</Button>
             </Link>
           </div>
         </div>
@@ -549,7 +549,7 @@ export default function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link to="/comprar?plano=annual">
-              <Button size="lg" className="bg-gradient-primary shadow-glow h-12 px-7 text-base">
+              <Button size="lg" className="bg-gradient-primary shadow-glow h-12 px-7 text-base animate-neon-pulse rounded-md">
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
