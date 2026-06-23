@@ -14,7 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2 } from "lucide-react";
+import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_CATALOG, roleLabel, canManageUsers, type AppRole } from "@/lib/roles";
 import {
@@ -47,6 +47,7 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Row | null>(null);
 
   const load = async () => {
     if (!store) return;
@@ -156,13 +157,14 @@ export default function Usuarios() {
                 <th className="text-left px-4 py-3 font-medium">Função</th>
                 <th className="text-left px-4 py-3 font-medium">Último acesso</th>
                 <th className="text-center px-4 py-3 font-medium">Status</th>
+                <th className="text-right px-4 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-xs font-mono text-muted-foreground tracking-widest">CARREGANDO…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-xs font-mono text-muted-foreground tracking-widest">CARREGANDO…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">Nenhum colaborador encontrado.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">Nenhum colaborador encontrado.</td></tr>
               ) : filtered.map((r) => (
                 <tr key={r.user_id} className="hover:bg-surface-elevated/40">
                   <td className="px-4 py-3">
@@ -188,12 +190,24 @@ export default function Usuarios() {
                       </span>
                     </div>
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button variant="outline" size="sm" onClick={() => setEditing(r)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      <EditUserDialog
+        row={editing}
+        storeId={store?.id ?? ""}
+        onClose={() => setEditing(null)}
+        onSaved={() => { setEditing(null); load(); }}
+      />
     </div>
   );
 }
@@ -218,6 +232,7 @@ function InviteDialog({
     if (!form.email.trim()) return toast.error("Informe o e-mail.");
     if (form.password.length < 8) return toast.error("Senha deve ter ao menos 8 caracteres.");
     setBusy(true);
+    if (!form.full_name.trim()) { setBusy(false); return toast.error("Informe o nome completo."); }
     const { data, error } = await supabase.functions.invoke("admin-create-user", {
       body: {
         full_name: form.full_name.trim(),
@@ -316,6 +331,125 @@ function InviteDialog({
           onResetToRole={() => { setPermissions(defaultsForRole(form.role)); setPermTouched(false); }}
           roleLabelText={form.role === "outro" ? (form.job_title || "Cargo personalizado") : roleLabel(form.role)}
         />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditUserDialog({
+  row, storeId, onClose, onSaved,
+}: { row: Row | null; storeId: string; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    full_name: "", email: "", phone: "", job_title: "",
+    role: "vendedor" as AppRole, status: "ativo" as Row["status"], new_password: "",
+  });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!row) return;
+    setForm({
+      full_name: row.full_name === "Sem nome" ? "" : row.full_name,
+      email: row.email,
+      phone: row.phone ?? "",
+      job_title: row.job_title ?? "",
+      role: row.role,
+      status: row.status,
+      new_password: "",
+    });
+  }, [row]);
+
+  if (!row) return null;
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!form.full_name.trim()) return toast.error("Informe o nome completo.");
+    if (!form.email.trim()) return toast.error("Informe o e-mail.");
+    if (form.new_password && form.new_password.length < 8) return toast.error("Senha mínima de 8 caracteres.");
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-update-user", {
+      body: {
+        user_id: row.user_id,
+        store_id: storeId,
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        job_title: form.job_title.trim(),
+        role: form.role,
+        status: form.status,
+        new_password: form.new_password || undefined,
+      },
+    });
+    setBusy(false);
+    if (error || (data && (data as any).error)) {
+      const msg = (data as any)?.error ?? error?.message ?? "Erro ao salvar.";
+      return toast.error(`Não foi possível atualizar: ${msg}`);
+    }
+    toast.success("Colaborador atualizado.");
+    onSaved();
+  };
+
+  return (
+    <Dialog open={!!row} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar colaborador</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome completo *</Label>
+              <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">E-mail *</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Celular</Label>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(11) 99999-0000" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cargo personalizado</Label>
+              <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} />
+            </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label className="text-xs">Função no sistema</Label>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ROLE_CATALOG.filter((r) => r.value !== "admin_master").map((r) => (
+                    <SelectItem key={r.value} value={r.value}>{r.label} — {r.description}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as Row["status"] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="inativo">Inativo</SelectItem>
+                  <SelectItem value="suspenso">Suspenso</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nova senha (opcional)</Label>
+              <Input type="password" value={form.new_password} onChange={(e) => setForm({ ...form, new_password: e.target.value })} placeholder="Mín. 8 caracteres" />
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground border-t border-border pt-3 flex items-start gap-2">
+            <KeyRound className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+            Alterações em nome, e-mail, função e status são registradas nos Logs.
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={busy} className="bg-primary text-primary-foreground">
+              {busy ? "Salvando…" : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
