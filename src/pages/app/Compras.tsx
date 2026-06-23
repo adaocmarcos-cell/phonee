@@ -14,7 +14,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2 } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -130,7 +130,9 @@ export default function Compras() {
     const validItems = items.filter((i) => i.product_name.trim() && i.quantity > 0);
     if (validItems.length === 0) { toast.error("Adicione ao menos um item"); return; }
     const supplierObj = suppliers.find((s) => s.id === form.supplier_id);
-    const status: Order["status"] = markReceived ? "recebido" : (form.status as any) ?? "rascunho";
+    // Toda compra finalizada já entra no estoque automaticamente.
+    const status: Order["status"] = "recebido";
+    void markReceived;
     const payload: any = {
       store_id: store.id,
       supplier_id: form.supplier_id || null,
@@ -140,12 +142,80 @@ export default function Compras() {
       notes: form.notes || null,
       payment_method: form.payment_method || null,
       expected_delivery_at: form.expected_delivery_at || null,
-      received_at: status === "recebido" ? new Date().toISOString() : null,
-      sent_at: status !== "rascunho" ? new Date().toISOString() : null,
+      received_at: new Date().toISOString(),
+      sent_at: new Date().toISOString(),
     };
     const { data: ord, error } = await supabase.from("purchase_orders").insert(payload).select("id").single();
     if (error || !ord) { toast.error(error?.message ?? "Erro ao salvar"); return; }
-    const itemsPayload = validItems.map((it) => ({
+
+    toast.info("Registrando entrada de mercadorias…");
+
+    // Sincroniza com o estoque geral: vincula ao produto existente ou cria novo.
+    const syncedItems: Item[] = [];
+    let created = 0;
+    let updated = 0;
+    let totalUnits = 0;
+    for (const it of validItems) {
+      const name = it.product_name.trim();
+      let productId = it.product_id || null;
+      if (!productId) {
+        const { data: found } = await supabase
+          .from("products")
+          .select("id, stock_current")
+          .eq("store_id", store.id)
+          .ilike("name", name)
+          .limit(1)
+          .maybeSingle();
+        if (found) {
+          productId = found.id;
+          await supabase
+            .from("products")
+            .update({
+              stock_current: Number(found.stock_current ?? 0) + Number(it.quantity),
+              cost_price: Number(it.unit_cost) || undefined,
+            })
+            .eq("id", productId);
+          updated++;
+        } else {
+          const { data: np, error: ep } = await supabase
+            .from("products")
+            .insert({
+              store_id: store.id,
+              name,
+              category: "acessorio",
+              condition: "novo",
+              status: "ativo",
+              cost_price: Number(it.unit_cost) || 0,
+              sale_price: Number(it.unit_cost) || 0,
+              stock_current: Number(it.quantity),
+              stock_min: 0,
+            })
+            .select("id")
+            .single();
+          if (!ep && np) {
+            productId = np.id;
+            created++;
+          }
+        }
+      } else {
+        const { data: prod } = await supabase
+          .from("products")
+          .select("stock_current")
+          .eq("id", productId)
+          .maybeSingle();
+        if (prod) {
+          await supabase
+            .from("products")
+            .update({ stock_current: Number(prod.stock_current ?? 0) + Number(it.quantity) })
+            .eq("id", productId);
+          updated++;
+        }
+      }
+      totalUnits += Number(it.quantity);
+      syncedItems.push({ ...it, product_id: productId });
+    }
+
+    const itemsPayload = syncedItems.map((it) => ({
       order_id: ord.id,
       product_id: it.product_id || null,
       product_name: it.product_name.trim(),
@@ -157,8 +227,9 @@ export default function Compras() {
     const { error: e2 } = await supabase.from("purchase_order_items").insert(itemsPayload);
     if (e2) { toast.error(e2.message); return; }
 
-    if (status === "recebido") await updateStockOnReceive(ord.id, validItems);
-    toast.success(status === "recebido" ? "Compra recebida e estoque atualizado" : "Compra salva");
+    toast.success(`Entrada de mercadorias concluída · ${totalUnits} un. no estoque`);
+    if (created > 0) toast.message(`${created} produto(s) novo(s) cadastrado(s) no estoque`);
+    if (updated > 0) toast.message(`${updated} produto(s) tiveram saldo atualizado`);
     setOpen(false);
     load();
   };
@@ -175,8 +246,11 @@ export default function Compras() {
   const markAsReceived = async (o: Order) => {
     const { data: its } = await supabase.from("purchase_order_items").select("*").eq("order_id", o.id);
     await supabase.from("purchase_orders").update({ status: "recebido", received_at: new Date().toISOString() }).eq("id", o.id);
-    if (its) await updateStockOnReceive(o.id, its as any);
-    toast.success("Compra marcada como recebida");
+    if (its) {
+      toast.info("Sincronizando entrada de mercadorias com o estoque…");
+      await updateStockOnReceive(o.id, its as any);
+    }
+    toast.success("Compra recebida e estoque atualizado");
     load();
   };
 
