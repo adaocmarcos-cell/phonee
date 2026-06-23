@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
-  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
+  ArrowRightLeft, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -44,7 +44,6 @@ const config = [
 
 const adminItems: Item[] = [
   { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
-  { title: "Cargos e Funções", url: "/app/admin/cargos", icon: UserCog },
 ];
 
 const adminMasterItems: Item[] = [
