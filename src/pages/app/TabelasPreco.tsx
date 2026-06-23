@@ -21,6 +21,7 @@ type Product = {
   name: string;
   sku: string | null;
   category: string | null;
+  brand: string | null;
   sale_price: number;
   stock_current: number;
   status: string;
@@ -32,6 +33,8 @@ export default function TabelasPreco() {
   const [loading, setLoading] = useState(true);
 
   const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set());
+  const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
+  const [storeBrands, setStoreBrands] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [filterName, setFilterName] = useState("");
   const [filterSku, setFilterSku] = useState("");
@@ -50,12 +53,18 @@ export default function TabelasPreco() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,sku,category,sale_price,stock_current,status")
+        .select("id,name,sku,category,brand,sale_price,stock_current,status")
         .eq("store_id", store.id)
         .neq("status", "inativo")
         .order("name");
       setProducts((data ?? []) as any);
       setLoading(false);
+      const { data: br } = await (supabase as any)
+        .from("store_brands")
+        .select("brand")
+        .eq("store_id", store.id);
+      const uniq = Array.from(new Set(((br ?? []) as { brand: string }[]).map((r) => r.brand))).sort();
+      setStoreBrands(uniq);
     })();
   }, [store]);
 
@@ -65,16 +74,23 @@ export default function TabelasPreco() {
     setSelectedCats(next);
   };
 
+  const toggleBrand = (v: string) => {
+    const next = new Set(selectedBrands);
+    next.has(v) ? next.delete(v) : next.add(v);
+    setSelectedBrands(next);
+  };
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       if (selectedCats.size && !selectedCats.has(p.category || "")) return false;
+      if (selectedBrands.size && !selectedBrands.has((p.brand || "").trim())) return false;
       if (filterName && !p.name.toLowerCase().includes(filterName.toLowerCase())) return false;
       if (filterSku && !(p.sku || "").toLowerCase().includes(filterSku.toLowerCase())) return false;
       if (filterAvailable === "in" && p.stock_current <= 0) return false;
       if (filterAvailable === "out" && p.stock_current > 0) return false;
       return true;
     });
-  }, [products, selectedCats, filterName, filterSku, filterAvailable]);
+  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable]);
 
   const toggleProduct = (id: string) => {
     const next = new Set(selectedProducts);
@@ -222,6 +238,7 @@ export default function TabelasPreco() {
           <CollapsibleContent className="mt-3">
             <FiltersPanel
               allCats={allCats} selectedCats={selectedCats} toggleCat={toggleCat}
+              storeBrands={storeBrands} selectedBrands={selectedBrands} toggleBrand={toggleBrand}
               filterName={filterName} setFilterName={setFilterName}
               filterSku={filterSku} setFilterSku={setFilterSku}
               filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
@@ -236,6 +253,7 @@ export default function TabelasPreco() {
         <div className="hidden md:block">
           <FiltersPanel
             allCats={allCats} selectedCats={selectedCats} toggleCat={toggleCat}
+            storeBrands={storeBrands} selectedBrands={selectedBrands} toggleBrand={toggleBrand}
             filterName={filterName} setFilterName={setFilterName}
             filterSku={filterSku} setFilterSku={setFilterSku}
             filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
@@ -301,6 +319,9 @@ function FiltersPanel(props: {
   allCats: { value: string; label: string }[];
   selectedCats: Set<string>;
   toggleCat: (v: string) => void;
+  storeBrands: string[];
+  selectedBrands: Set<string>;
+  toggleBrand: (v: string) => void;
   filterName: string; setFilterName: (v: string) => void;
   filterSku: string; setFilterSku: (v: string) => void;
   filterAvailable: "all" | "in" | "out"; setFilterAvailable: (v: "all" | "in" | "out") => void;
@@ -309,6 +330,7 @@ function FiltersPanel(props: {
 }) {
   const {
     allCats, selectedCats, toggleCat,
+    storeBrands, selectedBrands, toggleBrand,
     filterName, setFilterName, filterSku, setFilterSku,
     filterAvailable, setFilterAvailable,
     showAvailability, setShowAvailability,
@@ -328,6 +350,20 @@ function FiltersPanel(props: {
           ))}
         </div>
       </div>
+
+      {storeBrands.length > 0 && (
+        <div>
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Marcas</Label>
+          <div className="grid grid-cols-1 gap-1.5 mt-2 max-h-48 overflow-y-auto">
+            {storeBrands.map((b) => (
+              <label key={b} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={selectedBrands.has(b)} onCheckedChange={() => toggleBrand(b)} />
+                <span>{b}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Buscar</Label>
