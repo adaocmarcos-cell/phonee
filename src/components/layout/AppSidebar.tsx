@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { canManageUsers, isAdminMaster } from "@/lib/roles";
 import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
+import { StoreSwitcher } from "./StoreSwitcher";
 
 type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" };
 
@@ -165,6 +166,9 @@ export function AppSidebar() {
               style={{ background: "transparent", boxShadow: "none", border: 0 }}
             />
           )}
+        </div>
+        <div className={collapsed ? "px-1 pb-2" : "px-2 pb-2"}>
+          <StoreSwitcher />
         </div>
       </SidebarHeader>
       <SidebarContent className="sidebar-scroll">
