@@ -18,6 +18,7 @@ import {
   Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 
 type LineItem = {
   product_id: string;
@@ -113,6 +114,20 @@ export default function VendaNova() {
   const [allCategories, setAllCategories] = useState(CATEGORIES_DEFAULT);
 
   const [busy, setBusy] = useState(false);
+
+  // Garantia
+  const [warrantyCfg, setWarrantyCfg] = useState<WarrantySettings | null>(null);
+  const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [warrantyDays, setWarrantyDays] = useState<number>(90);
+
+  useEffect(() => {
+    if (!store) return;
+    loadWarrantySettings(store.id).then((cfg) => {
+      setWarrantyCfg(cfg);
+      setWarrantyEnabled(cfg.default_enabled);
+      setWarrantyDays(cfg.default_days);
+    });
+  }, [store]);
 
   useEffect(() => {
     if (!store) return;
@@ -244,6 +259,12 @@ export default function VendaNova() {
       category,
       totals: { items: totalsItems, qty: totalsQty, subtotal, discount: totalDiscount, items_value: totalItemsValue, sale_total: totalSale },
       user_notes: notes,
+      warranty: {
+        enabled: warrantyEnabled,
+        days: warrantyDays,
+        notice: warrantyCfg?.notice_text ?? "",
+        terms: warrantyCfg?.message_template ?? "",
+      },
     },
   });
 
