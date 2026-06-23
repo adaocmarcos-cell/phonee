@@ -44,6 +44,8 @@ import SuporteAdmin from "./pages/app/admin/SuporteAdmin";
 import Clientes from "./pages/app/Clientes";
 import MinhasLojas from "./pages/app/MinhasLojas";
 import TransferenciaProdutos from "./pages/app/TransferenciaProdutos";
+import Compras from "./pages/app/Compras";
+import Fornecedores from "./pages/app/Fornecedores";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
@@ -94,6 +96,8 @@ const App = () => (
               <Route path="clientes" element={<Clientes />} />
               <Route path="lojas" element={<MinhasLojas />} />
               <Route path="estoque/transferencia" element={<TransferenciaProdutos />} />
+              <Route path="compras" element={<Compras />} />
+              <Route path="fornecedores" element={<Fornecedores />} />
               <Route path="ordens" element={<OrdensServico />} />
               <Route path="ordens/nova" element={<OrdemServicoForm />} />
               <Route path="ordens/:id" element={<OrdemServicoForm />} />

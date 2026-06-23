@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -206,7 +206,7 @@ export default function Estoque() {
     <div>
       <PageHeader
         title="Estoque"
-        description={`${num(totals.count)} produtos · ${brl(totals.value)} em valor de vitrine · ${num(totals.low)} em ponto de pedido`}
+        description={undefined}
         actions={
           canManageProducts(role) && (
             <div className="flex gap-2">
@@ -249,6 +249,37 @@ export default function Estoque() {
           )
         }
       />
+
+      {canManageProducts(role) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() => navigate("/painel/compras")}
+            className="group flex items-center gap-3 rounded-lg border border-border bg-white text-slate-700 px-4 py-3 text-left shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+          >
+            <div className="h-9 w-9 rounded-md bg-slate-50 flex items-center justify-center text-slate-500 group-hover:text-primary group-hover:bg-primary/5 transition-colors">
+              <ShoppingCart className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-slate-800">Compras</div>
+              <div className="text-[12px] text-slate-500 truncate">Pedidos de reposição, recebimento e histórico</div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/painel/fornecedores")}
+            className="group flex items-center gap-3 rounded-lg border border-border bg-white text-slate-700 px-4 py-3 text-left shadow-sm hover:shadow-md hover:border-primary/40 transition-all"
+          >
+            <div className="h-9 w-9 rounded-md bg-slate-50 flex items-center justify-center text-slate-500 group-hover:text-primary group-hover:bg-primary/5 transition-colors">
+              <Truck className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-slate-800">Fornecedores</div>
+              <div className="text-[12px] text-slate-500 truncate">Cadastro, marcas, condições e prazos</div>
+            </div>
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row gap-3 mb-4">
         <div className="relative flex-1">
