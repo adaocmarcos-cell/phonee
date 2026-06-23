@@ -19,6 +19,7 @@ const main: Item[] = [
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
+  { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
 ];
 
 const ops: Item[] = [

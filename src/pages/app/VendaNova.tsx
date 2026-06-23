@@ -18,6 +18,7 @@ import {
   Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 
 type LineItem = {
   product_id: string;
@@ -113,6 +114,20 @@ export default function VendaNova() {
   const [allCategories, setAllCategories] = useState(CATEGORIES_DEFAULT);
 
   const [busy, setBusy] = useState(false);
+
+  // Garantia
+  const [warrantyCfg, setWarrantyCfg] = useState<WarrantySettings | null>(null);
+  const [warrantyEnabled, setWarrantyEnabled] = useState(true);
+  const [warrantyDays, setWarrantyDays] = useState<number>(90);
+
+  useEffect(() => {
+    if (!store) return;
+    loadWarrantySettings(store.id).then((cfg) => {
+      setWarrantyCfg(cfg);
+      setWarrantyEnabled(cfg.default_enabled);
+      setWarrantyDays(cfg.default_days);
+    });
+  }, [store]);
 
   useEffect(() => {
     if (!store) return;
@@ -244,6 +259,12 @@ export default function VendaNova() {
       category,
       totals: { items: totalsItems, qty: totalsQty, subtotal, discount: totalDiscount, items_value: totalItemsValue, sale_total: totalSale },
       user_notes: notes,
+      warranty: {
+        enabled: warrantyEnabled,
+        days: warrantyDays,
+        notice: warrantyCfg?.notice_text ?? "",
+        terms: warrantyCfg?.message_template ?? "",
+      },
     },
   });
 
@@ -657,6 +678,37 @@ Obrigado pela preferência.`;
                 <Field label="Observações">
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Detalhes da venda, entrega, garantia, negociação…" />
                 </Field>
+
+                <div className="border-t border-border/60 pt-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold">Garantia</div>
+                      <div className="text-xs text-muted-foreground">Inclui o termo de garantia no comprovante.</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch id="war" checked={warrantyEnabled} onCheckedChange={setWarrantyEnabled} />
+                      <Label htmlFor="war" className="text-sm">Adicionar garantia</Label>
+                    </div>
+                  </div>
+                  {warrantyEnabled && warrantyCfg && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Field label="Prazo de garantia">
+                        <Select value={String(warrantyDays)} onValueChange={(v) => setWarrantyDays(Number(v))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {warrantyCfg.options.map((o, i) => (
+                              <SelectItem key={i} value={String(o.days)}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <div className="rounded-md border border-border bg-surface-elevated/40 p-3 text-xs">
+                        <div className="font-semibold mb-1">Aviso</div>
+                        <div className="text-muted-foreground">{warrantyCfg.notice_text}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </Card>
@@ -756,10 +808,19 @@ Obrigado pela preferência.`;
             </div>
           </div>
 
-          <div className="border-t border-black pt-3 text-[10px] leading-snug">
-            <p className="font-bold mb-1">TERMO DE GARANTIA</p>
-            <p>Os produtos comercializados possuem garantia legal de 90 dias contra defeitos de fabricação, conforme o Código de Defesa do Consumidor. A garantia não cobre danos por mau uso, quedas, exposição a líquidos, violação por terceiros ou desgaste natural. Para acionamento, é obrigatória a apresentação deste comprovante. {(store as any)?.trade_name || store?.name} agradece a preferência.</p>
-          </div>
+          {warrantyEnabled && warrantyCfg && (
+            <>
+              {warrantyCfg.notice_text && (
+                <div className="border border-black p-2 text-[10px] mb-2 bg-yellow-50">
+                  <strong>AVISO:</strong> {warrantyCfg.notice_text}
+                </div>
+              )}
+              <div className="border-t border-black pt-3 text-[10px] leading-snug">
+                <p className="font-bold mb-1">TERMO DE GARANTIA — {warrantyDays} dias</p>
+                <p>{warrantyCfg.message_template}</p>
+              </div>
+            </>
+          )}
 
           <div className="grid grid-cols-2 gap-8 mt-10">
             <div className="border-t border-black pt-1 text-center text-[10px]">Assinatura do cliente</div>
