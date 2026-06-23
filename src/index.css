@@ -152,6 +152,35 @@
   background: transparent;
 }
 
+/* Barra de rolagem global (lateral direita das páginas) — mesmo estilo do menu lateral */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.35) transparent;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.55), hsl(var(--primary) / 0.25));
+  border-radius: 999px;
+  border: 1px solid hsl(var(--sidebar-border) / 0.4);
+}
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.85), hsl(var(--primary) / 0.45));
+}
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Exports / impressões sempre em fundo branco — independente do tema. */
 @media print {
   :root, html, body {
