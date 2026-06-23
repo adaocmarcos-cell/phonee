@@ -27,6 +27,8 @@ export const PERMISSION_CATALOG: PermissionModule[] = [
   { key: "despesas", label: "Despesas", actions: ["view", "create", "edit", "delete"] },
   { key: "curva_abc", label: "Curva ABC", actions: ["view"] },
   { key: "alertas", label: "Alertas", actions: ["view", "edit"] },
+  { key: "logs", label: "Logs e Auditoria", description: "Histórico de ações por usuário", actions: ["view"] },
+  { key: "ajustes_estoque", label: "Aprovação de ajustes de estoque", actions: ["view", "edit"] },
   { key: "usuarios", label: "Usuários e cargos", description: "Cadastro e gestão de colaboradores", actions: ["view", "create", "edit", "delete"] },
   { key: "assinaturas", label: "Assinaturas e cobranças", actions: ["view", "edit"] },
   { key: "configuracoes", label: "Configurações da loja", actions: ["view", "edit"] },
@@ -52,7 +54,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<AppRole | "outro", PermissionMa
   admin_master: all(),
   dono: all(),
   administrador: all(),
-  gerente: buildMap((m) => !["usuarios", "assinaturas"].includes(m.key)),
+  gerente: buildMap((m) => !["assinaturas"].includes(m.key)),
   financeiro: buildMap((m, a) =>
     ["dashboard", "vendas", "pedidos", "despesas", "curva_abc", "assinaturas"].includes(m.key)
       ? a === "view" || a === "edit" || (m.key === "despesas" && (a === "create" || a === "delete"))
