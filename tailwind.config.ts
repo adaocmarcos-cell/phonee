@@ -113,13 +113,11 @@ export default {
         "neon-pulse": {
           "0%, 100%": {
             boxShadow:
-              "0 0 0 0 hsl(var(--primary) / 0.55), 0 0 14px 2px hsl(var(--primary) / 0.55), 0 0 30px 6px hsl(var(--primary) / 0.25)",
-            filter: "brightness(1)",
+              "inset 0 0 0 1px hsl(var(--primary) / 0.55), 0 0 0 1px hsl(var(--primary) / 0.35), 0 0 6px 0 hsl(var(--primary) / 0.25)",
           },
           "50%": {
             boxShadow:
-              "0 0 0 0 hsl(var(--primary) / 0.9), 0 0 28px 6px hsl(var(--primary) / 0.85), 0 0 60px 14px hsl(var(--primary) / 0.45)",
-            filter: "brightness(1.12)",
+              "inset 0 0 0 1.5px hsl(var(--primary) / 0.85), 0 0 0 2px hsl(var(--primary) / 0.55), 0 0 14px 2px hsl(var(--primary) / 0.45)",
           },
         },
       },

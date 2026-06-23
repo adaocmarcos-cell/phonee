@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
-  ArrowRight, Lock, CheckCircle2, Star,
+  ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound,
 } from "lucide-react";
 import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
 const logo = logoAsset.url;
@@ -96,7 +96,7 @@ export default function Landing() {
               </Button>
             </Link>
             <Link to="/comprar?plano=annual">
-              <Button className="bg-gradient-primary shadow-glow hidden sm:inline-flex animate-neon-pulse rounded-md">Comprar agora</Button>
+              <Button className="bg-gradient-primary hidden sm:inline-flex animate-neon-pulse rounded-md">Comprar agora</Button>
             </Link>
           </div>
         </div>
@@ -147,6 +147,10 @@ export default function Landing() {
             <div className="mt-8 flex items-center gap-2 text-base text-white/90 font-semibold">
               <ShieldCheck className="h-5 w-5 text-success" />
               Garantia total de 7 dias · Se não atender suas expectativas devolvemos 100% do valor pago, sem questionar.
+            </div>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-md border border-success/40 bg-success/10 px-3 py-1.5 text-sm font-semibold text-white">
+              <UsersRound className="h-4 w-4 text-success" />
+              Multiusuário incluso · sem cobrança adicional por colaborador
             </div>
           </div>
 
@@ -549,7 +553,7 @@ export default function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link to="/comprar?plano=annual">
-              <Button size="lg" className="bg-gradient-primary shadow-glow h-12 px-7 text-base animate-neon-pulse rounded-md">
+              <Button size="lg" className="bg-gradient-primary h-12 px-7 text-base animate-neon-pulse rounded-md">
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
@@ -569,6 +573,28 @@ export default function Landing() {
 
       {/* FOOTER */}
       <footer className="bg-black text-slate-300 border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-5 pt-10 pb-2">
+          <div className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 hover:bg-white/[0.07] transition-colors">
+              <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                <Apple className="h-5 w-5 text-white" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-mono">Em breve</div>
+                <div className="text-sm font-semibold text-white">Disponível na App Store</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 hover:bg-white/[0.07] transition-colors">
+              <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                <Smartphone className="h-5 w-5 text-white" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-mono">Em breve</div>
+                <div className="text-sm font-semibold text-white">Disponível no Google Play</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <img src={logo} alt="Mobile+" className="h-10 w-auto invert" />
           <div className="text-xs">© {new Date().getFullYear()} Mobile+. Todos os direitos reservados.</div>

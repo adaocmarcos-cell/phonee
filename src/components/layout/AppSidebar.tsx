@@ -29,9 +29,9 @@ const main: Item[] = [
 const ops: Item[] = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
   { title: "Estoque", url: "/app/estoque", icon: Boxes },
+  { title: "Clientes", url: "/app/clientes", icon: Users },
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
   { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
-  { title: "Clientes", url: "/app/clientes", icon: Users },
   { title: "Assistência & Serviços", url: "/app/os", icon: Wrench },
   { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
 ];

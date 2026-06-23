@@ -40,6 +40,7 @@ import LogsPage from "./pages/app/admin/Logs";
 import AjustesEstoque from "./pages/app/admin/AjustesEstoque";
 import Suporte from "./pages/app/Suporte";
 import SuporteAdmin from "./pages/app/admin/SuporteAdmin";
+import Clientes from "./pages/app/Clientes";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
@@ -76,7 +77,7 @@ const App = () => (
               <Route path="vendas" element={<Vendas />} />
               <Route path="vendas/nova" element={<VendaNova />} />
               <Route path="despesas" element={<Despesas />} />
-              <Route path="clientes" element={<ComingSoon title="Clientes" description="CRM básico por CPF." />} />
+              <Route path="clientes" element={<Clientes />} />
               <Route path="os" element={<OrdensServico />} />
               <Route path="os/nova" element={<OrdemServicoForm />} />
               <Route path="os/:id" element={<OrdemServicoForm />} />
