@@ -366,6 +366,7 @@ export type Database = {
           condition: Database["public"]["Enums"]["product_condition"]
           cost_price: number
           created_at: string
+          data_entrada: string
           ean: string | null
           id: string
           last_sold_at: string | null
@@ -391,6 +392,7 @@ export type Database = {
           condition?: Database["public"]["Enums"]["product_condition"]
           cost_price?: number
           created_at?: string
+          data_entrada?: string
           ean?: string | null
           id?: string
           last_sold_at?: string | null
@@ -416,6 +418,7 @@ export type Database = {
           condition?: Database["public"]["Enums"]["product_condition"]
           cost_price?: number
           created_at?: string
+          data_entrada?: string
           ean?: string | null
           id?: string
           last_sold_at?: string | null
@@ -660,6 +663,7 @@ export type Database = {
           created_at: string
           customer_doc: string | null
           customer_name: string | null
+          customer_whatsapp: string | null
           discount: number
           id: string
           installments: number | null
@@ -675,6 +679,7 @@ export type Database = {
           created_at?: string
           customer_doc?: string | null
           customer_name?: string | null
+          customer_whatsapp?: string | null
           discount?: number
           id?: string
           installments?: number | null
@@ -690,6 +695,7 @@ export type Database = {
           created_at?: string
           customer_doc?: string | null
           customer_name?: string | null
+          customer_whatsapp?: string | null
           discount?: number
           id?: string
           installments?: number | null
@@ -1317,7 +1323,13 @@ export type Database = {
         | "pronto_retirada"
         | "entregue"
         | "cancelado"
-      payment_method: "dinheiro" | "pix" | "debito" | "credito" | "crediario"
+      payment_method:
+        | "dinheiro"
+        | "pix"
+        | "debito"
+        | "credito"
+        | "crediario"
+        | "boleto"
       product_category:
         | "acessorio"
         | "peca"
@@ -1490,7 +1502,14 @@ export const Constants = {
         "entregue",
         "cancelado",
       ],
-      payment_method: ["dinheiro", "pix", "debito", "credito", "crediario"],
+      payment_method: [
+        "dinheiro",
+        "pix",
+        "debito",
+        "credito",
+        "crediario",
+        "boleto",
+      ],
       product_category: [
         "acessorio",
         "peca",

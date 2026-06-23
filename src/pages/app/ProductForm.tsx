@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Wand2 } from "lucide-react";
 import { z } from "zod";
 import { DEFAULT_CATEGORIES, getCustomCategories, addCustomCategory } from "@/lib/categories";
+import { brl } from "@/lib/format";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 
 function buildSkuPrefix(name: string): string {
   const words = name
@@ -65,6 +68,7 @@ type FormState = {
   supplier: string; cost_price: number; sale_price: number;
   stock_current: number; stock_min: number; stock_max: number;
   location: string; visible_in_catalog: boolean; status: string;
+  data_entrada: string;
 };
 
 const empty: FormState = {
@@ -73,6 +77,7 @@ const empty: FormState = {
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 3, stock_max: 0,
   location: "", visible_in_catalog: false, status: "ativo",
+  data_entrada: new Date().toISOString().slice(0, 10),
 };
 
 export default function ProductForm() {
@@ -85,18 +90,26 @@ export default function ProductForm() {
   const [customCats, setCustomCats] = useState(() => getCustomCategories());
   const [showOtherInput, setShowOtherInput] = useState(false);
   const [otherName, setOtherName] = useState("");
+  const [entryOpen, setEntryOpen] = useState(true);
 
   useEffect(() => {
     if (isNew || !store) return;
     (async () => {
       const { data } = await supabase.from("products").select("*").eq("id", id!).single();
-      if (data) setForm({ ...empty, ...data, cost_price: Number(data.cost_price), sale_price: Number(data.sale_price) });
+      if (data) setForm({
+        ...empty,
+        ...(data as any),
+        cost_price: Number(data.cost_price),
+        sale_price: Number(data.sale_price),
+        data_entrada: (data as any).data_entrada || empty.data_entrada,
+      });
     })();
   }, [id, isNew, store]);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const margin = form.sale_price > 0 ? ((form.sale_price - form.cost_price) / form.sale_price) * 100 : 0;
+  const marginBrl = Number(form.sale_price) - Number(form.cost_price);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -132,6 +145,7 @@ export default function ProductForm() {
       location: form.location || null,
       visible_in_catalog: form.visible_in_catalog,
       status: form.status,
+      data_entrada: form.data_entrada || null,
     };
 
     const { error } = isNew
@@ -274,6 +288,40 @@ export default function ProductForm() {
             <Field label="Localização física"><Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Prateleira A3" /></Field>
           </div>
         </Card>
+
+        {canSeeCost(role) && (
+          <Card className="p-0 bg-card border-border shadow-card overflow-hidden">
+            <Collapsible open={entryOpen} onOpenChange={setEntryOpen}>
+              <CollapsibleTrigger className="w-full flex items-center justify-between p-6 hover:bg-surface-elevated/30 transition">
+                <div className="text-left">
+                  <h3 className="font-semibold">Dados de Entrada</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Quanto você pagou, origem do aparelho e quando entrou no estoque.</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${entryOpen ? "rotate-180" : ""}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="px-6 pb-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Field label="Custo de aquisição (R$)">
+                      <Input type="number" step="0.01" value={form.cost_price} onChange={(e) => set("cost_price", e.target.value)} placeholder="Quanto você pagou?" />
+                    </Field>
+                    <Field label="Fornecedor / Origem">
+                      <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Nome ou telefone" />
+                    </Field>
+                    <Field label="Data de entrada">
+                      <Input type="date" value={form.data_entrada} onChange={(e) => set("data_entrada", e.target.value)} />
+                    </Field>
+                  </div>
+                  <div className="rounded-md border border-border bg-surface-elevated/40 px-4 py-3 text-sm flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-muted-foreground">Margem estimada:</span>
+                    <span className={`metric font-semibold ${marginBrl > 0 ? "text-success" : marginBrl < 0 ? "text-danger" : ""}`}>{brl(marginBrl)}</span>
+                    <span className={`text-xs ${margin >= 30 ? "text-success" : margin >= 15 ? "text-warning" : "text-danger"}`}>({margin.toFixed(0)}% de margem)</span>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+        )}
 
         <Card className="p-6 bg-card border-border shadow-card">
           <h3 className="font-semibold mb-4">Visibilidade</h3>
