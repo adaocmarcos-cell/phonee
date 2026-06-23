@@ -405,6 +405,9 @@ export default function Vendas() {
         </Select>
         <div className="ml-auto text-xs font-mono text-muted-foreground">
           {filtered.length} venda(s) · <span className="text-foreground font-semibold">{brl(total)}</span>
+          {totalLiquido !== total && (
+            <span> · líq. <span className="text-emerald-700 font-semibold">{brl(totalLiquido)}</span></span>
+          )}
         </div>
       </Card>
 
