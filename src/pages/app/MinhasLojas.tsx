@@ -358,7 +358,7 @@ export default function MinhasLojas() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
             <Button onClick={createStoreAndSubscription} disabled={saving}>
-              {saving ? "Criando…" : "Criar loja e gerar cobrança"}
+              {saving ? "Processando…" : "Prosseguir"}
             </Button>
           </DialogFooter>
         </DialogContent>
