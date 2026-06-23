@@ -14,7 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserPlus, Mail, Search, ShieldAlert } from "lucide-react";
+import { Plus, UserPlus, Search, ShieldAlert, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_CATALOG, roleLabel, canManageUsers, type AppRole } from "@/lib/roles";
 
@@ -191,47 +191,56 @@ export default function Usuarios() {
 function InviteDialog({
   open, setOpen, onCreated, storeId,
 }: { open: boolean; setOpen: (v: boolean) => void; onCreated: () => void; storeId: string }) {
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", job_title: "", role: "vendedor" as AppRole | "outro" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" as AppRole | "outro" });
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!storeId) return;
     if (!form.email.trim()) return toast.error("Informe o e-mail.");
+    if (form.password.length < 8) return toast.error("Senha deve ter ao menos 8 caracteres.");
     setBusy(true);
-    const { data, error } = await supabase.auth.resetPasswordForEmail(form.email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: {
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        password: form.password,
+        role: form.role === "outro" ? "vendedor" : form.role,
+        job_title: form.job_title.trim(),
+        store_id: storeId,
+      },
     });
     setBusy(false);
-    if (error) {
-      toast.error(`Não foi possível enviar o convite: ${error.message}`);
+    if (error || (data && (data as any).error)) {
+      const msg = (data as any)?.error ?? error?.message ?? "Erro ao cadastrar.";
+      toast.error(`Não foi possível cadastrar: ${msg}`);
       return;
     }
-    toast.success("Convite enviado por e-mail. O usuário definirá a senha pelo link.");
-    toast.info("Após o primeiro acesso, ele aparecerá na lista para você confirmar o cargo.");
+    toast.success("Colaborador cadastrado com sucesso.");
     setOpen(false);
-    setForm({ full_name: "", email: "", phone: "", job_title: "", role: "vendedor" });
+    setForm({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" });
     onCreated();
-    void data;
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="bg-primary text-primary-foreground">
-          <UserPlus className="h-4 w-4 mr-1" /> Novo usuário
+          <UserPlus className="h-4 w-4 mr-1" /> Cadastrar colaborador
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Convidar colaborador</DialogTitle>
+          <DialogTitle>Cadastrar colaborador</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label className="text-xs">Nome completo</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
             <div className="space-y-1.5"><Label className="text-xs">E-mail *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
             <div className="space-y-1.5"><Label className="text-xs">Celular</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(11) 99999-0000" /></div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5"><Label className="text-xs">Senha inicial *</Label><Input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 8 caracteres" required /></div>
+            <div className="space-y-1.5 col-span-2">
               <Label className="text-xs">Cargo</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole | "outro" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -251,13 +260,13 @@ function InviteDialog({
             )}
           </div>
           <p className="text-[11px] text-muted-foreground border-t border-border pt-3 flex items-start gap-2">
-            <Mail className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-            Enviaremos um link de cadastro para o e-mail. Após o primeiro acesso, ele aparecerá nesta lista para você confirmar o cargo.
+            <KeyRound className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+            O colaborador acessará com o e-mail e a senha definidos. Ele poderá alterar a senha após o primeiro login.
           </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={busy} className="bg-primary text-primary-foreground">
-              <Plus className="h-4 w-4 mr-1" />{busy ? "Enviando…" : "Enviar convite"}
+              <Plus className="h-4 w-4 mr-1" />{busy ? "Cadastrando…" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </form>
