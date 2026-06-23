@@ -215,7 +215,7 @@ export default function Usuarios() {
 function InviteDialog({
   open, setOpen, onCreated, storeId,
 }: { open: boolean; setOpen: (v: boolean) => void; onCreated: () => void; storeId: string }) {
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" as AppRole | "outro" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", role: "vendedor" as AppRole });
   const [busy, setBusy] = useState(false);
   const [permissions, setPermissions] = useState<PermissionMap>(() => defaultsForRole("vendedor"));
   const [permOpen, setPermOpen] = useState(false);
@@ -239,8 +239,7 @@ function InviteDialog({
         email: form.email.trim(),
         phone: form.phone.trim(),
         password: form.password,
-        role: form.role === "outro" ? "vendedor" : form.role,
-        job_title: form.job_title.trim(),
+        role: form.role,
         store_id: storeId,
         permissions,
       },
@@ -253,7 +252,7 @@ function InviteDialog({
     }
     toast.success("Colaborador cadastrado com sucesso.");
     setOpen(false);
-    setForm({ full_name: "", email: "", phone: "", password: "", job_title: "", role: "vendedor" });
+    setForm({ full_name: "", email: "", phone: "", password: "", role: "vendedor" });
     setPermissions(defaultsForRole("vendedor"));
     setPermTouched(false);
     onCreated();
@@ -281,22 +280,15 @@ function InviteDialog({
             <div className="space-y-1.5"><Label className="text-xs">Senha inicial *</Label><Input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 8 caracteres" required /></div>
             <div className="space-y-1.5 col-span-2">
               <Label className="text-xs">Cargo</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole | "outro" })}>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLE_CATALOG.filter((r) => r.value !== "admin_master").map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label} — {r.description}</SelectItem>
                   ))}
-                  <SelectItem value="outro">Outro — especificar cargo personalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {form.role === "outro" && (
-              <div className="space-y-1.5 col-span-2">
-                <Label className="text-xs">Especifique o cargo</Label>
-                <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} placeholder="Ex.: Coordenador de Marketing" />
-              </div>
-            )}
             <div className="col-span-2 mt-1 rounded-md border border-border bg-surface-elevated/40 p-3 flex items-center justify-between gap-3">
               <div className="flex items-start gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary mt-0.5" />
@@ -329,7 +321,7 @@ function InviteDialog({
           value={permissions}
           onChange={(v) => { setPermissions(v); setPermTouched(true); }}
           onResetToRole={() => { setPermissions(defaultsForRole(form.role)); setPermTouched(false); }}
-          roleLabelText={form.role === "outro" ? (form.job_title || "Cargo personalizado") : roleLabel(form.role)}
+          roleLabelText={roleLabel(form.role)}
         />
       </DialogContent>
     </Dialog>
@@ -340,7 +332,7 @@ function EditUserDialog({
   row, storeId, onClose, onSaved,
 }: { row: Row | null; storeId: string; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
-    full_name: "", email: "", phone: "", job_title: "",
+    full_name: "", email: "", phone: "",
     role: "vendedor" as AppRole, status: "ativo" as Row["status"], new_password: "",
   });
   const [busy, setBusy] = useState(false);
@@ -351,7 +343,6 @@ function EditUserDialog({
       full_name: row.full_name === "Sem nome" ? "" : row.full_name,
       email: row.email,
       phone: row.phone ?? "",
-      job_title: row.job_title ?? "",
       role: row.role,
       status: row.status,
       new_password: "",
@@ -373,7 +364,6 @@ function EditUserDialog({
         full_name: form.full_name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        job_title: form.job_title.trim(),
         role: form.role,
         status: form.status,
         new_password: form.new_password || undefined,
@@ -404,13 +394,9 @@ function EditUserDialog({
               <Label className="text-xs">E-mail *</Label>
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2">
               <Label className="text-xs">Celular</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(11) 99999-0000" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Cargo personalizado</Label>
-              <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} />
             </div>
             <div className="space-y-1.5 col-span-2">
               <Label className="text-xs">Função no sistema</Label>
