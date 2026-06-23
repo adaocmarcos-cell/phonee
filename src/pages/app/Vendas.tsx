@@ -10,11 +10,21 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil } from "lucide-react";
 import { exportSalesPDF, exportSalesXLSX, printSaleReceipt } from "@/lib/salesExport";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, "0")}`;
+
+const DEFAULT_REMINDER =
+  "Olá {cliente}! Passando para lembrar da sua compra {numero} no valor de {valor} junto à {loja}, com vencimento em {vencimento}. Caso já tenha efetuado o pagamento, por favor desconsidere esta mensagem. Qualquer dúvida estamos à disposição.";
+
+const onlyDigits = (s: string) => (s || "").replace(/\D+/g, "");
 
 export default function Vendas() {
   const { store, role } = useAuth();
@@ -25,6 +35,15 @@ export default function Vendas() {
   const [payment, setPayment] = useState<string>("all");
   const [q, setQ] = useState("");
   const [warranty, setWarranty] = useState<WarrantySettings | null>(null);
+  const [tab, setTab] = useState<"all" | "receber">("all");
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderSale, setReminderSale] = useState<any | null>(null);
+  const [reminderText, setReminderText] = useState("");
+
+  const tplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
+  const getTemplate = () => {
+    try { return localStorage.getItem(tplKey) || DEFAULT_REMINDER; } catch { return DEFAULT_REMINDER; }
+  };
 
   useEffect(() => {
     if (!store) return;
@@ -47,6 +66,7 @@ export default function Vendas() {
   const filtered = useMemo(() => {
     return sales.filter((s) => {
       if (payment !== "all" && s.payment_method !== payment) return false;
+      if (tab === "receber" && s.payment_status !== "pendente") return false;
       if (q) {
         const needle = q.toLowerCase();
         const num = fmtNum(s.sale_number).toLowerCase();
@@ -58,9 +78,15 @@ export default function Vendas() {
       }
       return true;
     });
-  }, [sales, payment, q]);
+  }, [sales, payment, q, tab]);
 
   const total = filtered.reduce((a, b) => a + Number(b.total || 0), 0);
+  const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente"), [sales]);
+  const pendingTotal = pendingSales.reduce((a, b) => a + Number(b.total || 0), 0);
+  const overdueCount = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return pendingSales.filter((s) => s.due_date && new Date(s.due_date + "T00:00:00") < today).length;
+  }, [pendingSales]);
 
   const periodLabel = (() => {
     const map: Record<string, string> = { "7d": "Últimos 7 dias", "30d": "Últimos 30 dias", "90d": "Últimos 90 dias", "1y": "Último ano", "all": "Tudo", "custom": "Personalizado" };
@@ -91,6 +117,46 @@ export default function Vendas() {
     printSaleReceipt({ sale, items: list, store, warranty });
   };
 
+  const openReminder = (sale: any) => {
+    if (!sale.customer_whatsapp) {
+      toast.error("Cliente sem WhatsApp cadastrado nesta venda.");
+      return;
+    }
+    setReminderSale(sale);
+    const tpl = getTemplate();
+    const due = sale.due_date ? new Date(sale.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—";
+    const msg = tpl
+      .replaceAll("{cliente}", sale.customer_name || "cliente")
+      .replaceAll("{numero}", fmtNum(sale.sale_number))
+      .replaceAll("{valor}", brl(Number(sale.total || 0)))
+      .replaceAll("{vencimento}", due)
+      .replaceAll("{loja}", store?.name || "");
+    setReminderText(msg);
+    setReminderOpen(true);
+  };
+
+  const sendReminder = async () => {
+    if (!reminderSale) return;
+    try { localStorage.setItem(tplKey, reminderText); } catch {}
+    const phone = onlyDigits(reminderSale.customer_whatsapp);
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(reminderText)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    await supabase.from("sales").update({ last_reminder_sent_at: new Date().toISOString() }).eq("id", reminderSale.id);
+    toast.success("Lembrete aberto no WhatsApp");
+    setReminderOpen(false);
+    setReminderSale(null);
+    load();
+  };
+
+  const markPaid = async (sale: any) => {
+    const { error } = await supabase.from("sales").update({ payment_status: "pago" }).eq("id", sale.id);
+    if (error) return toast.error(error.message);
+    toast.success("Venda marcada como paga");
+    load();
+  };
+
+  const today0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+
   return (
     <div>
       <PageHeader
@@ -98,6 +164,9 @@ export default function Vendas() {
         description="Histórico de vendas e PDV rápido."
         actions={
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => navigate("/app/estoque/relatorio")} title="Inventário em tempo real">
+              <Activity className="h-4 w-4 mr-1 text-success" />Estoque em tempo real
+            </Button>
             <Button variant="outline" onClick={onExportPDF} disabled={filtered.length === 0}>
               <FileDown className="h-4 w-4 mr-1" />PDF
             </Button>
@@ -112,6 +181,37 @@ export default function Vendas() {
           </div>
         }
       />
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
+        <TabsList>
+          <TabsTrigger value="all">Todas</TabsTrigger>
+          <TabsTrigger value="receber" className="gap-2">
+            <Clock className="h-3.5 w-3.5" /> Financeiro · A receber
+            {pendingSales.length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-warning/20 text-warning text-[10px] font-bold">
+                {pendingSales.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {tab === "receber" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+          <Card className="p-3 flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">A receber</span>
+            <span className="text-lg font-semibold metric text-warning">{brl(pendingTotal)}</span>
+          </Card>
+          <Card className="p-3 flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Vendas em aberto</span>
+            <span className="text-lg font-semibold metric">{pendingSales.length}</span>
+          </Card>
+          <Card className={`p-3 flex items-center justify-between ${overdueCount > 0 ? "border-danger/40 bg-danger/5" : ""}`}>
+            <span className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Vencidas</span>
+            <span className={`text-lg font-semibold metric ${overdueCount > 0 ? "text-danger" : "text-success"}`}>{overdueCount}</span>
+          </Card>
+        </div>
+      )}
 
       <Card className="bg-card border-border shadow-card p-3 mb-4 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[180px]">
@@ -156,31 +256,101 @@ export default function Vendas() {
                 <th className="text-left px-4 py-3 font-medium">Data</th>
                 <th className="text-left px-4 py-3 font-medium">Cliente</th>
                 <th className="text-left px-4 py-3 font-medium">Pagamento</th>
+                {tab === "receber" && <th className="text-left px-4 py-3 font-medium">Vencimento</th>}
+                {tab === "receber" && <th className="text-left px-4 py-3 font-medium">Situação</th>}
                 <th className="text-right px-4 py-3 font-medium">Desconto</th>
                 <th className="text-right px-4 py-3 font-medium">Total</th>
-                <th className="text-right px-4 py-3 font-medium w-10"></th>
+                <th className="text-right px-4 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((s) => (
+              {filtered.map((s) => {
+                const due = s.due_date ? new Date(s.due_date + "T00:00:00") : null;
+                const overdue = due && due < today0;
+                return (
                 <tr key={s.id} className="hover:bg-surface-elevated/40">
                   <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">{fmtNum(s.sale_number)}</td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-3">{s.customer_name || <span className="text-muted-foreground">Avulso</span>}</td>
                   <td className="px-4 py-3"><Badge variant="outline" className="capitalize text-xs">{s.payment_method}</Badge></td>
+                  {tab === "receber" && (
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {due ? due.toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}
+                    </td>
+                  )}
+                  {tab === "receber" && (
+                    <td className="px-4 py-3">
+                      {overdue ? (
+                        <Badge className="bg-danger/15 text-danger border-danger/30"><AlertTriangle className="h-3 w-3 mr-1" />Vencida</Badge>
+                      ) : (
+                        <Badge className="bg-warning/15 text-warning border-warning/30"><Clock className="h-3 w-3 mr-1" />Em aberto</Badge>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right metric text-muted-foreground">{brl(Number(s.discount))}</td>
                   <td className="px-4 py-3 text-right metric font-semibold">{brl(Number(s.total))}</td>
                   <td className="px-2 py-3 text-right">
-                    <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
-                      <Printer className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      {s.payment_status === "pendente" && (
+                        <>
+                          <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" onClick={() => openReminder(s)}>
+                            <MessageCircle className="h-4 w-4 text-success" />
+                          </Button>
+                          <Button size="icon" variant="ghost" title="Marcar como pago" onClick={() => markPaid(s)}>
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                          </Button>
+                        </>
+                      )}
+                      <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
+                        <Printer className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
       </Card>
+
+      <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+        <Lock className="h-3 w-3 text-success" />
+        <span>Dados protegidos com segurança e criptografia.</span>
+      </div>
+
+      <Dialog open={reminderOpen} onOpenChange={setReminderOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-success" />
+              Lembrete via WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Cliente: <strong className="text-foreground">{reminderSale?.customer_name || "—"}</strong> ·
+              Venda: <strong className="text-foreground">{reminderSale ? fmtNum(reminderSale.sale_number) : ""}</strong> ·
+              WhatsApp: <strong className="text-foreground font-mono">{reminderSale?.customer_whatsapp || "—"}</strong>
+            </div>
+            <div>
+              <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground flex items-center gap-1">
+                <Pencil className="h-3 w-3" /> Mensagem (editável)
+              </Label>
+              <Textarea rows={7} value={reminderText} onChange={(e) => setReminderText(e.target.value)} className="mt-1 text-sm" />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Mensagem padrão amigável e dentro da lei (lembrete cordial, sem cobrança coercitiva). Será salva como padrão para próximos envios.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReminderOpen(false)}>Cancelar</Button>
+            <Button onClick={sendReminder} className="bg-success text-success-foreground hover:bg-success/90">
+              <MessageCircle className="h-4 w-4 mr-1" />Abrir no WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
