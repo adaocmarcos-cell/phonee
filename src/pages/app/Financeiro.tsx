@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import {
   Wallet, TrendingUp, TrendingDown, Receipt, ArrowRight, Clock, CheckCircle2,
-  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart,
+  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -246,9 +246,18 @@ export default function Financeiro() {
       <Card className="p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" />Recebimentos por método</h3>
-          <span className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
-            Total: {brl(receiptsByMethod.reduce((s, r) => s + r.total, 0))}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+              {store?.name ? `${store.name} · ` : ""}
+              {new Date(from).toLocaleDateString("pt-BR")} → {new Date(to).toLocaleDateString("pt-BR")} · Total: {brl(receiptsByMethod.reduce((s, r) => s + r.total, 0))}
+            </span>
+            <Button size="sm" variant="outline" onClick={exportReceiptsCSV} disabled={receiptsByMethod.length === 0}>
+              <FileDown className="h-3.5 w-3.5 mr-1" />CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportReceiptsPDF} disabled={receiptsByMethod.length === 0}>
+              <FileText className="h-3.5 w-3.5 mr-1" />PDF
+            </Button>
+          </div>
         </div>
         {receiptsByMethod.length === 0 ? (
           <div className="text-xs text-muted-foreground">Sem recebimentos no período.</div>
