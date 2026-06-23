@@ -63,6 +63,24 @@ export default function Despesas() {
   const [openNew, setOpenNew] = useState(false);
   const [openCat, setOpenCat] = useState(false);
 
+  // Categorias ordenadas: "Outros" sempre por último
+  const sortedCategories = useMemo(() => {
+    const isOutros = (n: string) => /^outros$/i.test((n || "").trim());
+    return [...categories].sort((a, b) => {
+      const aO = isOutros(a.name), bO = isOutros(b.name);
+      if (aO && !bO) return 1;
+      if (!aO && bO) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [categories]);
+
+  // Status da despesa: data <= hoje → Paga; futura → Em aberto
+  const today0 = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const expenseStatus = (e: Expense): "paga" | "aberto" => {
+    const d = new Date(e.expense_date + "T00:00:00");
+    return d <= today0 ? "paga" : "aberto";
+  };
+
   const reload = async () => {
     if (!store) return;
     setLoading(true);
