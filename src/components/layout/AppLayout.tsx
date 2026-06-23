@@ -71,7 +71,7 @@ export default function AppLayout() {
             </div>
           </header>
           <StoreSubscriptionBanner />
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-6 overflow-auto" key={store?.id ?? "no-store"}>
             <Outlet />
           </main>
         </div>
