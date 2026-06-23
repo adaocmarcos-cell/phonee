@@ -1216,6 +1216,50 @@ export type Database = {
           },
         ]
       }
+      warranty_settings: {
+        Row: {
+          created_at: string
+          default_days: number
+          default_enabled: boolean
+          id: string
+          message_template: string
+          notice_text: string
+          options: Json
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_days?: number
+          default_enabled?: boolean
+          id?: string
+          message_template?: string
+          notice_text?: string
+          options?: Json
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_days?: number
+          default_enabled?: boolean
+          id?: string
+          message_template?: string
+          notice_text?: string
+          options?: Json
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
