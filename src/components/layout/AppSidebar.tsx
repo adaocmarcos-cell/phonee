@@ -41,6 +41,7 @@ const ops: Item[] = [
 
 const config = [
   { title: "Configurações", url: "/app/admin/configuracoes", icon: Settings },
+  { title: "Minhas Lojas", url: "/app/admin/lojas", icon: Building2 },
   { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
   { title: "Suporte", url: "/app/suporte", icon: LifeBuoy },
 ];
