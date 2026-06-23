@@ -679,18 +679,20 @@ function FeatureBlock({ icon: Icon, eyebrow, title, text, items, reverse = false
 }) {
   return (
     <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
-      <div>
+      <Reveal direction={reverse ? "right" : "left"} duration={1000}>
         <div className="inline-flex items-center gap-2 text-sm font-mono tracking-[0.3em] text-primary font-bold mb-4">
           <Icon className="h-5 w-5" /> {eyebrow}
         </div>
         <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight">{title}</h3>
         <p className="mt-4 text-foreground/80 text-lg md:text-xl leading-relaxed font-semibold">{text}</p>
-      </div>
-      <Card className="p-6 md:p-8 border-2 border-border bg-card">
-        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5">
-          {items.map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
-        </ul>
-      </Card>
+      </Reveal>
+      <Reveal direction={reverse ? "left" : "right"} duration={1000} delay={120}>
+        <Card className="p-6 md:p-8 border-2 border-border bg-card">
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5">
+            {items.map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
+          </ul>
+        </Card>
+      </Reveal>
     </div>
   );
 }
