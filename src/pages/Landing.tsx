@@ -416,8 +416,9 @@ export default function Landing() {
               { c: "A", tone: "success", t: "Classe A", d: "Produtos responsáveis pela maior parte do faturamento." },
               { c: "B", tone: "primary", t: "Classe B", d: "Produtos intermediários — bom giro, margem moderada." },
               { c: "C", tone: "warning", t: "Classe C", d: "Produtos com menor impacto — atenção ao giro e ao capital parado." },
-            ].map((x) => (
-              <Card key={x.c} className="p-7 text-center border-2 border-border">
+            ].map((x, i) => (
+              <Reveal key={x.c} direction={i === 0 ? "left" : i === 2 ? "right" : "up"} delay={i * 120}>
+              <Card className="p-7 text-center border-2 border-border">
                 <div className={`mx-auto h-16 w-16 rounded-2xl flex items-center justify-center text-3xl font-bold
                   ${x.tone === "success" ? "bg-success/10 text-success" :
                     x.tone === "primary" ? "bg-primary/10 text-primary" :
@@ -427,6 +428,7 @@ export default function Landing() {
                 <h3 className="mt-4 font-extrabold text-xl">{x.t}</h3>
                 <p className="mt-2 text-base text-foreground/80 font-medium">{x.d}</p>
               </Card>
+              </Reveal>
             ))}
           </div>
           <p className="text-center mt-10 text-xl font-bold">
