@@ -104,17 +104,30 @@ export default function TabelasPreco() {
 
     const today = new Date().toLocaleDateString("pt-BR");
     const storeName = store.trade_name || store.name;
-    const logo = store.logo_url
-      ? `<img src="${store.logo_url}" alt="logo" style="height:48px;object-fit:contain"/>`
-      : `<div style="font-size:22px;font-weight:800;letter-spacing:.5px">${storeName}</div>`;
+    const s: any = store;
+    const addrLine = [
+      [s.address_street, s.address_number].filter(Boolean).join(", "),
+      s.address_complement,
+      s.address_neighborhood,
+      [s.address_city, s.address_uf].filter(Boolean).join(" - "),
+    ].filter(Boolean).join(" · ") || s.address || "";
+    const showTaxId = s.show_tax_id_on_docs !== false;
+    const showLegal = s.show_legal_name_on_docs !== false;
+    const logoUrl = s.pdf_logo_url && /^https?:\/\//i.test(s.pdf_logo_url) ? s.pdf_logo_url : s.logo_url || "";
+    const logoBlock = logoUrl
+      ? `<img src="${logoUrl}" alt="logo" style="width:64px;height:64px;object-fit:contain;border:1px solid #e2e8f0;border-radius:4px;background:#fff"/>`
+      : `<div style="width:64px;height:64px;border:1px dashed #cbd5e1;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:9px">LOGO</div>`;
 
-    const footerLines = [
-      storeName,
-      store.instagram ? `Instagram: ${store.instagram}` : null,
-      store.phone ? `WhatsApp: ${store.phone}` : null,
-      store.address ? `Endereço: ${store.address}` : null,
-      store.tax_id ? `CNPJ: ${store.tax_id}` : null,
-    ].filter(Boolean).join(" · ");
+    const headerInfo = [
+      showLegal && s.name && s.trade_name && s.name !== s.trade_name ? escapeHtml(s.name) : null,
+      showTaxId && s.tax_id ? `CNPJ/CPF: ${escapeHtml(s.tax_id)}` : null,
+      addrLine ? escapeHtml(addrLine) : null,
+      [
+        s.phone ? `Tel: ${escapeHtml(s.phone)}` : null,
+        s.instagram ? escapeHtml(s.instagram) : null,
+        s.email ? escapeHtml(s.email) : null,
+      ].filter(Boolean).join(" · ") || null,
+    ].filter(Boolean).map((l) => `<div class="line">${l}</div>`).join("");
 
     const note = store.price_table_note
       || "Valores sujeitos à disponibilidade de estoque e alteração sem aviso prévio.";
@@ -149,7 +162,11 @@ export default function TabelasPreco() {
       <style>
         @page { size: A4; margin: 18mm 14mm; }
         body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:#0f172a; background:#fff; margin:0 }
-        header { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #00abfb; padding-bottom:10px; margin-bottom:14px }
+        header { display:flex; align-items:flex-start; gap:16px; justify-content:space-between; border-bottom:3px solid #00abfb; padding-bottom:12px; margin-bottom:16px }
+        header .store { flex:1; min-width:0 }
+        header .store .name { font-size:18px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; margin-bottom:4px }
+        header .store .line { font-size:11px; color:#475569; line-height:1.5 }
+        header .right { text-align:right }
         footer { margin-top:30px; padding-top:10px; border-top:1px solid #e2e8f0; font-size:11px; color:#475569; text-align:center }
         .note { font-size:10px; color:#64748b; margin-top:6px; text-align:center; font-style:italic }
         h1 { font-size:18px; margin:0 0 4px }
@@ -157,16 +174,18 @@ export default function TabelasPreco() {
       </style></head>
       <body>
         <header>
-          ${logo}
-          <div style="text-align:right">
+          ${logoBlock}
+          <div class="store">
+            <div class="name">${escapeHtml(storeName)}</div>
+            ${headerInfo}
+          </div>
+          <div class="right">
             <h1>Tabela de Preços</h1>
             <div class="meta">Emitido em ${today}</div>
           </div>
         </header>
         ${sections}
         <footer>
-          <div><strong>${escapeHtml(storeName)}</strong></div>
-          <div>${escapeHtml(footerLines)}</div>
           <div class="note">${escapeHtml(note)}</div>
         </footer>
         <script>window.onload=()=>{setTimeout(()=>window.print(),250)}</script>
