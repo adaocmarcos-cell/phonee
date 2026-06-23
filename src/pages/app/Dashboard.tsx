@@ -556,3 +556,48 @@ function EmptyChart({ label }: { label: string }) {
     </div>
   );
 }
+
+function TrendTooltip({
+  active,
+  payload,
+  label,
+  series,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  series: { label: string; total: number; count: number }[];
+}) {
+  if (!active || !payload?.length) return null;
+  const idx = series.findIndex((p) => p.label === label);
+  const curr = series[idx];
+  if (!curr) return null;
+  const prev = idx > 0 ? series[idx - 1] : null;
+  const diff = prev ? curr.total - prev.total : 0;
+  const pctVar = prev && prev.total > 0 ? (diff / prev.total) * 100 : null;
+  const ticket = curr.count > 0 ? curr.total / curr.count : 0;
+  const up = diff >= 0;
+  return (
+    <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs shadow-md min-w-[180px]">
+      <div className="font-medium text-foreground mb-1.5">{label}</div>
+      <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">Total</span>
+        <span className="metric font-semibold text-foreground">{brl(curr.total)}</span>
+      </div>
+      <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">vs período anterior</span>
+        <span className={`metric font-semibold ${prev ? (up ? "text-success" : "text-danger") : "text-muted-foreground"}`}>
+          {prev
+            ? `${up ? "+" : ""}${brl(diff)}${pctVar !== null ? ` (${up ? "+" : ""}${pctVar.toFixed(1)}%)` : ""}`
+            : "—"}
+        </span>
+      </div>
+      <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">Ticket médio</span>
+        <span className="metric font-semibold text-foreground">
+          {curr.count > 0 ? `${brl(ticket)} · ${curr.count} venda${curr.count > 1 ? "s" : ""}` : "—"}
+        </span>
+      </div>
+    </div>
+  );
+}
