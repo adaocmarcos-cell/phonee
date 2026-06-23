@@ -71,6 +71,15 @@ export default function AppLayout() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="hidden sm:inline-flex h-9 gap-1.5 border-border text-muted-foreground hover:text-danger hover:border-danger/50"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sair</span>
+              </Button>
             </div>
           </header>
           <StoreSubscriptionBanner />
