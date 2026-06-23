@@ -281,7 +281,7 @@ export default function Vendas() {
   const today0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
 
   return (
-    <div>
+    <div className="lg:text-[90%]">
       <PageHeader
         title="Vendas"
         description="Histórico de vendas e PDV rápido."
