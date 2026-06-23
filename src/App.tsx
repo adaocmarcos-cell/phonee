@@ -60,6 +60,8 @@ import PhoneeAssinaturas from "./pages/mobileplus/Assinaturas";
 import PhoneeFinanceiro from "./pages/mobileplus/Financeiro";
 import PhoneeCrescimento from "./pages/mobileplus/Crescimento";
 import PhoneeLeads from "./pages/mobileplus/Leads";
+import PhoneeMarketing from "./pages/mobileplus/Marketing";
+import { MetaPixel } from "./components/MetaPixel";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
 const queryClient = new QueryClient();
@@ -71,6 +73,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <MetaPixel />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/entrar" element={<Auth />} />
@@ -137,6 +140,7 @@ const App = () => (
               <Route path="financeiro" element={<PhoneeFinanceiro />} />
               <Route path="crescimento" element={<PhoneeCrescimento />} />
               <Route path="leads" element={<PhoneeLeads />} />
+              <Route path="marketing" element={<PhoneeMarketing />} />
               <Route path="suporte" element={<SuporteAdmin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
