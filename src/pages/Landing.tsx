@@ -6,6 +6,7 @@ import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
   ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound,
+  DollarSign, Percent, Package, type LucideIcon,
 } from "lucide-react";
 import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
 const logo = logoAsset.url;
@@ -60,17 +61,43 @@ function CheckItem({ children, negative = false, big = false }: { children: Reac
   );
 }
 
-function DashStat({ label, value, sub, accent = "primary" }: {
-  label: string; value: string; sub?: string; accent?: "primary" | "success" | "warning";
+function DashStat({
+  label, value, sub, tone = "primary", icon: Icon, highlight = false, className = "",
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "primary" | "info" | "violet" | "danger" | "success" | "warning";
+  icon?: LucideIcon;
+  highlight?: boolean;
+  className?: string;
 }) {
-  const tone =
-    accent === "success" ? "text-success" :
-    accent === "warning" ? "text-warning" : "text-primary";
+  const grad: Record<string, string> = {
+    primary: "from-blue-500 via-blue-600 to-indigo-700 border-blue-400/40",
+    info:    "from-sky-400 via-sky-500 to-blue-600 border-sky-300/40",
+    violet:  "from-fuchsia-500 via-purple-600 to-indigo-700 border-purple-400/40",
+    danger:  "from-rose-500 via-red-600 to-red-700 border-red-400/40",
+    success: "from-emerald-500 via-emerald-600 to-emerald-700 border-emerald-400/40",
+    warning: "from-amber-400 via-orange-500 to-orange-600 border-orange-400/40",
+  };
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-4">
-      <div className="text-[10px] font-mono tracking-widest text-slate-300 uppercase">{label}</div>
-      <div className={`metric text-2xl md:text-3xl mt-1.5 ${tone}`}>{value}</div>
-      {sub && <div className="text-[11px] text-slate-300 mt-1">{sub}</div>}
+    <div
+      className={`relative rounded-2xl border bg-gradient-to-br ${grad[tone]} text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.45)] overflow-hidden ${highlight ? "p-6 md:p-7" : "p-5"} ${className}`}
+    >
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <span className="text-[10px] md:text-[11px] font-mono tracking-[0.18em] uppercase font-semibold text-white/90">
+          {label}
+        </span>
+        {Icon && (
+          <div className="h-8 w-8 md:h-9 md:w-9 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
+            <Icon className="h-4 w-4 md:h-[18px] md:w-[18px] text-white" />
+          </div>
+        )}
+      </div>
+      <div className={`metric font-bold leading-tight ${highlight ? "text-5xl md:text-6xl" : "text-3xl md:text-4xl"}`}>
+        {value}
+      </div>
+      {sub && <div className={`mt-2 ${highlight ? "text-sm" : "text-xs"} text-white/85 font-medium`}>{sub}</div>}
     </div>
   );
 }
