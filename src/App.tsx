@@ -24,6 +24,7 @@ import Despesas from "./pages/app/Despesas";
 import OrdensServico from "./pages/app/OrdensServico";
 import OrdemServicoForm from "./pages/app/OrdemServicoForm";
 import PartsInventory from "./pages/app/PartsInventory";
+import VendasPecas from "./pages/app/VendasPecas";
 import Configuracoes from "./pages/app/Configuracoes";
 import TabelasPreco from "./pages/app/TabelasPreco";
 import ComingSoon from "./pages/app/ComingSoon";
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="os/nova" element={<OrdemServicoForm />} />
               <Route path="os/:id" element={<OrdemServicoForm />} />
               <Route path="pecas" element={<PartsInventory />} />
+              <Route path="pecas/vendas" element={<VendasPecas />} />
               <Route path="alertas" element={<Alertas />} />
               <Route path="tabelas-preco" element={<TabelasPreco />} />
               <Route path="admin/usuarios" element={<Usuarios />} />

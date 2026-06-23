@@ -349,6 +349,75 @@ export type Database = {
           },
         ]
       }
+      parts_sales: {
+        Row: {
+          created_at: string
+          customer_doc: string | null
+          customer_name: string | null
+          customer_whatsapp: string | null
+          discount: number
+          id: string
+          installments: number | null
+          notes: string | null
+          part_id: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          qty: number
+          seller_id: string | null
+          store_id: string
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          customer_doc?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          discount?: number
+          id?: string
+          installments?: number | null
+          notes?: string | null
+          part_id: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          qty?: number
+          seller_id?: string | null
+          store_id: string
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          customer_doc?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          discount?: number
+          id?: string
+          installments?: number | null
+          notes?: string | null
+          part_id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          qty?: number
+          seller_id?: string | null
+          store_id?: string
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parts_sales_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parts_sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_logs: {
         Row: {
           action: string | null

@@ -7,13 +7,14 @@ import {
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton,
   SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { canManageUsers, isAdminMaster } from "@/lib/roles";
 import logoAsset from "@/assets/mobileplus-logo-sidebar.png.asset.json";
 
-type Item = { title: string; url: string; icon: any; end?: boolean };
+type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[] };
 
 const main: Item[] = [
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
@@ -28,8 +29,13 @@ const ops: Item[] = [
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
   { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
   { title: "Clientes", url: "/app/clientes", icon: Users },
-  { title: "Assistência & Serviços", url: "/app/os", icon: Wrench },
-  { title: "Peças e Ferramentas", url: "/app/pecas", icon: Hammer },
+  {
+    title: "Assistência & Serviços", url: "/app/os", icon: Wrench,
+    children: [
+      { title: "Peças e Ferramentas", url: "/app/pecas", icon: Hammer },
+      { title: "Vendas de Peças", url: "/app/pecas/vendas", icon: Receipt },
+    ],
+  },
   { title: "Alertas", url: "/app/alertas", icon: Bell },
 ];
 
@@ -68,11 +74,12 @@ export function AppSidebar() {
           {items.map((item) => {
             const active = item.end ? pathname === item.url : pathname.startsWith(item.url);
             const isDashboard = item.url === "/app";
+            const childActive = item.children?.some((c) => pathname.startsWith(c.url));
             return (
               <SidebarMenuItem key={item.url}>
                 <SidebarMenuButton
                   asChild
-                  isActive={active}
+                  isActive={active && !childActive}
                   className="data-[active=true]:bg-[#00abfb] data-[active=true]:text-blue-900 data-[active=true]:font-semibold data-[active=true]:hover:bg-[#00abfb] data-[active=true]:hover:text-blue-900 hover:bg-sidebar-accent"
                 >
                   <NavLink to={item.url} end={item.end}>
@@ -84,6 +91,27 @@ export function AppSidebar() {
                     )}
                   </NavLink>
                 </SidebarMenuButton>
+                {!collapsed && item.children && (active || childActive) && (
+                  <SidebarMenuSub>
+                    {item.children.map((c) => {
+                      const cActive = pathname === c.url || pathname.startsWith(c.url + "/");
+                      return (
+                        <SidebarMenuSubItem key={c.url}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={cActive}
+                            className="data-[active=true]:bg-[#00abfb] data-[active=true]:text-blue-900 data-[active=true]:font-semibold"
+                          >
+                            <NavLink to={c.url}>
+                              <c.icon className="h-3.5 w-3.5" />
+                              <span>{c.title}</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      );
+                    })}
+                  </SidebarMenuSub>
+                )}
               </SidebarMenuItem>
             );
           })}
