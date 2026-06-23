@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -28,6 +28,17 @@ type Product = {
   last_sold_at: string | null;
 };
 
+type PartLite = {
+  id: string;
+  name: string;
+  sku: string | null;
+  brand: string | null;
+  stock_current: number;
+  stock_min: number;
+  sale_price: number;
+  cost_price: number;
+};
+
 const categoryLabel: Record<string, string> = {
   acessorio: "Acessório", peca: "Peça",
   aparelho_novo: "Aparelho novo", aparelho_seminovo: "Aparelho seminovo",
@@ -37,6 +48,7 @@ export default function Estoque() {
   const { store, role } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
+  const [parts, setParts] = useState<PartLite[]>([]);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "stalled">("all");
   const [delTarget, setDelTarget] = useState<Product | null>(null);
@@ -47,12 +59,20 @@ export default function Estoque() {
   const load = async () => {
     if (!store) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("products")
-      .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at")
-      .eq("store_id", store.id)
-      .order("created_at", { ascending: false });
-    setProducts((data ?? []) as Product[]);
+    const [{ data: pData }, { data: ptData }] = await Promise.all([
+      supabase
+        .from("products")
+        .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at")
+        .eq("store_id", store.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("parts_inventory")
+        .select("id, name, sku, brand, stock_current, stock_min, sale_price, cost_price")
+        .eq("store_id", store.id)
+        .order("name", { ascending: true }),
+    ]);
+    setProducts((pData ?? []) as Product[]);
+    setParts((ptData ?? []) as PartLite[]);
     setLoading(false);
   };
 
@@ -105,6 +125,9 @@ export default function Estoque() {
         actions={
           canManageProducts(role) && (
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/app/estoque/relatorio")}>
+                <FileBarChart className="h-4 w-4 mr-1" /> Relatório
+              </Button>
               <Button
                 variant="outline"
                 size="icon"
@@ -255,6 +278,64 @@ export default function Estoque() {
       />
 
       <MarcasModal open={marcasOpen} onOpenChange={setMarcasOpen} />
+
+      {/* Peças (sincronizado com Assistência) */}
+      <Card className="bg-card border-border shadow-card overflow-hidden mt-6">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
+          <div className="flex items-center gap-2">
+            <Wrench className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Peças</h3>
+            <span className="text-[11px] text-muted-foreground font-mono">
+              sincronizado com Assistência · {num(parts.length)} itens
+            </span>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => navigate("/app/pecas")}>
+            Gerenciar peças
+          </Button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-surface-elevated/50 text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-2 font-medium">Peça</th>
+                <th className="text-left px-4 py-2 font-medium">Marca</th>
+                <th className="text-right px-4 py-2 font-medium">Estoque</th>
+                {canSeeCost(role) && <th className="text-right px-4 py-2 font-medium">Custo</th>}
+                <th className="text-right px-4 py-2 font-medium">Venda</th>
+                <th className="text-left px-4 py-2 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {parts.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-xs">
+                  Nenhuma peça cadastrada. Use "Gerenciar peças" para adicionar.
+                </td></tr>
+              ) : parts.map((p) => {
+                const low = p.stock_current <= p.stock_min;
+                return (
+                  <tr key={p.id} className="hover:bg-surface-elevated/40">
+                    <td className="px-4 py-2">
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono">{p.sku || "—"}</div>
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">{p.brand ?? "—"}</td>
+                    <td className={`px-4 py-2 text-right metric font-semibold ${low ? "text-warning" : ""}`}>{p.stock_current}</td>
+                    {canSeeCost(role) && <td className="px-4 py-2 text-right metric text-muted-foreground">{brl(Number(p.cost_price))}</td>}
+                    <td className="px-4 py-2 text-right metric">{brl(Number(p.sale_price))}</td>
+                    <td className="px-4 py-2">
+                      {low ? (
+                        <Badge className="bg-warning/15 text-warning border-warning/30"><AlertTriangle className="h-3 w-3 mr-1" />Baixo</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-border text-muted-foreground">OK</Badge>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }
