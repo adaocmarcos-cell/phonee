@@ -1117,6 +1117,7 @@ export type Database = {
           last_login_at: string | null
           locked_until: string | null
           notes: string | null
+          permissions: Json
           status: string
           store_id: string | null
           updated_at: string
@@ -1130,6 +1131,7 @@ export type Database = {
           last_login_at?: string | null
           locked_until?: string | null
           notes?: string | null
+          permissions?: Json
           status?: string
           store_id?: string | null
           updated_at?: string
@@ -1143,6 +1145,7 @@ export type Database = {
           last_login_at?: string | null
           locked_until?: string | null
           notes?: string | null
+          permissions?: Json
           status?: string
           store_id?: string | null
           updated_at?: string
