@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: settings } = await admin.from("asaas_settings").select("*").limit(1).maybeSingle();
-    const env = (settings?.environment ?? "sandbox") as "sandbox" | "production";
+    let env = (settings?.environment ?? "sandbox") as "sandbox" | "production";
     if (!Deno.env.get("ASAAS_API_KEY")) return jsonResponse({ error: "Pagamentos ainda não configurados pelo administrador." }, 503);
 
     const { data: plan, error: planErr } = await admin.from("plans").select("*").eq("code", input.plan_code).eq("active", true).single();
@@ -37,23 +37,39 @@ Deno.serve(async (req) => {
     const docDigits = onlyDigits(input.customer_doc);
     const phoneDigits = onlyDigits(input.customer_phone);
 
-    // 1) Customer
-    const custRes = await asaasFetch(env, "/customers", {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.customer_name,
-        email: input.customer_email,
-        cpfCnpj: docDigits,
-        mobilePhone: phoneDigits,
-        notificationDisabled: false,
-      }),
+    // 1) Customer — auto-detecta ambiente correto se a chave não pertencer ao env configurado
+    const customerBody = JSON.stringify({
+      name: input.customer_name,
+      email: input.customer_email,
+      cpfCnpj: docDigits,
+      mobilePhone: phoneDigits,
+      notificationDisabled: false,
     });
+    let custRes = await asaasFetch(env, "/customers", { method: "POST", body: customerBody });
+    const isEnvMismatch = (r: any) =>
+      !r.ok && Array.isArray(r.data?.errors) &&
+      r.data.errors.some((e: any) => e?.code === "invalid_environment");
+    if (isEnvMismatch(custRes)) {
+      const alt = env === "sandbox" ? "production" : "sandbox";
+      const retry = await asaasFetch(alt, "/customers", { method: "POST", body: customerBody });
+      if (retry.ok) {
+        env = alt;
+        custRes = retry;
+        // Persiste a correção do ambiente para próximas cobranças
+        if (settings?.id) {
+          await admin.from("asaas_settings").update({ environment: alt, updated_at: new Date().toISOString() }).eq("id", settings.id);
+        }
+      }
+    }
     if (!custRes.ok) {
+      const friendly = isEnvMismatch(custRes)
+        ? "A chave Asaas não corresponde ao ambiente (sandbox/produção) configurado. Verifique em Configurações → Asaas."
+        : "Falha ao criar cliente no Asaas";
       await admin.from("payment_logs").insert({
         event_type: "customer_create_failed", status: "error",
         asaas_payload: custRes.data, action: "create_customer",
       });
-      return jsonResponse({ error: "Falha ao criar cliente no Asaas", details: custRes.data }, 502);
+      return jsonResponse({ error: friendly, details: custRes.data }, 502);
     }
     const customerId = custRes.data.id;
 
