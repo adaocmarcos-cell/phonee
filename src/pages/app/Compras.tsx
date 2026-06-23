@@ -538,7 +538,38 @@ export default function Compras() {
             </div>
             <div>
               <Label>Forma de pagamento</Label>
-              <Input value={form.payment_method ?? ""} onChange={(e) => setForm({ ...form, payment_method: e.target.value })} placeholder="ex.: PIX, 30/60/90, Boleto" />
+              <Select value={form.payment_method ?? ""} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="mt-2 flex items-center gap-1 p-1 bg-surface-elevated border border-border rounded-md w-fit">
+                <Button
+                  size="sm"
+                  variant={form.payment_status === "pago" ? "default" : "ghost"}
+                  className={form.payment_status === "pago" ? "bg-success text-white hover:bg-success/90 h-7" : "h-7"}
+                  onClick={() => setForm({ ...form, payment_status: "pago" })}
+                  type="button"
+                >
+                  Pago
+                </Button>
+                <Button
+                  size="sm"
+                  variant={form.payment_status === "a_pagar" ? "default" : "ghost"}
+                  className={form.payment_status === "a_pagar" ? "bg-warning text-white hover:bg-warning/90 h-7" : "h-7"}
+                  onClick={() => setForm({ ...form, payment_status: "a_pagar" })}
+                  type="button"
+                >
+                  A pagar
+                </Button>
+              </div>
+              {form.payment_status === "a_pagar" && (
+                <div className="mt-2">
+                  <Label className="text-[11px] text-muted-foreground">Vencimento</Label>
+                  <Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                </div>
+              )}
             </div>
             <div>
               <Label>Previsão de entrega</Label>
@@ -550,6 +581,17 @@ export default function Compras() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{(Object.keys(STATUS_LABEL) as Order["status"][]).map((s) => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div className="md:col-span-2">
+              <Label>Tags (separadas por vírgula)</Label>
+              <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="ex.: capa, iPhone 15, importado" />
+              {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).map((t, i) => (
+                    <Badge key={i} variant="outline" className="border-border text-[11px]">{t}</Badge>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="md:col-span-2">
               <Label>Observações</Label>
@@ -564,6 +606,23 @@ export default function Compras() {
                 <Plus className="h-3 w-3 mr-1" /> Adicionar item
               </Button>
             </div>
+
+            <div className="mb-3 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={skuQuery}
+                  onChange={(e) => setSkuQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBySku(); } }}
+                  placeholder="Adicionar via SKU (busca produto existente)"
+                  className="pl-9 h-9"
+                />
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addBySku}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar por SKU
+              </Button>
+            </div>
+
             <div className="space-y-2">
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
