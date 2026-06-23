@@ -35,7 +35,7 @@ const STATUS_OPTS = [
   ["pronto_retirada","Pronto para retirada"],["entregue","Entregue"],["cancelado","Cancelado"],
 ] as const;
 
-const TERMS = "A Brazilera realizará análise técnica e orçamento com base nas informações apresentadas e nas condições verificadas no equipamento. O prazo poderá sofrer alterações em razão da disponibilidade de peças ou complexidade do reparo. Equipamentos não retirados após comunicação de conclusão poderão estar sujeitos às políticas internas da empresa.";
+const TERMS = "Será realizado análise técnica e orçamento com base nas informações apresentadas e nas condições verificadas no equipamento. O prazo poderá sofrer alterações em razão da disponibilidade de peças ou complexidade do reparo. Equipamentos não retirados após comunicação de conclusão poderão estar sujeitos às políticas internas da empresa.";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -139,7 +139,8 @@ export default function OrdemServicoForm() {
   const saveDraft = () => persist(true);
 
   const summary = useMemo(() => {
-    return `*Brazilera — Ordem de Serviço #${String(os.os_number ?? "—").padStart(4, "0")}*
+    const storeName = (store as any)?.trade_name || store?.name || "Mobile+";
+    return `*${storeName} — Ordem de Serviço #${String(os.os_number ?? "—").padStart(4, "0")}*
 
 Cliente: ${os.customer_name || "—"}
 Aparelho: ${[os.device_brand, os.device_model].filter(Boolean).join(" ")}
@@ -162,7 +163,8 @@ Status: ${os.status}`;
   };
   const sendMail = () => {
     if (!os.customer_email) return toast.error("Informe o e-mail do cliente");
-    const subject = encodeURIComponent(`Ordem de Serviço #${String(os.os_number ?? "").padStart(4, "0")} — Brazilera`);
+    const storeName = (store as any)?.trade_name || store?.name || "Mobile+";
+    const subject = encodeURIComponent(`Ordem de Serviço #${String(os.os_number ?? "").padStart(4, "0")} — ${storeName}`);
     window.open(`mailto:${os.customer_email}?subject=${subject}&body=${encodeURIComponent(summary)}`);
   };
 
@@ -465,7 +467,7 @@ Status: ${os.status}`;
         <div className="hidden print:block text-black text-sm">
           <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight uppercase">{(store as any)?.trade_name || store?.name || "BRAZILERA"}</h1>
+              <h1 className="text-2xl font-bold tracking-tight uppercase">{(store as any)?.trade_name || store?.name || "MOBILE+"}</h1>
               <p className="text-[11px] text-gray-700">
                 {(store as any)?.tax_id ? `CNPJ/CPF: ${(store as any).tax_id}` : "Assistência Técnica"}
               </p>

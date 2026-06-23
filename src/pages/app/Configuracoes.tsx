@@ -109,7 +109,7 @@ export default function Configuracoes() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Instagram</Label>
-              <Input value={storeForm.instagram} onChange={(e) => setSF("instagram", e.target.value)} placeholder="@brazilera.mg" disabled={role !== "dono" && role !== "gerente"} />
+              <Input value={storeForm.instagram} onChange={(e) => setSF("instagram", e.target.value)} placeholder="@sualoja" disabled={role !== "dono" && role !== "gerente"} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">WhatsApp</Label>

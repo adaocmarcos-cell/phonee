@@ -313,7 +313,8 @@ export default function VendaNova() {
 
   const buildSummary = () => {
     const prodLine = items.map((i) => `• ${i.quantity}× ${i.name} — ${brl(i.unit_price * i.quantity)}`).join("\n");
-    return `Olá, segue o resumo da sua compra na Brazilera:
+    const storeName = (store as any)?.trade_name || store?.name || "Mobile+";
+    return `Olá, segue o resumo da sua compra na ${storeName}:
 
 Cliente: ${customer || "—"}
 Produto(s):
@@ -747,7 +748,7 @@ Obrigado pela preferência.`;
           <div className="flex items-start justify-between border-b-2 border-black pb-3 mb-4">
             <div>
               <h1 className="text-2xl font-bold uppercase tracking-tight">
-                {(store as any)?.trade_name || store?.name || "BRAZILERA"}
+                {(store as any)?.trade_name || store?.name || "MOBILE+"}
               </h1>
               {(store as any)?.tax_id && <p className="text-[11px]">CNPJ/CPF: {(store as any).tax_id}</p>}
               {(store as any)?.address && <p className="text-[11px]">{(store as any).address}</p>}
