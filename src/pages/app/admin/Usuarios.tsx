@@ -27,7 +27,6 @@ import {
   type PermissionAction,
 } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 
 type Row = {
   user_id: string;
