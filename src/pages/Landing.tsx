@@ -110,12 +110,12 @@ export default function Landing() {
         <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-5 pt-4 pb-16 lg:pt-6 lg:pb-20">
-          {/* LOGO PRINCIPAL — totalmente transparente, 5x maior */}
-          <div className="flex justify-center mb-8 lg:mb-12">
+          {/* LOGO PRINCIPAL — totalmente transparente, tamanho padrão */}
+          <div className="flex justify-center mb-6 lg:mb-8">
             <img
               src={logo}
               alt="Mobile+"
-              className="h-60 sm:h-72 md:h-96 lg:h-[28rem] w-auto bg-transparent border-0 shadow-none"
+              className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto bg-transparent border-0 shadow-none"
               style={{ background: "transparent", boxShadow: "none", border: 0 }}
             />
           </div>
