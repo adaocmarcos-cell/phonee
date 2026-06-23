@@ -396,13 +396,9 @@ function EditUserDialog({
               <Label className="text-xs">E-mail *</Label>
               <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2">
               <Label className="text-xs">Celular</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(11) 99999-0000" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Cargo personalizado</Label>
-              <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} />
             </div>
             <div className="space-y-1.5 col-span-2">
               <Label className="text-xs">Função no sistema</Label>
