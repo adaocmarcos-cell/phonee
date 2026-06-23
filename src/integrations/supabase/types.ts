@@ -1523,6 +1523,7 @@ export type Database = {
         | "flex"
         | "componentes"
         | "outros"
+        | "ferramentas"
       payment_method:
         | "dinheiro"
         | "pix"
@@ -1710,6 +1711,7 @@ export const Constants = {
         "flex",
         "componentes",
         "outros",
+        "ferramentas",
       ],
       payment_method: [
         "dinheiro",

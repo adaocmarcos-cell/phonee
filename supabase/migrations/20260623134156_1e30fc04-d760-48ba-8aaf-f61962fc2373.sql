@@ -1,0 +1,1 @@
+ALTER TYPE public.part_category ADD VALUE IF NOT EXISTS 'ferramentas';
