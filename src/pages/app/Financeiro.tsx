@@ -49,6 +49,7 @@ export default function Financeiro() {
   const [partsSales, setPartsSales] = useState<PartsSale[]>([]);
   const [os, setOs] = useState<ServiceOrder[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [splits, setSplits] = useState<{ method: string; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,16 +58,18 @@ export default function Financeiro() {
       setLoading(true);
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
-      const [{ data: s }, { data: ps }, { data: o }, { data: e }] = await Promise.all([
+      const [{ data: s }, { data: ps }, { data: o }, { data: e }, { data: sp }] = await Promise.all([
         supabase.from("sales").select("id,sale_number,total,net_value,created_at,payment_status,due_date,customer_name,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         supabase.from("parts_sales").select("id,total,net_value,created_at,payment_method,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         supabase.from("service_orders").select("id,os_number,total_value,net_value,status,budget_status,created_at,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         (supabase as any).from("expenses").select("id,amount,expense_date,description,category_name,payment_method").eq("store_id", store.id).gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: false }),
+        (supabase as any).from("sale_payments").select("method,amount,created_at").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso),
       ]);
       setSales((s as any) ?? []);
       setPartsSales((ps as any) ?? []);
       setOs((o as any) ?? []);
       setExpenses((e as any) ?? []);
+      setSplits(((sp as any) ?? []).map((r: any) => ({ method: r.method, amount: Number(r.amount || 0) })));
       setLoading(false);
     };
     load();
@@ -130,6 +133,23 @@ export default function Financeiro() {
     const liquido = receita - despesa;
     return { receita, recebido, aReceber, vencidoReceber, despesa, pago, aPagar, liquido };
   }, [receivables, payables]);
+
+  // Recebimentos por método (vendas com split + peças)
+  const receiptsByMethod = useMemo(() => {
+    const map = new Map<string, number>();
+    splits.forEach((sp) => map.set(sp.method, (map.get(sp.method) ?? 0) + sp.amount));
+    // Soma vendas sem split (legado) + peças
+    const splitSaleTotal = splits.reduce((s, x) => s + x.amount, 0);
+    if (splitSaleTotal === 0) {
+      sales.forEach((s) => map.set(s.payment_method || "outro",
+        (map.get(s.payment_method || "outro") ?? 0) + Number(s.total || 0)));
+    }
+    partsSales.forEach((p) => map.set(p.payment_method || "outro",
+      (map.get(p.payment_method || "outro") ?? 0) + Number(p.total || 0)));
+    return Array.from(map.entries())
+      .map(([method, total]) => ({ method, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [splits, sales, partsSales]);
 
   const StatusBadge = ({ s }: { s: "aberto" | "vencido" | "pago" }) =>
     s === "pago"
@@ -221,6 +241,28 @@ export default function Financeiro() {
         <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" />
         <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" />
       </div>
+
+      {/* Recebimentos por método */}
+      <Card className="p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" />Recebimentos por método</h3>
+          <span className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+            Total: {brl(receiptsByMethod.reduce((s, r) => s + r.total, 0))}
+          </span>
+        </div>
+        {receiptsByMethod.length === 0 ? (
+          <div className="text-xs text-muted-foreground">Sem recebimentos no período.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {receiptsByMethod.map((r) => (
+              <div key={r.method} className="rounded-md bg-muted/40 px-3 py-2">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground capitalize">{r.method}</div>
+                <div className="text-sm font-semibold metric">{brl(r.total)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <Tabs defaultValue="receber" className="mb-3">
         <TabsList>

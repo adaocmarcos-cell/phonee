@@ -13,6 +13,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import {
   Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt,
@@ -34,7 +37,17 @@ type LineItem = {
   unit_price: number;
 };
 
-type MixedPayment = { method: string; amount: number };
+type SplitPayment = { method: string; amount: number; notes: string; installments?: number };
+
+const PAY_METHODS: { value: string; label: string }[] = [
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "pix",      label: "PIX" },
+  { value: "debito",   label: "Cartão de débito" },
+  { value: "credito",  label: "Cartão de crédito" },
+  { value: "crediario",label: "Crediário" },
+  { value: "boleto",   label: "Boleto" },
+  { value: "transferencia", label: "Transferência" },
+];
 
 const DEDUCTION_REASONS = [
   "Taxa cartão de crédito", "Taxa cartão de débito", "Taxa PIX/maquineta",
@@ -89,14 +102,14 @@ export default function VendaNova() {
   const [commissionStatus, setCommissionStatus] = useState("pendente");
 
   // Pagamento
-  const [payMethod, setPayMethod] = useState("dinheiro");
-  const [installments, setInstallments] = useState(1);
-  const [entry, setEntry] = useState(0);
-  const [mixed, setMixed] = useState<MixedPayment[]>([]);
+  const [payments, setPayments] = useState<SplitPayment[]>([
+    { method: "dinheiro", amount: 0, notes: "", installments: 1 },
+  ]);
   const [otherExpenses, setOtherExpenses] = useState(0);
   const [freight, setFreight] = useState(0);
   const [netValue, setNetValue] = useState<number>(0);
   const [deductionReason, setDeductionReason] = useState<string>("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
@@ -128,6 +141,28 @@ export default function VendaNova() {
       setWarrantyDays(cfg.default_days);
     });
   }, [store]);
+
+  // Registra visita à página de vendas (admin master monitora)
+  useEffect(() => {
+    let sid = sessionStorage.getItem("phn_sid");
+    if (!sid) {
+      sid = (crypto as any).randomUUID?.() ?? String(Math.random()).slice(2);
+      sessionStorage.setItem("phn_sid", sid!);
+    }
+    (supabase as any).from("page_visits").insert({
+      path: "/painel/vendas/nova",
+      store_id: store?.id ?? null,
+      user_id: user?.id ?? null,
+      session_id: sid,
+      user_agent: navigator.userAgent,
+      referrer: document.referrer || null,
+    }).then(() => {/* noop */});
+    try {
+      const fbq = (window as any).fbq;
+      if (typeof fbq === "function") fbq("track", "ViewContent", { content_name: "Nova venda" });
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store?.id]);
 
   useEffect(() => {
     if (!store) return;
@@ -232,9 +267,21 @@ export default function VendaNova() {
   const totalItemsValue = subtotal - totalDiscount;
   const commissionValue = +(totalItemsValue * (commissionPct / 100)).toFixed(2);
   const totalSale = +(totalItemsValue + otherExpenses + freight).toFixed(2);
-  const paidMixed = mixed.reduce((s, p) => s + Number(p.amount || 0), 0);
-  const paid = payMethod === "misto" ? paidMixed : totalSale;
+  const paid = +payments.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2);
   const remaining = +(totalSale - paid).toFixed(2);
+  const isMulti = payments.length > 1;
+  const primaryMethod = payments[0]?.method ?? "dinheiro";
+
+  const addPayment = () =>
+    setPayments((arr) => [...arr, { method: "pix", amount: Math.max(0, remaining), notes: "", installments: 1 }]);
+  const updatePayment = (idx: number, patch: Partial<SplitPayment>) =>
+    setPayments((arr) => arr.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  const removePayment = (idx: number) =>
+    setPayments((arr) => (arr.length <= 1 ? arr : arr.filter((_, i) => i !== idx)));
+  const fillRemaining = (idx: number) =>
+    setPayments((arr) =>
+      arr.map((p, i) => (i === idx ? { ...p, amount: +(Number(p.amount || 0) + remaining).toFixed(2) } : p)),
+    );
 
   const addCategory = () => {
     const v = customCategory.trim();
@@ -251,7 +298,10 @@ export default function VendaNova() {
       customer_doc_type: docType,
       commission: { percent: commissionPct, value: commissionValue, status: commissionStatus },
       payment: {
-        method: payMethod, installments, entry, mixed,
+        method: isMulti ? "misto" : primaryMethod,
+        is_split: isMulti,
+        splits: payments,
+        installments: payments[0]?.installments ?? 1,
         other_expenses: otherExpenses, freight,
         net_value: netValue, deduction_reason: deductionReason,
       },
@@ -268,25 +318,62 @@ export default function VendaNova() {
     },
   });
 
-  const submit = async (e?: FormEvent) => {
+  const onSubmitClick = (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
     if (items.length === 0) return toast.error("Adicione ao menos um item");
+    if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
+    if (Math.abs(remaining) > 0.009) {
+      return toast.error(
+        remaining > 0
+          ? `Faltam ${brl(remaining)} para fechar o pagamento`
+          : `Pagamentos excedem o total em ${brl(Math.abs(remaining))}`,
+      );
+    }
+    if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
+      return toast.error("Cada forma de pagamento precisa de método e valor > 0");
+    }
+    setConfirmOpen(true);
+  };
+
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!store || !user) return;
     setBusy(true);
 
     const payload = buildPayload();
-    const mappedMethod = ["dinheiro", "pix", "debito", "credito", "crediario"].includes(payMethod) ? payMethod : "dinheiro";
+    const dbMethod = isMulti
+      ? "misto"
+      : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
+    const headInstallments = payments[0]?.installments ?? 1;
 
     const { data: sale, error } = await supabase.from("sales").insert({
       store_id: store.id, seller_id: user.id,
       customer_name: customer || null, customer_doc: doc || null,
       customer_whatsapp: whatsapp || null,
-      payment_method: mappedMethod as any,
-      installments, discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
+      payment_method: dbMethod as any,
+      installments: headInstallments,
+      discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
       notes: JSON.stringify(payload),
     }).select("id").single();
 
     if (error || !sale) { setBusy(false); return toast.error(error?.message ?? "Erro"); }
+
+    // Múltiplas formas de pagamento (sincroniza com financeiro)
+    const splitsRows = payments
+      .filter((p) => Number(p.amount) > 0)
+      .map((p) => ({
+        sale_id: sale.id,
+        store_id: store.id,
+        method: p.method,
+        amount: Number(p.amount),
+        installments: p.installments ?? null,
+        notes: p.notes || null,
+      }));
+    if (splitsRows.length > 0) {
+      const { error: ePay } = await (supabase as any).from("sale_payments").insert(splitsRows);
+      if (ePay) console.warn("sale_payments insert error", ePay);
+    }
 
     const { error: e2 } = await supabase.from("sale_items").insert(
       items.map((i) => ({
@@ -307,6 +394,14 @@ export default function VendaNova() {
     }
 
     setBusy(false);
+    setConfirmOpen(false);
+    // Dispara evento Purchase para o Meta Pixel se carregado
+    try {
+      const fbq = (window as any).fbq;
+      if (typeof fbq === "function") {
+        fbq("track", "Purchase", { value: totalSale, currency: "BRL", num_items: totalsQty });
+      }
+    } catch { /* noop */ }
     toast.success("Venda registrada!");
     navigate("/painel/vendas");
   };
@@ -320,7 +415,7 @@ Cliente: ${customer || "—"}
 Produto(s):
 ${prodLine || "—"}
 Valor total: ${brl(totalSale)}
-Forma de pagamento: ${payMethod.toUpperCase()}
+Forma de pagamento: ${isMulti ? "MISTO" : primaryMethod.toUpperCase()}
 Entrega: ${expectedDate ? `prevista para ${new Date(expectedDate).toLocaleDateString("pt-BR")}` : "a combinar"}
 
 Obrigado pela preferência.`;
@@ -345,14 +440,14 @@ Obrigado pela preferência.`;
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
-            <Button onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
+            <Button onClick={onSubmitClick} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar venda"}
             </Button>
           </div>
         }
       />
 
-      <form onSubmit={submit} className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <form onSubmit={onSubmitClick} className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 space-y-4">
           {/* CLIENTE */}
           <Card className="p-5">
@@ -528,62 +623,108 @@ Obrigado pela preferência.`;
 
               <TabsContent value="pagamento" className="mt-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Field label="Forma de pagamento">
-                    <Select value={payMethod} onValueChange={setPayMethod}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                        <SelectItem value="pix">PIX</SelectItem>
-                        <SelectItem value="debito">Cartão de débito</SelectItem>
-                        <SelectItem value="credito">Cartão de crédito</SelectItem>
-                        <SelectItem value="crediario">Crediário</SelectItem>
-                        <SelectItem value="misto">Misto (2+ formas)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Field label="Outras despesas">
+                    <Input type="number" step="0.01" value={otherExpenses} onChange={(e) => setOtherExpenses(Number(e.target.value))} />
                   </Field>
-                  <Field label="Entrada"><Input type="number" step="0.01" value={entry} onChange={(e) => setEntry(Number(e.target.value))} /></Field>
-                  <Field label="Parcelas"><Input type="number" min={1} max={24} value={installments} onChange={(e) => setInstallments(Number(e.target.value))} /></Field>
-                  <Field label="Outras despesas"><Input type="number" step="0.01" value={otherExpenses} onChange={(e) => setOtherExpenses(Number(e.target.value))} /></Field>
-                  <Field label="Frete"><Input type="number" step="0.01" value={freight} onChange={(e) => setFreight(Number(e.target.value))} /></Field>
-                  <Field label="Valor da parcela">
-                    <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm">{brl(installments > 0 ? totalSale / installments : 0)}</div>
+                  <Field label="Frete">
+                    <Input type="number" step="0.01" value={freight} onChange={(e) => setFreight(Number(e.target.value))} />
                   </Field>
+                  <Field label="Total da venda">
+                    <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm font-semibold">
+                      {brl(totalSale)}
+                    </div>
+                  </Field>
+                </div>
+
+                <div className="border border-border rounded-md p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold">Formas de pagamento</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Divida a venda em quantas formas precisar. A soma deve fechar o total.
+                      </div>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={addPayment}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />Adicionar forma de pagamento
+                    </Button>
+                  </div>
+
+                  {payments.map((p, idx) => {
+                    const isCard = p.method === "credito" || p.method === "debito" || p.method === "crediario";
+                    return (
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
+                        <Field label={`Forma ${idx + 1}`}>
+                          <Select value={p.method} onValueChange={(v) => updatePayment(idx, { method: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {PAY_METHODS.map((m) => (
+                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="Valor (R$)">
+                          <Input
+                            type="number" step="0.01" min={0}
+                            value={p.amount}
+                            onChange={(e) => updatePayment(idx, { amount: Number(e.target.value) })}
+                          />
+                        </Field>
+                        <Field label="Parcelas">
+                          <Input
+                            type="number" min={1} max={24}
+                            value={p.installments ?? 1}
+                            disabled={!isCard}
+                            onChange={(e) => updatePayment(idx, { installments: Math.max(1, Number(e.target.value)) })}
+                          />
+                        </Field>
+                        <Field label="Observação">
+                          <Input
+                            value={p.notes}
+                            placeholder="Ex.: NSU, autorização, banco…"
+                            onChange={(e) => updatePayment(idx, { notes: e.target.value })}
+                          />
+                        </Field>
+                        <div className="flex items-center gap-1">
+                          {remaining > 0 && (
+                            <Button type="button" size="sm" variant="ghost" onClick={() => fillRemaining(idx)} title="Preencher restante">
+                              ={brl(remaining)}
+                            </Button>
+                          )}
+                          <Button
+                            type="button" size="icon" variant="ghost"
+                            disabled={payments.length <= 1}
+                            onClick={() => removePayment(idx)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-danger" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 text-xs font-mono">
+                    <div className="rounded-md bg-muted/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
+                      <div className="text-sm font-semibold">{brl(totalSale)}</div>
+                    </div>
+                    <div className="rounded-md bg-muted/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Pago</div>
+                      <div className="text-sm font-semibold">{brl(paid)}</div>
+                    </div>
+                    <div className={`rounded-md px-3 py-2 ${Math.abs(remaining) < 0.01 ? "bg-success/10 text-success" : remaining > 0 ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning"}`}>
+                      <div className="text-[10px] uppercase tracking-widest opacity-80">
+                        {remaining > 0 ? "Falta" : remaining < 0 ? "Excedente" : "Fechado"}
+                      </div>
+                      <div className="text-sm font-semibold">{brl(Math.abs(remaining))}</div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="rounded-md border border-dashed border-border/60 bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
-                  💡 O <strong>valor líquido</strong> (após taxas de cartão de crédito/débito) agora é ajustado em
-                  <strong> Vendas → Ajustes</strong>, após a confirmação da venda, mantendo o financeiro sincronizado.
+                  💡 Cada forma de pagamento é registrada separadamente e alimenta o financeiro,
+                  fluxo de caixa e o resumo de recebimentos por método.
                 </div>
-
-                {payMethod === "misto" && (
-                  <div className="border border-border rounded-md p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Pagamentos mistos</span>
-                      <Button type="button" size="sm" variant="outline" onClick={() => setMixed([...mixed, { method: "pix", amount: 0 }])}>
-                        <Plus className="h-3.5 w-3.5 mr-1" />Adicionar
-                      </Button>
-                    </div>
-                    {mixed.map((p, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                        <Select value={p.method} onValueChange={(v) => setMixed(mixed.map((m, i) => i === idx ? { ...m, method: v } : m))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pix">PIX</SelectItem>
-                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                            <SelectItem value="debito">Débito</SelectItem>
-                            <SelectItem value="credito">Crédito</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input type="number" step="0.01" value={p.amount} onChange={(e) => setMixed(mixed.map((m, i) => i === idx ? { ...m, amount: Number(e.target.value) } : m))} />
-                        <Button type="button" size="icon" variant="ghost" onClick={() => setMixed(mixed.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
-                      </div>
-                    ))}
-                    <div className="text-xs text-muted-foreground font-mono flex justify-between pt-1">
-                      <span>Valor pago: {brl(paidMixed)}</span>
-                      <span className={remaining > 0 ? "text-danger" : "text-success"}>Restante: {brl(remaining)}</span>
-                    </div>
-                  </div>
-                )}
               </TabsContent>
 
               <TabsContent value="entrega" className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -752,7 +893,7 @@ Obrigado pela preferência.`;
             <div><strong>Telefone:</strong> {phone || "—"}</div>
             <div><strong>Cidade:</strong> {city || "—"}</div>
             <div><strong>Vendedor:</strong> {seller || "—"}</div>
-            <div><strong>Pagamento:</strong> {payMethod.toUpperCase()} {installments > 1 ? `(${installments}x)` : ""}</div>
+            <div><strong>Pagamento:</strong> {isMulti ? "MISTO" : primaryMethod.toUpperCase()} {(payments[0]?.installments ?? 1) > 1 ? `(${payments[0]?.installments}x)` : ""}</div>
           </div>
 
           <table className="w-full border-collapse text-xs mb-4">
@@ -818,6 +959,38 @@ Obrigado pela preferência.`;
           </Button>
         </div>
       </form>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar venda · {brl(totalSale)}</DialogTitle>
+            <DialogDescription>
+              Revise os pagamentos antes de salvar. A soma deve ser igual ao total.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{customer || "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span>{totalsItems} · {totalsQty} un.</span></div>
+            <div className="border-t border-border/60 pt-2 space-y-1">
+              {payments.map((p, i) => (
+                <div key={i} className="flex justify-between font-mono text-xs">
+                  <span className="capitalize">{PAY_METHODS.find((m) => m.value === p.method)?.label ?? p.method}{p.notes ? ` · ${p.notes}` : ""}</span>
+                  <span>{brl(Number(p.amount || 0))}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between font-semibold border-t border-border/60 pt-2">
+              <span>Total pago</span><span>{brl(paid)}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
+            <Button onClick={() => submit()} disabled={busy} className="bg-primary text-primary-foreground">
+              <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

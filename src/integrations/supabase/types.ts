@@ -385,6 +385,68 @@ export type Database = {
           },
         ]
       }
+      marketing_settings: {
+        Row: {
+          id: number
+          meta_access_token: string | null
+          meta_pixel_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          meta_access_token?: string | null
+          meta_pixel_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          meta_access_token?: string | null
+          meta_pixel_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      page_visits: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          referrer: string | null
+          session_id: string | null
+          store_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path: string
+          referrer?: string | null
+          session_id?: string | null
+          store_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          referrer?: string | null
+          session_id?: string | null
+          store_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_visits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parts_inventory: {
         Row: {
           brand: string | null
@@ -1000,6 +1062,54 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          installments: number | null
+          method: string
+          notes: string | null
+          sale_id: string
+          store_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          installments?: number | null
+          method: string
+          notes?: string | null
+          sale_id: string
+          store_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          installments?: number | null
+          method?: string
+          notes?: string | null
+          sale_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_payments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -2042,6 +2152,7 @@ export type Database = {
         }[]
       }
       mobileplus_overview: { Args: never; Returns: Json }
+      mobileplus_sales_traffic: { Args: { _days?: number }; Returns: Json }
       mobileplus_stores: {
         Args: never
         Returns: {
