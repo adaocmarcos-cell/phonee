@@ -1964,6 +1964,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_purchase_with_stock: {
+        Args: {
+          _create_expense: boolean
+          _due_date: string
+          _expected_delivery_at: string
+          _items: Json
+          _notes: string
+          _payment_method: string
+          _payment_status: string
+          _store_id: string
+          _supplier_id: string
+          _supplier_name: string
+          _tags: string[]
+        }
+        Returns: Json
+      }
       get_store_sellers: {
         Args: { _store_id: string }
         Returns: {
