@@ -97,77 +97,125 @@ export function printSaleReceipt(opts: {
   const expDate = new Date(sale.created_at);
   expDate.setDate(expDate.getDate() + Number(warrantyDays || 0));
 
+  const addrLine = [
+    [store?.address_street, store?.address_number].filter(Boolean).join(", "),
+    store?.address_complement,
+    store?.address_neighborhood,
+    [store?.address_city, store?.address_uf].filter(Boolean).join(" - "),
+  ].filter(Boolean).join(" · ") || store?.address || "";
+
+  const showTaxId = store?.show_tax_id_on_docs !== false;
+  const showLegal = store?.show_legal_name_on_docs !== false;
+  const showNonFiscal = store?.show_non_fiscal_notice !== false;
+  const logoUrl = store?.pdf_logo_url && /^https?:\/\//i.test(store.pdf_logo_url) ? store.pdf_logo_url : "";
+
   const css = `
-    *{box-sizing:border-box;font-family:Arial,sans-serif;color:#000}
-    body{padding:20px;font-size:12px}
-    h1{font-size:18px;margin:0;text-transform:uppercase}
-    .head{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:12px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:12px;font-size:11px}
-    table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
-    th{background:#000;color:#fff;text-align:left;padding:4px}
-    td{border-bottom:1px solid #ddd;padding:4px}
-    .totals{margin-left:auto;width:260px;font-size:11px}
-    .totals div{display:flex;justify-content:space-between;padding:2px 0}
-    .tot{font-weight:bold;border-top:1px solid #000;padding-top:4px}
-    .terms{border-top:1px solid #000;padding-top:8px;font-size:10px;line-height:1.4;margin-top:10px}
-    .notice{background:#FFF3CD;border:1px solid #E0B400;padding:6px 8px;font-size:10px;margin:8px 0}
-    .sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:50px;font-size:10px;text-align:center}
-    .sign div{border-top:1px solid #000;padding-top:4px}
-    @media print { body{padding:0} button{display:none} }
+    *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#0f172a}
+    body{padding:28px 32px;font-size:12.5px;background:#fff}
+    .doc{border:1.5px solid #0f172a;border-radius:4px;overflow:hidden}
+    .head{display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1.5px solid #0f172a;background:#fafafa}
+    .head .logo{width:72px;height:72px;border:1px solid #cbd5e1;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;flex-shrink:0}
+    .head .logo img{max-width:100%;max-height:100%;object-fit:contain}
+    .head .store{flex:1;min-width:0}
+    .head .store h1{font-size:17px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.3px}
+    .head .store .line{font-size:11.5px;color:#334155;line-height:1.5}
+    .head .doctype{text-align:right;border-left:1px dashed #94a3b8;padding-left:16px;min-width:200px}
+    .head .doctype .title{font-size:13px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#0f172a}
+    .head .doctype .num{font-family:'Courier New',monospace;font-size:18px;font-weight:700;margin-top:4px}
+    .head .doctype .date{font-size:11px;color:#475569;margin-top:2px}
+    .section{border-bottom:1px solid #cbd5e1;padding:14px 20px}
+    .section .label{font-size:9.5px;font-weight:700;letter-spacing:.6px;color:#64748b;text-transform:uppercase;margin-bottom:8px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12px}
+    .grid .field{display:flex;flex-direction:column;gap:2px}
+    .grid .field .k{font-size:9.5px;color:#64748b;text-transform:uppercase;letter-spacing:.4px}
+    .grid .field .v{font-size:12.5px;color:#0f172a;border-bottom:1px solid #e2e8f0;padding:4px 0;min-height:20px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    thead th{background:#0f172a;color:#fff;text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.4px;text-transform:uppercase;font-weight:600}
+    tbody td{border-bottom:1px solid #e2e8f0;padding:12px;vertical-align:top}
+    tbody tr:nth-child(even){background:#f8fafc}
+    .totals{margin-left:auto;width:320px;font-size:12.5px;padding:12px 20px;border-top:1.5px solid #0f172a}
+    .totals div{display:flex;justify-content:space-between;padding:6px 0}
+    .tot{font-weight:800;font-size:15px;border-top:1.5px solid #0f172a;padding-top:10px;margin-top:4px}
+    .terms{padding:16px 20px;font-size:11px;line-height:1.6;background:#fafafa}
+    .terms .title{font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.4px;margin-bottom:6px;color:#0f172a}
+    .notice{margin:14px 20px;background:#FFF8E1;border-left:4px solid #F59E0B;padding:10px 14px;font-size:11px;line-height:1.5}
+    .nonfiscal{margin:14px 20px 0;text-align:center;border:1.5px dashed #94a3b8;padding:8px;font-size:11px;color:#475569;letter-spacing:.5px;text-transform:uppercase;font-weight:600}
+    .sign{display:grid;grid-template-columns:1fr 1fr;gap:60px;padding:40px 20px 20px;font-size:11px;text-align:center}
+    .sign div{border-top:1px solid #0f172a;padding-top:6px}
+    @media print { body{padding:0} button{display:none} .doc{border:none} }
   `;
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Comprovante ${fmtNum(sale.sale_number)}</title><style>${css}</style></head><body>
-    <div class="head">
-      <div>
-        <h1>${escape(store?.trade_name || store?.name || "")}</h1>
-        ${store?.tax_id ? `<div>CNPJ/CPF: ${escape(store.tax_id)}</div>` : ""}
-        ${store?.address ? `<div>${escape(store.address)}</div>` : ""}
-        <div>${store?.phone ? `Tel: ${escape(store.phone)}` : ""}${store?.email ? ` · ${escape(store.email)}` : ""}</div>
+    <div class="doc">
+      <div class="head">
+        <div class="logo">${logoUrl ? `<img src="${logoUrl}" alt="logo"/>` : `<span style="font-size:9px;color:#94a3b8">LOGO</span>`}</div>
+        <div class="store">
+          <h1>${escape(store?.trade_name || store?.name || "")}</h1>
+          ${showLegal && store?.trade_name && store?.name && store.trade_name !== store.name ? `<div class="line">${escape(store.name)}</div>` : ""}
+          ${showTaxId && store?.tax_id ? `<div class="line">CNPJ/CPF: ${escape(store.tax_id)}</div>` : ""}
+          ${addrLine ? `<div class="line">${escape(addrLine)}</div>` : ""}
+          <div class="line">${store?.phone ? `Telefone: ${escape(store.phone)}` : ""}${store?.email ? `${store?.phone ? " · " : ""}${escape(store.email)}` : ""}${store?.instagram ? ` · ${escape(store.instagram)}` : ""}</div>
+        </div>
+        <div class="doctype">
+          <div class="title">Comprovante de Venda</div>
+          <div class="num">Nº ${fmtNum(sale.sale_number)}</div>
+          <div class="date">${fmtDate(sale.created_at)}</div>
+        </div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:14px;font-weight:bold">COMPROVANTE DE VENDA</div>
-        <div style="font-family:monospace">Nº ${fmtNum(sale.sale_number)}</div>
-        <div>${fmtDate(sale.created_at)}</div>
+
+      ${showNonFiscal ? `<div class="nonfiscal">Este documento não é um documento fiscal</div>` : ""}
+
+      <div class="section">
+        <div class="label">Dados do Cliente</div>
+        <div class="grid">
+          <div class="field"><span class="k">Cliente</span><span class="v">${escape(sale.customer_name || "—")}</span></div>
+          <div class="field"><span class="k">Documento</span><span class="v">${escape(sale.customer_doc || "—")}</span></div>
+          <div class="field"><span class="k">WhatsApp</span><span class="v">${escape(ex.whatsapp || "—")}</span></div>
+          <div class="field"><span class="k">Cidade</span><span class="v">${escape(ex.city || "—")}</span></div>
+        </div>
       </div>
-    </div>
 
-    <div class="grid">
-      <div><b>Cliente:</b> ${escape(sale.customer_name || "—")}</div>
-      <div><b>Doc:</b> ${escape(sale.customer_doc || "—")}</div>
-      <div><b>Vendedor:</b> ${escape(ex.seller || "—")}</div>
-      <div><b>WhatsApp:</b> ${escape(ex.whatsapp || "—")}</div>
-      <div><b>Pagamento:</b> ${escape(String(sale.payment_method || "").toUpperCase())}${sale.installments && sale.installments > 1 ? ` (${sale.installments}x)` : ""}</div>
-      <div><b>Cidade:</b> ${escape(ex.city || "—")}</div>
-    </div>
-
-    <table>
-      <thead><tr><th>Produto</th><th style="text-align:right">Qtd</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th></tr></thead>
-      <tbody>
-        ${items.map((i) => `<tr>
-          <td>${escape(i.name)}${i.sku ? ` <span style="color:#666">(${escape(i.sku)})</span>` : ""}</td>
-          <td style="text-align:right">${i.quantity}</td>
-          <td style="text-align:right">${brl(i.unit_price)}</td>
-          <td style="text-align:right">${brl(i.total)}</td>
-        </tr>`).join("")}
-      </tbody>
-    </table>
-
-    <div class="totals">
-      <div><span>Subtotal:</span><span>${brl(Number(sale.subtotal || 0))}</span></div>
-      <div><span>Desconto:</span><span>-${brl(Number(sale.discount || 0))}</span></div>
-      <div class="tot"><span>TOTAL:</span><span>${brl(Number(sale.total || 0))}</span></div>
-    </div>
-
-    ${warrantyEnabled ? `
-      ${warrantyNotice ? `<div class="notice"><b>AVISO:</b> ${escape(warrantyNotice)}</div>` : ""}
-      <div class="terms">
-        <div style="font-weight:bold;margin-bottom:4px">TERMO DE GARANTIA — ${warrantyDays} dias (válida até ${expDate.toLocaleDateString("pt-BR")})</div>
-        <div>${escape(warrantyTerms)}</div>
+      <div class="section">
+        <div class="label">Pagamento</div>
+        <div class="grid">
+          <div class="field"><span class="k">Forma de pagamento</span><span class="v">${escape(String(sale.payment_method || "").toUpperCase())}${sale.installments && sale.installments > 1 ? ` (${sale.installments}x)` : ""}</span></div>
+          <div class="field"><span class="k">Vendedor</span><span class="v">${escape(ex.seller || "—")}</span></div>
+        </div>
       </div>
-    ` : ""}
 
-    <div class="sign">
-      <div>Assinatura do cliente</div>
-      <div>${escape(store?.trade_name || store?.name || "")}</div>
+      <div style="padding:0">
+        <table>
+          <thead><tr><th>Produto</th><th style="text-align:right;width:70px">Qtd</th><th style="text-align:right;width:120px">Unit.</th><th style="text-align:right;width:130px">Total</th></tr></thead>
+          <tbody>
+            ${items.map((i) => `<tr>
+              <td><div style="font-weight:600">${escape(i.name)}</div>${i.sku ? `<div style="color:#64748b;font-size:10.5px;margin-top:2px">SKU: ${escape(i.sku)}</div>` : ""}</td>
+              <td style="text-align:right">${i.quantity}</td>
+              <td style="text-align:right">${brl(i.unit_price)}</td>
+              <td style="text-align:right;font-weight:600">${brl(i.total)}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="totals">
+        <div><span>Subtotal</span><span>${brl(Number(sale.subtotal || 0))}</span></div>
+        <div><span>Desconto</span><span>- ${brl(Number(sale.discount || 0))}</span></div>
+        <div class="tot"><span>TOTAL</span><span>${brl(Number(sale.total || 0))}</span></div>
+      </div>
+
+      ${warrantyEnabled ? `
+        ${warrantyNotice ? `<div class="notice"><b>AVISO:</b> ${escape(warrantyNotice)}</div>` : ""}
+        <div class="terms">
+          <div class="title">Termo de Garantia — ${warrantyDays} dias (válida até ${expDate.toLocaleDateString("pt-BR")})</div>
+          <div>${escape(warrantyTerms)}</div>
+        </div>
+      ` : ""}
+
+      ${store?.pdf_footer_text ? `<div class="terms" style="border-top:1px solid #cbd5e1"><div>${escape(store.pdf_footer_text)}</div></div>` : ""}
+
+      <div class="sign">
+        <div>Assinatura do cliente</div>
+        <div>${escape(store?.trade_name || store?.name || "")}</div>
+      </div>
     </div>
 
     <div style="margin-top:20px;text-align:center"><button onclick="window.print()">Imprimir</button></div>
