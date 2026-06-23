@@ -36,6 +36,8 @@ export default function Dashboard() {
   const [evoPeriod, setEvoPeriod] = useState<PeriodValue>("1y");
   const [evoCustom, setEvoCustom] = useState<CustomRange>({});
   const [evoSeries, setEvoSeries] = useState<{ label: string; total: number }[]>([]);
+  const [trendPeriod, setTrendPeriod] = useState<PeriodValue>("1y");
+  const [trendSeries, setTrendSeries] = useState<{ label: string; total: number }[]>([]);
 
   useEffect(() => {
     if (!store) return;
@@ -207,6 +209,51 @@ export default function Dashboard() {
     })();
   }, [store, evoPeriod, evoCustom]);
 
+  // Mini gráfico de evolução (abaixo dos cards de destaque)
+  useEffect(() => {
+    if (!store) return;
+    (async () => {
+      const { from, to } = resolvePeriod(trendPeriod, {});
+      if (!from) return;
+      const since = new Date(from); since.setHours(0, 0, 0, 0);
+      const until = to ?? new Date();
+      const days = Math.max(1, Math.round((until.getTime() - since.getTime()) / 86400_000));
+      const { data } = await supabase
+        .from("sales")
+        .select("total, created_at")
+        .eq("store_id", store.id)
+        .gte("created_at", since.toISOString())
+        .lte("created_at", until.toISOString());
+      const groupByMonth = days > 60;
+      const buckets: Record<string, number> = {};
+      (data ?? []).forEach((s: any) => {
+        const d = new Date(s.created_at);
+        const k = groupByMonth
+          ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`
+          : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+        buckets[k] = (buckets[k] || 0) + Number(s.total || 0);
+      });
+      const out: { label: string; total: number }[] = [];
+      const cursor = new Date(since);
+      const end = new Date(until);
+      if (groupByMonth) {
+        cursor.setDate(1);
+        while (cursor <= end) {
+          const k = `${String(cursor.getMonth() + 1).padStart(2, "0")}/${String(cursor.getFullYear()).slice(2)}`;
+          out.push({ label: k, total: buckets[k] || 0 });
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+      } else {
+        while (cursor <= end) {
+          const k = `${String(cursor.getDate()).padStart(2, "0")}/${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+          out.push({ label: k, total: buckets[k] || 0 });
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      }
+      setTrendSeries(out);
+    })();
+  }, [store, trendPeriod]);
+
   const lucroMes = revenueMonth - costMonth - expensesMonth;
   const lucroBrutoHoje = revenueToday - costToday;
   const ticketMedio = salesCount > 0 ? revenueMonth / salesCount : 0;
@@ -313,6 +360,57 @@ export default function Dashboard() {
           tone="danger"
         />
       </div>
+
+      <Card className="p-5 mb-6 bg-card border-border shadow-card">
+        <div className="mb-3">
+          <h3 className="font-semibold">Evolução das vendas</h3>
+          <p className="text-xs text-muted-foreground">Faturamento no período selecionado</p>
+        </div>
+        <div className="h-56">
+          {trendSeries.every((p) => p.total === 0) ? (
+            <EmptyChart label="Sem vendas no período" />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendSeries}>
+                <defs>
+                  <linearGradient id="trendRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                  formatter={(v: number) => brl(v)}
+                />
+                <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="url(#trendRev)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        <div className="mt-2 flex items-center justify-center gap-1 text-[11px]">
+          {([
+            { v: "30d", l: "30 dias" },
+            { v: "3m", l: "3 meses" },
+            { v: "6m", l: "6 meses" },
+            { v: "1y", l: "12 meses" },
+          ] as { v: PeriodValue; l: string }[]).map((opt) => (
+            <button
+              key={opt.v}
+              onClick={() => setTrendPeriod(opt.v)}
+              className={`px-2.5 py-1 rounded-md transition ${
+                trendPeriod === opt.v
+                  ? "bg-muted text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.l}
+            </button>
+          ))}
+        </div>
+      </Card>
 
       <div className="flex items-center justify-end mb-6">
         <PeriodFilter
