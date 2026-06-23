@@ -188,6 +188,54 @@ export default function Financeiro() {
     doc.save(`financeiro-${new Date().toISOString().slice(0,10)}.pdf`);
   };
 
+  const exportReceiptsCSV = () => {
+    const total = receiptsByMethod.reduce((s, r) => s + r.total, 0);
+    const header = ["Loja", "Periodo_inicio", "Periodo_fim", "Forma_pagamento", "Total_BRL", "Percentual"];
+    const rows = receiptsByMethod.map((r) => [
+      store?.name ?? "",
+      from, to, r.method,
+      r.total.toFixed(2).replace(".", ","),
+      total > 0 ? ((r.total / total) * 100).toFixed(2).replace(".", ",") + "%" : "0%",
+    ]);
+    rows.push(["", "", "", "TOTAL", total.toFixed(2).replace(".", ","), "100%"]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `recebimentos-por-metodo-${from}_a_${to}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportReceiptsPDF = () => {
+    const total = receiptsByMethod.reduce((s, r) => s + r.total, 0);
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Recebimentos por método", 14, 16);
+    doc.setFontSize(9);
+    doc.text(`Loja: ${store?.name ?? "—"}`, 14, 22);
+    doc.text(`Período: ${new Date(from).toLocaleDateString("pt-BR")} → ${new Date(to).toLocaleDateString("pt-BR")}`, 14, 27);
+    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 14, 32);
+    autoTable(doc, {
+      startY: 38,
+      head: [["Forma de pagamento", "Total", "% do total"]],
+      body: [
+        ...receiptsByMethod.map((r) => [
+          r.method,
+          brl(r.total),
+          total > 0 ? `${((r.total / total) * 100).toFixed(1)}%` : "0%",
+        ]),
+        [{ content: "TOTAL", styles: { fontStyle: "bold" } }, { content: brl(total), styles: { fontStyle: "bold" } }, "100%"],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [30, 41, 59] },
+    });
+    doc.save(`recebimentos-por-metodo-${from}_a_${to}.pdf`);
+  };
+
   return (
     <div>
       <PageHeader
