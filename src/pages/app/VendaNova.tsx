@@ -937,6 +937,38 @@ Obrigado pela preferência.`;
           </Button>
         </div>
       </form>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar venda · {brl(totalSale)}</DialogTitle>
+            <DialogDescription>
+              Revise os pagamentos antes de salvar. A soma deve ser igual ao total.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{customer || "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span>{totalsItems} · {totalsQty} un.</span></div>
+            <div className="border-t border-border/60 pt-2 space-y-1">
+              {payments.map((p, i) => (
+                <div key={i} className="flex justify-between font-mono text-xs">
+                  <span className="capitalize">{PAY_METHODS.find((m) => m.value === p.method)?.label ?? p.method}{p.notes ? ` · ${p.notes}` : ""}</span>
+                  <span>{brl(Number(p.amount || 0))}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between font-semibold border-t border-border/60 pt-2">
+              <span>Total pago</span><span>{brl(paid)}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
+            <Button onClick={() => submit()} disabled={busy} className="bg-primary text-primary-foreground">
+              <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
