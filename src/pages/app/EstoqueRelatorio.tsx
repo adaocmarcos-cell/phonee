@@ -451,7 +451,7 @@ export default function EstoqueRelatorio() {
           <table className="w-full text-sm">
             <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
               <tr>
-                <th className="text-left px-4 py-3 font-medium">Item</th>
+                <th className="text-left px-4 py-3 font-medium min-w-[320px] w-[40%]">Item</th>
                 <th className="text-left px-4 py-3 font-medium">Tipo</th>
                 <th className="text-right px-4 py-3 font-medium">Base (mês-1)</th>
                 <th className="text-right px-4 py-3 font-medium text-success">Entradas</th>
@@ -469,8 +469,8 @@ export default function EstoqueRelatorio() {
                 <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">Nenhum item no estoque.</td></tr>
               ) : visibleRows.map((r) => (
                 <tr key={`${r.kind}-${r.id}`} className={`hover:bg-surface-elevated/40 ${r.inconsistent ? "bg-danger/5" : ""}`}>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{r.name}</div>
+                  <td className="px-4 py-3 min-w-[320px] w-[40%]">
+                    <div className="font-medium whitespace-normal break-words">{r.name}</div>
                     <div className="text-[11px] text-muted-foreground font-mono">{r.sku || "—"}</div>
                   </td>
                   <td className="px-4 py-3">
