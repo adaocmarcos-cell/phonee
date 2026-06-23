@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
+import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
 
 export default function PhoneeLogin() {
   const nav = useNavigate();

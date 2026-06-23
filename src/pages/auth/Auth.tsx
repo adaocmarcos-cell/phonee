@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import logoAsset from "@/assets/phonee-logo.png.asset.json";
+import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
 const logo = logoAsset.url;
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 
