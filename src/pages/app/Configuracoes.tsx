@@ -149,10 +149,7 @@ export default function Configuracoes() {
 
   return (
     <div>
-      <PageHeader
-        title="Configurações"
-        description="Personalize a aparência do sistema. Documentos e PDFs exportados continuam sempre em fundo branco."
-      />
+      <PageHeader title="Configurações" />
 
       <div className="grid gap-4 max-w-2xl">
         <Card className="p-5 bg-card border-border">
