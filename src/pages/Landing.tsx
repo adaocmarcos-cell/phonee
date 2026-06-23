@@ -136,9 +136,9 @@ export default function Landing() {
         <div className="absolute -top-40 -right-40 h-[480px] w-[480px] rounded-full bg-primary/30 blur-[140px] pointer-events-none" />
         <div className="absolute -bottom-40 -left-40 h-[420px] w-[420px] rounded-full bg-info/20 blur-[140px] pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-5 pt-4 pb-16 lg:pt-6 lg:pb-20">
+        <div className="relative max-w-7xl mx-auto px-5 pt-3 pb-16 lg:pt-4 lg:pb-20">
           {/* LOGO PRINCIPAL — totalmente transparente, tamanho padrão */}
-          <div className="flex justify-center -mt-2 mb-4 lg:mb-5">
+          <div className="flex justify-center mt-0 mb-2 md:mb-3">
             <img
               src={logo}
               alt="Phonee"
