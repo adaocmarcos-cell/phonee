@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
-  Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet,
+  Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
   ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText,
 } from "lucide-react";
 import {
@@ -28,7 +28,8 @@ const ops: Item[] = [
   { title: "Vendas", url: "/app/vendas", icon: Receipt },
   { title: "Custos & Despesas", url: "/app/despesas", icon: Wallet },
   { title: "Clientes", url: "/app/clientes", icon: Users },
-  { title: "Ordens de Serviço", url: "/app/os", icon: Wrench },
+  { title: "Assistência & Serviços", url: "/app/os", icon: Wrench },
+  { title: "Peças e Ferramentas", url: "/app/pecas", icon: Hammer },
   { title: "Alertas", url: "/app/alertas", icon: Bell },
 ];
 
@@ -106,7 +107,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {renderGroup("Operação", ops)}
+        {renderGroup("Gestão", ops)}
         {renderGroup("Inteligência", main)}
         {renderGroup("Configuração", config)}
         {showAdmin && renderGroup(
