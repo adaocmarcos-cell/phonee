@@ -289,6 +289,40 @@ export default function ProductForm() {
           </div>
         </Card>
 
+        {canSeeCost(role) && (
+          <Card className="p-0 bg-card border-border shadow-card overflow-hidden">
+            <Collapsible open={entryOpen} onOpenChange={setEntryOpen}>
+              <CollapsibleTrigger className="w-full flex items-center justify-between p-6 hover:bg-surface-elevated/30 transition">
+                <div className="text-left">
+                  <h3 className="font-semibold">Dados de Entrada</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Quanto você pagou, origem do aparelho e quando entrou no estoque.</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${entryOpen ? "rotate-180" : ""}`} />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="px-6 pb-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Field label="Custo de aquisição (R$)">
+                      <Input type="number" step="0.01" value={form.cost_price} onChange={(e) => set("cost_price", e.target.value)} placeholder="Quanto você pagou?" />
+                    </Field>
+                    <Field label="Fornecedor / Origem">
+                      <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Nome ou telefone" />
+                    </Field>
+                    <Field label="Data de entrada">
+                      <Input type="date" value={form.data_entrada} onChange={(e) => set("data_entrada", e.target.value)} />
+                    </Field>
+                  </div>
+                  <div className="rounded-md border border-border bg-surface-elevated/40 px-4 py-3 text-sm flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-muted-foreground">Margem estimada:</span>
+                    <span className={`metric font-semibold ${marginBrl > 0 ? "text-success" : marginBrl < 0 ? "text-danger" : ""}`}>{brl(marginBrl)}</span>
+                    <span className={`text-xs ${margin >= 30 ? "text-success" : margin >= 15 ? "text-warning" : "text-danger"}`}>({margin.toFixed(0)}% de margem)</span>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+        )}
+
         <Card className="p-6 bg-card border-border shadow-card">
           <h3 className="font-semibold mb-4">Visibilidade</h3>
           <div className="space-y-4">
