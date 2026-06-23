@@ -378,7 +378,6 @@ export default function Financeiro() {
               <div className="flex gap-2 flex-wrap">
                 <Button onClick={exportReport} className="bg-gradient-primary shadow-glow"><FileDown className="h-4 w-4 mr-1" />Relatório completo (PDF)</Button>
                 <Button variant="outline" onClick={() => navigate("/app/despesas")}>Abrir Despesas</Button>
-                <Button variant="outline" onClick={() => navigate("/app/vendas")}>Abrir Vendas</Button>
               </div>
             </Card>
           </div>
