@@ -395,11 +395,36 @@ export default function VendaNova() {
 
     setBusy(false);
     setConfirmOpen(false);
-    // Dispara evento Purchase para o Meta Pixel se carregado
+    // Dispara evento Purchase para o Meta Pixel com detalhamento por forma de pagamento
     try {
       const fbq = (window as any).fbq;
       if (typeof fbq === "function") {
-        fbq("track", "Purchase", { value: totalSale, currency: "BRL", num_items: totalsQty });
+        const validSplits = payments.filter((p) => Number(p.amount) > 0);
+        const contents = validSplits.map((p) => ({
+          id: `pay_${p.method}`,
+          quantity: 1,
+          item_price: Number(p.amount),
+        }));
+        // Adiciona um content por item vendido (para reporting)
+        const itemContents = items.map((i) => ({
+          id: i.product_id,
+          quantity: i.quantity,
+          item_price: i.unit_price,
+        }));
+        fbq("track", "Purchase", {
+          value: Number(totalSale.toFixed(2)),
+          currency: "BRL",
+          num_items: totalsQty,
+          contents: itemContents.length ? itemContents : contents,
+          content_type: "product",
+          content_ids: items.map((i) => i.product_id),
+          payment_method: isMulti ? "misto" : primaryMethod,
+          payment_split: validSplits.map((p) => ({
+            method: p.method,
+            amount: Number(p.amount),
+            installments: p.installments ?? 1,
+          })),
+        });
       }
     } catch { /* noop */ }
     toast.success("Venda registrada!");
@@ -886,15 +911,47 @@ Obrigado pela preferência.`;
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs mb-4">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs mb-3">
             <div><strong>Cliente:</strong> {customer || "—"}</div>
             <div><strong>{docType.toUpperCase()}:</strong> {doc || "—"}</div>
             <div><strong>WhatsApp:</strong> {whatsapp || "—"}</div>
             <div><strong>Telefone:</strong> {phone || "—"}</div>
             <div><strong>Cidade:</strong> {city || "—"}</div>
             <div><strong>Vendedor:</strong> {seller || "—"}</div>
-            <div><strong>Pagamento:</strong> {isMulti ? "MISTO" : primaryMethod.toUpperCase()} {(payments[0]?.installments ?? 1) > 1 ? `(${payments[0]?.installments}x)` : ""}</div>
+            <div className="col-span-2"><strong>Pagamento:</strong> {isMulti ? `MISTO (${payments.filter(p => Number(p.amount) > 0).length} formas)` : `${primaryMethod.toUpperCase()}${(payments[0]?.installments ?? 1) > 1 ? ` em ${payments[0]?.installments}x` : ""}`}</div>
           </div>
+
+          {/* Detalhamento de pagamentos */}
+          <table className="w-full border-collapse text-[11px] mb-4 border border-black">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="text-left p-1 border-r border-black">Forma de pagamento</th>
+                <th className="text-center p-1 border-r border-black w-16">Parcelas</th>
+                <th className="text-right p-1 border-r border-black w-20">Valor</th>
+                <th className="text-left p-1">Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.filter((p) => Number(p.amount) > 0).map((p, idx) => {
+                const label = PAY_METHODS.find((m) => m.value === p.method)?.label ?? p.method;
+                const inst = (p.installments ?? 1);
+                const parcel = inst > 1 ? `${inst}x de ${brl(Number(p.amount) / inst)}` : "À vista";
+                return (
+                  <tr key={idx} className="border-t border-gray-300">
+                    <td className="p-1 border-r border-black">{label}</td>
+                    <td className="text-center p-1 border-r border-black">{parcel}</td>
+                    <td className="text-right p-1 border-r border-black">{brl(Number(p.amount))}</td>
+                    <td className="p-1 text-gray-700">{p.notes || "—"}</td>
+                  </tr>
+                );
+              })}
+              <tr className="border-t-2 border-black font-bold bg-gray-50">
+                <td className="p-1 border-r border-black" colSpan={2}>TOTAL PAGO</td>
+                <td className="text-right p-1 border-r border-black">{brl(paid)}</td>
+                <td className="p-1" />
+              </tr>
+            </tbody>
+          </table>
 
           <table className="w-full border-collapse text-xs mb-4">
             <thead>

@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import {
   Wallet, TrendingUp, TrendingDown, Receipt, ArrowRight, Clock, CheckCircle2,
-  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart,
+  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -188,6 +188,54 @@ export default function Financeiro() {
     doc.save(`financeiro-${new Date().toISOString().slice(0,10)}.pdf`);
   };
 
+  const exportReceiptsCSV = () => {
+    const total = receiptsByMethod.reduce((s, r) => s + r.total, 0);
+    const header = ["Loja", "Periodo_inicio", "Periodo_fim", "Forma_pagamento", "Total_BRL", "Percentual"];
+    const rows = receiptsByMethod.map((r) => [
+      store?.name ?? "",
+      from, to, r.method,
+      r.total.toFixed(2).replace(".", ","),
+      total > 0 ? ((r.total / total) * 100).toFixed(2).replace(".", ",") + "%" : "0%",
+    ]);
+    rows.push(["", "", "", "TOTAL", total.toFixed(2).replace(".", ","), "100%"]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `recebimentos-por-metodo-${from}_a_${to}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportReceiptsPDF = () => {
+    const total = receiptsByMethod.reduce((s, r) => s + r.total, 0);
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Recebimentos por método", 14, 16);
+    doc.setFontSize(9);
+    doc.text(`Loja: ${store?.name ?? "—"}`, 14, 22);
+    doc.text(`Período: ${new Date(from).toLocaleDateString("pt-BR")} → ${new Date(to).toLocaleDateString("pt-BR")}`, 14, 27);
+    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 14, 32);
+    autoTable(doc, {
+      startY: 38,
+      head: [["Forma de pagamento", "Total", "% do total"]],
+      body: [
+        ...receiptsByMethod.map((r) => [
+          r.method,
+          brl(r.total),
+          total > 0 ? `${((r.total / total) * 100).toFixed(1)}%` : "0%",
+        ]),
+        [{ content: "TOTAL", styles: { fontStyle: "bold" } }, { content: brl(total), styles: { fontStyle: "bold" } }, "100%"],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [30, 41, 59] },
+    });
+    doc.save(`recebimentos-por-metodo-${from}_a_${to}.pdf`);
+  };
+
   return (
     <div>
       <PageHeader
@@ -246,9 +294,18 @@ export default function Financeiro() {
       <Card className="p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" />Recebimentos por método</h3>
-          <span className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
-            Total: {brl(receiptsByMethod.reduce((s, r) => s + r.total, 0))}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+              {store?.name ? `${store.name} · ` : ""}
+              {new Date(from).toLocaleDateString("pt-BR")} → {new Date(to).toLocaleDateString("pt-BR")} · Total: {brl(receiptsByMethod.reduce((s, r) => s + r.total, 0))}
+            </span>
+            <Button size="sm" variant="outline" onClick={exportReceiptsCSV} disabled={receiptsByMethod.length === 0}>
+              <FileDown className="h-3.5 w-3.5 mr-1" />CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportReceiptsPDF} disabled={receiptsByMethod.length === 0}>
+              <FileText className="h-3.5 w-3.5 mr-1" />PDF
+            </Button>
+          </div>
         </div>
         {receiptsByMethod.length === 0 ? (
           <div className="text-xs text-muted-foreground">Sem recebimentos no período.</div>
