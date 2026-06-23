@@ -247,6 +247,10 @@ export default function Compras() {
       expected_delivery_at: form.expected_delivery_at || null,
       received_at: new Date().toISOString(),
       sent_at: new Date().toISOString(),
+      payment_status: form.payment_status || "a_pagar",
+      paid_at: form.payment_status === "pago" ? new Date().toISOString() : null,
+      due_date: form.due_date || null,
+      tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
     };
     const { data: ord, error } = await supabase.from("purchase_orders").insert(payload).select("id").single();
     if (error || !ord) { setSaving(false); toast.error(error?.message ?? "Erro ao salvar"); return; }
@@ -329,6 +333,22 @@ export default function Compras() {
     }));
     const { error: e2 } = await supabase.from("purchase_order_items").insert(itemsPayload);
     if (e2) { setSaving(false); toast.error(e2.message); return; }
+
+    // Sincroniza com Financeiro: registra despesa quando pago
+    if (form.payment_status === "pago" && orderTotal > 0) {
+      const tagList = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+      await supabase.from("expenses").insert({
+        store_id: store.id,
+        category_name: "Compras / Mercadorias",
+        subcategory: supplierObj?.company_name ?? null,
+        description: `Entrada de mercadorias${supplierObj ? ` · ${supplierObj.company_name}` : ""}${tagList.length ? ` · ${tagList.join(", ")}` : ""}`,
+        amount: orderTotal,
+        expense_date: new Date().toISOString().slice(0, 10),
+        payment_method: form.payment_method || null,
+        notes: form.notes || null,
+      } as any);
+      toast.message("Despesa lançada no financeiro");
+    }
 
     toast.success(`Entrada de mercadorias concluída · ${totalUnits} un. no estoque`);
     if (created > 0) toast.message(`${created} produto(s) novo(s) cadastrado(s) no estoque`);
