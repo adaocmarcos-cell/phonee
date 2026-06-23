@@ -13,12 +13,8 @@ export function MetaPixel() {
     let cancelled = false;
     (async () => {
       if ((window as any).__phnPixelLoaded) return;
-      const { data } = await (supabase as any)
-        .from("marketing_settings")
-        .select("meta_pixel_id")
-        .eq("id", 1)
-        .maybeSingle();
-      const pixelId = data?.meta_pixel_id?.trim();
+      const { data } = await (supabase as any).rpc("get_meta_pixel_id");
+      const pixelId = (typeof data === "string" ? data : "")?.trim();
       if (cancelled || !pixelId) return;
       // Loader oficial do Meta Pixel
       (function (f: any, b: Document, e: string, v: string) {

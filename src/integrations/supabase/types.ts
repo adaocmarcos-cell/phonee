@@ -2120,6 +2120,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_meta_pixel_id: { Args: never; Returns: string }
       get_store_sellers: {
         Args: { _store_id: string }
         Returns: {
