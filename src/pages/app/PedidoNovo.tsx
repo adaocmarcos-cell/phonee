@@ -309,15 +309,16 @@ export default function PedidoNovo() {
             <div className="grid grid-cols-12 gap-2">
               <Input className="col-span-6" placeholder="Nome do produto" value={customName} onChange={(e) => setCustomName(e.target.value)} />
               <Input className="col-span-6" placeholder="Fornecedor (opcional)" value={customSupplier} onChange={(e) => setCustomSupplier(e.target.value)} />
-              <Input className="col-span-3 font-mono h-10" type="number" min={1} placeholder="Qtd" value={customQty} onChange={(e) => setCustomQty(Math.max(1, Number(e.target.value) || 1))} />
-              <Input className="col-span-4 font-mono h-10" type="number" step="0.01" placeholder="Custo unit." value={customCost} onChange={(e) => setCustomCost(Number(e.target.value) || 0)} />
+              <Input className="col-span-4 font-mono h-10" type="number" min={1} placeholder="Qtd" value={customQty} onChange={(e) => setCustomQty(Math.max(1, Number(e.target.value) || 1))} />
+              <Input className="col-span-8 font-mono h-10" type="number" step="0.01" placeholder="Custo unit." value={customCost} onChange={(e) => setCustomCost(Number(e.target.value) || 0)} />
               <Button
                 type="button"
                 onClick={addCustomItem}
                 disabled={!customName.trim()}
-                className="col-span-5 h-10 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-medium"
+                className="col-span-12 h-10 gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-medium whitespace-nowrap"
               >
-                <Plus className="h-4 w-4" /> Adicionar à lista
+                <Plus className="h-4 w-4 shrink-0" />
+                <span className="truncate">Adicionar à lista</span>
               </Button>
             </div>
           </div>
