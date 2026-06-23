@@ -210,11 +210,6 @@ export default function Vendas() {
             <Button variant="outline" onClick={onExportXLSX} disabled={filtered.length === 0}>
               <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
             </Button>
-            {canRegisterSale(role) && (
-              <Button onClick={() => navigate("/app/vendas/nova")} className="bg-primary text-primary-foreground shadow-glow">
-                <Plus className="h-4 w-4 mr-1" />Nova venda
-              </Button>
-            )}
           </div>
         }
       />
