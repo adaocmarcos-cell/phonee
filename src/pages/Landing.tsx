@@ -520,7 +520,7 @@ export default function Landing() {
 
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Anual — destaque */}
-            <div className="relative">
+            <Reveal direction="left" duration={1000} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/40 to-info/25 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full">
                 <Badge className="bg-success/15 text-success border-success/40 text-sm">
@@ -554,10 +554,10 @@ export default function Landing() {
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
               </Card>
-            </div>
+            </Reveal>
 
             {/* Vitalício — destaque máximo */}
-            <div className="relative">
+            <Reveal direction="right" duration={1000} delay={120} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/50 to-info/30 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full shadow-glow">
                 <Badge className="bg-primary/15 text-primary border-primary/40 text-sm">
@@ -601,7 +601,7 @@ export default function Landing() {
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
               </Card>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
