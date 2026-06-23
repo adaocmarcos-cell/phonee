@@ -81,6 +81,8 @@ export default function Compras() {
   const [items, setItems] = useState<Item[]>([]);
   const [bulk, setBulk] = useState("");
   const [delTarget, setDelTarget] = useState<Order | null>(null);
+  const [skuQuery, setSkuQuery] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
 
   // financial summary (mês atual)
   const [monthSales, setMonthSales] = useState(0);
@@ -140,9 +142,11 @@ export default function Compras() {
   }, [filtered]);
 
   const startNew = () => {
-    setForm({ status: "rascunho", payment_method: "", expected_delivery_at: "", notes: "", supplier_id: null });
+    setForm({ status: "rascunho", payment_method: "", expected_delivery_at: "", notes: "", supplier_id: null, payment_status: "a_pagar", due_date: "", tags: [] });
     setItems([{ product_name: "", quantity: 1, unit_cost: 0 }]);
     setBulk("");
+    setSkuQuery("");
+    setTagsInput("");
     setOpen(true);
   };
 
