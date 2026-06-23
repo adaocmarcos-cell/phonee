@@ -210,21 +210,16 @@ export default function Vendas() {
             <Button variant="outline" onClick={onExportXLSX} disabled={filtered.length === 0}>
               <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
             </Button>
-            {canRegisterSale(role) && (
-              <Button onClick={() => navigate("/app/vendas/nova")} className="bg-primary text-primary-foreground shadow-glow">
-                <Plus className="h-4 w-4 mr-1" />Nova venda
-              </Button>
-            )}
           </div>
         }
       />
 
       {/* Dashboard de vendas — padrão visual do Dashboard principal */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <button
           type="button"
           onClick={() => { setTab("receber"); setReceiverOpen(true); }}
-          className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xl sm:col-span-2 lg:col-span-2 h-full"
+          className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xl"
           title="Ver clientes com vendas em aberto"
         >
           <MetricCard
@@ -233,7 +228,6 @@ export default function Vendas() {
             delta={`${pendingSales.length} venda(s) · ${overdueCount} vencida(s)`}
             icon={Wallet}
             tone={overdueCount > 0 ? "danger" : "warning"}
-            className="h-full py-7"
           />
         </button>
         {(["dinheiro", "pix", "debito", "credito", "boleto"] as const).slice(0, 3).map((m) => {
@@ -250,6 +244,17 @@ export default function Vendas() {
           );
         })}
       </div>
+
+      {canRegisterSale(role) && (
+        <button
+          type="button"
+          onClick={() => navigate("/app/vendas/nova")}
+          className="w-full sm:w-1/2 lg:w-1/2 mb-4 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-6 flex items-center justify-center gap-2 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <Plus className="h-5 w-5" />
+          Nova venda
+        </button>
+      )}
 
       {/* Aviso: módulo de Fornecedores em breve (exclusivo Gestor) */}
       <Card className="mb-4 p-4 border-dashed border-2 border-primary/40 bg-primary/[0.04] flex items-start gap-3">
