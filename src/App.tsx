@@ -127,8 +127,8 @@ const App = () => (
             <Route path="/app" element={<Navigate to="/painel" replace />} />
 
             {/* Painel oculto Phonee (gestor da plataforma) */}
-            <Route path="/mobileplus" element={<PhoneeLogin />} />
-            <Route path="/mobileplus" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
+            <Route path="/phonee" element={<PhoneeLogin />} />
+            <Route path="/phonee" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
               <Route path="visao-geral" element={<PhoneeVisaoGeral />} />
               <Route path="lojas" element={<PhoneeLojas />} />
               <Route path="usuarios" element={<PhoneeUsuarios />} />

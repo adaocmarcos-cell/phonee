@@ -47,7 +47,7 @@ export default function ResetPassword() {
       const { data: roles } = await supabase
         .from("user_roles").select("role").eq("user_id", uid);
       if ((roles ?? []).some((r: any) => r.role === "admin_master")) {
-        dest = "/mobileplus/visao-geral";
+        dest = "/phonee/visao-geral";
       }
     }
     setBusy(false);

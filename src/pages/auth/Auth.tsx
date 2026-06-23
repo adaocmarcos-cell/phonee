@@ -71,7 +71,7 @@ export default function Auth() {
       const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
       const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
       initialPath = isAdminMaster
-        ? "/mobileplus/visao-geral"
+        ? "/phonee/visao-geral"
         : (isGestor ? "/painel" : "/painel/vendas");
     }
     if (!allowed) {

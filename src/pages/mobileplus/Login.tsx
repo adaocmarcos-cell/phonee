@@ -20,7 +20,7 @@ export default function PhoneeLogin() {
       const { data } = await supabase
         .from("user_roles").select("role")
         .eq("user_id", user.id).eq("role", "admin_master").maybeSingle();
-      if (data) nav("/mobileplus/visao-geral", { replace: true });
+      if (data) nav("/phonee/visao-geral", { replace: true });
     })();
   }, [nav]);
 
@@ -42,7 +42,7 @@ export default function PhoneeLogin() {
       toast.error("Acesso restrito ao gestor da plataforma.");
       return;
     }
-    nav("/mobileplus/visao-geral", { replace: true });
+    nav("/phonee/visao-geral", { replace: true });
   };
 
   return (
