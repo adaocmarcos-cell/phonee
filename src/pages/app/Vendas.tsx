@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon } from "lucide-react";
+import { MetricCard } from "@/components/MetricCard";
 import { exportSalesPDF, exportSalesXLSX, printSaleReceipt } from "@/lib/salesExport";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +40,7 @@ export default function Vendas() {
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderSale, setReminderSale] = useState<any | null>(null);
   const [reminderText, setReminderText] = useState("");
+  const [receiverOpen, setReceiverOpen] = useState(false);
 
   const tplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
   const getTemplate = () => {
@@ -87,6 +89,41 @@ export default function Vendas() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     return pendingSales.filter((s) => s.due_date && new Date(s.due_date + "T00:00:00") < today).length;
   }, [pendingSales]);
+
+  const paymentBreakdown = useMemo(() => {
+    const map: Record<string, { count: number; total: number }> = {};
+    sales.forEach((s) => {
+      const k = s.payment_method || "outro";
+      if (!map[k]) map[k] = { count: 0, total: 0 };
+      map[k].count += 1;
+      map[k].total += Number(s.total || 0);
+    });
+    return map;
+  }, [sales]);
+
+  const receivablesByCustomer = useMemo(() => {
+    const map = new Map<string, { name: string; whatsapp: string | null; count: number; total: number; nextDue: string | null }>();
+    pendingSales.forEach((s) => {
+      const key = (s.customer_name || "Avulso").toLowerCase();
+      const cur = map.get(key) ?? { name: s.customer_name || "Avulso", whatsapp: s.customer_whatsapp || null, count: 0, total: 0, nextDue: null };
+      cur.count += 1;
+      cur.total += Number(s.total || 0);
+      if (s.due_date && (!cur.nextDue || s.due_date < cur.nextDue)) cur.nextDue = s.due_date;
+      if (!cur.whatsapp && s.customer_whatsapp) cur.whatsapp = s.customer_whatsapp;
+      map.set(key, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [pendingSales]);
+
+  const pmLabel: Record<string, string> = {
+    dinheiro: "Dinheiro", pix: "PIX", debito: "Débito", credito: "Crédito", boleto: "Boleto", outro: "Outros",
+  };
+  const pmIcon: Record<string, any> = {
+    dinheiro: Banknote, pix: PixIcon, debito: CreditCard, credito: CreditCard, boleto: FileText, outro: Wallet,
+  };
+  const pmTone: Record<string, "primary" | "success" | "warning" | "info" | "violet"> = {
+    dinheiro: "success", pix: "info", debito: "primary", credito: "violet", boleto: "warning", outro: "primary",
+  };
 
   const periodLabel = (() => {
     const map: Record<string, string> = { "7d": "Últimos 7 dias", "30d": "Últimos 30 dias", "90d": "Últimos 90 dias", "1y": "Último ano", "all": "Tudo", "custom": "Personalizado" };
@@ -197,20 +234,39 @@ export default function Vendas() {
       </Tabs>
 
       {tab === "receber" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-          <Card className="p-3 flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">A receber</span>
-            <span className="text-lg font-semibold metric text-warning">{brl(pendingTotal)}</span>
-          </Card>
-          <Card className="p-3 flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Vendas em aberto</span>
-            <span className="text-lg font-semibold metric">{pendingSales.length}</span>
-          </Card>
-          <Card className={`p-3 flex items-center justify-between ${overdueCount > 0 ? "border-danger/40 bg-danger/5" : ""}`}>
-            <span className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Vencidas</span>
-            <span className={`text-lg font-semibold metric ${overdueCount > 0 ? "text-danger" : "text-success"}`}>{overdueCount}</span>
-          </Card>
-        </div>
+        <>
+          {/* Cards no padrão visual do Dashboard */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+            <button
+              type="button"
+              onClick={() => setReceiverOpen(true)}
+              className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-xl"
+              title="Ver clientes com vendas em aberto"
+            >
+              <MetricCard
+                label="A receber"
+                value={brl(pendingTotal)}
+                delta={`${pendingSales.length} venda(s) · ${overdueCount} vencida(s)`}
+                icon={Wallet}
+                tone={overdueCount > 0 ? "danger" : "warning"}
+              />
+            </button>
+            {(["dinheiro", "pix", "debito", "credito", "boleto"] as const).map((m) => {
+              const d = paymentBreakdown[m];
+              if (!d) return null;
+              return (
+                <MetricCard
+                  key={m}
+                  label={pmLabel[m]}
+                  value={brl(d.total)}
+                  delta={`${d.count} venda(s)`}
+                  icon={pmIcon[m]}
+                  tone={pmTone[m]}
+                />
+              );
+            })}
+          </div>
+        </>
       )}
 
       <Card className="bg-card border-border shadow-card p-3 mb-4 flex flex-wrap items-center gap-2">
