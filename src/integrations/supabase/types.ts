@@ -1057,6 +1057,7 @@ export type Database = {
       }
       stock_adjustments: {
         Row: {
+          approval_status: Database["public"]["Enums"]["stock_adjustment_status"]
           created_at: string
           id: string
           item_kind: Database["public"]["Enums"]["stock_item_kind"]
@@ -1068,10 +1069,14 @@ export type Database = {
           product_id: string | null
           qty_change: number
           reason: Database["public"]["Enums"]["stock_adjustment_reason"]
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           store_id: string
           user_id: string | null
         }
         Insert: {
+          approval_status?: Database["public"]["Enums"]["stock_adjustment_status"]
           created_at?: string
           id?: string
           item_kind: Database["public"]["Enums"]["stock_item_kind"]
@@ -1083,10 +1088,14 @@ export type Database = {
           product_id?: string | null
           qty_change: number
           reason?: Database["public"]["Enums"]["stock_adjustment_reason"]
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           store_id: string
           user_id?: string | null
         }
         Update: {
+          approval_status?: Database["public"]["Enums"]["stock_adjustment_status"]
           created_at?: string
           id?: string
           item_kind?: Database["public"]["Enums"]["stock_item_kind"]
@@ -1098,6 +1107,9 @@ export type Database = {
           product_id?: string | null
           qty_change?: number
           reason?: Database["public"]["Enums"]["stock_adjustment_reason"]
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           store_id?: string
           user_id?: string | null
         }
@@ -1680,6 +1692,7 @@ export type Database = {
         | "correcao"
         | "entrada_manual"
         | "outros"
+      stock_adjustment_status: "pendente" | "aprovado" | "rejeitado"
       stock_item_kind: "product" | "part"
       trade_in_status:
         | "em_avaliacao"
@@ -1881,6 +1894,7 @@ export const Constants = {
         "entrada_manual",
         "outros",
       ],
+      stock_adjustment_status: ["pendente", "aprovado", "rejeitado"],
       stock_item_kind: ["product", "part"],
       trade_in_status: [
         "em_avaliacao",
