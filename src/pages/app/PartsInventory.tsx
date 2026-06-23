@@ -385,7 +385,38 @@ export default function PartsInventory() {
             </div>
             <div className="md:col-span-2">
               <Label>Modelos compatíveis</Label>
-              <Input value={form.compatible_models ?? ""} onChange={(e) => setForm({ ...form, compatible_models: e.target.value })} placeholder="Ex.: iPhone 11, 12, 13" />
+              <div className="rounded-md border bg-background px-2 py-1.5 min-h-10 flex flex-wrap gap-1 items-center">
+                {form.models.map((m) => (
+                  <Badge key={m} variant="secondary" className="gap-1 pr-1">
+                    {m}
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, models: form.models.filter((x) => x !== m) })}
+                      className="hover:bg-muted rounded-sm p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <input
+                  className="flex-1 min-w-[120px] bg-transparent outline-none text-sm py-1"
+                  value={modelInput}
+                  placeholder={form.models.length === 0 ? "Ex.: iPhone 11, 12, 13" : "Adicionar…"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.includes(",")) commitModelInput(v);
+                    else setModelInput(v);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); commitModelInput(modelInput); }
+                    if (e.key === "Backspace" && !modelInput && form.models.length) {
+                      setForm({ ...form, models: form.models.slice(0, -1) });
+                    }
+                  }}
+                  onBlur={() => modelInput.trim() && commitModelInput(modelInput)}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Separe por vírgulas para criar uma tag.</p>
             </div>
             <div>
               <Label>Custo (R$)</Label>
@@ -412,16 +443,12 @@ export default function PartsInventory() {
               <Input value={form.supplier ?? ""} onChange={(e) => setForm({ ...form, supplier: e.target.value })} />
             </div>
             <div>
-              <Label>Localização</Label>
+              <Label>Localização no estoque</Label>
               <Input value={form.location ?? ""} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Ex.: Gaveta A2" />
             </div>
             <div className="md:col-span-2">
               <Label>Observações</Label>
               <Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
-            <div className="md:col-span-2 flex items-center gap-2">
-              <Switch checked={form.is_tool} onCheckedChange={(v) => setForm({ ...form, is_tool: v })} />
-              <Label>É uma ferramenta (não uma peça de reposição)</Label>
             </div>
           </div>
           <DialogFooter>
@@ -484,12 +511,6 @@ export default function PartsInventory() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <VendaPecaModal
-        part={saleTarget}
-        open={!!saleTarget}
-        onClose={() => setSaleTarget(null)}
-        onDone={load}
-      />
     </div>
   );
 }
