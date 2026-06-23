@@ -32,6 +32,7 @@ export default function Configuracoes() {
     address_street: "", address_number: "", address_complement: "",
     address_neighborhood: "", address_city: "", address_uf: "",
     show_tax_id_on_docs: true, show_legal_name_on_docs: true,
+    show_non_fiscal_notice: true,
     pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B",
     pdf_logo_url: "", pdf_footer_text: "",
   });
@@ -64,6 +65,7 @@ export default function Configuracoes() {
       address_uf: s.address_uf ?? "",
       show_tax_id_on_docs: s.show_tax_id_on_docs ?? true,
       show_legal_name_on_docs: s.show_legal_name_on_docs ?? true,
+      show_non_fiscal_notice: s.show_non_fiscal_notice ?? true,
       pdf_primary_color: s.pdf_primary_color ?? "#0EA5E9",
       pdf_accent_color: s.pdf_accent_color ?? "#1E293B",
       pdf_logo_url: s.pdf_logo_url ?? "",
@@ -121,6 +123,7 @@ export default function Configuracoes() {
       address_uf: storeForm.address_uf || null,
       show_tax_id_on_docs: storeForm.show_tax_id_on_docs,
       show_legal_name_on_docs: storeForm.show_legal_name_on_docs,
+      show_non_fiscal_notice: storeForm.show_non_fiscal_notice,
       pdf_primary_color: storeForm.pdf_primary_color || null,
       pdf_accent_color: storeForm.pdf_accent_color || null,
       pdf_logo_url: storeForm.pdf_logo_url || null,
@@ -216,7 +219,7 @@ export default function Configuracoes() {
               <Input value={storeForm.instagram} onChange={(e) => setSF("instagram", e.target.value)} placeholder="@sualoja" disabled={!canEdit} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">WhatsApp</Label>
+              <Label className="text-xs">Telefone</Label>
               <Input value={storeForm.phone} onChange={(e) => setSF("phone", e.target.value)} placeholder="(31) 99771-8170" disabled={!canEdit} />
             </div>
 
@@ -284,6 +287,14 @@ export default function Configuracoes() {
                   disabled={!canEdit}
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Exibir aviso "Este não é um documento fiscal"</span>
+                <Switch
+                  checked={storeForm.show_non_fiscal_notice}
+                  onCheckedChange={(v) => setSF("show_non_fiscal_notice", v)}
+                  disabled={!canEdit}
+                />
+              </div>
             </div>
           </div>
           {canEdit && (
@@ -300,7 +311,7 @@ export default function Configuracoes() {
             <Type className="h-5 w-5 text-primary mt-0.5" />
             <div>
               <h3 className="font-semibold">Tamanho da fonte</h3>
-              <p className="text-xs text-muted-foreground">Selecione o tamanho da fonte do sistema, como no Word.</p>
+              <p className="text-xs text-muted-foreground">Selecione o tamanho da fonte do sistema.</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -313,7 +324,6 @@ export default function Configuracoes() {
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground">Padrão: 16</span>
           </div>
         </Card>
 
@@ -393,7 +403,7 @@ export default function Configuracoes() {
               </div>
             </div>
             <div className="space-y-1.5 md:col-span-2">
-              <Label className="text-xs">Texto institucional do rodapé dos PDFs</Label>
+              <Label className="text-xs">Texto institucional</Label>
               <Textarea
                 value={storeForm.pdf_footer_text}
                 onChange={(e) => setSF("pdf_footer_text", e.target.value)}
