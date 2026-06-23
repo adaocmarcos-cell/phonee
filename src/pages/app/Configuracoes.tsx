@@ -154,7 +154,20 @@ export default function Configuracoes() {
     <div>
       <PageHeader title="Configurações" />
 
-      <div className="grid gap-4 max-w-2xl">
+      {demo && (
+        <div className="mb-4 max-w-2xl rounded-md border border-primary/30 bg-primary/10 px-4 py-3 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <div className="font-semibold text-foreground">Modo demonstração</div>
+            <div className="text-muted-foreground">
+              As configurações são apenas para exibição nesta demonstração. Adquira o Phonee para personalizar a sua loja.
+            </div>
+          </div>
+        </div>
+      )}
+
+      <fieldset disabled={demo} className={demo ? "max-w-2xl opacity-90 pointer-events-none select-none" : "max-w-2xl"}>
+      <div className="grid gap-4">
         <Card className="p-5 bg-card border-border">
           <div className="flex items-start gap-3 mb-4">
             <Store className="h-5 w-5 text-primary mt-0.5" />
