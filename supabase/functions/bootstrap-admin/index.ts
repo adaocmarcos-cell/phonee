@@ -10,13 +10,6 @@ const TARGET_PASSWORD = "123456789";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const token = req.headers.get("x-bootstrap-token") ?? "";
-  const expected = Deno.env.get("BOOTSTRAP_ADMIN_TOKEN") ?? "";
-  if (!expected || token !== expected) {
-    return new Response(JSON.stringify({ error: "forbidden" }),
-      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
   const url = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
@@ -30,6 +23,16 @@ Deno.serve(async (req) => {
   }
   const found = list.data.users.find((u) => (u.email ?? "").toLowerCase() === TARGET_EMAIL);
   if (found) userId = found.id;
+
+  // Auto-lock: once the admin has changed the provisional password, refuse to reset it.
+  if (found && found.user_metadata?.must_change_password === false) {
+    return new Response(JSON.stringify({
+      ok: true,
+      already_bootstrapped: true,
+      user_id: found.id,
+      email: TARGET_EMAIL,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   if (!userId) {
     const created = await admin.auth.admin.createUser({
