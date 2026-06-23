@@ -35,11 +35,24 @@ export default function ResetPassword() {
     if (!r.success) return toast.error(r.error.issues[0].message);
     if (password !== confirm) return toast.error("As senhas não conferem");
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password: r.data });
+    const { data: upd, error } = await supabase.auth.updateUser({
+      password: r.data,
+      data: { must_change_password: false },
+    });
+    if (error) { setBusy(false); return toast.error(error.message); }
+    // Decide destino: admin_master → painel Mobile+
+    let dest = "/painel";
+    const uid = upd.user?.id;
+    if (uid) {
+      const { data: roles } = await supabase
+        .from("user_roles").select("role").eq("user_id", uid);
+      if ((roles ?? []).some((r: any) => r.role === "admin_master")) {
+        dest = "/mobileplus/visao-geral";
+      }
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
     toast.success("Senha atualizada!");
-    navigate("/painel");
+    navigate(dest);
   };
 
   return (
