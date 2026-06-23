@@ -20,6 +20,11 @@ import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FileText, FileSpreadsheet, Printer, ChevronDown } from "lucide-react";
 
 type Reason = "perda" | "brinde" | "uso_interno" | "correcao" | "entrada_manual" | "outros";
 const REASONS: { value: Reason; label: string }[] = [
