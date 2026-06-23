@@ -80,9 +80,11 @@ export function AppSidebar() {
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [store, pathname]);
 
-  const renderGroup = (label: string, items: typeof main) => (
+  const renderGroup = (label: string, items: typeof main, opts?: { hideLabel?: boolean }) => (
     <SidebarGroup>
-      {!collapsed && <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">{label}</SidebarGroupLabel>}
+      {!collapsed && !opts?.hideLabel && label && (
+        <SidebarGroupLabel className="text-[10px] font-semibold tracking-widest text-muted-foreground/70 uppercase">{label}</SidebarGroupLabel>
+      )}
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
@@ -165,9 +167,12 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        {renderGroup("Gestão", ops)}
-        {renderGroup("Inteligência", main)}
+      <SidebarContent className="sidebar-scroll">
+        {renderGroup("Gestão e Inteligência", ops)}
+        <div className="px-3 -mt-1 mb-1">
+          <div className="h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
+        </div>
+        {renderGroup("", main, { hideLabel: true })}
         {renderGroup("Configuração", config.filter((it) => it.url !== "/app/admin/usuarios" || showAdmin))}
         {isAdminMaster(role as any) && renderGroup("Financeiro / Admin Master", adminMasterItems)}
         <div className="mt-auto px-3 py-3 border-t border-sidebar-border">

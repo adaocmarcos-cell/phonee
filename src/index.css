@@ -128,6 +128,30 @@
   }
 }
 
+/* Scrollbar clean/tech para o painel lateral — usa cores do sistema */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.35) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.55), hsl(var(--primary) / 0.25));
+  border-radius: 999px;
+  border: 1px solid hsl(var(--sidebar-border) / 0.4);
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.85), hsl(var(--primary) / 0.45));
+}
+.sidebar-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Exports / impressões sempre em fundo branco — independente do tema. */
 @media print {
   :root, html, body {
