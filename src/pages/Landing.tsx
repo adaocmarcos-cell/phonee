@@ -238,7 +238,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-5">
           <Reveal direction="up">
             <SectionTitle
-              eyebrow="POR QUE MOBILE+"
+              eyebrow="POR QUE PHONEE"
               title="O que o Phonee faz pela sua loja?"
               subtitle="Desenvolvido para eliminar processos manuais, reduzir falhas operacionais e entregar informações estratégicas para decisões mais rápidas e inteligentes."
             />
