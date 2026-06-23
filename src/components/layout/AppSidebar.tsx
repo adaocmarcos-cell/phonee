@@ -156,14 +156,14 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className={`flex items-center justify-center px-2 ${collapsed ? "py-2" : "py-3"}`}>
+        <div className={`flex items-center justify-center px-2 ${collapsed ? "py-1" : "py-1.5"}`}>
           {collapsed ? (
             <span className="text-2xl font-bold leading-none text-[#00abfb]">+</span>
           ) : (
             <img
               src={logoAsset.url}
               alt="Phonee"
-              className="h-[378px] w-auto bg-transparent border-0 shadow-none"
+              className="h-[113px] w-auto object-contain bg-transparent border-0 shadow-none block"
               style={{ background: "transparent", boxShadow: "none", border: 0 }}
             />
           )}
