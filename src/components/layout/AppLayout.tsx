@@ -29,16 +29,17 @@ export default function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b border-border bg-surface/40 backdrop-blur px-4 sticky top-0 z-30">
+          <header className="h-14 flex items-center gap-2 sm:gap-3 border-b border-border bg-surface/40 backdrop-blur px-3 sm:px-4 sticky top-0 z-30">
             <SidebarTrigger />
-            <div className="flex-1 max-w-md relative">
+            <div className="flex-1 max-w-md relative hidden sm:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar produto, SKU, IMEI, cliente…"
                 className="pl-9 h-9 bg-background/60 border-border"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex-1 sm:hidden" />
+            <div className="flex items-center gap-1 sm:gap-2">
               {store && (
                 <Badge variant="outline" className="border-border text-muted-foreground hidden md:inline-flex">
                   {store.name}
@@ -49,7 +50,7 @@ export default function AppLayout() {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-9 px-2 gap-2">
+                  <Button variant="ghost" className="h-9 px-1.5 sm:px-2 gap-2">
                     <Avatar className="h-7 w-7">
                       <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">{initials}</AvatarFallback>
                     </Avatar>
@@ -73,7 +74,7 @@ export default function AppLayout() {
             </div>
           </header>
           <StoreSubscriptionBanner />
-          <main className="flex-1 p-6 overflow-auto" key={store?.id ?? "no-store"}>
+          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto overflow-x-hidden" key={store?.id ?? "no-store"}>
             <Outlet />
           </main>
         </div>

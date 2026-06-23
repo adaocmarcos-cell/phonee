@@ -22,8 +22,8 @@ export default function MobilePlusLayout() {
     navigate("/mobileplus", { replace: true });
   };
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100">
-      <aside className="w-60 shrink-0 border-r border-slate-800 bg-slate-900 flex flex-col">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-100">
+      <aside className="hidden md:flex w-60 shrink-0 border-r border-slate-800 bg-slate-900 flex-col">
         <div className="px-5 py-5 border-b border-slate-800">
           <div className="text-xl font-bold tracking-tight text-[#00abfb]">Mobile+</div>
           <div className="text-[10px] uppercase tracking-widest text-slate-500 mt-0.5">
@@ -51,8 +51,35 @@ export default function MobilePlusLayout() {
           </Button>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
+      {/* Topbar mobile */}
+      <header className="md:hidden sticky top-0 z-30 bg-slate-900 border-b border-slate-800">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div>
+            <div className="text-base font-bold tracking-tight text-[#00abfb]">Mobile+</div>
+            <div className="text-[9px] uppercase tracking-widest text-slate-500">Console do Gestor</div>
+          </div>
+          <Button size="sm" variant="ghost" onClick={logout}
+            className="text-slate-300 hover:bg-slate-800 hover:text-slate-100 h-8 px-2">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-2 sidebar-scroll">
+          {nav.map((n) => (
+            <NavLink key={n.to} to={n.to}
+              className={({ isActive }) =>
+                `shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition ${
+                  isActive
+                    ? "bg-[#00abfb] text-slate-900 font-semibold"
+                    : "bg-slate-800/60 text-slate-300 hover:bg-slate-800"
+                }`}>
+              <n.icon className="h-3.5 w-3.5" />
+              {n.label}
+            </NavLink>
+          ))}
+        </nav>
+      </header>
+      <main className="flex-1 overflow-auto overflow-x-hidden">
+        <div className="p-3 sm:p-5 md:p-8 max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>
