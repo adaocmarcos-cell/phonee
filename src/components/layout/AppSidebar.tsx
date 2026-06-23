@@ -22,7 +22,7 @@ const main: Item[] = [
   { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
-  { title: "Logs e Auditoria", url: "/app/admin/logs", icon: FileSearch },
+  { title: "Logs", url: "/app/admin/logs", icon: FileSearch },
   { title: "Alertas", url: "/app/alertas", icon: Bell, badgeKey: "alerts" },
 ];
 

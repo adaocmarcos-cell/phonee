@@ -133,16 +133,16 @@ export default function Landing() {
               que querem organizar a operação, automatizar processos e acompanhar seus números em tempo real.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/comprar?plano=annual">
+              <a href="#beneficios">
                 <Button size="lg" className="bg-gradient-primary shadow-glow text-base h-12 px-7">
-                  Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
+                  Ver vantagens <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
-              </Link>
-              <Link to="/auth">
+              </a>
+              <a href="#preco">
                 <Button size="lg" variant="outline" className="text-base h-12 px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
-                  Fazer login
+                  Ver planos
                 </Button>
-              </Link>
+              </a>
             </div>
             <div className="mt-8 flex items-center gap-2 text-base text-white/90 font-semibold">
               <ShieldCheck className="h-5 w-5 text-success" />
@@ -150,50 +150,38 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Offer card — ANUAL primeiro */}
-          <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-br from-primary/40 to-info/30 blur-2xl rounded-3xl" />
-            <Card className="relative p-7 md:p-9 bg-[hsl(224_25%_18%)] border-2 border-primary/40 text-white shadow-2xl">
-              <div className="flex items-center justify-between mb-5">
-                <Badge className="bg-success/20 text-success border-success/40 text-sm">
-                  <Star className="h-3.5 w-3.5 mr-1" /> MAIS ESCOLHIDO
-                </Badge>
-                <div className="text-[10px] font-mono tracking-widest text-slate-300">PLANO ANUAL</div>
-              </div>
-              <div className="text-success font-bold text-base uppercase tracking-wide">SEM MENSALIDADES</div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="metric text-5xl md:text-6xl">R$ 127</span>
-                <span className="text-base text-slate-300 ml-1">/ano à vista</span>
-              </div>
-              <div className="mt-1 text-lg text-white font-semibold">ou parcelado no cartão</div>
-
-              <div className="my-5 flex items-center gap-3 text-slate-300 text-xs">
-                <div className="h-px flex-1 bg-white/10" /> OU <div className="h-px flex-1 bg-white/10" />
-              </div>
-
-              <div className="rounded-lg border border-white/15 bg-white/5 p-4">
-                <div className="text-xs font-mono tracking-widest text-primary font-bold">RECOMENDADO · PLANO VITALÍCIO</div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="metric text-3xl">R$ 197</span>
-                  <span className="text-sm text-slate-300 ml-1">pagamento único · até 12x</span>
+          {/* Imagem/destaque do produto — CTAs e preços ficam após as vantagens */}
+          <div className="relative hidden lg:block">
+            <div className="absolute -inset-1 bg-gradient-to-br from-primary/30 to-info/20 blur-2xl rounded-3xl" />
+            <Card className="relative p-10 bg-[hsl(224_25%_18%)] border border-white/10 text-white shadow-2xl">
+              <div className="text-xs font-mono tracking-[0.3em] text-primary font-bold mb-3">VISÃO GERAL</div>
+              <h3 className="text-3xl font-extrabold leading-tight">
+                Gestão completa<br />em um único lugar
+              </h3>
+              <p className="mt-4 text-base text-slate-200 leading-relaxed">
+                Estoque, vendas, assistência técnica, financeiro e indicadores —
+                tudo conectado e em tempo real.
+              </p>
+              <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                  <div className="text-[10px] font-mono tracking-widest text-slate-400">FATURAMENTO</div>
+                  <div className="metric text-2xl mt-1">R$ 284k</div>
                 </div>
-                <div className="text-xs text-slate-200 mt-1">
-                  Pague uma vez e use para sempre — sem renovação, com prioridade no suporte e acesso antecipado a novos módulos.
+                <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                  <div className="text-[10px] font-mono tracking-widest text-slate-400">MARGEM</div>
+                  <div className="metric text-2xl mt-1 text-success">32,4%</div>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                  <div className="text-[10px] font-mono tracking-widest text-slate-400">OS ABERTAS</div>
+                  <div className="metric text-2xl mt-1 text-warning">14</div>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                  <div className="text-[10px] font-mono tracking-widest text-slate-400">ESTOQUE</div>
+                  <div className="metric text-2xl mt-1 text-primary">1.284</div>
                 </div>
               </div>
-
-              <ul className="mt-5 space-y-2.5 text-base text-white font-medium">
-                <CheckItem>Sem mensalidade</CheckItem>
-                <CheckItem>Sem cobrança recorrente</CheckItem>
-                <CheckItem>Atualizações incluídas</CheckItem>
-              </ul>
-              <Link to="/comprar?plano=annual" className="block mt-7">
-                <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
-                  Quero garantir agora
-                </Button>
-              </Link>
-              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-300">
-                <Lock className="h-3 w-3" /> Pagamento 100% seguro
+              <div className="mt-6 flex items-center gap-2 text-xs text-slate-300">
+                <Lock className="h-3 w-3 text-success" /> Dados protegidos com criptografia
               </div>
             </Card>
           </div>
