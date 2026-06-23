@@ -126,11 +126,11 @@ export default function Vendas() {
     const tpl = getTemplate();
     const due = sale.due_date ? new Date(sale.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—";
     const msg = tpl
-      .replaceAll("{cliente}", sale.customer_name || "cliente")
-      .replaceAll("{numero}", fmtNum(sale.sale_number))
-      .replaceAll("{valor}", brl(Number(sale.total || 0)))
-      .replaceAll("{vencimento}", due)
-      .replaceAll("{loja}", store?.name || "");
+      .replace(/\{cliente\}/g, sale.customer_name || "cliente")
+      .replace(/\{numero\}/g, fmtNum(sale.sale_number))
+      .replace(/\{valor\}/g, brl(Number(sale.total || 0)))
+      .replace(/\{vencimento\}/g, due)
+      .replace(/\{loja\}/g, store?.name || "");
     setReminderText(msg);
     setReminderOpen(true);
   };
