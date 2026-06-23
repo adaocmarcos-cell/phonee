@@ -13,6 +13,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import {
   Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt,
@@ -34,7 +37,17 @@ type LineItem = {
   unit_price: number;
 };
 
-type MixedPayment = { method: string; amount: number };
+type SplitPayment = { method: string; amount: number; notes: string; installments?: number };
+
+const PAY_METHODS: { value: string; label: string }[] = [
+  { value: "dinheiro", label: "Dinheiro" },
+  { value: "pix",      label: "PIX" },
+  { value: "debito",   label: "Cartão de débito" },
+  { value: "credito",  label: "Cartão de crédito" },
+  { value: "crediario",label: "Crediário" },
+  { value: "boleto",   label: "Boleto" },
+  { value: "transferencia", label: "Transferência" },
+];
 
 const DEDUCTION_REASONS = [
   "Taxa cartão de crédito", "Taxa cartão de débito", "Taxa PIX/maquineta",
@@ -89,14 +102,14 @@ export default function VendaNova() {
   const [commissionStatus, setCommissionStatus] = useState("pendente");
 
   // Pagamento
-  const [payMethod, setPayMethod] = useState("dinheiro");
-  const [installments, setInstallments] = useState(1);
-  const [entry, setEntry] = useState(0);
-  const [mixed, setMixed] = useState<MixedPayment[]>([]);
+  const [payments, setPayments] = useState<SplitPayment[]>([
+    { method: "dinheiro", amount: 0, notes: "", installments: 1 },
+  ]);
   const [otherExpenses, setOtherExpenses] = useState(0);
   const [freight, setFreight] = useState(0);
   const [netValue, setNetValue] = useState<number>(0);
   const [deductionReason, setDeductionReason] = useState<string>("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
@@ -232,9 +245,21 @@ export default function VendaNova() {
   const totalItemsValue = subtotal - totalDiscount;
   const commissionValue = +(totalItemsValue * (commissionPct / 100)).toFixed(2);
   const totalSale = +(totalItemsValue + otherExpenses + freight).toFixed(2);
-  const paidMixed = mixed.reduce((s, p) => s + Number(p.amount || 0), 0);
-  const paid = payMethod === "misto" ? paidMixed : totalSale;
+  const paid = +payments.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2);
   const remaining = +(totalSale - paid).toFixed(2);
+  const isMulti = payments.length > 1;
+  const primaryMethod = payments[0]?.method ?? "dinheiro";
+
+  const addPayment = () =>
+    setPayments((arr) => [...arr, { method: "pix", amount: Math.max(0, remaining), notes: "", installments: 1 }]);
+  const updatePayment = (idx: number, patch: Partial<SplitPayment>) =>
+    setPayments((arr) => arr.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  const removePayment = (idx: number) =>
+    setPayments((arr) => (arr.length <= 1 ? arr : arr.filter((_, i) => i !== idx)));
+  const fillRemaining = (idx: number) =>
+    setPayments((arr) =>
+      arr.map((p, i) => (i === idx ? { ...p, amount: +(Number(p.amount || 0) + remaining).toFixed(2) } : p)),
+    );
 
   const addCategory = () => {
     const v = customCategory.trim();
@@ -251,7 +276,10 @@ export default function VendaNova() {
       customer_doc_type: docType,
       commission: { percent: commissionPct, value: commissionValue, status: commissionStatus },
       payment: {
-        method: payMethod, installments, entry, mixed,
+        method: isMulti ? "misto" : primaryMethod,
+        is_split: isMulti,
+        splits: payments,
+        installments: payments[0]?.installments ?? 1,
         other_expenses: otherExpenses, freight,
         net_value: netValue, deduction_reason: deductionReason,
       },
@@ -268,25 +296,62 @@ export default function VendaNova() {
     },
   });
 
-  const submit = async (e?: FormEvent) => {
+  const onSubmitClick = (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
     if (items.length === 0) return toast.error("Adicione ao menos um item");
+    if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
+    if (Math.abs(remaining) > 0.009) {
+      return toast.error(
+        remaining > 0
+          ? `Faltam ${brl(remaining)} para fechar o pagamento`
+          : `Pagamentos excedem o total em ${brl(Math.abs(remaining))}`,
+      );
+    }
+    if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
+      return toast.error("Cada forma de pagamento precisa de método e valor > 0");
+    }
+    setConfirmOpen(true);
+  };
+
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!store || !user) return;
     setBusy(true);
 
     const payload = buildPayload();
-    const mappedMethod = ["dinheiro", "pix", "debito", "credito", "crediario"].includes(payMethod) ? payMethod : "dinheiro";
+    const dbMethod = isMulti
+      ? "misto"
+      : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
+    const headInstallments = payments[0]?.installments ?? 1;
 
     const { data: sale, error } = await supabase.from("sales").insert({
       store_id: store.id, seller_id: user.id,
       customer_name: customer || null, customer_doc: doc || null,
       customer_whatsapp: whatsapp || null,
-      payment_method: mappedMethod as any,
-      installments, discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
+      payment_method: dbMethod as any,
+      installments: headInstallments,
+      discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
       notes: JSON.stringify(payload),
     }).select("id").single();
 
     if (error || !sale) { setBusy(false); return toast.error(error?.message ?? "Erro"); }
+
+    // Múltiplas formas de pagamento (sincroniza com financeiro)
+    const splitsRows = payments
+      .filter((p) => Number(p.amount) > 0)
+      .map((p) => ({
+        sale_id: sale.id,
+        store_id: store.id,
+        method: p.method,
+        amount: Number(p.amount),
+        installments: p.installments ?? null,
+        notes: p.notes || null,
+      }));
+    if (splitsRows.length > 0) {
+      const { error: ePay } = await (supabase as any).from("sale_payments").insert(splitsRows);
+      if (ePay) console.warn("sale_payments insert error", ePay);
+    }
 
     const { error: e2 } = await supabase.from("sale_items").insert(
       items.map((i) => ({
@@ -307,6 +372,14 @@ export default function VendaNova() {
     }
 
     setBusy(false);
+    setConfirmOpen(false);
+    // Dispara evento Purchase para o Meta Pixel se carregado
+    try {
+      const fbq = (window as any).fbq;
+      if (typeof fbq === "function") {
+        fbq("track", "Purchase", { value: totalSale, currency: "BRL", num_items: totalsQty });
+      }
+    } catch { /* noop */ }
     toast.success("Venda registrada!");
     navigate("/painel/vendas");
   };
