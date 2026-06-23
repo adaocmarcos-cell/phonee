@@ -601,62 +601,108 @@ Obrigado pela preferência.`;
 
               <TabsContent value="pagamento" className="mt-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Field label="Forma de pagamento">
-                    <Select value={payMethod} onValueChange={setPayMethod}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                        <SelectItem value="pix">PIX</SelectItem>
-                        <SelectItem value="debito">Cartão de débito</SelectItem>
-                        <SelectItem value="credito">Cartão de crédito</SelectItem>
-                        <SelectItem value="crediario">Crediário</SelectItem>
-                        <SelectItem value="misto">Misto (2+ formas)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Field label="Outras despesas">
+                    <Input type="number" step="0.01" value={otherExpenses} onChange={(e) => setOtherExpenses(Number(e.target.value))} />
                   </Field>
-                  <Field label="Entrada"><Input type="number" step="0.01" value={entry} onChange={(e) => setEntry(Number(e.target.value))} /></Field>
-                  <Field label="Parcelas"><Input type="number" min={1} max={24} value={installments} onChange={(e) => setInstallments(Number(e.target.value))} /></Field>
-                  <Field label="Outras despesas"><Input type="number" step="0.01" value={otherExpenses} onChange={(e) => setOtherExpenses(Number(e.target.value))} /></Field>
-                  <Field label="Frete"><Input type="number" step="0.01" value={freight} onChange={(e) => setFreight(Number(e.target.value))} /></Field>
-                  <Field label="Valor da parcela">
-                    <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm">{brl(installments > 0 ? totalSale / installments : 0)}</div>
+                  <Field label="Frete">
+                    <Input type="number" step="0.01" value={freight} onChange={(e) => setFreight(Number(e.target.value))} />
                   </Field>
+                  <Field label="Total da venda">
+                    <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm font-semibold">
+                      {brl(totalSale)}
+                    </div>
+                  </Field>
+                </div>
+
+                <div className="border border-border rounded-md p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold">Formas de pagamento</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Divida a venda em quantas formas precisar. A soma deve fechar o total.
+                      </div>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={addPayment}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />Adicionar forma de pagamento
+                    </Button>
+                  </div>
+
+                  {payments.map((p, idx) => {
+                    const isCard = p.method === "credito" || p.method === "debito" || p.method === "crediario";
+                    return (
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
+                        <Field label={`Forma ${idx + 1}`}>
+                          <Select value={p.method} onValueChange={(v) => updatePayment(idx, { method: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {PAY_METHODS.map((m) => (
+                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="Valor (R$)">
+                          <Input
+                            type="number" step="0.01" min={0}
+                            value={p.amount}
+                            onChange={(e) => updatePayment(idx, { amount: Number(e.target.value) })}
+                          />
+                        </Field>
+                        <Field label="Parcelas">
+                          <Input
+                            type="number" min={1} max={24}
+                            value={p.installments ?? 1}
+                            disabled={!isCard}
+                            onChange={(e) => updatePayment(idx, { installments: Math.max(1, Number(e.target.value)) })}
+                          />
+                        </Field>
+                        <Field label="Observação">
+                          <Input
+                            value={p.notes}
+                            placeholder="Ex.: NSU, autorização, banco…"
+                            onChange={(e) => updatePayment(idx, { notes: e.target.value })}
+                          />
+                        </Field>
+                        <div className="flex items-center gap-1">
+                          {remaining > 0 && (
+                            <Button type="button" size="sm" variant="ghost" onClick={() => fillRemaining(idx)} title="Preencher restante">
+                              ={brl(remaining)}
+                            </Button>
+                          )}
+                          <Button
+                            type="button" size="icon" variant="ghost"
+                            disabled={payments.length <= 1}
+                            onClick={() => removePayment(idx)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-danger" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 text-xs font-mono">
+                    <div className="rounded-md bg-muted/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
+                      <div className="text-sm font-semibold">{brl(totalSale)}</div>
+                    </div>
+                    <div className="rounded-md bg-muted/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Pago</div>
+                      <div className="text-sm font-semibold">{brl(paid)}</div>
+                    </div>
+                    <div className={`rounded-md px-3 py-2 ${Math.abs(remaining) < 0.01 ? "bg-success/10 text-success" : remaining > 0 ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning"}`}>
+                      <div className="text-[10px] uppercase tracking-widest opacity-80">
+                        {remaining > 0 ? "Falta" : remaining < 0 ? "Excedente" : "Fechado"}
+                      </div>
+                      <div className="text-sm font-semibold">{brl(Math.abs(remaining))}</div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="rounded-md border border-dashed border-border/60 bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
-                  💡 O <strong>valor líquido</strong> (após taxas de cartão de crédito/débito) agora é ajustado em
-                  <strong> Vendas → Ajustes</strong>, após a confirmação da venda, mantendo o financeiro sincronizado.
+                  💡 Cada forma de pagamento é registrada separadamente e alimenta o financeiro,
+                  fluxo de caixa e o resumo de recebimentos por método.
                 </div>
-
-                {payMethod === "misto" && (
-                  <div className="border border-border rounded-md p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Pagamentos mistos</span>
-                      <Button type="button" size="sm" variant="outline" onClick={() => setMixed([...mixed, { method: "pix", amount: 0 }])}>
-                        <Plus className="h-3.5 w-3.5 mr-1" />Adicionar
-                      </Button>
-                    </div>
-                    {mixed.map((p, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                        <Select value={p.method} onValueChange={(v) => setMixed(mixed.map((m, i) => i === idx ? { ...m, method: v } : m))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pix">PIX</SelectItem>
-                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                            <SelectItem value="debito">Débito</SelectItem>
-                            <SelectItem value="credito">Crédito</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input type="number" step="0.01" value={p.amount} onChange={(e) => setMixed(mixed.map((m, i) => i === idx ? { ...m, amount: Number(e.target.value) } : m))} />
-                        <Button type="button" size="icon" variant="ghost" onClick={() => setMixed(mixed.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
-                      </div>
-                    ))}
-                    <div className="text-xs text-muted-foreground font-mono flex justify-between pt-1">
-                      <span>Valor pago: {brl(paidMixed)}</span>
-                      <span className={remaining > 0 ? "text-danger" : "text-success"}>Restante: {brl(remaining)}</span>
-                    </div>
-                  </div>
-                )}
               </TabsContent>
 
               <TabsContent value="entrega" className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
