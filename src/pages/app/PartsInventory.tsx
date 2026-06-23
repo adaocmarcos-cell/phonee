@@ -78,6 +78,9 @@ export default function PartsInventory() {
   const { store, role } = useAuth();
   const canManage = canManageProducts(role as any);
   const showCost = canSeeCost(role as any);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = (searchParams.get("tab") as "pecas" | "ferramentas" | "utilizadas" | "compras") || "pecas";
+  const setTab = (t: string) => setSearchParams({ tab: t });
 
   const [parts, setParts] = useState<Part[]>([]);
   const [q, setQ] = useState("");
@@ -112,6 +115,9 @@ export default function PartsInventory() {
 
   const filtered = useMemo(() => {
     return parts.filter((p) => {
+      // Escopo do tab: peças exclui ferramentas; ferramentas mostra somente ferramentas
+      if (tab === "pecas" && p.category === "ferramentas") return false;
+      if (tab === "ferramentas" && p.category !== "ferramentas") return false;
       if (catFilter !== "all" && p.category !== catFilter) return false;
       if (q) {
         const s = q.toLowerCase();
@@ -119,7 +125,7 @@ export default function PartsInventory() {
       }
       return true;
     });
-  }, [parts, q, catFilter]);
+  }, [parts, q, catFilter, tab]);
 
   const openNew = () => {
     setEditing(null);
@@ -256,34 +262,62 @@ export default function PartsInventory() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <PageHeader
-        title="Peças e Ferramentas"
+        title={
+          tab === "ferramentas" ? "Ferramentas"
+          : tab === "utilizadas" ? "Peças utilizadas em OS"
+          : tab === "compras" ? "Centro de compras de peças"
+          : "Peças"
+        }
         description="Estoque dedicado à assistência técnica — separado do estoque de vendas."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportPdf}>
-              <FileDown className="h-4 w-4 mr-2" /> PDF
-            </Button>
-            {canManage && (
-              <Button onClick={openNew}>
-                <Plus className="h-4 w-4 mr-2" /> Nova peça
-              </Button>
+            {(tab === "pecas" || tab === "ferramentas") && (
+              <>
+                <Button variant="outline" onClick={exportPdf}>
+                  <FileDown className="h-4 w-4 mr-2" /> PDF
+                </Button>
+                {canManage && (
+                  <Button onClick={() => { setForm({ ...emptyForm(), category: tab === "ferramentas" ? "ferramentas" : "telas" }); setEditing(null); setModelInput(""); setDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" /> {tab === "ferramentas" ? "Nova ferramenta" : "Nova peça"}
+                  </Button>
+                )}
+              </>
             )}
           </div>
         }
       />
 
-      <Card className="p-3 flex flex-col md:flex-row gap-2 md:items-center">
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="pecas" className="gap-2"><Hammer className="h-3.5 w-3.5" />Peças</TabsTrigger>
+          <TabsTrigger value="ferramentas" className="gap-2"><Wrench className="h-3.5 w-3.5" />Ferramentas</TabsTrigger>
+          <TabsTrigger value="utilizadas" className="gap-2"><Receipt className="h-3.5 w-3.5" />Peças utilizadas</TabsTrigger>
+          <TabsTrigger value="compras" className="gap-2"><ShoppingCart className="h-3.5 w-3.5" />Centro de compras</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="utilizadas" className="mt-4">
+          <VendasPecas />
+        </TabsContent>
+
+        <TabsContent value="compras" className="mt-4">
+          <PartsPurchaseCenter />
+        </TabsContent>
+
+        <TabsContent value={tab === "ferramentas" ? "ferramentas" : "pecas"} className="mt-4 space-y-4">
+          <Card className="p-3 flex flex-col md:flex-row gap-2 md:items-center">
         <div className="relative flex-1">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar por nome, SKU, marca ou modelo…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <Select value={catFilter} onValueChange={(v) => setCatFilter(v as any)}>
-          <SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas categorias</SelectItem>
-            {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {tab === "pecas" && (
+          <Select value={catFilter} onValueChange={(v) => setCatFilter(v as any)}>
+            <SelectTrigger className="md:w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas categorias</SelectItem>
+              {CATEGORIES.filter((c) => c.value !== "ferramentas").map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </Card>
 
       <Card className="overflow-hidden">
@@ -352,6 +386,8 @@ export default function PartsInventory() {
           </table>
         </div>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* New/Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
