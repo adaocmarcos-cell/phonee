@@ -308,7 +308,7 @@ export default function VendaNova() {
 
     setBusy(false);
     toast.success("Venda registrada!");
-    navigate("/app/vendas");
+    navigate("/painel/vendas");
   };
 
   const buildSummary = () => {
@@ -342,7 +342,7 @@ Obrigado pela preferência.`;
         description="Cadastro completo de venda, com cliente, itens, pagamento e entrega."
         actions={
           <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" onClick={() => navigate("/app/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
+            <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
             <Button onClick={submit} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
@@ -807,7 +807,7 @@ Obrigado pela preferência.`;
 
         {/* MOBILE bottom bar */}
         <div className="fixed bottom-0 left-0 right-0 md:hidden bg-card border-t border-border p-3 flex gap-2 z-50">
-          <Button type="button" variant="outline" onClick={() => navigate("/app/vendas")} className="flex-shrink-0">
+          <Button type="button" variant="outline" onClick={() => navigate("/painel/vendas")} className="flex-shrink-0">
             <X className="h-4 w-4" />
           </Button>
           <Button type="button" variant="outline" onClick={sendWhatsapp} className="flex-shrink-0">

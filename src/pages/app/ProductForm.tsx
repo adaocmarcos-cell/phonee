@@ -158,7 +158,7 @@ export default function ProductForm() {
       return toast.error(error.message);
     }
     toast.success(isNew ? "Produto cadastrado" : "Produto atualizado");
-    navigate("/app/estoque");
+    navigate("/painel/estoque");
   };
 
   return (
@@ -166,7 +166,7 @@ export default function ProductForm() {
       <PageHeader
         title={isNew ? "Novo produto" : "Editar produto"}
         description={isNew ? "Cadastre um item para começar a controlar seu estoque." : "Atualize os dados do produto."}
-        actions={<Button variant="outline" onClick={() => navigate("/app/estoque")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>}
+        actions={<Button variant="outline" onClick={() => navigate("/painel/estoque")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>}
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -347,7 +347,7 @@ export default function ProductForm() {
         </Card>
 
         <div className="flex justify-end gap-2 sticky bottom-0 py-3">
-          <Button type="button" variant="outline" onClick={() => navigate("/app/estoque")}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={() => navigate("/painel/estoque")}>Cancelar</Button>
           <Button type="submit" disabled={busy} className="bg-gradient-primary shadow-glow"><Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar"}</Button>
         </div>
       </form>

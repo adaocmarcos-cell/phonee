@@ -70,7 +70,7 @@ export default function SuporteAdmin() {
   const [reply, setReply] = useState("");
 
   if (role && !isAdminMaster(role as any)) {
-    return <Navigate to="/app" replace />;
+    return <Navigate to="/painel" replace />;
   }
 
   const load = async () => {

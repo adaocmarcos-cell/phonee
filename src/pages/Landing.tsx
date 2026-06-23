@@ -117,7 +117,7 @@ export default function Landing() {
             <a href="#garantia" className="hover:text-primary transition">Garantia</a>
           </nav>
           <div className="flex items-center gap-2 ml-auto">
-            <Link to="/auth">
+            <Link to="/entrar">
               <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10">
                 Fazer login
               </Button>
@@ -594,7 +594,7 @@ export default function Landing() {
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/auth">
+            <Link to="/entrar">
               <Button size="lg" variant="outline" className="h-12 px-7 text-base bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                 Fazer login
               </Button>

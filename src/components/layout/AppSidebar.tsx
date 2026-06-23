@@ -21,37 +21,37 @@ import { StoreSwitcher } from "./StoreSwitcher";
 type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" };
 
 const main: Item[] = [
-  { title: "Curva ABC", url: "/app/curva-abc", icon: BarChart3 },
-  { title: "Compra & Troca", url: "/app/trade-in", icon: ArrowRightLeft },
-  { title: "Pedidos de compra", url: "/app/pedidos", icon: ShoppingCart },
-  { title: "Logs", url: "/app/admin/logs", icon: FileSearch },
-  { title: "Alertas", url: "/app/alertas", icon: Bell, badgeKey: "alerts" },
+  { title: "Curva ABC", url: "/painel/curva-abc", icon: BarChart3 },
+  { title: "Compra & Troca", url: "/painel/troca", icon: ArrowRightLeft },
+  { title: "Pedidos de compra", url: "/painel/pedidos", icon: ShoppingCart },
+  { title: "Logs", url: "/painel/logs", icon: FileSearch },
+  { title: "Alertas", url: "/painel/alertas", icon: Bell, badgeKey: "alerts" },
 ];
 
 const ops: Item[] = [
-  { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
-  { title: "Vendas", url: "/app/vendas", icon: Receipt },
-  { title: "Estoque", url: "/app/estoque", icon: Boxes },
-  { title: "Clientes", url: "/app/clientes", icon: Users },
-  { title: "Financeiro", url: "/app/financeiro", icon: DollarSign },
-  { title: "Assistência & Serviços", url: "/app/os", icon: Wrench },
-  { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
-  { title: "Garantias", url: "/app/admin/garantias", icon: ShieldCheck },
+  { title: "Dashboard", url: "/painel", icon: LayoutDashboard, end: true },
+  { title: "Vendas", url: "/painel/vendas", icon: Receipt },
+  { title: "Estoque", url: "/painel/estoque", icon: Boxes },
+  { title: "Clientes", url: "/painel/clientes", icon: Users },
+  { title: "Financeiro", url: "/painel/financeiro", icon: DollarSign },
+  { title: "Assistência & Serviços", url: "/painel/ordens", icon: Wrench },
+  { title: "Tabelas de Preço", url: "/painel/tabelas", icon: Tags },
+  { title: "Garantias", url: "/painel/garantias", icon: ShieldCheck },
 ];
 
 const config = [
-  { title: "Configurações", url: "/app/admin/configuracoes", icon: Settings },
-  { title: "Minhas Lojas", url: "/app/admin/lojas", icon: Building2 },
-  { title: "Usuários", url: "/app/admin/usuarios", icon: Users },
-  { title: "Suporte", url: "/app/suporte", icon: LifeBuoy },
+  { title: "Configurações", url: "/painel/configuracoes", icon: Settings },
+  { title: "Minhas Lojas", url: "/painel/lojas", icon: Building2 },
+  { title: "Usuários", url: "/painel/usuarios", icon: Users },
+  { title: "Suporte", url: "/painel/suporte", icon: LifeBuoy },
 ];
 
 const adminMasterItems: Item[] = [
-  { title: "Pagamentos Asaas", url: "/app/admin/pagamentos", icon: CreditCard },
-  { title: "Planos", url: "/app/admin/planos", icon: Package },
-  { title: "Assinaturas", url: "/app/admin/assinaturas", icon: Receipt },
-  { title: "Logs de Pagamento", url: "/app/admin/logs-pagamento", icon: ScrollText },
-  { title: "Chamados de Suporte", url: "/app/admin/suporte", icon: Inbox },
+  { title: "Pagamentos Asaas", url: "/painel/pagamentos", icon: CreditCard },
+  { title: "Planos", url: "/painel/planos", icon: Package },
+  { title: "Assinaturas", url: "/painel/assinaturas", icon: Receipt },
+  { title: "Logs de Pagamento", url: "/painel/logs-pagamento", icon: ScrollText },
+  { title: "Chamados de Suporte", url: "/painel/suporte-admin", icon: Inbox },
 ];
 
 export function AppSidebar() {
@@ -91,7 +91,7 @@ export function AppSidebar() {
         <SidebarMenu>
           {items.map((item) => {
             const active = item.end ? pathname === item.url : pathname.startsWith(item.url);
-            const isDashboard = item.url === "/app";
+            const isDashboard = item.url === "/painel";
             const childActive = item.children?.some((c) => pathname.startsWith(c.url));
             return (
               <SidebarMenuItem key={item.url}>
@@ -178,7 +178,7 @@ export function AppSidebar() {
           <div className="h-px bg-gradient-to-r from-transparent via-sidebar-border to-transparent" />
         </div>
         {renderGroup("", main, { hideLabel: true })}
-        {renderGroup("Configuração", config.filter((it) => it.url !== "/app/admin/usuarios" || showAdmin))}
+        {renderGroup("Configuração", config.filter((it) => it.url !== "/painel/usuarios" || showAdmin))}
         {isAdminMaster(role as any) && renderGroup("Financeiro / Admin Master", adminMasterItems)}
         <div className="mt-auto px-3 py-3 border-t border-sidebar-border">
           <div className={`flex items-center gap-2 text-[10px] text-muted-foreground/80 ${collapsed ? "justify-center" : ""}`}>

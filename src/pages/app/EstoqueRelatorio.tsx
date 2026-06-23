@@ -368,7 +368,7 @@ export default function EstoqueRelatorio() {
         description="Inventário em tempo real · Selecione o período abaixo"
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/app/estoque")}>
+            <Button variant="outline" onClick={() => navigate("/painel/estoque")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
             </Button>
             <Button variant="outline" onClick={load} title="Recarregar">

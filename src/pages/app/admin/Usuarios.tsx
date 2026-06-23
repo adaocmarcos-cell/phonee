@@ -136,7 +136,7 @@ export default function Usuarios() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/app/admin/cargos")}
+              onClick={() => navigate("/painel/cargos")}
               className="bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
             >
               <UserCog className="h-4 w-4 mr-1" /> Cargos e Funções

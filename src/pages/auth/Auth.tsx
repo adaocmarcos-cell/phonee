@@ -35,7 +35,7 @@ export default function Auth() {
   }, []);
 
   if (loading) return null;
-  if (user) return <Navigate to="/app" replace />;
+  if (user) return <Navigate to="/painel" replace />;
 
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,7 +50,7 @@ export default function Auth() {
     // Verifica se há assinatura ativa OU se é admin_master (acesso interno)
     const userId = signin.user?.id;
     let allowed = false;
-    let initialPath = "/app";
+    let initialPath = "/painel";
     if (userId) {
       const [{ data: roles }, { data: subs }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
@@ -62,7 +62,7 @@ export default function Auth() {
       // Rota inicial: gestores → Dashboard; demais → Vendas
       const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
       const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
-      initialPath = isGestor ? "/app" : "/app/vendas";
+      initialPath = isGestor ? "/painel" : "/painel/vendas";
     }
     if (!allowed) {
       await supabase.auth.signOut();
@@ -153,7 +153,7 @@ export default function Auth() {
                       />
                       Salvar senha e manter conectado
                     </label>
-                    <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+                    <Link to="/esqueci-senha" className="text-xs text-primary hover:underline">
                       Esqueceu a senha?
                     </Link>
                   </div>

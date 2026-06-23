@@ -260,7 +260,7 @@ export default function MinhasLojas() {
                   size="sm" variant={isActive ? "outline" : "default"}
                   className="flex-1"
                   disabled={isActive}
-                  onClick={async () => { await switchStore(s.store_id); toast.success(`Agora você está em ${s.name}`); navigate("/app"); }}
+                  onClick={async () => { await switchStore(s.store_id); toast.success(`Agora você está em ${s.name}`); navigate("/painel"); }}
                 >
                   {isActive ? "Em uso" : "Entrar nesta loja"}
                 </Button>
@@ -309,7 +309,7 @@ export default function MinhasLojas() {
               <div className="font-semibold">Transferência de produtos entre lojas</div>
               <div className="text-sm text-muted-foreground">Movimente estoque entre as lojas que você possui mantendo o histórico.</div>
             </div>
-            <Button onClick={() => navigate("/app/estoque/transferencia")}>Abrir transferência</Button>
+            <Button onClick={() => navigate("/painel/estoque/transferencia")}>Abrir transferência</Button>
           </div>
         </Card>
       )}

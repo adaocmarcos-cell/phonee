@@ -47,7 +47,7 @@ export default function Pedidos() {
         title="Pedidos de compra"
         description="Geração assertiva com base em giro de vendas e ponto de pedido."
         actions={
-          <Button onClick={() => navigate("/app/pedidos/novo")} className="bg-gradient-primary shadow-glow">
+          <Button onClick={() => navigate("/painel/pedidos/novo")} className="bg-gradient-primary shadow-glow">
             <Plus className="h-4 w-4 mr-1" /> Gerar pedido
           </Button>
         }
@@ -70,7 +70,7 @@ export default function Pedidos() {
                 <tr><td colSpan={4} className="px-4 py-16 text-center">
                   <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum pedido gerado ainda.</p>
-                  <Button onClick={() => navigate("/app/pedidos/novo")} className="bg-gradient-primary"><Plus className="h-4 w-4 mr-1" /> Gerar primeiro pedido</Button>
+                  <Button onClick={() => navigate("/painel/pedidos/novo")} className="bg-gradient-primary"><Plus className="h-4 w-4 mr-1" /> Gerar primeiro pedido</Button>
                 </td></tr>
               ) : rows.map((r) => (
                 <tr key={r.id} className="hover:bg-surface-elevated/40">

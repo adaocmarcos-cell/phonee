@@ -1890,6 +1890,44 @@ export type Database = {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
+      mobileplus_growth: {
+        Args: never
+        Returns: {
+          gmv: number
+          month_start: string
+          new_stores: number
+          new_subscriptions: number
+        }[]
+      }
+      mobileplus_overview: { Args: never; Returns: Json }
+      mobileplus_stores: {
+        Args: never
+        Returns: {
+          avg_ticket: number
+          billing_cycle: string
+          created_at: string
+          expires_at: string
+          owner_email: string
+          owner_name: string
+          plan_name: string
+          sales_count: number
+          store_id: string
+          store_name: string
+          subscription_status: string
+          total_sales: number
+        }[]
+      }
+      mobileplus_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          roles: string[]
+          stores_count: number
+          user_id: string
+        }[]
+      }
       my_stores: {
         Args: { _user_id: string }
         Returns: {

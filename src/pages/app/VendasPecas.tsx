@@ -166,7 +166,7 @@ export default function VendasPecas() {
                 </td></tr>
               ) : filtered.map((r) => (
                 <tr key={r.id} className="border-t hover:bg-muted/30 cursor-pointer"
-                    onClick={() => navigate(`/app/os/${r.service_order_id}`)}>
+                    onClick={() => navigate(`/painel/ordens/${r.service_order_id}`)}>
                   <td className="p-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString("pt-BR")}</td>
                   <td className="p-3 font-mono">{r.os?.os_number ? `#${String(r.os.os_number).padStart(4, "0")}` : "—"}</td>
                   <td className="p-3">{r.os?.customer_name ?? "—"}</td>

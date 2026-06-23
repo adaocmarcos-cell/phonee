@@ -221,7 +221,7 @@ export default function PedidoNovo() {
     }
     setSaving(false);
     toast.success(`${created} pedido(s) criado(s) em rascunho.`);
-    navigate("/app/pedidos");
+    navigate("/painel/pedidos");
   };
 
   return (
@@ -229,7 +229,7 @@ export default function PedidoNovo() {
       <PageHeader
         title="Gerador de pedido de reposição"
         description={`Análise dos últimos ${WINDOW_DAYS} dias · cobertura sugerida de ${coverageDays} dias.`}
-        actions={<Button variant="ghost" onClick={() => navigate("/app/pedidos")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>}
+        actions={<Button variant="ghost" onClick={() => navigate("/painel/pedidos")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>}
       />
 
       <Card className="p-4 bg-primary/5 border-primary/30 mb-6">
@@ -430,7 +430,7 @@ export default function PedidoNovo() {
       )}
 
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={() => navigate("/app/pedidos")}>Cancelar</Button>
+        <Button variant="ghost" onClick={() => navigate("/painel/pedidos")}>Cancelar</Button>
         <Button onClick={generate} disabled={saving || grouped.length === 0} className="bg-gradient-primary shadow-glow">
           {saving ? "Gerando…" : `Gerar ${grouped.length} pedido(s)`}
         </Button>

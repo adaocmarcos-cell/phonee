@@ -48,6 +48,16 @@ import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
 import ComprarSucesso from "./pages/ComprarSucesso";
+import { Navigate, useLocation } from "react-router-dom";
+import MobilePlusLogin from "./pages/mobileplus/Login";
+import MobilePlusLayout from "./pages/mobileplus/Layout";
+import MobilePlusVisaoGeral from "./pages/mobileplus/VisaoGeral";
+import MobilePlusLojas from "./pages/mobileplus/Lojas";
+import MobilePlusUsuarios from "./pages/mobileplus/Usuarios";
+import MobilePlusAssinaturas from "./pages/mobileplus/Assinaturas";
+import MobilePlusFinanceiro from "./pages/mobileplus/Financeiro";
+import MobilePlusCrescimento from "./pages/mobileplus/Crescimento";
+import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
 const queryClient = new QueryClient();
 
@@ -60,21 +70,21 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/entrar" element={<Auth />} />
+            <Route path="/esqueci-senha" element={<ForgotPassword />} />
+            <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/comprar" element={<Comprar />} />
             <Route path="/comprar/sucesso/:id" element={<ComprarSucesso />} />
-            <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route path="/painel" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="estoque" element={<Estoque />} />
               <Route path="estoque/novo" element={<ProductForm />} />
               <Route path="estoque/relatorio" element={<EstoqueRelatorio />} />
               <Route path="estoque/:id" element={<ProductForm />} />
               <Route path="curva-abc" element={<CurvaABC />} />
-              <Route path="trade-in" element={<TradeIn />} />
-              <Route path="trade-in/novo" element={<TradeInForm />} />
-              <Route path="trade-in/:id" element={<TradeInForm />} />
+              <Route path="troca" element={<TradeIn />} />
+              <Route path="troca/novo" element={<TradeInForm />} />
+              <Route path="troca/:id" element={<TradeInForm />} />
               <Route path="pedidos" element={<Pedidos />} />
               <Route path="pedidos/novo" element={<PedidoNovo />} />
               <Route path="vendas" element={<Vendas />} />
@@ -82,28 +92,46 @@ const App = () => (
               <Route path="despesas" element={<Despesas />} />
               <Route path="financeiro" element={<Financeiro />} />
               <Route path="clientes" element={<Clientes />} />
-              <Route path="admin/lojas" element={<MinhasLojas />} />
+              <Route path="lojas" element={<MinhasLojas />} />
               <Route path="estoque/transferencia" element={<TransferenciaProdutos />} />
-              <Route path="os" element={<OrdensServico />} />
-              <Route path="os/nova" element={<OrdemServicoForm />} />
-              <Route path="os/:id" element={<OrdemServicoForm />} />
+              <Route path="ordens" element={<OrdensServico />} />
+              <Route path="ordens/nova" element={<OrdemServicoForm />} />
+              <Route path="ordens/:id" element={<OrdemServicoForm />} />
               <Route path="pecas" element={<PartsInventory />} />
               <Route path="pecas/vendas" element={<VendasPecas />} />
               <Route path="alertas" element={<Alertas />} />
-              <Route path="tabelas-preco" element={<TabelasPreco />} />
-              <Route path="admin/usuarios" element={<Usuarios />} />
-              <Route path="admin/cargos" element={<Cargos />} />
-              <Route path="admin/garantias" element={<Garantias />} />
-              <Route path="admin/permissoes" element={<ComingSoon title="Permissões" description="Matriz de permissões por cargo × módulo × ação. Disponível na próxima fase." />} />
-              <Route path="admin/logs" element={<LogsPage />} />
-              <Route path="admin/ajustes-estoque" element={<AjustesEstoque />} />
-              <Route path="admin/configuracoes" element={<Configuracoes />} />
-              <Route path="admin/pagamentos" element={<PagamentosAsaas />} />
-              <Route path="admin/planos" element={<Planos />} />
-              <Route path="admin/assinaturas" element={<Assinaturas />} />
-              <Route path="admin/logs-pagamento" element={<LogsPagamento />} />
+              <Route path="tabelas" element={<TabelasPreco />} />
+              <Route path="usuarios" element={<Usuarios />} />
+              <Route path="cargos" element={<Cargos />} />
+              <Route path="garantias" element={<Garantias />} />
+              <Route path="permissoes" element={<ComingSoon title="Permissões" description="Matriz de permissões por cargo × módulo × ação. Disponível na próxima fase." />} />
+              <Route path="logs" element={<LogsPage />} />
+              <Route path="ajustes-estoque" element={<AjustesEstoque />} />
+              <Route path="configuracoes" element={<Configuracoes />} />
+              <Route path="pagamentos" element={<PagamentosAsaas />} />
+              <Route path="planos" element={<Planos />} />
+              <Route path="assinaturas" element={<Assinaturas />} />
+              <Route path="logs-pagamento" element={<LogsPagamento />} />
               <Route path="suporte" element={<Suporte />} />
-              <Route path="admin/suporte" element={<SuporteAdmin />} />
+              <Route path="suporte-admin" element={<SuporteAdmin />} />
+            </Route>
+            {/* Redirects: URLs antigas /app/* -> /painel/* e /auth -> /entrar */}
+            <Route path="/auth" element={<Navigate to="/entrar" replace />} />
+            <Route path="/forgot-password" element={<Navigate to="/esqueci-senha" replace />} />
+            <Route path="/reset-password" element={<Navigate to="/redefinir-senha" replace />} />
+            <Route path="/app/*" element={<RedirectAppToPainel />} />
+            <Route path="/app" element={<Navigate to="/painel" replace />} />
+
+            {/* Painel oculto Mobile+ (gestor da plataforma) */}
+            <Route path="/mobileplus" element={<MobilePlusLogin />} />
+            <Route path="/mobileplus" element={<AdminMasterRoute><MobilePlusLayout /></AdminMasterRoute>}>
+              <Route path="visao-geral" element={<MobilePlusVisaoGeral />} />
+              <Route path="lojas" element={<MobilePlusLojas />} />
+              <Route path="usuarios" element={<MobilePlusUsuarios />} />
+              <Route path="assinaturas" element={<MobilePlusAssinaturas />} />
+              <Route path="financeiro" element={<MobilePlusFinanceiro />} />
+              <Route path="crescimento" element={<MobilePlusCrescimento />} />
+              <Route path="suporte" element={<SuporteAdmin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -114,3 +142,16 @@ const App = () => (
 );
 
 export default App;
+
+function RedirectAppToPainel() {
+  const { pathname, search, hash } = useLocation();
+  const remapped = pathname
+    .replace(/^\/app\/admin\/lojas/, "/painel/lojas")
+    .replace(/^\/app\/admin\/suporte/, "/painel/suporte-admin")
+    .replace(/^\/app\/admin\//, "/painel/")
+    .replace(/^\/app\/trade-in/, "/painel/troca")
+    .replace(/^\/app\/os/, "/painel/ordens")
+    .replace(/^\/app\/tabelas-preco/, "/painel/tabelas")
+    .replace(/^\/app/, "/painel");
+  return <Navigate to={remapped + search + hash} replace />;
+}
