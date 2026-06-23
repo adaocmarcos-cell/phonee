@@ -38,6 +38,8 @@ import Assinaturas from "./pages/app/admin/Assinaturas";
 import LogsPagamento from "./pages/app/admin/LogsPagamento";
 import LogsPage from "./pages/app/admin/Logs";
 import AjustesEstoque from "./pages/app/admin/AjustesEstoque";
+import Suporte from "./pages/app/Suporte";
+import SuporteAdmin from "./pages/app/admin/SuporteAdmin";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
@@ -93,6 +95,8 @@ const App = () => (
               <Route path="admin/planos" element={<Planos />} />
               <Route path="admin/assinaturas" element={<Assinaturas />} />
               <Route path="admin/logs-pagamento" element={<LogsPagamento />} />
+              <Route path="suporte" element={<Suporte />} />
+              <Route path="admin/suporte" element={<SuporteAdmin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

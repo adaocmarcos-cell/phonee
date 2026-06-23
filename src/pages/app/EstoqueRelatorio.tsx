@@ -420,19 +420,33 @@ export default function EstoqueRelatorio() {
               <span className="text-base font-semibold metric">{brl(totals.cashCost)}</span>
             </div>
           )}
-          <div className={`flex items-center justify-between px-4 py-2.5 ${totals.inconsistencies > 0 ? "bg-danger/5" : ""}`}>
-            <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono flex items-center gap-1">
-              {totals.inconsistencies > 0 && <AlertTriangle className="h-3 w-3 text-danger" />}
-              Inconsistências
-            </span>
-            <span className={`text-base font-semibold metric ${totals.inconsistencies > 0 ? "text-danger" : "text-success"}`}>
-              {num(totals.inconsistencies)}
-            </span>
-          </div>
+          {totals.inconsistencies > 0 ? (
+            <a
+              href="#inconsistencias"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("inconsistencias")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="flex items-center justify-between px-4 py-3 bg-red-600 hover:bg-red-700 text-white transition-colors group"
+            >
+              <span className="text-[11px] uppercase tracking-widest font-mono flex items-center gap-1.5 text-white/90">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Inconsistências, quebra e falta
+              </span>
+              <span className="text-2xl font-bold metric text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.45)] group-hover:scale-105 transition-transform">
+                {num(totals.inconsistencies)}
+              </span>
+            </a>
+          ) : (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Inconsistências</span>
+              <span className="text-base font-semibold metric text-success">0</span>
+            </div>
+          )}
         </Card>
       </div>
 
-      <Card className="bg-card border-border shadow-card overflow-hidden">
+      <Card id="inconsistencias" className="bg-card border-border shadow-card overflow-hidden scroll-mt-24">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">

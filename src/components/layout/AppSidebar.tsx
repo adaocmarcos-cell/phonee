@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
-  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock,
+  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -39,6 +39,7 @@ const ops: Item[] = [
 const config = [
   { title: "Tabelas de Preço", url: "/app/tabelas-preco", icon: Tags },
   { title: "Configurações", url: "/app/admin/configuracoes", icon: Settings },
+  { title: "Suporte", url: "/app/suporte", icon: LifeBuoy },
 ];
 
 const adminItems: Item[] = [
@@ -52,6 +53,7 @@ const adminMasterItems: Item[] = [
   { title: "Planos", url: "/app/admin/planos", icon: Package },
   { title: "Assinaturas", url: "/app/admin/assinaturas", icon: Receipt },
   { title: "Logs de Pagamento", url: "/app/admin/logs-pagamento", icon: ScrollText },
+  { title: "Chamados de Suporte", url: "/app/admin/suporte", icon: Inbox },
 ];
 
 export function AppSidebar() {

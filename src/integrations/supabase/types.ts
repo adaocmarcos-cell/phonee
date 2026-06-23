@@ -1357,6 +1357,88 @@ export type Database = {
           },
         ]
       }
+      support_ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin: boolean
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin?: boolean
+          message?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          message: string
+          priority: string | null
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          store_id: string | null
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          priority?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          store_id?: string | null
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          priority?: string | null
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          store_id?: string | null
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_ins: {
         Row: {
           battery_health: number | null
@@ -1703,6 +1785,7 @@ export type Database = {
         | "outros"
       stock_adjustment_status: "pendente" | "aprovado" | "rejeitado"
       stock_item_kind: "product" | "part"
+      support_ticket_status: "aberto" | "pendente" | "resolvido"
       trade_in_status:
         | "em_avaliacao"
         | "aprovado"
@@ -1905,6 +1988,7 @@ export const Constants = {
       ],
       stock_adjustment_status: ["pendente", "aprovado", "rejeitado"],
       stock_item_kind: ["product", "part"],
+      support_ticket_status: ["aberto", "pendente", "resolvido"],
       trade_in_status: [
         "em_avaliacao",
         "aprovado",
