@@ -168,6 +168,36 @@ export default function Compras() {
     toast.success(`${parsed.length} item(s) adicionado(s)`);
   };
 
+  const addBySku = async () => {
+    if (!store || !skuQuery.trim()) return;
+    const sku = skuQuery.trim();
+    const { data: prod } = await supabase
+      .from("products")
+      .select("id, name, sku, cost_price")
+      .eq("store_id", store.id)
+      .ilike("sku", sku)
+      .limit(1)
+      .maybeSingle();
+    if (!prod) {
+      toast.error(`Nenhum produto encontrado com SKU "${sku}"`);
+      return;
+    }
+    setItems((arr) => {
+      const exists = arr.find((x) => x.product_id === prod.id);
+      if (exists) {
+        return arr.map((x) => x.product_id === prod.id ? { ...x, quantity: x.quantity + 1 } : x);
+      }
+      const empty = arr.findIndex((x) => !x.product_name.trim());
+      const next: Item = { product_id: prod.id, product_name: prod.name, sku: prod.sku, quantity: 1, unit_cost: Number(prod.cost_price ?? 0) };
+      if (empty >= 0) {
+        return arr.map((x, i) => i === empty ? next : x);
+      }
+      return [...arr, next];
+    });
+    setSkuQuery("");
+    toast.success(`${prod.name} adicionado`);
+  };
+
   // Antes de salvar, valida cada item: existe no estoque? saldo atual e após entrada
   const buildPreview = async () => {
     if (!store) return;
