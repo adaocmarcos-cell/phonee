@@ -808,10 +808,19 @@ Obrigado pela preferência.`;
             </div>
           </div>
 
-          <div className="border-t border-black pt-3 text-[10px] leading-snug">
-            <p className="font-bold mb-1">TERMO DE GARANTIA</p>
-            <p>Os produtos comercializados possuem garantia legal de 90 dias contra defeitos de fabricação, conforme o Código de Defesa do Consumidor. A garantia não cobre danos por mau uso, quedas, exposição a líquidos, violação por terceiros ou desgaste natural. Para acionamento, é obrigatória a apresentação deste comprovante. {(store as any)?.trade_name || store?.name} agradece a preferência.</p>
-          </div>
+          {warrantyEnabled && warrantyCfg && (
+            <>
+              {warrantyCfg.notice_text && (
+                <div className="border border-black p-2 text-[10px] mb-2 bg-yellow-50">
+                  <strong>AVISO:</strong> {warrantyCfg.notice_text}
+                </div>
+              )}
+              <div className="border-t border-black pt-3 text-[10px] leading-snug">
+                <p className="font-bold mb-1">TERMO DE GARANTIA — {warrantyDays} dias</p>
+                <p>{warrantyCfg.message_template}</p>
+              </div>
+            </>
+          )}
 
           <div className="grid grid-cols-2 gap-8 mt-10">
             <div className="border-t border-black pt-1 text-center text-[10px]">Assinatura do cliente</div>
