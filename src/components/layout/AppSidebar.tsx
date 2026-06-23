@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
-  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText,
+  ArrowRightLeft, UserCog, KeyRound, FileSearch, CreditCard, Package, ScrollText, ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
