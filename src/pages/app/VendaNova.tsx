@@ -395,11 +395,36 @@ export default function VendaNova() {
 
     setBusy(false);
     setConfirmOpen(false);
-    // Dispara evento Purchase para o Meta Pixel se carregado
+    // Dispara evento Purchase para o Meta Pixel com detalhamento por forma de pagamento
     try {
       const fbq = (window as any).fbq;
       if (typeof fbq === "function") {
-        fbq("track", "Purchase", { value: totalSale, currency: "BRL", num_items: totalsQty });
+        const validSplits = payments.filter((p) => Number(p.amount) > 0);
+        const contents = validSplits.map((p) => ({
+          id: `pay_${p.method}`,
+          quantity: 1,
+          item_price: Number(p.amount),
+        }));
+        // Adiciona um content por item vendido (para reporting)
+        const itemContents = items.map((i) => ({
+          id: i.product_id,
+          quantity: i.quantity,
+          item_price: i.unit_price,
+        }));
+        fbq("track", "Purchase", {
+          value: Number(totalSale.toFixed(2)),
+          currency: "BRL",
+          num_items: totalsQty,
+          contents: itemContents.length ? itemContents : contents,
+          content_type: "product",
+          content_ids: items.map((i) => i.product_id),
+          payment_method: isMulti ? "misto" : primaryMethod,
+          payment_split: validSplits.map((p) => ({
+            method: p.method,
+            amount: Number(p.amount),
+            installments: p.installments ?? 1,
+          })),
+        });
       }
     } catch { /* noop */ }
     toast.success("Venda registrada!");
