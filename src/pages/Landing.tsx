@@ -106,6 +106,8 @@ function DashStat({
 /* ---------- page ---------- */
 
 export default function Landing() {
+  const heroLogoOffset = useParallax(0.12);
+  const heroGlowOffset = useParallax(0.25);
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* NAV — mesma cor do hero */}
