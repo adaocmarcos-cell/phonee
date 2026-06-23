@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Building2, Plus, Check, AlertTriangle, ArrowRightLeft, CalendarClock, Crown, Trash2 } from "lucide-react";
+import { Building2, Plus, Check, AlertTriangle, ArrowRightLeft, CalendarClock, Crown, Trash2, Infinity as InfinityIcon, RefreshCw } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -131,6 +131,24 @@ export default function MinhasLojas() {
   const isActiveSub = (s: MyStore) =>
     ["ativa", "active", "aprovado"].includes(s.subscription_status);
 
+  const cycleBadge = (s: MyStore) => {
+    if (s.billing_cycle === "lifetime") {
+      return {
+        label: "Vitalício",
+        cls: "bg-violet-500/15 text-violet-700 border-violet-500/30",
+        icon: <InfinityIcon className="h-3 w-3" />,
+      };
+    }
+    return {
+      label: "Anual",
+      cls: "bg-sky-500/15 text-sky-700 border-sky-500/30",
+      icon: <RefreshCw className="h-3 w-3" />,
+    };
+  };
+
+  const lifetimeCount = stores.filter((s) => s.billing_cycle === "lifetime" && isActiveSub(s)).length;
+  const annualCount = stores.filter((s) => s.billing_cycle !== "lifetime" && isActiveSub(s)).length;
+
   const deleteStore = async (s: MyStore) => {
     if (!s.is_owner) { toast.error("Apenas o dono pode excluir a loja"); return; }
     if (isActiveSub(s)) { toast.error("Loja com assinatura ativa não pode ser excluída"); return; }
@@ -161,10 +179,31 @@ export default function MinhasLojas() {
         }
       />
 
+      {stores.length > 0 && (
+        <Card className="mb-4 p-4 bg-gradient-to-br from-primary/5 via-background to-info/5 border-primary/20">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <div className="flex items-center gap-2 font-semibold">
+              <Crown className="h-4 w-4 text-primary" />
+              Modalidade do gestor
+            </div>
+            <Badge variant="outline" className="bg-violet-500/15 text-violet-700 border-violet-500/30 gap-1">
+              <InfinityIcon className="h-3 w-3" /> Vitalício · {lifetimeCount}
+            </Badge>
+            <Badge variant="outline" className="bg-sky-500/15 text-sky-700 border-sky-500/30 gap-1">
+              <RefreshCw className="h-3 w-3" /> Anual · {annualCount}
+            </Badge>
+            <span className="text-xs text-muted-foreground ml-auto">
+              {stores.length} loja(s) cadastrada(s)
+            </span>
+          </div>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {stores.map((s) => {
           const isActive = s.store_id === store?.id;
           const status = statusInfo(s);
+          const cycle = cycleBadge(s);
           return (
             <Card key={s.store_id} className={`p-5 transition-all ${isActive ? "border-primary/60 shadow-glow" : "hover:border-primary/30"}`}>
               <div className="flex items-start justify-between mb-3">
@@ -180,17 +219,29 @@ export default function MinhasLojas() {
                     </div>
                   </div>
                 </div>
-                {isActive && <Badge className="bg-primary/15 text-primary border-primary/30">Ativa agora</Badge>}
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="outline" className={`${cycle.cls} gap-1`}>{cycle.icon}{cycle.label}</Badge>
+                  {isActive && <Badge className="bg-primary/15 text-primary border-primary/30">Ativa agora</Badge>}
+                </div>
               </div>
 
               <div className="space-y-2 text-sm border-t border-border pt-3">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Plano</span>
-                  <span className="font-medium">{s.plan_name ?? "—"}</span>
+                  <span className="font-medium flex items-center gap-1.5">
+                    {s.plan_name ?? "—"}
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded ${cycle.cls}`}>
+                      {cycle.icon}{cycle.label}
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Cobrança</span>
-                  <span className="font-medium">{s.billing_cycle === "lifetime" ? "Vitalício" : "Anual"}</span>
+                  <span className="font-medium">
+                    {s.billing_cycle === "lifetime"
+                      ? "Pagamento único · acesso vitalício"
+                      : "Recorrência anual · renova a cada 12 meses"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Status</span>
