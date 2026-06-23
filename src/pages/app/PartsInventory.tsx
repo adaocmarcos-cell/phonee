@@ -242,7 +242,7 @@ export default function PartsInventory() {
     <div className="p-4 md:p-6 space-y-4">
       <PageHeader
         title="Peças e Ferramentas"
-        subtitle="Estoque dedicado à assistência técnica — separado do estoque de vendas."
+        description="Estoque dedicado à assistência técnica — separado do estoque de vendas."
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={exportPdf}>
