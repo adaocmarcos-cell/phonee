@@ -446,7 +446,7 @@ export default function EstoqueRelatorio() {
         </Card>
       </div>
 
-      <Card className="bg-card border-border shadow-card overflow-hidden">
+      <Card id="inconsistencias" className="bg-card border-border shadow-card overflow-hidden scroll-mt-24">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
