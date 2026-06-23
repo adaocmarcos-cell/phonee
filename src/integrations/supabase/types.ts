@@ -435,6 +435,8 @@ export type Database = {
           discount: number
           id: string
           installments: number | null
+          net_value: number | null
+          net_value_reason: string | null
           notes: string | null
           part_id: string
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -452,6 +454,8 @@ export type Database = {
           discount?: number
           id?: string
           installments?: number | null
+          net_value?: number | null
+          net_value_reason?: string | null
           notes?: string | null
           part_id: string
           payment_method: Database["public"]["Enums"]["payment_method"]
@@ -469,6 +473,8 @@ export type Database = {
           discount?: number
           id?: string
           installments?: number | null
+          net_value?: number | null
+          net_value_reason?: string | null
           notes?: string | null
           part_id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
@@ -951,6 +957,8 @@ export type Database = {
           id: string
           installments: number | null
           last_reminder_sent_at: string | null
+          net_value: number | null
+          net_value_reason: string | null
           notes: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: string
@@ -970,6 +978,8 @@ export type Database = {
           id?: string
           installments?: number | null
           last_reminder_sent_at?: string | null
+          net_value?: number | null
+          net_value_reason?: string | null
           notes?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
@@ -989,6 +999,8 @@ export type Database = {
           id?: string
           installments?: number | null
           last_reminder_sent_at?: string | null
+          net_value?: number | null
+          net_value_reason?: string | null
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
@@ -1091,6 +1103,8 @@ export type Database = {
           id: string
           issue_description: string | null
           labor_value: number
+          net_value: number | null
+          net_value_reason: string | null
           os_number: number | null
           parts_value: number
           photos: Json | null
@@ -1136,6 +1150,8 @@ export type Database = {
           id?: string
           issue_description?: string | null
           labor_value?: number
+          net_value?: number | null
+          net_value_reason?: string | null
           os_number?: number | null
           parts_value?: number
           photos?: Json | null
@@ -1181,6 +1197,8 @@ export type Database = {
           id?: string
           issue_description?: string | null
           labor_value?: number
+          net_value?: number | null
+          net_value_reason?: string | null
           os_number?: number | null
           parts_value?: number
           photos?: Json | null
