@@ -491,7 +491,7 @@ export default function Landing() {
       {/* GARANTIA */}
       <section id="garantia" className="relative py-20 md:py-28 bg-[hsl(226_50%_15%)] text-white overflow-hidden">
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-[420px] w-[420px] rounded-full bg-success/20 blur-[140px]" />
-        <div className="relative max-w-3xl mx-auto px-5 text-center">
+        <Reveal direction="scale" duration={1000} className="relative max-w-3xl mx-auto px-5 text-center">
           <div className="mx-auto h-24 w-24 rounded-3xl bg-success/15 border border-success/40 flex items-center justify-center shadow-2xl">
             <ShieldCheck className="h-12 w-12 text-success" />
           </div>
@@ -506,7 +506,7 @@ export default function Landing() {
             <span className="flex items-center gap-2"><Check className="h-5 w-5 text-success" strokeWidth={3} /> Sem complicações</span>
             <span className="flex items-center gap-2"><Check className="h-5 w-5 text-success" strokeWidth={3} /> Sem risco</span>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* PREÇO — Anual primeiro */}
