@@ -280,6 +280,7 @@ export default function VendaNova() {
     const { data: sale, error } = await supabase.from("sales").insert({
       store_id: store.id, seller_id: user.id,
       customer_name: customer || null, customer_doc: doc || null,
+      customer_whatsapp: whatsapp || null,
       payment_method: mappedMethod as any,
       installments, discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
       notes: JSON.stringify(payload),
