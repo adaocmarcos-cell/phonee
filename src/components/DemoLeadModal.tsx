@@ -56,10 +56,6 @@ export function DemoLeadModal({ open, onOpenChange, onSuccess }: Props) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Acesse a demonstração do Phonee</DialogTitle>
-          <DialogDescription>
-            Preencha os dados abaixo para liberar acesso ao painel com dados fictícios.
-            Levamos menos de 5 segundos.
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
