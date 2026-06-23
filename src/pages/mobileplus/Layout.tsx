@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut,
+  LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus,
 } from "lucide-react";
 import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
 
@@ -10,6 +10,7 @@ const nav = [
   { to: "/phonee/visao-geral", label: "Visão Geral", icon: LayoutDashboard },
   { to: "/phonee/lojas",       label: "Lojas",        icon: Building2 },
   { to: "/phonee/usuarios",    label: "Usuários",     icon: Users },
+  { to: "/phonee/leads",       label: "Leads Demo",   icon: UserPlus },
   { to: "/phonee/assinaturas", label: "Assinaturas",  icon: Receipt },
   { to: "/phonee/financeiro",  label: "Financeiro",   icon: DollarSign },
   { to: "/phonee/crescimento", label: "Crescimento",  icon: TrendingUp },
