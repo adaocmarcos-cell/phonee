@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Info, TrendingUp, TrendingDown, Minus, Trophy, Percent, Wallet, Award } from "lucide-react";
+import { Info, TrendingUp, TrendingDown, Minus, Trophy, Percent, Wallet, Award, ShoppingCart } from "lucide-react";
 import { brl, num, pct, daysAgo } from "@/lib/format";
 import { MetricCard } from "@/components/MetricCard";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
@@ -257,6 +257,18 @@ export default function CurvaABC() {
         title="Curva ABC & Regra 80/20"
         description="Classificação automática dos produtos por faturamento."
       />
+
+      <Card className="mb-4 p-3 border-primary/30 bg-primary/[0.04] flex items-start gap-3">
+        <div className="h-8 w-8 rounded-md bg-primary/15 text-primary flex items-center justify-center shrink-0">
+          <ShoppingCart className="h-4 w-4" />
+        </div>
+        <div className="text-sm leading-snug">
+          <div className="font-semibold">Sugestão de compra inteligente</div>
+          <div className="text-muted-foreground text-xs mt-0.5">
+            As quantidades sugeridas são calculadas a partir do seu histórico de vendas no período selecionado — comprando o suficiente para repor o que costuma sair, sem inflar o estoque.
+          </div>
+        </div>
+      </Card>
 
       <div className="flex items-center justify-end mb-4">
         <PeriodFilter
