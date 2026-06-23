@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, Sparkles } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, Sparkles, RotateCcw } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { MetricCard } from "@/components/MetricCard";
 import { exportSalesPDF, exportSalesXLSX, printSaleReceipt } from "@/lib/salesExport";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
@@ -189,6 +193,50 @@ export default function Vendas() {
     const { error } = await supabase.from("sales").update({ payment_status: "pago" }).eq("id", sale.id);
     if (error) return toast.error(error.message);
     toast.success("Venda marcada como paga");
+    load();
+  };
+
+  const estornarVenda = async (sale: any) => {
+    // 1. Buscar itens da venda para devolver ao estoque
+    const { data: items, error: itemsErr } = await supabase
+      .from("sale_items")
+      .select("product_id, quantity")
+      .eq("sale_id", sale.id);
+    if (itemsErr) return toast.error("Erro ao ler itens: " + itemsErr.message);
+
+    // 2. Devolver quantidade ao estoque (produto a produto)
+    for (const it of items ?? []) {
+      if (!it.product_id) continue;
+      const { data: prod } = await supabase.from("products").select("stock_current").eq("id", it.product_id).maybeSingle();
+      const novoEstoque = Number(prod?.stock_current ?? 0) + Number(it.quantity || 0);
+      const { error: updErr } = await supabase.from("products").update({ stock_current: novoEstoque }).eq("id", it.product_id);
+      if (updErr) return toast.error("Erro ao devolver estoque: " + updErr.message);
+    }
+
+    // 3. Registrar ajuste de estoque (auditoria) por item
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes.user?.id;
+    for (const it of items ?? []) {
+      if (!it.product_id) continue;
+      await (supabase as any).from("stock_adjustments").insert({
+        store_id: sale.store_id,
+        item_kind: "product",
+        product_id: it.product_id,
+        item_name: `Estorno venda #${sale.sale_number ?? "-"}`,
+        qty_change: Number(it.quantity || 0),
+        prev_stock: 0,
+        new_stock: 0,
+        reason: "correcao",
+        justification: `Estorno da venda #${sale.sale_number ?? sale.id.slice(0,8)} — ${brl(Number(sale.total || 0))}`,
+        user_id: uid,
+      });
+    }
+
+    // 4. Excluir a venda (cascade remove sale_items) — debita o faturamento
+    const { error: delErr } = await supabase.from("sales").delete().eq("id", sale.id);
+    if (delErr) return toast.error("Erro ao estornar venda: " + delErr.message);
+
+    toast.success(`Venda #${sale.sale_number ?? ""} estornada · estoque atualizado`);
     load();
   };
 
@@ -384,6 +432,30 @@ export default function Vendas() {
                       <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
                         <Printer className="h-4 w-4" />
                       </Button>
+                      {canRegisterSale(role) && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost" title="Estornar venda">
+                              <RotateCcw className="h-4 w-4 text-danger" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Estornar venda #{s.sale_number}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O valor de <strong>{brl(Number(s.total))}</strong> será debitado do faturamento e os itens
+                                voltarão ao estoque automaticamente. Esta ação é registrada na auditoria.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => estornarVenda(s)} className="bg-danger text-danger-foreground hover:bg-danger/90">
+                                Confirmar estorno
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </td>
                 </tr>

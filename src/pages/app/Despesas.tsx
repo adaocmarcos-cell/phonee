@@ -63,6 +63,24 @@ export default function Despesas() {
   const [openNew, setOpenNew] = useState(false);
   const [openCat, setOpenCat] = useState(false);
 
+  // Categorias ordenadas: "Outros" sempre por último
+  const sortedCategories = useMemo(() => {
+    const isOutros = (n: string) => /^outros$/i.test((n || "").trim());
+    return [...categories].sort((a, b) => {
+      const aO = isOutros(a.name), bO = isOutros(b.name);
+      if (aO && !bO) return 1;
+      if (!aO && bO) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [categories]);
+
+  // Status da despesa: data <= hoje → Paga; futura → Em aberto
+  const today0 = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const expenseStatus = (e: Expense): "paga" | "aberto" => {
+    const d = new Date(e.expense_date + "T00:00:00");
+    return d <= today0 ? "paga" : "aberto";
+  };
+
   const reload = async () => {
     if (!store) return;
     setLoading(true);
@@ -290,7 +308,7 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
               <SelectTrigger className="w-[200px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas categorias</SelectItem>
-                {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {sortedCategories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -315,17 +333,19 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Pagamento</TableHead>
+                  <TableHead>Situação</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Nenhuma despesa neste período.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma despesa neste período.</TableCell></TableRow>
                 ) : filtered.map((e) => {
                   const cat = categories.find((c) => c.id === e.category_id);
+                  const status = expenseStatus(e);
                   return (
                     <TableRow key={e.id}>
                       <TableCell className="font-mono text-xs">{new Date(e.expense_date).toLocaleDateString("pt-BR")}</TableCell>
@@ -344,6 +364,13 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
                         )}
                       </TableCell>
                       <TableCell className="text-xs">{e.payment_method}</TableCell>
+                      <TableCell>
+                        {status === "paga" ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30">Paga</Badge>
+                        ) : (
+                          <Badge className="bg-amber-500/15 text-amber-700 border-amber-500/30">Em aberto</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right metric font-semibold">{brl(Number(e.amount))}</TableCell>
                       <TableCell className="text-right">
                         {isAdmin && (
@@ -572,6 +599,15 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
   const [saving, setSaving] = useState(false);
 
   const selectedCat = categories.find((c) => c.id === categoryId);
+  const sortedCats = useMemo(() => {
+    const isOutros = (n: string) => /^outros$/i.test((n || "").trim());
+    return [...categories].sort((a, b) => {
+      const aO = isOutros(a.name), bO = isOutros(b.name);
+      if (aO && !bO) return 1;
+      if (!aO && bO) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [categories]);
   const isOther = selectedCat?.name === "Outros";
 
   useEffect(() => {
@@ -635,7 +671,7 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
           <Select value={categoryId} onValueChange={setCategoryId}>
             <SelectTrigger><SelectValue placeholder="Escolha…" /></SelectTrigger>
             <SelectContent>
-              {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{!c.is_system && " (personalizada)"}</SelectItem>)}
+              {sortedCats.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{!c.is_system && " (personalizada)"}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
