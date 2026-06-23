@@ -279,7 +279,9 @@ Status: ${os.status}`;
             <Field label="IMEI 1"><Input value={os.device_imei1 || ""} onChange={(e) => set("device_imei1", e.target.value)} /></Field>
             <Field label="IMEI 2"><Input value={os.device_imei2 || ""} onChange={(e) => set("device_imei2", e.target.value)} /></Field>
             <Field label="Número de série"><Input value={os.device_serial || ""} onChange={(e) => set("device_serial", e.target.value)} /></Field>
-            <Field label="Senha informada pelo cliente"><Input value={os.device_password || ""} onChange={(e) => set("device_password", e.target.value)} /></Field>
+            <Field label="Senha informada pelo cliente">
+              <DevicePasswordPicker value={os.device_password || ""} onChange={(v) => set("device_password", v)} />
+            </Field>
           </Card>
         </TabsContent>
 
