@@ -642,7 +642,7 @@ export default function Landing() {
       {/* FOOTER */}
       <footer className="bg-black text-slate-300 border-t border-white/10">
         <div className="max-w-7xl mx-auto px-5 pt-10 pb-2">
-          <div className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
+          <Reveal direction="up" className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
             <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 hover:bg-white/[0.07] transition-colors">
               <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                 <Apple className="h-5 w-5 text-white" />
@@ -661,12 +661,12 @@ export default function Landing() {
                 <div className="text-sm font-semibold text-white">Disponível no Google Play</div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
-        <div className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src={logo} alt="Phonee" className="h-10 w-auto" />
+        <Reveal direction="scale" duration={1100} className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <img src={logo} alt="Phonee" className="h-16 md:h-20 w-auto drop-shadow-[0_8px_30px_rgba(59,130,246,0.35)]" />
           <div className="text-xs">© {new Date().getFullYear()} Phonee. Todos os direitos reservados.</div>
-        </div>
+        </Reveal>
       </footer>
     </div>
   );
