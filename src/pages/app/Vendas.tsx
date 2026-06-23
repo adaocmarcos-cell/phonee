@@ -215,6 +215,19 @@ export default function Vendas() {
       />
 
       {/* Dashboard de vendas — padrão visual do Dashboard principal */}
+      {canRegisterSale(role) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <button
+            type="button"
+            onClick={() => navigate("/app/vendas/nova")}
+            className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-5 flex items-center justify-center gap-2 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <Plus className="h-5 w-5" />
+            Nova venda
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <button
           type="button"
@@ -244,37 +257,6 @@ export default function Vendas() {
           );
         })}
       </div>
-
-      {canRegisterSale(role) && (
-        <button
-          type="button"
-          onClick={() => navigate("/app/vendas/nova")}
-          className="w-full sm:w-1/2 lg:w-1/2 mb-4 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-6 flex items-center justify-center gap-2 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <Plus className="h-5 w-5" />
-          Nova venda
-        </button>
-      )}
-
-      {/* Aviso: módulo de Fornecedores em breve (exclusivo Gestor) */}
-      <Card className="mb-4 p-4 border-dashed border-2 border-primary/40 bg-primary/[0.04] flex items-start gap-3">
-        <div className="h-9 w-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
-          <Truck className="h-4.5 w-4.5 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold">Em breve: Catálogo de Fornecedores</span>
-            <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">
-              <Sparkles className="h-3 w-3 mr-1" />Gratuito
-            </Badge>
-            <Badge variant="outline" className="text-[10px]">Exclusivo Gestor</Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Uma seção de fornecedores <span className="font-semibold text-foreground">completamente gratuita</span> dentro da
-            plataforma Mobile+, com fornecedores de todas as categorias em diversos estados do Brasil — disponível em breve para Gestores.
-          </p>
-        </div>
-      </Card>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-3">
         <TabsList>
@@ -538,6 +520,14 @@ export default function Vendas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rodapé: aviso discreto sobre Catálogo de Fornecedores */}
+      <div className="mt-8 pt-4 border-t border-border/60 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <Truck className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+        <span>
+          <span className="font-medium text-foreground/80">Em breve · Catálogo de Fornecedores</span> — gratuito, exclusivo para Gestores. Fornecedores de todas as categorias em diversos estados do Brasil.
+        </span>
+      </div>
     </div>
   );
 }
