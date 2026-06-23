@@ -278,6 +278,77 @@ export type Database = {
           },
         ]
       }
+      parts_inventory: {
+        Row: {
+          brand: string | null
+          category: Database["public"]["Enums"]["part_category"]
+          category_other: string | null
+          compatible_models: string | null
+          cost_price: number
+          created_at: string
+          id: string
+          is_tool: boolean
+          location: string | null
+          name: string
+          notes: string | null
+          sale_price: number
+          sku: string | null
+          stock_current: number
+          stock_min: number
+          store_id: string
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          category: Database["public"]["Enums"]["part_category"]
+          category_other?: string | null
+          compatible_models?: string | null
+          cost_price?: number
+          created_at?: string
+          id?: string
+          is_tool?: boolean
+          location?: string | null
+          name: string
+          notes?: string | null
+          sale_price?: number
+          sku?: string | null
+          stock_current?: number
+          stock_min?: number
+          store_id: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          category?: Database["public"]["Enums"]["part_category"]
+          category_other?: string | null
+          compatible_models?: string | null
+          cost_price?: number
+          created_at?: string
+          id?: string
+          is_tool?: boolean
+          location?: string | null
+          name?: string
+          notes?: string | null
+          sale_price?: number
+          sku?: string | null
+          stock_current?: number
+          stock_min?: number
+          store_id?: string
+          supplier?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parts_inventory_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_logs: {
         Row: {
           action: string | null
@@ -710,6 +781,58 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_order_parts: {
+        Row: {
+          created_at: string
+          id: string
+          part_id: string
+          qty: number
+          service_order_id: string
+          store_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          part_id: string
+          qty?: number
+          service_order_id: string
+          store_id: string
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          part_id?: string
+          qty?: number
+          service_order_id?: string
+          store_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_parts_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_parts_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_parts_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -1323,6 +1446,14 @@ export type Database = {
         | "pronto_retirada"
         | "entregue"
         | "cancelado"
+      part_category:
+        | "telas"
+        | "baterias"
+        | "tampas"
+        | "cameras"
+        | "flex"
+        | "componentes"
+        | "outros"
       payment_method:
         | "dinheiro"
         | "pix"
@@ -1501,6 +1632,15 @@ export const Constants = {
         "pronto_retirada",
         "entregue",
         "cancelado",
+      ],
+      part_category: [
+        "telas",
+        "baterias",
+        "tampas",
+        "cameras",
+        "flex",
+        "componentes",
+        "outros",
       ],
       payment_method: [
         "dinheiro",
