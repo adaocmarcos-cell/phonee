@@ -110,10 +110,23 @@ export default {
             height: "0",
           },
         },
+        "neon-pulse": {
+          "0%, 100%": {
+            boxShadow:
+              "0 0 0 0 hsl(var(--primary) / 0.55), 0 0 14px 2px hsl(var(--primary) / 0.55), 0 0 30px 6px hsl(var(--primary) / 0.25)",
+            filter: "brightness(1)",
+          },
+          "50%": {
+            boxShadow:
+              "0 0 0 0 hsl(var(--primary) / 0.9), 0 0 28px 6px hsl(var(--primary) / 0.85), 0 0 60px 14px hsl(var(--primary) / 0.45)",
+            filter: "brightness(1.12)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "neon-pulse": "neon-pulse 2.6s ease-in-out infinite",
       },
     },
   },

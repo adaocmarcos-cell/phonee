@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SignaturePad } from "@/components/SignaturePad";
+import { PatternLock } from "@/components/PatternLock";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import {
@@ -43,6 +44,41 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">{label}</Label>
       {children}
     </div>
+  );
+}
+
+function DevicePasswordPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isPattern = (value || "").startsWith("pattern:");
+  const patternValue = isPattern ? value.slice("pattern:".length) : "";
+  const textValue = isPattern ? "" : value;
+  return (
+    <Tabs defaultValue={isPattern ? "padrao" : "texto"} className="w-full">
+      <TabsList className="h-8">
+        <TabsTrigger value="texto" className="text-xs">Numérica / texto</TabsTrigger>
+        <TabsTrigger value="padrao" className="text-xs">Padrão (desenho)</TabsTrigger>
+      </TabsList>
+      <TabsContent value="texto" className="mt-2">
+        <Input
+          value={textValue}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Ex.: 1234"
+        />
+      </TabsContent>
+      <TabsContent value="padrao" className="mt-2">
+        <div className="flex flex-col sm:flex-row gap-3 items-start">
+          <PatternLock
+            value={patternValue}
+            onChange={(v) => onChange(v ? `pattern:${v}` : "")}
+          />
+          <p className="text-[11px] text-muted-foreground max-w-[200px] leading-snug">
+            Toque nos pontos na ordem em que o cliente desenha. Verde indica o
+            <strong className="text-foreground"> início</strong>, vermelho o
+            <strong className="text-foreground"> fim</strong> e as setas mostram a
+            direção do traçado.
+          </p>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -279,7 +315,9 @@ Status: ${os.status}`;
             <Field label="IMEI 1"><Input value={os.device_imei1 || ""} onChange={(e) => set("device_imei1", e.target.value)} /></Field>
             <Field label="IMEI 2"><Input value={os.device_imei2 || ""} onChange={(e) => set("device_imei2", e.target.value)} /></Field>
             <Field label="Número de série"><Input value={os.device_serial || ""} onChange={(e) => set("device_serial", e.target.value)} /></Field>
-            <Field label="Senha informada pelo cliente"><Input value={os.device_password || ""} onChange={(e) => set("device_password", e.target.value)} /></Field>
+            <Field label="Senha informada pelo cliente">
+              <DevicePasswordPicker value={os.device_password || ""} onChange={(v) => set("device_password", v)} />
+            </Field>
           </Card>
         </TabsContent>
 
