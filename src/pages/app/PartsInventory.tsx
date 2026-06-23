@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canSeeCost, canManageProducts } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -18,11 +19,14 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Edit3, Trash2, FileDown, Wrench, AlertTriangle, X } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, FileDown, Wrench, AlertTriangle, X, ShoppingCart, Hammer, RefreshCw, Receipt } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import VendasPecas from "./VendasPecas";
+import PartsPurchaseCenter from "./PartsPurchaseCenter";
 
 type Category =
   | "telas" | "baterias" | "tampas" | "cameras"
