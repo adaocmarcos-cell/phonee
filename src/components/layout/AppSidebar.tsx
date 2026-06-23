@@ -156,14 +156,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className={`flex items-center justify-center px-2 ${collapsed ? "py-2" : "py-4"}`}>
+        <div className={`flex items-center justify-center px-2 ${collapsed ? "py-2" : "py-3"}`}>
           {collapsed ? (
             <span className="text-2xl font-bold leading-none text-[#00abfb]">+</span>
           ) : (
-            <div className="flex items-baseline gap-0.5" aria-label="Mobile+">
-              <span className="text-2xl font-bold tracking-tight text-white lowercase">mobile</span>
-              <span className="text-2xl font-bold leading-none text-[#00abfb]">+</span>
-            </div>
+            <img
+              src={logoAsset.url}
+              alt="Mobile+"
+              className="h-9 w-auto bg-transparent border-0 shadow-none"
+              style={{ background: "transparent", boxShadow: "none", border: 0 }}
+            />
           )}
         </div>
       </SidebarHeader>
