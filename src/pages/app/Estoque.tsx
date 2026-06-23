@@ -7,10 +7,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2 } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { VendaRapidaModal } from "@/components/VendaRapidaModal";
+import { canRegisterSale } from "@/contexts/AuthContext";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -37,6 +39,7 @@ export default function Estoque() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "stalled">("all");
   const [delTarget, setDelTarget] = useState<Product | null>(null);
+  const [saleTarget, setSaleTarget] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -191,6 +194,11 @@ export default function Estoque() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
+                        {canRegisterSale(role) && p.stock_current > 0 && (
+                          <Button size="icon" variant="ghost" onClick={() => setSaleTarget(p)} title="Registrar venda">
+                            <ShoppingBag className="h-3.5 w-3.5 text-primary" />
+                          </Button>
+                        )}
                         {canManageProducts(role) && (
                           <>
                             <Button size="icon" variant="ghost" onClick={() => navigate(`/app/estoque/${p.id}`)}>
@@ -225,6 +233,13 @@ export default function Estoque() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <VendaRapidaModal
+        open={!!saleTarget}
+        onOpenChange={(o) => !o && setSaleTarget(null)}
+        product={saleTarget}
+        onDone={() => { setSaleTarget(null); load(); }}
+      />
     </div>
   );
 }
