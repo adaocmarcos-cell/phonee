@@ -460,6 +460,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-5">
           <SectionTitle eyebrow="ANTES × DEPOIS" title="A diferença é clara" />
           <div className="grid md:grid-cols-2 gap-5">
+            <Reveal direction="left">
             <Card className="p-7 border-2 border-danger/40 bg-danger/[0.04]">
               <h3 className="font-extrabold text-2xl mb-5 flex items-center gap-2 text-danger">
                 <X className="h-7 w-7" strokeWidth={3.5} /> SEM PHONEE
@@ -470,6 +471,8 @@ export default function Landing() {
                 ].map((i) => <CheckItem key={i} negative big>{i}</CheckItem>)}
               </ul>
             </Card>
+            </Reveal>
+            <Reveal direction="right" delay={120}>
             <Card className="p-7 border-2 border-success/50 bg-success/[0.05] shadow-glow">
               <h3 className="font-extrabold text-2xl mb-5 flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-7 w-7" /> COM PHONEE
@@ -480,6 +483,7 @@ export default function Landing() {
                 ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
               </ul>
             </Card>
+            </Reveal>
           </div>
         </div>
       </section>
