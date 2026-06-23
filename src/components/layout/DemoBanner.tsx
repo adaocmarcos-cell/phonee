@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, LogOut, ShoppingCart } from "lucide-react";
+import { LogOut, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { exitDemoMode } from "@/lib/demoMode";
 
@@ -13,7 +13,6 @@ export function DemoBanner() {
 
   return (
     <div className="bg-gradient-to-r from-primary/95 via-primary to-info text-white border-b border-primary-foreground/20 px-3 sm:px-4 py-2 flex flex-wrap items-center gap-2 sm:gap-3">
-      <Sparkles className="h-4 w-4 shrink-0" />
       <span className="text-xs sm:text-sm font-semibold">
         Modo demonstração — dados fictícios. Você está explorando o Phonee.
       </span>

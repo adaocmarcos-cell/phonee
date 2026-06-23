@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Wand2 } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw } from "lucide-react";
 import { z } from "zod";
 import { DEFAULT_CATEGORIES, getCustomCategories, addCustomCategory } from "@/lib/categories";
 import { brl } from "@/lib/format";
@@ -193,7 +193,7 @@ export default function ProductForm() {
                     }
                   }}
                 >
-                  <Wand2 className="h-4 w-4 mr-1" />Gerar
+                  <RefreshCw className="h-4 w-4 mr-1" />Gerar
                 </Button>
               </div>
             </Field>
