@@ -678,6 +678,37 @@ Obrigado pela preferência.`;
                 <Field label="Observações">
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Detalhes da venda, entrega, garantia, negociação…" />
                 </Field>
+
+                <div className="border-t border-border/60 pt-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold">Garantia</div>
+                      <div className="text-xs text-muted-foreground">Inclui o termo de garantia no comprovante.</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch id="war" checked={warrantyEnabled} onCheckedChange={setWarrantyEnabled} />
+                      <Label htmlFor="war" className="text-sm">Adicionar garantia</Label>
+                    </div>
+                  </div>
+                  {warrantyEnabled && warrantyCfg && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Field label="Prazo de garantia">
+                        <Select value={String(warrantyDays)} onValueChange={(v) => setWarrantyDays(Number(v))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {warrantyCfg.options.map((o, i) => (
+                              <SelectItem key={i} value={String(o.days)}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <div className="rounded-md border border-border bg-surface-elevated/40 p-3 text-xs">
+                        <div className="font-semibold mb-1">Aviso</div>
+                        <div className="text-muted-foreground">{warrantyCfg.notice_text}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </Card>
