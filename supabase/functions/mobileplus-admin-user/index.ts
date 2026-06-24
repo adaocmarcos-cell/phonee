@@ -114,6 +114,75 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === "delete_store") {
+      if (!store_id) return json({ error: "Loja é obrigatória." }, 400);
+      const { confirm_name } = body;
+      // Load store for audit + name validation
+      const { data: store, error: loadErr } = await admin
+        .from("stores")
+        .select("id, name, slug, owner_id, created_at")
+        .eq("id", store_id)
+        .maybeSingle();
+      if (loadErr) return json({ error: loadErr.message }, 500);
+      if (!store) return json({ error: "Loja não encontrada." }, 404);
+      if (store.slug === "loja-demonstracao-phonee") {
+        return json({ error: "A loja de demonstração não pode ser excluída." }, 400);
+      }
+      if (typeof confirm_name !== "string" || confirm_name.trim() !== store.name) {
+        return json({ error: "Confirmação inválida: digite o nome exato da loja." }, 400);
+      }
+
+      // Caller profile (for audit context)
+      const { data: callerProfile } = await admin
+        .from("profiles").select("email, full_name").eq("id", callerId).maybeSingle();
+
+      // Audit BEFORE delete (so it survives even if cascades remove related rows)
+      const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? null;
+      const ua = req.headers.get("user-agent") ?? null;
+      await admin.from("audit_log").insert({
+        user_id: callerId,
+        store_id: store.id,
+        module: "admin_master",
+        screen: "phonee/lojas",
+        action: "delete_store",
+        entity: "stores",
+        entity_id: store.id,
+        role: "admin_master",
+        status: "concluido",
+        ip,
+        user_agent: ua,
+        old_value: store as any,
+        details: {
+          executed_by: {
+            user_id: callerId,
+            email: callerProfile?.email ?? null,
+            full_name: callerProfile?.full_name ?? null,
+          },
+          confirm_name,
+          deleted_at: new Date().toISOString(),
+        },
+      });
+
+      const { error: delErr } = await admin.from("stores").delete().eq("id", store.id);
+      if (delErr) {
+        // Mark audit as failed
+        await admin.from("audit_log").insert({
+          user_id: callerId,
+          store_id: store.id,
+          module: "admin_master",
+          screen: "phonee/lojas",
+          action: "delete_store_failed",
+          entity: "stores",
+          entity_id: store.id,
+          role: "admin_master",
+          status: "erro",
+          details: { error: delErr.message },
+        });
+        return json({ error: delErr.message }, 500);
+      }
+      return json({ ok: true });
+    }
+
     return json({ error: "Ação inválida." }, 400);
   } catch (e: any) {
     return json({ error: e?.message ?? "Erro inesperado" }, 500);
