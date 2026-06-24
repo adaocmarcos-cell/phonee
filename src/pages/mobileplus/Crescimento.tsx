@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+  BarChart, Bar,
+} from "recharts";
 
 type Overview = {
   total_stores: number; active_subscriptions: number; trialing: number;
@@ -10,12 +14,19 @@ type StoreRow = {
   store_id: string; store_name: string; owner_email: string | null;
   subscription_status: string | null; total_sales: number; avg_ticket: number;
 };
+type CouponsRevenue = {
+  dias: number; receita_total: number; desconto_total: number; usos: number;
+  by_day: { day: string; receita: number; desconto: number; qtd: number }[];
+  by_coupon: { code: string; receita: number; desconto: number; qtd: number }[];
+};
 
 const brl = (n: number) => (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function PhoneeCrescimento() {
   const [o, setO] = useState<Overview | null>(null);
   const [rows, setRows] = useState<StoreRow[]>([]);
+  const [cup, setCup] = useState<CouponsRevenue | null>(null);
+  const [cupDays, setCupDays] = useState<number>(90);
 
   useEffect(() => {
     (async () => {
@@ -27,6 +38,13 @@ export default function PhoneeCrescimento() {
       if (st.data) setRows(st.data as unknown as StoreRow[]);
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.rpc("mobileplus_coupons_revenue", { _days: cupDays });
+      if (data) setCup(data as unknown as CouponsRevenue);
+    })();
+  }, [cupDays]);
 
   const topTicket = [...rows].sort((a, b) => Number(b.avg_ticket) - Number(a.avg_ticket)).slice(0, 10);
   const topGmv    = [...rows].sort((a, b) => Number(b.total_sales) - Number(a.total_sales)).slice(0, 10);
