@@ -75,7 +75,8 @@ type Prefs = {
   categories: string[];
   kind: "all" | "product" | "part";
 };
-const PREF_KEY = "mobileplus.estoqueRelatorio.prefs";
+const PREF_KEY = "phonee.estoqueRelatorio.prefs";
+const LEGACY_PREF_KEY = "mobileplus.estoqueRelatorio.prefs";
 const loadPrefs = (): Prefs => {
   const defaults: Prefs = {
     startDate: toInputDate(startOfMonth()),
@@ -84,7 +85,11 @@ const loadPrefs = (): Prefs => {
     kind: "all",
   };
   try {
-    const raw = typeof window !== "undefined" ? localStorage.getItem(PREF_KEY) : null;
+    let raw = typeof window !== "undefined" ? localStorage.getItem(PREF_KEY) : null;
+    if (!raw && typeof window !== "undefined") {
+      const legacy = localStorage.getItem(LEGACY_PREF_KEY);
+      if (legacy) { raw = legacy; try { localStorage.setItem(PREF_KEY, legacy); localStorage.removeItem(LEGACY_PREF_KEY); } catch {} }
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       // migrate old prefs (granularity-based)

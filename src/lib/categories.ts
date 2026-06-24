@@ -18,12 +18,20 @@ export const DEFAULT_CATEGORIES: ProductCategory[] = [
   { value: "outros", label: "Outros" },
 ];
 
-const CUSTOM_KEY = "mobileplus.customCategories";
+const CUSTOM_KEY = "phonee.customCategories";
+const LEGACY_CUSTOM_KEY = "mobileplus.customCategories";
 
 export function getCustomCategories(): ProductCategory[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(CUSTOM_KEY);
+    let raw = localStorage.getItem(CUSTOM_KEY);
+    if (!raw) {
+      const legacy = localStorage.getItem(LEGACY_CUSTOM_KEY);
+      if (legacy) {
+        raw = legacy;
+        try { localStorage.setItem(CUSTOM_KEY, legacy); localStorage.removeItem(LEGACY_CUSTOM_KEY); } catch {}
+      }
+    }
     if (!raw) return [];
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? arr.filter((x) => x && x.value && x.label) : [];

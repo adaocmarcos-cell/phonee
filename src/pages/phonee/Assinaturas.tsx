@@ -11,7 +11,7 @@ export default function PhoneeAssinaturas() {
   const [rows, setRows] = useState<Row[]>([]);
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.rpc("mobileplus_stores");
+      const { data } = await supabase.rpc("phonee_stores");
       setRows((data ?? []) as unknown as Row[]);
     })();
   }, []);

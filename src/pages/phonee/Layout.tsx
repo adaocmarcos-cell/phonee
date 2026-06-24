@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus, Target, Ticket, Gift,
 } from "lucide-react";
-import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
+import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
 const nav = [
   { to: "/phonee/visao-geral", label: "Visão Geral", icon: LayoutDashboard },

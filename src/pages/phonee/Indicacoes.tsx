@@ -23,7 +23,7 @@ export default function PhoneeIndicacoes() {
 
   const load = async () => {
     const [{ data: o, error: e1 }, { data: r, error: e2 }] = await Promise.all([
-      supabase.rpc("mobileplus_referrals_overview"),
+      supabase.rpc("phonee_referrals_overview"),
       supabase.from("referrals").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
     if (e1) toast.error(e1.message);

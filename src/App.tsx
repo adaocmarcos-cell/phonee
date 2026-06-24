@@ -52,18 +52,18 @@ import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
 import ComprarSucesso from "./pages/ComprarSucesso";
 import { Navigate, useLocation } from "react-router-dom";
-import PhoneeLogin from "./pages/mobileplus/Login";
-import PhoneeLayout from "./pages/mobileplus/Layout";
-import PhoneeVisaoGeral from "./pages/mobileplus/VisaoGeral";
-import PhoneeLojas from "./pages/mobileplus/Lojas";
-import PhoneeUsuarios from "./pages/mobileplus/Usuarios";
-import PhoneeAssinaturas from "./pages/mobileplus/Assinaturas";
-import PhoneeFinanceiro from "./pages/mobileplus/Financeiro";
-import PhoneeCrescimento from "./pages/mobileplus/Crescimento";
-import PhoneeLeads from "./pages/mobileplus/Leads";
-import PhoneeMarketing from "./pages/mobileplus/Marketing";
-import PhoneeCupons from "./pages/mobileplus/Cupons";
-import PhoneeIndicacoes from "./pages/mobileplus/Indicacoes";
+import PhoneeLogin from "./pages/phonee/Login";
+import PhoneeLayout from "./pages/phonee/Layout";
+import PhoneeVisaoGeral from "./pages/phonee/VisaoGeral";
+import PhoneeLojas from "./pages/phonee/Lojas";
+import PhoneeUsuarios from "./pages/phonee/Usuarios";
+import PhoneeAssinaturas from "./pages/phonee/Assinaturas";
+import PhoneeFinanceiro from "./pages/phonee/Financeiro";
+import PhoneeCrescimento from "./pages/phonee/Crescimento";
+import PhoneeLeads from "./pages/phonee/Leads";
+import PhoneeMarketing from "./pages/phonee/Marketing";
+import PhoneeCupons from "./pages/phonee/Cupons";
+import PhoneeIndicacoes from "./pages/phonee/Indicacoes";
 import { MetaPixel } from "./components/MetaPixel";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
@@ -134,6 +134,10 @@ const App = () => (
             <Route path="/app/*" element={<RedirectAppToPainel />} />
             <Route path="/app" element={<Navigate to="/painel" replace />} />
 
+            {/* Compat: rota antiga /mobileplus/* -> /phonee/* */}
+            <Route path="/mobileplus" element={<Navigate to="/phonee" replace />} />
+            <Route path="/mobileplus/*" element={<RedirectMobileplusToPhonee />} />
+
             {/* Painel oculto Phonee (gestor da plataforma) */}
             <Route path="/phonee" element={<PhoneeLogin />} />
             <Route path="/phonee" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
@@ -169,5 +173,11 @@ function RedirectAppToPainel() {
     .replace(/^\/app\/os/, "/painel/ordens")
     .replace(/^\/app\/tabelas-preco/, "/painel/tabelas")
     .replace(/^\/app/, "/painel");
+  return <Navigate to={remapped + search + hash} replace />;
+}
+
+function RedirectMobileplusToPhonee() {
+  const { pathname, search, hash } = useLocation();
+  const remapped = pathname.replace(/^\/mobileplus/, "/phonee");
   return <Navigate to={remapped + search + hash} replace />;
 }

@@ -49,7 +49,7 @@ export default function PhoneeLojas() {
     }
     setDeleteBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", {
+      const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
         body: { action: "delete_store", store_id: deleting.store_id, confirm_name: deleteTyped.trim() },
       });
       if (error || (data as any)?.error) throw new Error((data as any)?.error ?? error?.message);
@@ -64,7 +64,7 @@ export default function PhoneeLojas() {
   };
 
   const load = async () => {
-    const { data } = await supabase.rpc("mobileplus_stores");
+    const { data } = await supabase.rpc("phonee_stores");
     setRows((data ?? []) as unknown as Row[]);
   };
   useEffect(() => { load(); }, []);
@@ -92,7 +92,7 @@ export default function PhoneeLojas() {
     try {
       // 1) Update store name (if changed)
       if (form.store_name.trim() !== (editing.store_name ?? "")) {
-        const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", {
+        const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
           body: { action: "update_store", store_id: editing.store_id, store_name: form.store_name.trim() },
         });
         if (error || (data as any)?.error) throw new Error((data as any)?.error ?? error?.message);
@@ -105,7 +105,7 @@ export default function PhoneeLojas() {
         if (form.owner_email.trim().toLowerCase() !== (editing.owner_email ?? "").toLowerCase()) { ownerPatch.email = form.owner_email.trim(); dirty = true; }
         if (form.new_password) { ownerPatch.new_password = form.new_password; dirty = true; }
         if (dirty) {
-          const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", { body: ownerPatch });
+          const { data, error } = await supabase.functions.invoke("phonee-admin-user", { body: ownerPatch });
           if (error || (data as any)?.error) throw new Error((data as any)?.error ?? error?.message);
         }
       }

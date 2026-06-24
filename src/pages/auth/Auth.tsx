@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+import logoAsset from "@/assets/phonee-logo.png.asset.json";
 const logo = logoAsset.url;
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 
@@ -27,7 +27,14 @@ export default function Auth() {
   const [remember, setRemember] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem("mobileplus.rememberedEmail");
+    let saved = localStorage.getItem("phonee.rememberedEmail");
+    if (!saved) {
+      const legacy = localStorage.getItem("mobileplus.rememberedEmail");
+      if (legacy) {
+        saved = legacy;
+        try { localStorage.setItem("phonee.rememberedEmail", legacy); localStorage.removeItem("mobileplus.rememberedEmail"); } catch {}
+      }
+    }
     if (saved) {
       setEmail(saved);
       setRemember(true);
@@ -80,8 +87,9 @@ export default function Auth() {
       return toast.error("Nenhum plano ativo encontrado. Adquira um plano para acessar o Phonee.");
     }
     setBusy(false);
-    if (remember) localStorage.setItem("mobileplus.rememberedEmail", eRes.data);
-    else localStorage.removeItem("mobileplus.rememberedEmail");
+    if (remember) localStorage.setItem("phonee.rememberedEmail", eRes.data);
+    else localStorage.removeItem("phonee.rememberedEmail");
+    try { localStorage.removeItem("mobileplus.rememberedEmail"); } catch {}
     if (mustChangePw) {
       toast.info("Defina sua nova senha para continuar.");
       navigate("/redefinir-senha");

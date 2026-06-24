@@ -63,9 +63,19 @@ export default function Vendas() {
   const [adjustReason, setAdjustReason] = useState<string>("Taxa cartão de crédito");
   const [shareOpen, setShareOpen] = useState(false);
 
-  const tplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
+  const tplKey = store ? `phonee.salesReminder.${store.id}` : "phonee.salesReminder";
+  const legacyTplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
   const getTemplate = () => {
-    try { return localStorage.getItem(tplKey) || DEFAULT_REMINDER; } catch { return DEFAULT_REMINDER; }
+    try {
+      const cur = localStorage.getItem(tplKey);
+      if (cur) return cur;
+      const legacy = localStorage.getItem(legacyTplKey);
+      if (legacy) {
+        try { localStorage.setItem(tplKey, legacy); localStorage.removeItem(legacyTplKey); } catch {}
+        return legacy;
+      }
+      return DEFAULT_REMINDER;
+    } catch { return DEFAULT_REMINDER; }
   };
 
   useEffect(() => {

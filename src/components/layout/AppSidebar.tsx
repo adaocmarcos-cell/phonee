@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { canManageUsers, isAdminMaster } from "@/lib/roles";
-import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
+import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 import { StoreSwitcher } from "./StoreSwitcher";
 
 type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" };

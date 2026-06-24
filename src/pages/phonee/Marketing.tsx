@@ -41,7 +41,7 @@ export default function PhoneeMarketing() {
   const loadFilters = async () => {
     const [{ data: st }, { data: pa }] = await Promise.all([
       (supabase as any).from("stores").select("id, name").order("name"),
-      (supabase as any).rpc("mobileplus_traffic_paths"),
+      (supabase as any).rpc("phonee_traffic_paths"),
     ]);
     setStores(((st as any) ?? []).map((s: any) => ({ id: s.id, name: s.name })));
     setPaths(((pa as any) ?? []) as any);
@@ -60,7 +60,7 @@ export default function PhoneeMarketing() {
 
   const loadTraffic = async () => {
     setLoading(true);
-    const { data: tr, error } = await (supabase as any).rpc("mobileplus_sales_traffic", {
+    const { data: tr, error } = await (supabase as any).rpc("phonee_sales_traffic", {
       _days: 30,
       _from: new Date(from + "T00:00:00").toISOString(),
       _to: new Date(to + "T23:59:59").toISOString(),

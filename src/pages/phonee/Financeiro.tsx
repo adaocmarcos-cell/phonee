@@ -15,8 +15,8 @@ export default function PhoneeFinanceiro() {
   useEffect(() => {
     (async () => {
       const [ov, gr] = await Promise.all([
-        supabase.rpc("mobileplus_overview"),
-        supabase.rpc("mobileplus_growth"),
+        supabase.rpc("phonee_overview"),
+        supabase.rpc("phonee_growth"),
       ]);
       if (ov.data) setO(ov.data as unknown as Overview);
       if (gr.data) setG(gr.data as unknown as Growth[]);
