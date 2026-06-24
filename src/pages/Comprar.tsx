@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check } from "lucide-react";
+import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check, Flame, Crown, Infinity as InfinityIcon, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
@@ -129,18 +129,86 @@ export default function Comprar() {
           <h1 className="text-3xl md:text-4xl font-extrabold leading-tight">Garanta seu acesso ao <span className="text-primary">Phonee</span></h1>
           <p className="mt-3 text-white/80">Pagamento seguro via Asaas. Acesso liberado automaticamente após a confirmação.</p>
 
-          <div className="mt-6 grid sm:grid-cols-2 gap-3">
+          <div className="mt-6 space-y-3">
             {plans.map((p) => {
               const active = selectedCode === p.code;
+              const isLifetime = p.code === "lifetime";
+              if (isLifetime) {
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setSelectedCode(p.code)}
+                    className={`relative w-full text-left rounded-2xl p-[2px] transition overflow-hidden ${
+                      active
+                        ? "bg-gradient-to-br from-amber-400 via-primary to-amber-500 shadow-[0_0_40px_-10px_hsl(var(--primary))]"
+                        : "bg-gradient-to-br from-amber-400/60 via-primary/60 to-amber-500/60 hover:from-amber-400 hover:to-amber-500"
+                    }`}
+                  >
+                    <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
+                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold tracking-widest uppercase px-4 py-1 rounded-b-lg shadow-lg flex items-center gap-1">
+                        <Flame className="h-3 w-3" /> Oferta de Lançamento
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-[hsl(224_30%_14%)] p-5 pt-7">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 text-amber-400 text-xs font-mono tracking-widest uppercase">
+                            <Crown className="h-3.5 w-3.5" /> Plano Vitalício
+                          </div>
+                          <h3 className="mt-2 text-lg md:text-xl font-extrabold leading-snug">
+                            Garanta acesso vitalício à Phonee por um valor único.
+                          </h3>
+                          <p className="text-xs text-white/70 mt-1">
+                            Pague uma única vez e utilize a plataforma para sempre.
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-[10px] uppercase text-white/50 tracking-wider">pagamento único</div>
+                          <div className="text-2xl md:text-3xl font-extrabold text-amber-400">{formatBRL(p.price_cents)}</div>
+                          <div className="text-[10px] text-white/60">até 12x no cartão</div>
+                        </div>
+                      </div>
+                      <ul className="mt-4 grid sm:grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                        {[
+                          "Sem mensalidades",
+                          "Sem renovações",
+                          "Sem reajustes futuros",
+                          "Todas as atualizações inclusas",
+                          "Suporte contínuo",
+                          "Novos recursos sem custo",
+                        ].map((b) => (
+                          <li key={b} className="flex items-center gap-1.5 text-white/90">
+                            <Check className="h-3.5 w-3.5 text-amber-400 shrink-0" /> {b}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2 text-[11px] leading-relaxed text-amber-100/90">
+                        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                        <span>
+                          Valor promocional disponível apenas durante o lançamento da Phonee. Após o encerramento desta fase, o Plano Vitalício poderá ser removido ou reajustado sem aviso prévio para novos assinantes.
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
               return (
-                <button key={p.id} type="button" onClick={() => setSelectedCode(p.code)}
-                  className={`text-left rounded-xl border-2 p-4 transition ${active ? "border-primary bg-primary/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedCode(p.code)}
+                  className={`w-full text-left rounded-xl border-2 p-4 transition ${
+                    active ? "border-primary bg-primary/10" : "border-white/10 bg-white/5 hover:bg-white/10"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono tracking-widest text-white/70 uppercase">{p.code === "annual" ? "Anual" : "Vitalício"}</span>
-                    {p.code === "lifetime" && <Badge className="bg-primary/20 text-primary border-primary/40">Recomendado</Badge>}
+                    <span className="text-xs font-mono tracking-widest text-white/70 uppercase">Plano Anual</span>
+                    <div className="text-right">
+                      <div className="text-xl font-extrabold">{formatBRL(p.price_cents)}</div>
+                      <div className="text-[10px] text-white/60">por 12 meses</div>
+                    </div>
                   </div>
-                  <div className="mt-2 text-2xl font-extrabold">{formatBRL(p.price_cents)}</div>
-                  <div className="text-xs text-white/70 mt-1">{p.code === "annual" ? "por 12 meses" : "pague uma vez · até 12x"}</div>
                 </button>
               );
             })}
@@ -213,6 +281,35 @@ export default function Comprar() {
                 <div className="text-xs text-success flex items-center gap-1"><Check className="h-3 w-3" /> Desconto de {formatBRL(couponInfo.discount_cents)} aplicado.</div>
               )}
             </div>
+
+            {selectedCode === "lifetime" && (
+              <div className="rounded-xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-primary/5 to-amber-500/10 p-4 space-y-3">
+                <div className="flex items-center gap-2 font-bold text-amber-300">
+                  <Lock className="h-4 w-4" /> Garantia de Condições Vitalícias
+                </div>
+                <p className="text-xs text-white/85 leading-relaxed">
+                  Ao adquirir o Plano Vitalício durante o lançamento, você garante acesso permanente à plataforma Phonee
+                  sem cobranças recorrentes, sem reajustes futuros e com direito a todas as atualizações e melhorias
+                  disponibilizadas ao sistema.
+                </p>
+                <p className="text-xs text-white/70 leading-relaxed">
+                  Esta condição é exclusiva para assinantes do Plano Vitalício e poderá não estar disponível futuramente
+                  para novos clientes.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {[
+                    { i: <Sparkles className="h-3 w-3" />, t: "Vagas promocionais limitadas" },
+                    { i: <Flame className="h-3 w-3" />, t: "Oferta exclusiva de lançamento" },
+                    { i: <InfinityIcon className="h-3 w-3" />, t: "Melhor custo-benefício a longo prazo" },
+                    { i: <Crown className="h-3 w-3" />, t: "Economize anos de mensalidades" },
+                  ].map((b, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-amber-100/90 bg-black/20 rounded-md px-2 py-1.5">
+                      <span className="text-amber-400">{b.i}</span> {b.t}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {refCode && (
               <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 flex items-center gap-2 text-xs">
