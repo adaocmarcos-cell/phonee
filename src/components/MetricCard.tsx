@@ -64,10 +64,10 @@ export function MetricCard({ label, value, delta, trend = "flat", icon: Icon, ac
         className={cn(
           "metric font-bold leading-tight truncate min-w-0",
           highlight
-            ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
+            ? "text-lg sm:text-xl md:text-2xl lg:text-3xl"
             : filled || tone
-            ? "text-2xl sm:text-3xl md:text-4xl"
-            : "text-xl sm:text-2xl md:text-3xl"
+            ? "text-base sm:text-lg md:text-xl"
+            : "text-sm sm:text-base md:text-lg"
         )}
         title={value}
       >
