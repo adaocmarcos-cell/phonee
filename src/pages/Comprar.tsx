@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check, Flame, Crown, Infinity as InfinityIcon, AlertTriangle, Rocket, Hourglass, Users, Wallet, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import logoAsset from "@/assets/phonee-logo.png.asset.json";
+import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
+import { trackPageVisit } from "@/lib/trackVisit";
 
 const Schema = z.object({
   customer_name: z.string().trim().min(2, "Informe seu nome").max(120),
@@ -58,6 +59,8 @@ export default function Comprar() {
     }
     const c = params.get("cupom") || params.get("coupon");
     if (c) setCoupon(c.toUpperCase());
+    const plano = params.get("plano") || "annual";
+    trackPageVisit(`/comprar?plano=${plano}`);
   }, [params]);
 
   useEffect(() => {
@@ -119,8 +122,10 @@ export default function Comprar() {
     <div className="min-h-screen bg-[hsl(226_50%_15%)] text-white">
       <header className="border-b border-white/10">
         <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3"><ArrowLeft className="h-4 w-4" /> Voltar</Link>
-          <div className="bg-white rounded-xl px-4 py-1.5"><img src={logoAsset.url} alt="Phonee" className="h-8 w-auto" /></div>
+          <Link to="/" className="flex items-center gap-3 text-white/90 hover:text-white"><ArrowLeft className="h-4 w-4" /> Voltar</Link>
+          <div className="rounded-xl px-2 py-1 bg-transparent">
+            <img src={logoAsset.url} alt="Phonee" className="h-9 w-auto" />
+          </div>
         </div>
       </header>
 

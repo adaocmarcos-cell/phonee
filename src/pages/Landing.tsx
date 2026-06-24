@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
+import { trackPageVisit } from "@/lib/trackVisit";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -150,6 +151,7 @@ export default function Landing() {
     const p = new URLSearchParams(window.location.search);
     if (p.get("demo") === "1" || p.get("demonstracao") === "1") setDemoOpen(true);
     if (p.get("indique") === "1" || p.get("indicacao") === "1") setRefOpen(true);
+    trackPageVisit("/");
   }, []);
   return (
     <div className="min-h-screen bg-background text-foreground">
