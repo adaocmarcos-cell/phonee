@@ -10,7 +10,7 @@ const nav = [
   { to: "/phonee/visao-geral", label: "Visão Geral", icon: LayoutDashboard },
   { to: "/phonee/lojas",       label: "Lojas",        icon: Building2 },
   { to: "/phonee/usuarios",    label: "Usuários",     icon: Users },
-  { to: "/phonee/leads",       label: "Leads Demo",   icon: UserPlus },
+  { to: "/phonee/leads",       label: "Leads",        icon: UserPlus },
   { to: "/phonee/marketing",   label: "Marketing",    icon: Target },
   { to: "/phonee/assinaturas", label: "Assinaturas",  icon: Receipt },
   { to: "/phonee/financeiro",  label: "Financeiro",   icon: DollarSign },
