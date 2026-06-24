@@ -15,8 +15,10 @@ export default function ComprarSucesso() {
   useEffect(() => {
     if (!id) return;
     const fetchSub = async () => {
-      const { data } = await supabase.from("subscriptions").select("*").eq("id", id).maybeSingle();
-      setSub(data);
+      const { data, error } = await supabase.functions.invoke("asaas-check-status", {
+        body: { subscription_id: id },
+      });
+      if (!error && data && !(data as any).error) setSub(data);
     };
     fetchSub();
     const interval = setInterval(fetchSub, 5000);
