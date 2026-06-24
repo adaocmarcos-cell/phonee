@@ -46,6 +46,7 @@ import MinhasLojas from "./pages/app/MinhasLojas";
 import TransferenciaProdutos from "./pages/app/TransferenciaProdutos";
 import Compras from "./pages/app/Compras";
 import Fornecedores from "./pages/app/Fornecedores";
+import IndiqueGanhe from "./pages/app/IndiqueGanhe";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
@@ -61,6 +62,8 @@ import PhoneeFinanceiro from "./pages/mobileplus/Financeiro";
 import PhoneeCrescimento from "./pages/mobileplus/Crescimento";
 import PhoneeLeads from "./pages/mobileplus/Leads";
 import PhoneeMarketing from "./pages/mobileplus/Marketing";
+import PhoneeCupons from "./pages/mobileplus/Cupons";
+import PhoneeIndicacoes from "./pages/mobileplus/Indicacoes";
 import { MetaPixel } from "./components/MetaPixel";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
@@ -122,6 +125,7 @@ const App = () => (
               <Route path="logs-pagamento" element={<LogsPagamento />} />
               <Route path="suporte" element={<Suporte />} />
               <Route path="suporte-admin" element={<SuporteAdmin />} />
+              <Route path="indique-e-ganhe" element={<IndiqueGanhe />} />
             </Route>
             {/* Redirects: URLs antigas /app/* -> /painel/* e /auth -> /entrar */}
             <Route path="/auth" element={<Navigate to="/entrar" replace />} />
@@ -141,6 +145,8 @@ const App = () => (
               <Route path="crescimento" element={<PhoneeCrescimento />} />
               <Route path="leads" element={<PhoneeLeads />} />
               <Route path="marketing" element={<PhoneeMarketing />} />
+              <Route path="cupons" element={<PhoneeCupons />} />
+              <Route path="indicacoes" element={<PhoneeIndicacoes />} />
               <Route path="suporte" element={<SuporteAdmin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
