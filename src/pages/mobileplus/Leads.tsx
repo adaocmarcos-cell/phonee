@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users } from "lucide-react";
+import { Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users, Gift, Play } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -16,6 +16,8 @@ interface Lead {
   user_agent: string | null;
   referrer: string | null;
   created_at: string;
+  kind?: "demo" | "indicacao" | null;
+  referral_code?: string | null;
 }
 
 function digitsOnly(v: string) { return (v || "").replace(/\D/g, ""); }
@@ -60,6 +62,7 @@ export default function PhoneeLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [kindFilter, setKindFilter] = useState<"all" | "demo" | "indicacao">("all");
 
   const load = async () => {
     setLoading(true);
@@ -74,13 +77,21 @@ export default function PhoneeLeads() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return leads;
-    return leads.filter((l) =>
+    let base = leads;
+    if (kindFilter !== "all") base = base.filter((l) => (l.kind ?? "demo") === kindFilter);
+    if (!q) return base;
+    return base.filter((l) =>
       l.name.toLowerCase().includes(q) ||
       l.instagram.toLowerCase().includes(q) ||
       digitsOnly(l.whatsapp).includes(digitsOnly(q)),
     );
-  }, [leads, query]);
+  }, [leads, query, kindFilter]);
+
+  const counts = useMemo(() => {
+    const demo = leads.filter((l) => (l.kind ?? "demo") === "demo").length;
+    const indic = leads.filter((l) => l.kind === "indicacao").length;
+    return { demo, indic, all: leads.length };
+  }, [leads]);
 
   const exportCsv = () => {
     if (filtered.length === 0) { toast.error("Sem leads para exportar"); return; }
