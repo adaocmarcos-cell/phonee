@@ -92,6 +92,7 @@ export default function TradeInForm() {
   const [partDialogOpen, setPartDialogOpen] = useState(false);
   const [selPartId, setSelPartId] = useState<string>("");
   const [selPartQty, setSelPartQty] = useState<number>(1);
+  const originalStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!editing || !store) return;
@@ -105,6 +106,7 @@ export default function TradeInForm() {
         repair_costs: (data as any).repair_costs ?? 0,
         scrap_for_parts: (data as any).scrap_for_parts ?? false,
       });
+      if (data) originalStatusRef.current = (data as any).status;
     })();
   }, [id, editing, store]);
 
