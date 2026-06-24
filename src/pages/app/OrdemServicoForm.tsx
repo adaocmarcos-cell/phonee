@@ -14,13 +14,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SignaturePad } from "@/components/SignaturePad";
 import { PatternLock } from "@/components/PatternLock";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import {
   Save, X, FileDown, MessageCircle, Mail, Camera, Trash2, Printer, ArrowLeft,
   ChevronLeft, ChevronRight, FileEdit, User, Smartphone as SmartphoneIcon,
   AlertCircle, ClipboardCheck, Image as ImageIcon, Calculator, Wrench as WrenchIcon,
-  PackageCheck, PenSquare, Check,
+  PackageCheck, PenSquare, Check, FileText,
 } from "lucide-react";
 
 const CATEGORIES = ["iPhone","Xiaomi","Samsung","Motorola","Apple Watch","Smartwatch","Tablet","Notebook","Outro"];
@@ -104,6 +105,9 @@ export default function OrdemServicoForm() {
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(!editing);
   const [step, setStep] = useState(0);
+  const [laudoOpen, setLaudoOpen] = useState(false);
+  const [laudoObs, setLaudoObs] = useState("");
+  const [laudoAnalise, setLaudoAnalise] = useState("");
   const [os, setOs] = useState<any>({
     status: "recebido", reasons: [], accessories: [], photos: [],
     receive_checklist: {}, work_checklist: {}, delivery_checklist: {},
@@ -204,6 +208,149 @@ Status: ${os.status}`;
     window.open(`mailto:${os.customer_email}?subject=${subject}&body=${encodeURIComponent(summary)}`);
   };
 
+  const openLaudo = () => {
+    const defaultAnalise = [
+      os.reasons?.length ? `Defeitos relatados pelo cliente: ${os.reasons.join(", ")}.` : "",
+      os.issue_description ? `Descrição do cliente: ${os.issue_description}` : "",
+      os.battery_health != null ? `Saúde da bateria medida: ${os.battery_health}%.` : "",
+      "Após inspeção visual e testes funcionais, foi identificada a necessidade de intervenção técnica conforme orçamento apresentado.",
+    ].filter(Boolean).join("\n\n");
+    const defaultObs = [
+      os.accessories?.length ? `Acessórios recebidos: ${os.accessories.join(", ")}.` : "",
+      os.final_notes || "",
+      "Equipamento entregue ao cliente em condições funcionais conforme escopo do serviço realizado.",
+    ].filter(Boolean).join("\n\n");
+    setLaudoAnalise(laudoAnalise || defaultAnalise);
+    setLaudoObs(laudoObs || defaultObs);
+    setLaudoOpen(true);
+  };
+
+  const gerarLaudoHTML = () => {
+    const s: any = store || {};
+    const logo = s.pdf_logo_url || s.logo_url || "";
+    const primary = s.pdf_primary_color || "#0F4C81";
+    const accent = s.pdf_accent_color || "#0E7CFF";
+    const storeName = s.trade_name || s.name || "Assistência Técnica";
+    const addr = [s.address_street, s.address_number, s.address_neighborhood, s.address_city, s.address_uf]
+      .filter(Boolean).join(", ") || s.address || "";
+    const today = new Date().toLocaleDateString("pt-BR");
+    const osNum = String(os.os_number ?? "").padStart(4, "0");
+    const esc = (v: any) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+    const nl2br = (v: string) => esc(v).replace(/\n/g, "<br/>");
+    const reasons = (os.reasons || []).join(", ") || "—";
+    const device = [os.device_brand, os.device_model].filter(Boolean).join(" ") || "—";
+
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" />
+<title>Laudo Técnico OS #${osNum}</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  *{box-sizing:border-box} body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:0;font-size:12px;line-height:1.45}
+  .wrap{max-width:760px;margin:0 auto;padding:24px}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid ${primary};padding-bottom:14px;margin-bottom:18px;gap:16px}
+  .brand{display:flex;gap:14px;align-items:center}
+  .brand img{height:64px;width:auto;object-fit:contain}
+  .brand h1{margin:0;font-size:20px;color:${primary};letter-spacing:.3px}
+  .brand .meta{font-size:11px;color:#444;margin-top:4px}
+  .doc-title{text-align:right}
+  .doc-title .tag{display:inline-block;background:${primary};color:#fff;padding:4px 10px;border-radius:4px;font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .doc-title h2{margin:8px 0 2px;font-size:18px;font-family:ui-monospace,Menlo,monospace}
+  .doc-title .date{font-size:11px;color:#555}
+  h3.section{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#fff;background:${primary};padding:6px 10px;margin:18px 0 8px;border-radius:3px}
+  table.kv{width:100%;border-collapse:collapse;margin-bottom:4px}
+  table.kv td{padding:5px 8px;border:1px solid #e3e6ea;vertical-align:top;font-size:12px}
+  table.kv td.k{background:#f6f8fb;color:#555;width:28%;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:1px}
+  .box{border:1px solid #e3e6ea;border-left:4px solid ${accent};padding:10px 14px;border-radius:3px;background:#fbfcfe;white-space:pre-wrap}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sign{margin-top:42px;display:grid;grid-template-columns:1fr 1fr;gap:32px}
+  .sign .line{border-top:1px solid #111;padding-top:6px;text-align:center;font-size:11px;color:#333}
+  .sign img{display:block;margin:0 auto -4px;max-height:54px}
+  .footer{margin-top:28px;border-top:1px solid #ddd;padding-top:10px;font-size:10px;color:#666;text-align:center}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:${accent}1a;color:${accent};font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+  @media print{ .noprint{display:none} body{font-size:11px} }
+  .actions{position:fixed;top:12px;right:12px;display:flex;gap:8px}
+  .actions button{background:${primary};color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600}
+  .actions button.alt{background:#fff;color:${primary};border:1px solid ${primary}}
+</style></head><body>
+<div class="actions noprint">
+  <button onclick="window.print()">Imprimir / Salvar PDF</button>
+  <button class="alt" onclick="window.close()">Fechar</button>
+</div>
+<div class="wrap">
+  <div class="head">
+    <div class="brand">
+      ${logo ? `<img src="${esc(logo)}" alt="logo" />` : ""}
+      <div>
+        <h1>${esc(storeName)}</h1>
+        <div class="meta">
+          ${s.tax_id ? `CNPJ/CPF: ${esc(s.tax_id)}<br/>` : ""}
+          ${addr ? `${esc(addr)}<br/>` : ""}
+          ${s.phone ? `Tel: ${esc(s.phone)}` : ""}${s.phone && s.email ? " · " : ""}${s.email ? esc(s.email) : ""}
+        </div>
+      </div>
+    </div>
+    <div class="doc-title">
+      <span class="tag">Laudo Técnico</span>
+      <h2>OS #${osNum}</h2>
+      <div class="date">Emitido em ${today}</div>
+    </div>
+  </div>
+
+  <h3 class="section">Dados do cliente</h3>
+  <table class="kv">
+    <tr><td class="k">Nome</td><td>${esc(os.customer_name)}</td><td class="k">CPF</td><td>${esc(os.customer_cpf)}</td></tr>
+    <tr><td class="k">Telefone</td><td>${esc(os.customer_whatsapp)}</td><td class="k">E-mail</td><td>${esc(os.customer_email)}</td></tr>
+    <tr><td class="k">Cidade</td><td>${esc(os.customer_city)}</td><td class="k">Endereço</td><td>${esc(os.customer_address)}</td></tr>
+  </table>
+
+  <h3 class="section">Identificação do equipamento</h3>
+  <table class="kv">
+    <tr><td class="k">Categoria</td><td>${esc(os.device_category)}</td><td class="k">Marca / Modelo</td><td>${esc(device)}</td></tr>
+    <tr><td class="k">Cor</td><td>${esc(os.device_color)}</td><td class="k">Armazenamento</td><td>${esc(os.device_storage)}</td></tr>
+    <tr><td class="k">IMEI 1</td><td>${esc(os.device_imei1)}</td><td class="k">IMEI 2</td><td>${esc(os.device_imei2)}</td></tr>
+    <tr><td class="k">Nº de série</td><td>${esc(os.device_serial)}</td><td class="k">Sistema</td><td>${esc(os.device_system)}</td></tr>
+    <tr><td class="k">Saúde da bateria</td><td>${os.battery_health != null ? esc(os.battery_health) + "%" : "—"}</td><td class="k">Acessórios</td><td>${esc((os.accessories || []).join(", ") || "—")}</td></tr>
+  </table>
+
+  <h3 class="section">Defeito reclamado</h3>
+  <div class="box"><strong>Motivos:</strong> ${esc(reasons)}${os.issue_description ? `<br/><br/>${nl2br(os.issue_description)}` : ""}</div>
+
+  <h3 class="section">Análise técnica</h3>
+  <div class="box">${nl2br(laudoAnalise) || "—"}</div>
+
+  <h3 class="section">Observações</h3>
+  <div class="box">${nl2br(laudoObs) || "—"}</div>
+
+  <h3 class="section">Conclusão / Orçamento</h3>
+  <table class="kv">
+    <tr><td class="k">Peças</td><td>${esc(brl(Number(os.parts_value || 0)))}</td><td class="k">Mão de obra</td><td>${esc(brl(Number(os.labor_value || 0)))}</td></tr>
+    <tr><td class="k">Total</td><td><strong>${esc(brl(Number(os.total_value || 0)))}</strong></td><td class="k">Prazo</td><td>${os.estimated_days ? `${esc(os.estimated_days)} dia(s)` : "—"}</td></tr>
+    <tr><td class="k">Técnico responsável</td><td>${esc(os.technician)}</td><td class="k">Status</td><td><span class="badge">${esc(os.status)}</span></td></tr>
+  </table>
+
+  <div class="sign">
+    <div>
+      ${os.customer_signature ? `<img src="${esc(os.customer_signature)}" alt="assinatura cliente" />` : ""}
+      <div class="line">Assinatura do cliente</div>
+    </div>
+    <div>
+      ${os.tech_signature ? `<img src="${esc(os.tech_signature)}" alt="assinatura técnico" />` : ""}
+      <div class="line">${esc(os.technician) !== "—" ? esc(os.technician) + " — " : ""}Responsável técnico</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    ${esc(s.pdf_footer_text || `Este laudo técnico foi emitido por ${storeName} e tem validade exclusivamente para a OS #${osNum}.`)}
+  </div>
+</div>
+<script>setTimeout(()=>{try{window.focus()}catch(e){}},150)</script>
+</body></html>`;
+
+    const w = window.open("", "_blank", "width=900,height=1100");
+    if (!w) { toast.error("Permita pop-ups para gerar o laudo"); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    setLaudoOpen(false);
+  };
+
   if (!loaded) return <div className="p-8 text-sm text-muted-foreground">Carregando…</div>;
 
   return (
@@ -215,6 +362,7 @@ Status: ${os.status}`;
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/ordens")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
+            {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo Técnico</Button>}
             {editing && <Button variant="outline" onClick={() => sendWhats(summary)}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>}
             {editing && <Button variant="outline" onClick={sendMail}><Mail className="h-4 w-4 mr-1" />E-mail</Button>}
             <Button variant="outline" onClick={saveDraft} disabled={busy}>
@@ -494,6 +642,7 @@ Status: ${os.status}`;
       <div className="fixed md:hidden bottom-0 left-0 right-0 p-3 bg-card border-t border-border flex gap-2 z-50">
         <Button variant="ghost" size="sm" onClick={() => navigate("/painel/ordens")}><X className="h-4 w-4" /></Button>
         {editing && <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="h-4 w-4" /></Button>}
+        {editing && <Button variant="outline" size="sm" onClick={openLaudo}><FileText className="h-4 w-4" /></Button>}
         <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy}><FileEdit className="h-4 w-4" /></Button>
         <Button onClick={submit} disabled={busy} className="flex-1 bg-primary text-primary-foreground">
           <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar"}
@@ -598,6 +747,37 @@ Status: ${os.status}`;
           </div>
         </div>
       )}
+
+      <Dialog open={laudoOpen} onOpenChange={setLaudoOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Laudo Técnico — OS #{String(os.os_number ?? "").padStart(4, "0")}</DialogTitle>
+            <DialogDescription>
+              Os dados do aparelho, cliente e orçamento serão preenchidos automaticamente. Edite a análise e as observações abaixo antes de gerar o laudo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs grid grid-cols-2 gap-x-4 gap-y-1">
+              <div><span className="text-muted-foreground">Cliente:</span> <strong>{os.customer_name || "—"}</strong></div>
+              <div><span className="text-muted-foreground">Aparelho:</span> <strong>{[os.device_brand, os.device_model].filter(Boolean).join(" ") || "—"}</strong></div>
+              <div><span className="text-muted-foreground">IMEI:</span> <strong>{os.device_imei1 || "—"}</strong></div>
+              <div><span className="text-muted-foreground">Total:</span> <strong>{brl(Number(os.total_value || 0))}</strong></div>
+            </div>
+            <Field label="Análise técnica (editável)">
+              <Textarea rows={6} value={laudoAnalise} onChange={(e) => setLaudoAnalise(e.target.value)} placeholder="Descreva os testes realizados, componentes inspecionados e diagnóstico." />
+            </Field>
+            <Field label="Observações (editável)">
+              <Textarea rows={4} value={laudoObs} onChange={(e) => setLaudoObs(e.target.value)} placeholder="Recomendações ao cliente, garantia, ressalvas, etc." />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLaudoOpen(false)}>Cancelar</Button>
+            <Button onClick={gerarLaudoHTML} className="bg-primary text-primary-foreground shadow-glow">
+              <FileText className="h-4 w-4 mr-1" />Gerar Laudo Técnico
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
