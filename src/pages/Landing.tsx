@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -86,22 +86,51 @@ function DashStat({
   };
   return (
     <div
-      className={`relative rounded-2xl border bg-gradient-to-br ${grad[tone]} text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.45)] overflow-hidden ${highlight ? "p-6 md:p-7" : "p-5"} ${className}`}
+      className={`relative rounded-2xl border bg-gradient-to-br ${grad[tone]} text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.45)] overflow-hidden ${
+        highlight ? "p-6 md:p-7" : "px-4 py-3 md:p-5"
+      } ${className}`}
     >
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <span className="text-[10px] md:text-[11px] font-mono tracking-[0.18em] uppercase font-semibold text-white/90">
-          {label}
-        </span>
-        {Icon && (
-          <div className="h-8 w-8 md:h-9 md:w-9 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
-            <Icon className="h-4 w-4 md:h-[18px] md:w-[18px] text-white" />
+      {/* Mobile compact: label esquerda · valor direita (apenas para cards não-highlight) */}
+      {!highlight && (
+        <div className="md:hidden flex items-center justify-between gap-3">
+          <div className="min-w-0 flex items-center gap-2">
+            {Icon && (
+              <div className="h-7 w-7 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
+                <Icon className="h-3.5 w-3.5 text-white" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-[9px] font-mono tracking-[0.18em] uppercase font-semibold text-white/85 leading-tight truncate">
+                {label}
+              </div>
+              {sub && (
+                <div className="text-[10px] text-white/80 font-medium leading-tight mt-0.5 truncate">
+                  {sub}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+          <div className="metric font-bold leading-none text-xl text-right shrink-0">{value}</div>
+        </div>
+      )}
+
+      {/* Desktop / highlight: layout original empilhado */}
+      <div className={highlight ? "" : "hidden md:block"}>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <span className="text-[10px] md:text-[11px] font-mono tracking-[0.18em] uppercase font-semibold text-white/90">
+            {label}
+          </span>
+          {Icon && (
+            <div className="h-8 w-8 md:h-9 md:w-9 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
+              <Icon className="h-4 w-4 md:h-[18px] md:w-[18px] text-white" />
+            </div>
+          )}
+        </div>
+        <div className={`metric font-bold leading-tight ${highlight ? "text-5xl md:text-6xl" : "text-3xl md:text-4xl"}`}>
+          {value}
+        </div>
+        {sub && <div className={`mt-2 ${highlight ? "text-sm" : "text-xs"} text-white/85 font-medium`}>{sub}</div>}
       </div>
-      <div className={`metric font-bold leading-tight ${highlight ? "text-5xl md:text-6xl" : "text-3xl md:text-4xl"}`}>
-        {value}
-      </div>
-      {sub && <div className={`mt-2 ${highlight ? "text-sm" : "text-xs"} text-white/85 font-medium`}>{sub}</div>}
     </div>
   );
 }
@@ -114,6 +143,11 @@ export default function Landing() {
   const navigate = useNavigate();
   const [demoOpen, setDemoOpen] = useState(false);
   const handleDemo = () => setDemoOpen(true);
+  // Deep-link: /?demo=1 abre direto o modal de demonstração
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("demo") === "1" || p.get("demonstracao") === "1") setDemoOpen(true);
+  }, []);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DemoLeadModal
@@ -191,22 +225,26 @@ export default function Landing() {
               O sistema criado para lojas de smartphones, eletrônicos e assistência técnica
               que querem organizar a operação, automatizar processos e acompanhar seus números em tempo real.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#beneficios">
-                <Button size="lg" className="bg-gradient-primary shadow-glow text-base h-12 px-7">
-                  Ver vantagens <ArrowRight className="ml-1.5 h-4 w-4" />
+            <div className="mt-8 space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
+              {/* Mobile: linha 1 dividida em duas / Desktop: inline */}
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <a href="#beneficios" className="contents">
+                  <Button size="lg" className="w-full sm:w-auto bg-gradient-primary shadow-glow text-base h-12 sm:px-7">
+                    Ver vantagens <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                </a>
+                <Button
+                  size="lg"
+                  onClick={handleDemo}
+                  className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg"
+                >
+                  <Play className="h-4 w-4 mr-1.5" />
+                  Ver demonstração
                 </Button>
-              </a>
-              <Button
-                size="lg"
-                onClick={handleDemo}
-                className="text-base h-12 px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg"
-              >
-                <Play className="h-4 w-4 mr-1.5" />
-                Ver demonstração
-              </Button>
-              <a href="#preco">
-                <Button size="lg" variant="outline" className="text-base h-12 px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
+              </div>
+              {/* "Ver planos" — mobile ocupa a largura total (= linha acima) */}
+              <a href="#preco" className="block sm:inline-block w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                   Ver planos
                 </Button>
               </a>
