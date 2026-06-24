@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 
 type Row = {
-  store_id: string; store_name: string; owner_email: string | null; owner_name: string | null;
+  store_id: string; store_name: string;
+  owner_id: string | null;
+  owner_email: string | null; owner_name: string | null;
   plan_name: string | null; billing_cycle: string | null; subscription_status: string | null;
   expires_at: string | null; created_at: string;
   total_sales: number; sales_count: number; avg_ticket: number;
@@ -14,13 +22,66 @@ const brl = (n: number) =>
 export default function PhoneeLojas() {
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
+  const [editing, setEditing] = useState<Row | null>(null);
+  const [form, setForm] = useState({ store_name: "", owner_name: "", owner_email: "", new_password: "" });
+  const [saving, setSaving] = useState(false);
+  const [confirmPwd, setConfirmPwd] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.rpc("mobileplus_stores");
-      setRows((data ?? []) as unknown as Row[]);
-    })();
-  }, []);
+  const load = async () => {
+    const { data } = await supabase.rpc("mobileplus_stores");
+    setRows((data ?? []) as unknown as Row[]);
+  };
+  useEffect(() => { load(); }, []);
+
+  const openEdit = (r: Row) => {
+    setEditing(r);
+    setForm({
+      store_name: r.store_name ?? "",
+      owner_name: r.owner_name ?? "",
+      owner_email: r.owner_email ?? "",
+      new_password: "",
+    });
+    setConfirmPwd(false);
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    if (!form.store_name.trim()) return toast.error("Nome da loja é obrigatório.");
+    if (form.new_password && form.new_password.length < 8)
+      return toast.error("Senha mínima de 8 caracteres.");
+    if (form.new_password && !confirmPwd)
+      return toast.error("Confirme a redefinição de senha marcando a caixa.");
+
+    setSaving(true);
+    try {
+      // 1) Update store name (if changed)
+      if (form.store_name.trim() !== (editing.store_name ?? "")) {
+        const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", {
+          body: { action: "update_store", store_id: editing.store_id, store_name: form.store_name.trim() },
+        });
+        if (error || (data as any)?.error) throw new Error((data as any)?.error ?? error?.message);
+      }
+      // 2) Update owner (name/email/password) if owner exists and any changed
+      if (editing.owner_id) {
+        const ownerPatch: Record<string, unknown> = { action: "update", user_id: editing.owner_id };
+        let dirty = false;
+        if (form.owner_name.trim() !== (editing.owner_name ?? "")) { ownerPatch.full_name = form.owner_name.trim(); dirty = true; }
+        if (form.owner_email.trim().toLowerCase() !== (editing.owner_email ?? "").toLowerCase()) { ownerPatch.email = form.owner_email.trim(); dirty = true; }
+        if (form.new_password) { ownerPatch.new_password = form.new_password; dirty = true; }
+        if (dirty) {
+          const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", { body: ownerPatch });
+          if (error || (data as any)?.error) throw new Error((data as any)?.error ?? error?.message);
+        }
+      }
+      toast.success("Dados atualizados.");
+      setEditing(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const filtered = rows.filter((r) => {
     const t = q.toLowerCase();
@@ -63,9 +124,17 @@ export default function PhoneeLojas() {
                   {r.owner_email}
                 </div>
               </div>
-              <span className="shrink-0 px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-200 capitalize">
-                {r.subscription_status ?? "sem assinatura"}
-              </span>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-200 capitalize">
+                  {r.subscription_status ?? "sem assinatura"}
+                </span>
+                <button
+                  onClick={() => openEdit(r)}
+                  className="inline-flex items-center gap-1 text-[11px] text-[#00abfb] hover:underline"
+                >
+                  <Pencil className="h-3 w-3" /> Editar
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="flex flex-col">
@@ -111,6 +180,7 @@ export default function PhoneeLojas() {
               <th className="px-4 py-3 text-right">Vendas</th>
               <th className="px-4 py-3 text-right">Faturamento</th>
               <th className="px-4 py-3 text-right">Ticket médio</th>
+              <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -131,14 +201,93 @@ export default function PhoneeLojas() {
                 <td className="px-4 py-3 text-right">{r.sales_count}</td>
                 <td className="px-4 py-3 text-right">{brl(Number(r.total_sales))}</td>
                 <td className="px-4 py-3 text-right">{brl(Number(r.avg_ticket))}</td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => openEdit(r)}
+                    className="inline-flex items-center gap-1 text-[#00abfb] hover:underline text-xs"
+                  >
+                    <Pencil className="h-3 w-3" /> Editar
+                  </button>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">Nenhuma loja encontrada.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500">Nenhuma loja encontrada.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-slate-100">
+          <DialogHeader>
+            <DialogTitle>Editar loja</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-slate-400">Nome da loja</Label>
+              <Input
+                value={form.store_name}
+                onChange={(e) => setForm({ ...form, store_name: e.target.value })}
+                className="bg-slate-950 border-slate-700"
+              />
+            </div>
+            <div className="border-t border-slate-800 pt-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-500 mb-2">Dono</div>
+              {!editing?.owner_id ? (
+                <div className="text-xs text-slate-400">Esta loja não tem dono vinculado.</div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-slate-400">Nome do dono</Label>
+                    <Input
+                      value={form.owner_name}
+                      onChange={(e) => setForm({ ...form, owner_name: e.target.value })}
+                      className="bg-slate-950 border-slate-700"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400">E-mail (login)</Label>
+                    <Input
+                      type="email"
+                      value={form.owner_email}
+                      onChange={(e) => setForm({ ...form, owner_email: e.target.value })}
+                      className="bg-slate-950 border-slate-700"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-400">Redefinir senha (opcional)</Label>
+                    <Input
+                      type="text"
+                      placeholder="Mínimo 8 caracteres — deixe em branco para não alterar"
+                      value={form.new_password}
+                      onChange={(e) => setForm({ ...form, new_password: e.target.value })}
+                      className="bg-slate-950 border-slate-700 font-mono"
+                    />
+                    {form.new_password && (
+                      <label className="mt-2 flex items-start gap-2 text-xs text-amber-300">
+                        <input
+                          type="checkbox"
+                          checked={confirmPwd}
+                          onChange={(e) => setConfirmPwd(e.target.checked)}
+                          className="mt-0.5"
+                        />
+                        Confirmo que desejo redefinir a senha deste dono — ele perderá o acesso atual.
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>Cancelar</Button>
+            <Button onClick={save} disabled={saving} className="bg-[#00abfb] hover:bg-[#0095dd] text-white">
+              {saving ? "Salvando…" : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
