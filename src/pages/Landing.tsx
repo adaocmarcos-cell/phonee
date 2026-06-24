@@ -761,6 +761,20 @@ export default function Landing() {
             </div>
           </Reveal>
         </div>
+        <div className="max-w-7xl mx-auto px-5 pb-2">
+          <Reveal direction="up">
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[11px] md:text-xs text-slate-300 text-center leading-snug">
+              <span className="font-semibold text-white">Use como app:</span>{" "}
+              <span className="md:hidden">
+                iPhone (Safari): toque em Compartilhar → "Adicionar à Tela de Início".<br />
+                Android (Chrome): menu ⋮ → "Adicionar à tela inicial".
+              </span>
+              <span className="hidden md:inline">
+                iPhone/Safari: Compartilhar → "Adicionar à Tela de Início" · Android/Chrome: menu ⋮ → "Adicionar à tela inicial".
+              </span>
+            </div>
+          </Reveal>
+        </div>
         <Reveal direction="scale" duration={1100} className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <img src={logo} alt="Phonee" className="h-16 md:h-20 w-auto drop-shadow-[0_8px_30px_rgba(59,130,246,0.35)]" />
           <div className="text-xs">© {new Date().getFullYear()} Phonee. Todos os direitos reservados.</div>
