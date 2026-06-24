@@ -347,7 +347,9 @@ export type Database = {
           created_at: string
           id: string
           instagram: string
+          kind: string
           name: string
+          referral_code: string | null
           referrer: string | null
           user_agent: string | null
           whatsapp: string
@@ -356,7 +358,9 @@ export type Database = {
           created_at?: string
           id?: string
           instagram: string
+          kind?: string
           name: string
+          referral_code?: string | null
           referrer?: string | null
           user_agent?: string | null
           whatsapp: string
@@ -365,7 +369,9 @@ export type Database = {
           created_at?: string
           id?: string
           instagram?: string
+          kind?: string
           name?: string
+          referral_code?: string | null
           referrer?: string | null
           user_agent?: string | null
           whatsapp?: string
