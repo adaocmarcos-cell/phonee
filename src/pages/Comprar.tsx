@@ -337,7 +337,7 @@ export default function Comprar() {
                 </p>
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   {[
-                    { i: <Sparkles className="h-3 w-3" />, t: "Vagas promocionais limitadas" },
+                    { i: <Hourglass className="h-3 w-3" />, t: "Vagas promocionais limitadas" },
                     { i: <Flame className="h-3 w-3" />, t: "Oferta exclusiva de lançamento" },
                     { i: <InfinityIcon className="h-3 w-3" />, t: "Melhor custo-benefício a longo prazo" },
                     { i: <Crown className="h-3 w-3" />, t: "Economize anos de mensalidades" },
@@ -351,7 +351,7 @@ export default function Comprar() {
             )}
 
             {refCode && (
-              <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 flex items-center gap-2 text-xs">
+              <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 flex items-center gap-2 text-xs">
                 <Gift className="h-4 w-4 text-primary" />
                 <span>Você foi indicado pelo código <b className="font-mono">{refCode}</b>.</span>
               </div>
