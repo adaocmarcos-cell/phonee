@@ -53,20 +53,27 @@ export function MetricCard({ label, value, delta, trend = "flat", icon: Icon, ac
     : "text-muted-foreground";
 
   return (
-    <Card className={cn("p-5", cardCls, highlight && "p-7", className)}>
-      <div className="flex items-start justify-between mb-3">
-        <span className={cn("text-xs uppercase tracking-widest font-mono font-semibold", labelCls)}>{label}</span>
-        <div className={cn("rounded-md flex items-center justify-center", highlight ? "h-10 w-10" : "h-8 w-8", iconCls)}>
-          <Icon className={cn(highlight ? "h-5 w-5" : "h-4 w-4")} />
+    <Card className={cn("p-4 sm:p-5 min-w-0 overflow-hidden", cardCls, highlight && "sm:p-6", className)}>
+      <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
+        <span className={cn("text-[10px] sm:text-xs uppercase tracking-widest font-mono font-semibold truncate min-w-0", labelCls)}>{label}</span>
+        <div className={cn("shrink-0 rounded-md flex items-center justify-center", highlight ? "h-9 w-9 sm:h-10 sm:w-10" : "h-7 w-7 sm:h-8 sm:w-8", iconCls)}>
+          <Icon className={cn(highlight ? "h-4 w-4 sm:h-5 sm:w-5" : "h-3.5 w-3.5 sm:h-4 sm:w-4")} />
         </div>
       </div>
-      <div className={cn(
-        "metric font-bold leading-tight",
-        highlight ? "text-[2.75rem] md:text-5xl" : filled || tone ? "text-4xl md:text-[2.5rem]" : "text-3xl"
-      )}>
+      <div
+        className={cn(
+          "metric font-bold leading-tight truncate min-w-0",
+          highlight
+            ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
+            : filled || tone
+            ? "text-2xl sm:text-3xl md:text-4xl"
+            : "text-xl sm:text-2xl md:text-3xl"
+        )}
+        title={value}
+      >
         {value}
       </div>
-      {delta && <div className={cn("text-sm mt-2 font-mono font-medium", trendColor)}>{delta}</div>}
+      {delta && <div className={cn("text-xs sm:text-sm mt-2 font-mono font-medium truncate", trendColor)}>{delta}</div>}
     </Card>
   );
 }
