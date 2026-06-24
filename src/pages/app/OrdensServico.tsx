@@ -182,32 +182,44 @@ export default function OrdensServico() {
             <p className="text-sm text-muted-foreground">Nenhuma ordem de serviço encontrada.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium">OS</th>
-                <th className="text-left px-4 py-3 font-medium">Cliente</th>
-                <th className="text-left px-4 py-3 font-medium">Aparelho</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-left px-4 py-3 font-medium">Entrada</th>
-                <th className="text-right px-4 py-3 font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((r) => (
-                <tr key={r.id} onClick={() => navigate(`/painel/ordens/${r.id}`)} className="hover:bg-surface-elevated/40 cursor-pointer">
-                  <td className="px-4 py-3 font-mono text-xs text-primary font-bold">{fmtOS(r.os_number)}</td>
-                  <td className="px-4 py-3 font-medium">{r.customer_name}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {[r.device_brand, r.device_model].filter(Boolean).join(" ")} {r.device_color && `· ${r.device_color}`}
-                  </td>
-                  <td className="px-4 py-3"><Badge variant="outline" className={STATUS_COLOR[r.status] ?? ""}>{STATUS_LABEL[r.status] ?? r.status}</Badge></td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("pt-BR")}</td>
-                  <td className="px-4 py-3 text-right metric font-semibold">{brl(Number(r.total_value || 0))}</td>
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-sm min-w-[760px] table-auto">
+              <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap w-[110px]">OS</th>
+                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap">Cliente</th>
+                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap">Aparelho</th>
+                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap w-[170px]">Status</th>
+                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap w-[110px]">Entrada</th>
+                  <th className="text-right px-4 py-3 font-medium whitespace-nowrap w-[130px]">Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((r) => (
+                  <tr key={r.id} onClick={() => navigate(`/painel/ordens/${r.id}`)} className="hover:bg-surface-elevated/40 cursor-pointer align-middle">
+                    <td className="px-4 py-3 font-mono text-xs text-primary font-bold whitespace-nowrap tabular-nums tracking-tight align-middle">
+                      {fmtOS(r.os_number)}
+                    </td>
+                    <td className="px-4 py-3 font-medium whitespace-nowrap truncate max-w-[220px] align-middle">{r.customer_name}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap truncate max-w-[260px] align-middle">
+                      {[r.device_brand, r.device_model].filter(Boolean).join(" ")}{r.device_color ? ` · ${r.device_color}` : ""}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap align-middle">
+                      <Badge variant="outline" className={`${STATUS_COLOR[r.status] ?? ""} whitespace-nowrap`}>
+                        {STATUS_LABEL[r.status] ?? r.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap tabular-nums align-middle">
+                      {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="px-4 py-3 text-right metric font-semibold whitespace-nowrap tabular-nums align-middle">
+                      {brl(Number(r.total_value || 0))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>
