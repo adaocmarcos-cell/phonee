@@ -20,6 +20,8 @@ type Dashboard = {
   pendentes: number;
   convertidas: number;
   saldo_cents: number;
+  saldo_pendente_cents?: number;
+  proxima_liberacao?: string | null;
 };
 type Referral = {
   id: string; referral_code: string; referred_email: string | null;
