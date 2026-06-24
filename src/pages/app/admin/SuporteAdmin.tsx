@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { isAdminMaster } from "@/lib/roles";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +60,11 @@ const STATUS_ICON: Record<TicketStatus, any> = {
 
 export default function SuporteAdmin() {
   const { user, role } = useAuth();
+  // Admin master is a GLOBAL role (not store-scoped). The `role` from useAuth is store-scoped,
+  // so we must verify admin_master directly against user_roles.
+  const [accessState, setAccessState] = useState<"loading" | "ok" | "deny">("loading");
   const [filter, setFilter] = useState<TicketStatus | "todos">("aberto");
+  const [catFilter, setCatFilter] = useState<string>("todas");
   const [search, setSearch] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
@@ -69,9 +72,21 @@ export default function SuporteAdmin() {
   const [thread, setThread] = useState<TicketMessage[]>([]);
   const [reply, setReply] = useState("");
 
-  if (role && !isAdminMaster(role as any)) {
-    return <Navigate to="/painel" replace />;
-  }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (!u) { if (!cancelled) setAccessState("deny"); return; }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.id)
+        .eq("role", "admin_master")
+        .maybeSingle();
+      if (!cancelled) setAccessState(data ? "ok" : "deny");
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const load = async () => {
     const { data } = await (supabase.from("support_tickets") as any)
@@ -90,7 +105,7 @@ export default function SuporteAdmin() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (accessState === "ok") load(); }, [accessState]);
 
   const loadThread = async (ticketId: string) => {
     const { data } = await (supabase.from("support_ticket_messages") as any)
@@ -131,10 +146,11 @@ export default function SuporteAdmin() {
     const q = search.trim().toLowerCase();
     return tickets.filter((t) => {
       if (filter !== "todos" && t.status !== filter) return false;
+      if (catFilter !== "todas" && (t.category || "").toLowerCase() !== catFilter) return false;
       if (q && !t.subject.toLowerCase().includes(q) && !t.message.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [tickets, filter, search]);
+  }, [tickets, filter, catFilter, search]);
 
   const counts = useMemo(() => ({
     aberto: tickets.filter((t) => t.status === "aberto").length,
@@ -142,11 +158,18 @@ export default function SuporteAdmin() {
     resolvido: tickets.filter((t) => t.status === "resolvido").length,
   }), [tickets]);
 
+  if (accessState === "loading") {
+    return <div className="p-8 text-center text-muted-foreground text-xs font-mono">VERIFICANDO ACESSO…</div>;
+  }
+  if (accessState === "deny") {
+    return <Navigate to="/painel" replace />;
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Suporte · Chamados"
-        description="Gerencie os chamados abertos pelos lojistas da plataforma."
+        description="Gerencie dúvidas, dicas, bugs e sugestões enviados pelos lojistas."
       />
 
       <div className="grid grid-cols-3 gap-3">
@@ -174,6 +197,18 @@ export default function SuporteAdmin() {
               <TabsTrigger value="todos">Todos</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Select value={catFilter} onValueChange={setCatFilter}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as categorias</SelectItem>
+              <SelectItem value="bug">Bug</SelectItem>
+              <SelectItem value="dica">Dica</SelectItem>
+              <SelectItem value="sugestao">Sugestão</SelectItem>
+              <SelectItem value="duvida">Dúvida</SelectItem>
+              <SelectItem value="financeiro">Financeiro</SelectItem>
+              <SelectItem value="outros">Outros</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9" />
