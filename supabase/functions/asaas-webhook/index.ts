@@ -1,8 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { corsHeaders, jsonResponse } from "../_shared/asaas.ts";
 
-const APPROVED = new Set(["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED"]);
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
