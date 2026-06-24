@@ -156,7 +156,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className={`flex items-center justify-center px-2 ${collapsed ? "py-1" : "py-1.5"}`}>
+        <div
+          className={`flex items-center justify-center px-2 ${
+            collapsed
+              ? "py-1"
+              : location.pathname.startsWith("/painel/vendas")
+              ? "py-[0.28125rem]"
+              : "py-1.5"
+          }`}
+        >
           {collapsed ? (
             <span className="text-2xl font-bold leading-none text-[#00abfb]">+</span>
           ) : (
