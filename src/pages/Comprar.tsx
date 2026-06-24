@@ -259,7 +259,7 @@ export default function Comprar() {
           </div>
 
           <div className="mt-6 flex items-center gap-2 text-sm text-success">
-            <ShieldCheck className="h-4 w-4" /> Garantia de 7 dias — 100% do valor de volta
+            <ShieldCheck className="h-4 w-4" /> Garantia de 7 dias — Se não atender suas expectativas reembolsamos 100% do seu dinheiro de volta.
           </div>
         </div>
 
