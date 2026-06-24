@@ -42,8 +42,11 @@ Deno.serve(async (req) => {
     if (!isMaster) return json({ error: "Acesso restrito ao admin master." }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const { action, user_id } = body ?? {};
-    if (!action || !user_id) return json({ error: "Ação e usuário são obrigatórios." }, 400);
+    const { action, user_id, store_id } = body ?? {};
+    if (!action) return json({ error: "Ação é obrigatória." }, 400);
+    if (action !== "update_store" && !user_id) {
+      return json({ error: "Usuário é obrigatório." }, 400);
+    }
     if (user_id === callerId && (action === "delete" || action === "block")) {
       return json({ error: "Você não pode aplicar essa ação a si mesmo." }, 400);
     }
@@ -94,6 +97,20 @@ Deno.serve(async (req) => {
     if (action === "delete") {
       const { error } = await admin.auth.admin.deleteUser(user_id);
       if (error) return json({ error: error.message }, 400);
+      return json({ ok: true });
+    }
+
+    if (action === "update_store") {
+      if (!store_id) return json({ error: "Loja é obrigatória." }, 400);
+      const { store_name } = body;
+      const patch: Record<string, unknown> = {};
+      if (typeof store_name === "string") {
+        if (!store_name.trim()) return json({ error: "Nome da loja é obrigatório." }, 400);
+        patch.name = store_name.trim();
+      }
+      if (Object.keys(patch).length === 0) return json({ ok: true });
+      const { error } = await admin.from("stores").update(patch).eq("id", store_id);
+      if (error) return json({ error: error.message }, 500);
       return json({ ok: true });
     }
 
