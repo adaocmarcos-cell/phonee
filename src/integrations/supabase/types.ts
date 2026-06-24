@@ -2112,6 +2112,9 @@ export type Database = {
           photos_in: string[]
           photos_out: string[]
           product_id: string | null
+          repair_costs: number
+          repair_parts: Json
+          scrap_for_parts: boolean
           status: Database["public"]["Enums"]["trade_in_status"]
           storage_gb: string | null
           store_id: string
@@ -2139,6 +2142,9 @@ export type Database = {
           photos_in?: string[]
           photos_out?: string[]
           product_id?: string | null
+          repair_costs?: number
+          repair_parts?: Json
+          scrap_for_parts?: boolean
           status?: Database["public"]["Enums"]["trade_in_status"]
           storage_gb?: string | null
           store_id: string
@@ -2166,6 +2172,9 @@ export type Database = {
           photos_in?: string[]
           photos_out?: string[]
           product_id?: string | null
+          repair_costs?: number
+          repair_parts?: Json
+          scrap_for_parts?: boolean
           status?: Database["public"]["Enums"]["trade_in_status"]
           storage_gb?: string | null
           store_id?: string
