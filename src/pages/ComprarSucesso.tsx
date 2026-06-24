@@ -78,8 +78,8 @@ export default function ComprarSucesso() {
                   <p className="text-white/80">Acesse a página segura do Asaas para concluir o pagamento com cartão:</p>
                   {sub.invoice_url && (
                     <a href={sub.invoice_url} target="_blank" rel="noreferrer">
-                      <Button size="lg" className="bg-white text-[hsl(217_91%_55%)] hover:bg-white/90 shadow-glow font-semibold">
-                        Pagar com cartão <ExternalLink className="ml-2 h-5 w-5 text-[hsl(217_91%_55%)]" strokeWidth={2.5} />
+                      <Button size="lg" className="bg-gradient-primary shadow-glow">
+                        Pagar com cartão <ExternalLink className="ml-2 h-4 w-4" />
                       </Button>
                     </a>
                   )}
