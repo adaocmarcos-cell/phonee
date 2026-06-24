@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Trash2, ShieldCheck, ShieldAlert, Plus, Smartphone } from "lucide-react";
+import { ArrowLeft, Upload, Trash2, ShieldCheck, ShieldAlert, Plus, Smartphone, Check, X, Wrench, Link2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 function CurrencyBRLInput({
@@ -55,6 +56,14 @@ const CHECKLIST_ITEMS = [
 ];
 
 type TradeIn = any;
+type RepairPart = { part_id: string | null; name: string; qty: number; unit_cost: number; applied?: boolean };
+type CheckState = "ok" | "defeito" | null;
+
+function cycleCheck(v: CheckState): CheckState {
+  if (!v) return "ok";
+  if (v === "ok") return "defeito";
+  return null;
+}
 
 export default function TradeInForm() {
   const { id } = useParams();
@@ -70,25 +79,81 @@ export default function TradeInForm() {
     imei: "", imei_status: "nao_verificado",
     brand: "", model: "", storage_gb: "", color: "",
     condition: "bom", battery_health: 100,
-    entry_value: 0, intended_sale_value: 0,
-    checklist: {} as Record<string, boolean>,
+    entry_value: 0, repair_costs: 0, intended_sale_value: 0,
+    checklist: {} as Record<string, CheckState>,
+    repair_parts: [] as RepairPart[],
     photos_in: [] as string[],
     notes: "", status: "em_avaliacao",
     add_to_stock: false,
+    scrap_for_parts: false,
   });
   const [pendingDevices, setPendingDevices] = useState<TradeIn[]>([]);
+  const [partsCatalog, setPartsCatalog] = useState<any[]>([]);
+  const [partDialogOpen, setPartDialogOpen] = useState(false);
+  const [selPartId, setSelPartId] = useState<string>("");
+  const [selPartQty, setSelPartQty] = useState<number>(1);
 
   useEffect(() => {
     if (!editing || !store) return;
     (async () => {
       const { data } = await supabase.from("trade_ins").select("*").eq("id", id).maybeSingle();
-      if (data) setForm({ ...data, checklist: data.checklist ?? {}, photos_in: data.photos_in ?? [] });
+      if (data) setForm({
+        ...data,
+        checklist: data.checklist ?? {},
+        photos_in: data.photos_in ?? [],
+        repair_parts: (data as any).repair_parts ?? [],
+        repair_costs: (data as any).repair_costs ?? 0,
+        scrap_for_parts: (data as any).scrap_for_parts ?? false,
+      });
     })();
   }, [id, editing, store]);
 
+  useEffect(() => {
+    if (!store) return;
+    (async () => {
+      const { data } = await supabase
+        .from("parts_inventory")
+        .select("id,name,sku,cost_price,stock_current")
+        .eq("store_id", store.id)
+        .order("name");
+      setPartsCatalog(data || []);
+    })();
+  }, [store]);
+
   const update = (patch: Partial<TradeIn>) => setForm((f: TradeIn) => ({ ...f, ...patch }));
   const toggleCheck = (k: string) =>
-    setForm((f: TradeIn) => ({ ...f, checklist: { ...f.checklist, [k]: !f.checklist[k] } }));
+    setForm((f: TradeIn) => ({ ...f, checklist: { ...f.checklist, [k]: cycleCheck(f.checklist[k] ?? null) } }));
+
+  const recomputeRepairCost = (parts: RepairPart[], manualExtra = 0) =>
+    parts.reduce((s, p) => s + (Number(p.qty) || 0) * (Number(p.unit_cost) || 0), 0) + manualExtra;
+
+  const addRepairPart = () => {
+    const p = partsCatalog.find((x) => x.id === selPartId);
+    if (!p) return toast.error("Selecione uma peça.");
+    if (selPartQty <= 0) return toast.error("Quantidade inválida.");
+    if ((p.stock_current ?? 0) < selPartQty) return toast.error("Estoque insuficiente para essa peça.");
+    const item: RepairPart = {
+      part_id: p.id, name: p.name, qty: selPartQty, unit_cost: Number(p.cost_price) || 0, applied: false,
+    };
+    const newParts = [...(form.repair_parts || []), item];
+    update({
+      repair_parts: newParts,
+      repair_costs: Number(form.repair_costs || 0) + item.qty * item.unit_cost,
+    });
+    setSelPartId(""); setSelPartQty(1); setPartDialogOpen(false);
+  };
+
+  const removeRepairPart = (idx: number) => {
+    const item = form.repair_parts[idx];
+    if (item.applied) {
+      return toast.error("Peça já baixada do estoque. Faça um ajuste manual de estoque se necessário.");
+    }
+    const next = form.repair_parts.filter((_: any, i: number) => i !== idx);
+    update({
+      repair_parts: next,
+      repair_costs: Math.max(0, Number(form.repair_costs || 0) - item.qty * item.unit_cost),
+    });
+  };
 
   const checkImei = () => {
     if (!form.imei || form.imei.length < 14) return toast.error("Informe um IMEI válido (15 dígitos).");
@@ -134,12 +199,16 @@ export default function TradeInForm() {
     condition: src.condition,
     battery_health: Number(src.battery_health) || null,
     entry_value: Number(src.entry_value) || 0,
+    repair_costs: Number(src.repair_costs) || 0,
+    scrap_for_parts: !!src.scrap_for_parts,
+    repair_parts: (src.repair_parts || []).map((p: RepairPart) => ({ ...p, applied: true })),
     intended_sale_value: Number(src.intended_sale_value) || 0,
     checklist: src.checklist,
     photos_in: src.photos_in,
     notes: src.notes || null,
-    // If "include in stock now" is checked, send straight to em_estoque so the trigger creates a product
-    status: src.add_to_stock ? "em_estoque" : src.status,
+    // If "include in stock now" is checked (and not scrap), send straight to em_estoque so the trigger creates a product
+    status: src.scrap_for_parts ? (src.status === "em_avaliacao" ? "em_estoque" : src.status)
+          : src.add_to_stock ? "em_estoque" : src.status,
   });
 
   const resetDeviceFields = () =>
@@ -148,11 +217,13 @@ export default function TradeInForm() {
       imei: "", imei_status: "nao_verificado",
       brand: "", model: "", storage_gb: "", color: "",
       condition: "bom", battery_health: 100,
-      entry_value: 0, intended_sale_value: 0,
+      entry_value: 0, repair_costs: 0, intended_sale_value: 0,
       checklist: {},
+      repair_parts: [],
       photos_in: [],
       notes: "",
       add_to_stock: false,
+      scrap_for_parts: false,
     }));
 
   const addAnother = () => {
@@ -165,6 +236,38 @@ export default function TradeInForm() {
   const removePending = (idx: number) =>
     setPendingDevices((arr) => arr.filter((_, i) => i !== idx));
 
+  // Apply repair side-effects: decrement parts stock + create expense to sync financials/dashboards
+  const applyRepairSideEffects = async (src: TradeIn) => {
+    if (!store) return;
+    const newParts: RepairPart[] = (src.repair_parts || []).filter((p: RepairPart) => p.part_id && !p.applied);
+    // Decrement parts inventory
+    for (const p of newParts) {
+      const cur = partsCatalog.find((x) => x.id === p.part_id);
+      const newStock = Math.max(0, (cur?.stock_current ?? 0) - (p.qty || 0));
+      await supabase.from("parts_inventory").update({ stock_current: newStock }).eq("id", p.part_id);
+    }
+    // Create expense entry for the repair (sums in financial + dashboards)
+    const repairTotal = Number(src.repair_costs) || 0;
+    const partsTotal = newParts.reduce((s, p) => s + p.qty * p.unit_cost, 0);
+    const manualExtra = Math.max(0, repairTotal - (src.repair_parts || []).reduce((s: number, p: RepairPart) => s + p.qty * p.unit_cost, 0));
+    const expenseAmount = partsTotal + manualExtra;
+    if (expenseAmount > 0) {
+      await supabase.from("expenses").insert({
+        store_id: store.id,
+        category_name: "Reparos / Compra & Troca",
+        subcategory: src.model || null,
+        description: `Reparo de aparelho recebido em Compra & Troca${src.model ? ` · ${src.model}` : ""}`,
+        amount: expenseAmount,
+        expense_date: new Date().toISOString().slice(0, 10),
+        payment_method: "interno",
+        notes: newParts.length
+          ? `Peças utilizadas: ${newParts.map((p) => `${p.qty}× ${p.name}`).join(", ")}`
+          : null,
+        created_by: user?.id ?? null,
+      });
+    }
+  };
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     if (!store || !user) return;
@@ -175,8 +278,9 @@ export default function TradeInForm() {
 
     if (editing) {
       const { error } = await supabase.from("trade_ins").update(buildPayload(form)).eq("id", id!);
-      setBusy(false);
       if (error) return toast.error(error.message);
+      await applyRepairSideEffects(form);
+      setBusy(false);
       toast.success("Ficha atualizada");
       navigate("/painel/troca");
       return;
@@ -185,14 +289,16 @@ export default function TradeInForm() {
     const all = form.model.trim() ? [...pendingDevices, form] : pendingDevices;
     const payloads = all.map(buildPayload);
     const { error } = await supabase.from("trade_ins").insert(payloads);
-    setBusy(false);
     if (error) return toast.error(error.message);
+    for (const d of all) await applyRepairSideEffects(d);
+    setBusy(false);
     toast.success(`${payloads.length} ficha(s) criada(s)`);
     navigate("/painel/troca");
   };
 
+  const totalCost = Number(form.entry_value || 0) + Number(form.repair_costs || 0);
   const margin = form.intended_sale_value > 0
-    ? ((form.intended_sale_value - form.entry_value) / form.intended_sale_value) * 100 : 0;
+    ? ((form.intended_sale_value - totalCost) / form.intended_sale_value) * 100 : 0;
 
   return (
     <div>
@@ -252,18 +358,48 @@ export default function TradeInForm() {
             </div>
             <div className="space-y-2"><Label>Saúde da bateria (%)</Label><Input type="number" min={0} max={100} value={form.battery_health} onChange={(e) => update({ battery_health: e.target.value })} className="font-mono" /></div>
             <div className="space-y-2"><Label>Valor pago ao cliente (R$)</Label><CurrencyBRLInput value={form.entry_value} onChange={(n) => update({ entry_value: n })} className="font-mono" /></div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-1.5"><Wrench className="h-3.5 w-3.5" /> Custos de reparo (R$)</Label>
+                <button type="button" onClick={() => setPartDialogOpen(true)} className="text-[11px] text-primary hover:underline inline-flex items-center gap-1">
+                  <Link2 className="h-3 w-3" /> Vincular peça
+                </button>
+              </div>
+              <CurrencyBRLInput value={form.repair_costs} onChange={(n) => update({ repair_costs: n })} className="font-mono" />
+              {form.repair_parts?.length > 0 && (
+                <div className="space-y-1 pt-1">
+                  {form.repair_parts.map((p: RepairPart, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-[11px] px-2 py-1 rounded bg-surface-elevated border border-border">
+                      <span className="truncate">{p.qty}× {p.name} · R$ {(p.qty * p.unit_cost).toFixed(2)}{p.applied && <span className="text-success ml-1">✓</span>}</span>
+                      {!p.applied && (
+                        <button type="button" onClick={() => removeRepairPart(i)} className="text-danger hover:opacity-80"><Trash2 className="h-3 w-3" /></button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="space-y-2"><Label>Valor de venda pretendido (R$)</Label><CurrencyBRLInput value={form.intended_sale_value} onChange={(n) => update({ intended_sale_value: n })} className="font-mono" /></div>
             <div className="space-y-2"><Label>Margem estimada</Label><div className={`px-3 py-2 rounded-md border border-border bg-surface-elevated font-mono font-semibold ${margin >= 25 ? "text-success" : margin >= 10 ? "text-warning" : "text-danger"}`}>{margin.toFixed(1)}%</div></div>
           </div>
 
           {!editing && (
-            <label className="mt-4 flex items-start gap-3 p-3 rounded-md border border-border bg-surface-elevated/50 cursor-pointer">
-              <Checkbox checked={!!form.add_to_stock} onCheckedChange={(v) => update({ add_to_stock: !!v })} />
-              <div className="text-sm">
-                <div className="font-medium">Incluir agora no estoque (vitrine)</div>
-                <div className="text-xs text-muted-foreground">Quando marcado, este aparelho entra direto como seminovo disponível para venda. Caso contrário, fica em avaliação.</div>
-              </div>
-            </label>
+            <div className="mt-4 grid md:grid-cols-2 gap-3">
+              <label className="flex items-start gap-3 p-3 rounded-md border border-border bg-surface-elevated/50 cursor-pointer">
+                <Checkbox checked={!!form.add_to_stock} onCheckedChange={(v) => update({ add_to_stock: !!v, scrap_for_parts: v ? false : form.scrap_for_parts })} disabled={form.scrap_for_parts} />
+                <div className="text-sm">
+                  <div className="font-medium">Incluir agora no estoque</div>
+                  <div className="text-xs text-muted-foreground">Quando marcado, este aparelho entra direto como seminovo disponível para venda. Caso contrário, fica em avaliação.</div>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 p-3 rounded-md border border-border bg-surface-elevated/50 cursor-pointer">
+                <Checkbox checked={!!form.scrap_for_parts} onCheckedChange={(v) => update({ scrap_for_parts: !!v, add_to_stock: v ? false : form.add_to_stock })} disabled={form.add_to_stock} />
+                <div className="text-sm">
+                  <div className="font-medium">Incluir como sucata e retirada de peças</div>
+                  <div className="text-xs text-muted-foreground">O aparelho não entra na vitrine. Será destinado à canibalização para reaproveitamento de peças.</div>
+                </div>
+              </label>
+            </div>
           )}
         </Card>
 
@@ -297,14 +433,38 @@ export default function TradeInForm() {
 
         {/* Checklist */}
         <Card className="p-5 bg-card border-border">
-          <h3 className="font-semibold mb-4">Checklist de avaliação</h3>
-          <div className="grid md:grid-cols-2 gap-3">
-            {CHECKLIST_ITEMS.map((item) => (
-              <label key={item.key} className="flex items-center gap-3 p-3 rounded-md border border-border hover:bg-surface-elevated/40 cursor-pointer">
-                <Checkbox checked={!!form.checklist[item.key]} onCheckedChange={() => toggleCheck(item.key)} />
-                <span className="text-sm">{item.label}</span>
-              </label>
-            ))}
+          <h3 className="font-semibold mb-1">Checklist de avaliação</h3>
+          <p className="text-xs text-muted-foreground mb-4">Toque para alternar: <span className="text-success font-medium">verde = OK</span> · <span className="text-danger font-medium">vermelho = com defeito</span>.</p>
+          <div className="grid md:grid-cols-2 gap-2">
+            {CHECKLIST_ITEMS.map((item) => {
+              const st: CheckState = form.checklist[item.key] ?? null;
+              const cls = st === "ok"
+                ? "border-success/60 bg-success/10"
+                : st === "defeito"
+                ? "border-danger/60 bg-danger/10"
+                : "border-border hover:bg-surface-elevated/40";
+              return (
+                <button
+                  type="button"
+                  key={item.key}
+                  onClick={() => toggleCheck(item.key)}
+                  className={`flex items-center gap-3 p-3 rounded-md border text-left transition-colors ${cls}`}
+                >
+                  <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    st === "ok" ? "bg-success text-success-foreground" :
+                    st === "defeito" ? "bg-danger text-danger-foreground" :
+                    "bg-muted text-muted-foreground"
+                  }`}>
+                    {st === "ok" ? <Check className="h-3 w-3" /> : st === "defeito" ? <X className="h-3 w-3" /> : "—"}
+                  </span>
+                  <span className="text-sm flex-1">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-5 space-y-2">
+            <Label>Observações</Label>
+            <Textarea value={form.notes} onChange={(e) => update({ notes: e.target.value })} rows={3} placeholder="Anote detalhes adicionais da avaliação…" />
           </div>
         </Card>
 
@@ -349,10 +509,6 @@ export default function TradeInForm() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2 md:row-span-2">
-              <Label>Observações</Label>
-              <Textarea value={form.notes} onChange={(e) => update({ notes: e.target.value })} rows={4} />
-            </div>
           </div>
         </Card>
 
@@ -363,6 +519,40 @@ export default function TradeInForm() {
           </Button>
         </div>
       </form>
+
+      {/* Dialog: vincular peça do estoque */}
+      <Dialog open={partDialogOpen} onOpenChange={setPartDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Vincular peça do estoque</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Peça</Label>
+              <Select value={selPartId} onValueChange={setSelPartId}>
+                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                <SelectContent>
+                  {partsCatalog.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">Nenhuma peça em estoque.</div>}
+                  {partsCatalog.map((p) => (
+                    <SelectItem key={p.id} value={p.id} disabled={(p.stock_current ?? 0) <= 0}>
+                      {p.name} · estoque {p.stock_current ?? 0} · R$ {Number(p.cost_price || 0).toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Quantidade</Label>
+              <Input type="number" min={1} value={selPartQty} onChange={(e) => setSelPartQty(Math.max(1, parseInt(e.target.value || "1", 10)))} className="font-mono" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">O custo da peça (qtd × custo) será somado aos custos de reparo. Ao salvar, o estoque é baixado e uma despesa é lançada no financeiro.</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setPartDialogOpen(false)}>Cancelar</Button>
+            <Button type="button" onClick={addRepairPart}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
