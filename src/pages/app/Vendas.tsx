@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Gift } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Gift, DollarSign } from "lucide-react";
+import { IndiqueGanheQuickDialog } from "@/components/IndiqueGanheQuickDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -60,6 +61,7 @@ export default function Vendas() {
   const [adjustSale, setAdjustSale] = useState<any | null>(null);
   const [adjustNet, setAdjustNet] = useState<string>("");
   const [adjustReason, setAdjustReason] = useState<string>("Taxa cartão de crédito");
+  const [shareOpen, setShareOpen] = useState(false);
 
   const tplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
   const getTemplate = () => {
@@ -287,10 +289,10 @@ export default function Vendas() {
         description="Histórico de vendas e PDV rápido."
         actions={
           <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => navigate("/painel/indique-e-ganhe")}
-              className="bg-gradient-primary text-primary-foreground shadow-glow hover:brightness-110"
-              title="Convide outras lojas e ganhe R$ 10 por assinatura confirmada">
-              <Gift className="h-4 w-4 mr-1" /> Indique e Ganhe
+            <Button onClick={() => setShareOpen(true)}
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-glow hover:brightness-110"
+              title="Copie seu link rastreável e ganhe R$ 10 por assinatura confirmada">
+              <DollarSign className="h-4 w-4 mr-1" /> Indique e Ganhe
             </Button>
             <Button variant="outline" onClick={() => navigate("/painel/estoque/relatorio")} title="Inventário em tempo real">
               <Activity className="h-4 w-4 mr-1 text-success" />Estoque em tempo real
@@ -304,6 +306,7 @@ export default function Vendas() {
           </div>
         }
       />
+      <IndiqueGanheQuickDialog open={shareOpen} onOpenChange={setShareOpen} />
 
       {/* Dashboard de vendas — padrão visual do Dashboard principal */}
       {canRegisterSale(role) && (
