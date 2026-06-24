@@ -2102,6 +2102,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          entry_expense_id: string | null
           entry_value: number
           id: string
           imei: string | null
@@ -2132,6 +2133,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          entry_expense_id?: string | null
           entry_value?: number
           id?: string
           imei?: string | null
@@ -2162,6 +2164,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          entry_expense_id?: string | null
           entry_value?: number
           id?: string
           imei?: string | null

@@ -124,7 +124,7 @@ export default function Comprar() {
         <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 text-white/90 hover:text-white"><ArrowLeft className="h-4 w-4" /> Voltar</Link>
           <div className="rounded-xl px-2 py-1 bg-transparent">
-            <img src={logoAsset.url} alt="Phonee" className="h-9 w-auto" />
+            <img src={logoAsset.url} alt="Phonee" className="h-28 w-auto" />
           </div>
         </div>
       </header>

@@ -36,10 +36,19 @@ export default function TradeIn() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<TI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"ativos" | "historico">("ativos");
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState<string>("todos");
-  const [periodo, setPeriodo] = useState<string>("90");
+  // Persistent filters (survive navigation between list and form)
+  const FK = "tradein.filters.v1";
+  const saved = (() => {
+    try { return JSON.parse(sessionStorage.getItem(FK) || "{}"); } catch { return {}; }
+  })();
+  const [view, setView] = useState<"ativos" | "historico">(saved.view ?? "ativos");
+  const [q, setQ] = useState<string>(saved.q ?? "");
+  const [status, setStatus] = useState<string>(saved.status ?? "todos");
+  const [periodo, setPeriodo] = useState<string>(saved.periodo ?? "90");
+
+  useEffect(() => {
+    sessionStorage.setItem(FK, JSON.stringify({ view, q, status, periodo }));
+  }, [view, q, status, periodo]);
 
   useEffect(() => {
     if (!store) return;
@@ -165,7 +174,7 @@ export default function TradeIn() {
               ) : filtered.map((r) => {
                 const margin = r.intended_sale_value > 0 ? ((r.intended_sale_value - r.entry_value) / r.intended_sale_value) * 100 : 0;
                 return (
-                  <tr key={r.id} className="hover:bg-surface-elevated/40 cursor-pointer" onClick={() => navigate(`/painel/troca/${r.id}`)}>
+                  <tr key={r.id} className="hover:bg-surface-elevated/40 cursor-pointer" onClick={() => navigate(`/painel/troca/${r.id}/detalhes`)}>
                     <td className="px-4 py-3">
                       <div className="font-medium">{r.customer_name}</div>
                       <div className="text-[11px] text-muted-foreground font-mono">{new Date(r.created_at).toLocaleDateString("pt-BR")}</div>
