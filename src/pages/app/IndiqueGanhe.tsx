@@ -135,12 +135,23 @@ export default function IndiqueGanhe() {
         <Card className="p-4 bg-gradient-primary text-primary-foreground">
           <div className="flex items-center gap-2 text-xs opacity-90"><Wallet className="h-3.5 w-3.5" /> Saldo disponível</div>
           <div className="text-2xl font-bold mt-1">{brl((dash?.saldo_cents ?? 0) / 100)}</div>
+          {(dash?.saldo_pendente_cents ?? 0) > 0 && (
+            <div className="text-[11px] opacity-90 mt-1">
+              + {brl((dash?.saldo_pendente_cents ?? 0) / 100)} a liberar
+              {dash?.proxima_liberacao && (
+                <> em {new Date(dash.proxima_liberacao).toLocaleDateString("pt-BR")}</>
+              )}
+            </div>
+          )}
           {(dash?.saldo_cents ?? 0) > 0 && (
             <Button size="sm" variant="secondary" className="mt-2 h-7 text-xs"
               onClick={() => setUseOpen(true)}>
               Usar como desconto
             </Button>
           )}
+          <div className="text-[10px] opacity-75 mt-2 leading-tight">
+            Saldo liberado 7 dias após a compra do indicado (garantia de devolução).
+          </div>
         </Card>
       </div>
 
