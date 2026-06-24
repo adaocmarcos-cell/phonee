@@ -36,10 +36,19 @@ export default function TradeIn() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<TI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"ativos" | "historico">("ativos");
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState<string>("todos");
-  const [periodo, setPeriodo] = useState<string>("90");
+  // Persistent filters (survive navigation between list and form)
+  const FK = "tradein.filters.v1";
+  const saved = (() => {
+    try { return JSON.parse(sessionStorage.getItem(FK) || "{}"); } catch { return {}; }
+  })();
+  const [view, setView] = useState<"ativos" | "historico">(saved.view ?? "ativos");
+  const [q, setQ] = useState<string>(saved.q ?? "");
+  const [status, setStatus] = useState<string>(saved.status ?? "todos");
+  const [periodo, setPeriodo] = useState<string>(saved.periodo ?? "90");
+
+  useEffect(() => {
+    sessionStorage.setItem(FK, JSON.stringify({ view, q, status, periodo }));
+  }, [view, q, status, periodo]);
 
   useEffect(() => {
     if (!store) return;
