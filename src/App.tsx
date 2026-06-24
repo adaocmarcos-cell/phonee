@@ -134,6 +134,10 @@ const App = () => (
             <Route path="/app/*" element={<RedirectAppToPainel />} />
             <Route path="/app" element={<Navigate to="/painel" replace />} />
 
+            {/* Compat: rota antiga /mobileplus/* -> /phonee/* */}
+            <Route path="/mobileplus" element={<Navigate to="/phonee" replace />} />
+            <Route path="/mobileplus/*" element={<RedirectMobileplusToPhonee />} />
+
             {/* Painel oculto Phonee (gestor da plataforma) */}
             <Route path="/phonee" element={<PhoneeLogin />} />
             <Route path="/phonee" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
@@ -169,5 +173,11 @@ function RedirectAppToPainel() {
     .replace(/^\/app\/os/, "/painel/ordens")
     .replace(/^\/app\/tabelas-preco/, "/painel/tabelas")
     .replace(/^\/app/, "/painel");
+  return <Navigate to={remapped + search + hash} replace />;
+}
+
+function RedirectMobileplusToPhonee() {
+  const { pathname, search, hash } = useLocation();
+  const remapped = pathname.replace(/^\/mobileplus/, "/phonee");
   return <Navigate to={remapped + search + hash} replace />;
 }
