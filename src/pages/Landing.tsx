@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -143,6 +143,11 @@ export default function Landing() {
   const navigate = useNavigate();
   const [demoOpen, setDemoOpen] = useState(false);
   const handleDemo = () => setDemoOpen(true);
+  // Deep-link: /?demo=1 abre direto o modal de demonstração
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("demo") === "1" || p.get("demonstracao") === "1") setDemoOpen(true);
+  }, []);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DemoLeadModal
@@ -220,22 +225,26 @@ export default function Landing() {
               O sistema criado para lojas de smartphones, eletrônicos e assistência técnica
               que querem organizar a operação, automatizar processos e acompanhar seus números em tempo real.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#beneficios">
-                <Button size="lg" className="bg-gradient-primary shadow-glow text-base h-12 px-7">
-                  Ver vantagens <ArrowRight className="ml-1.5 h-4 w-4" />
+            <div className="mt-8 space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
+              {/* Mobile: linha 1 dividida em duas / Desktop: inline */}
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <a href="#beneficios" className="contents">
+                  <Button size="lg" className="w-full sm:w-auto bg-gradient-primary shadow-glow text-base h-12 sm:px-7">
+                    Ver vantagens <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                </a>
+                <Button
+                  size="lg"
+                  onClick={handleDemo}
+                  className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg"
+                >
+                  <Play className="h-4 w-4 mr-1.5" />
+                  Ver demonstração
                 </Button>
-              </a>
-              <Button
-                size="lg"
-                onClick={handleDemo}
-                className="text-base h-12 px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg"
-              >
-                <Play className="h-4 w-4 mr-1.5" />
-                Ver demonstração
-              </Button>
-              <a href="#preco">
-                <Button size="lg" variant="outline" className="text-base h-12 px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
+              </div>
+              {/* "Ver planos" — mobile ocupa a largura total (= linha acima) */}
+              <a href="#preco" className="block sm:inline-block w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                   Ver planos
                 </Button>
               </a>
