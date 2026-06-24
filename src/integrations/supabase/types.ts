@@ -2042,6 +2042,53 @@ export type Database = {
           },
         ]
       }
+      support_ticket_status_history: {
+        Row: {
+          changed_by: string | null
+          changed_by_is_admin: boolean
+          created_at: string
+          from_status:
+            | Database["public"]["Enums"]["support_ticket_status"]
+            | null
+          id: string
+          note: string | null
+          ticket_id: string
+          to_status: Database["public"]["Enums"]["support_ticket_status"]
+        }
+        Insert: {
+          changed_by?: string | null
+          changed_by_is_admin?: boolean
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["support_ticket_status"]
+            | null
+          id?: string
+          note?: string | null
+          ticket_id: string
+          to_status: Database["public"]["Enums"]["support_ticket_status"]
+        }
+        Update: {
+          changed_by?: string | null
+          changed_by_is_admin?: boolean
+          created_at?: string
+          from_status?:
+            | Database["public"]["Enums"]["support_ticket_status"]
+            | null
+          id?: string
+          note?: string | null
+          ticket_id?: string
+          to_status?: Database["public"]["Enums"]["support_ticket_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_status_history_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           category: string | null
@@ -2650,7 +2697,13 @@ export type Database = {
         | "outros"
       stock_adjustment_status: "pendente" | "aprovado" | "rejeitado"
       stock_item_kind: "product" | "part"
-      support_ticket_status: "aberto" | "pendente" | "resolvido"
+      support_ticket_status:
+        | "aberto"
+        | "pendente"
+        | "resolvido"
+        | "em_andamento"
+        | "aguardando_cliente"
+        | "fechado"
       trade_in_status:
         | "em_avaliacao"
         | "aprovado"
@@ -2860,7 +2913,14 @@ export const Constants = {
       ],
       stock_adjustment_status: ["pendente", "aprovado", "rejeitado"],
       stock_item_kind: ["product", "part"],
-      support_ticket_status: ["aberto", "pendente", "resolvido"],
+      support_ticket_status: [
+        "aberto",
+        "pendente",
+        "resolvido",
+        "em_andamento",
+        "aguardando_cliente",
+        "fechado",
+      ],
       trade_in_status: [
         "em_avaliacao",
         "aprovado",
