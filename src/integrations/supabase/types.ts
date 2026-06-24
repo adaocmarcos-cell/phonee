@@ -162,6 +162,109 @@ export type Database = {
           },
         ]
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_code: string
+          coupon_id: string
+          created_at: string
+          customer_email: string | null
+          discount_cents: number
+          id: string
+          original_cents: number | null
+          store_id: string | null
+          subscription_id: string | null
+        }
+        Insert: {
+          coupon_code: string
+          coupon_id: string
+          created_at?: string
+          customer_email?: string | null
+          discount_cents: number
+          id?: string
+          original_cents?: number | null
+          store_id?: string | null
+          subscription_id?: string | null
+        }
+        Update: {
+          coupon_code?: string
+          coupon_id?: string
+          created_at?: string
+          customer_email?: string | null
+          discount_cents?: number
+          id?: string
+          original_cents?: number | null
+          store_id?: string | null
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          id: string
+          partner_label: string | null
+          times_used: number
+          updated_at: string
+          usage_limit: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          id?: string
+          partner_label?: string | null
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_type?: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number
+          id?: string
+          partner_label?: string | null
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address_city: string | null
@@ -979,6 +1082,129 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_credits: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          referral_id: string | null
+          subscription_id: string | null
+          type: Database["public"]["Enums"]["referral_credit_type"]
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          referral_id?: string | null
+          subscription_id?: string | null
+          type: Database["public"]["Enums"]["referral_credit_type"]
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          referral_id?: string | null
+          subscription_id?: string | null
+          type?: Database["public"]["Enums"]["referral_credit_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_credits_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_credits_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          bonus_cents: number
+          converted_at: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_email: string | null
+          referred_store_id: string | null
+          referred_subscription_id: string | null
+          referrer_user_id: string
+          status: Database["public"]["Enums"]["referral_status"]
+          updated_at: string
+        }
+        Insert: {
+          bonus_cents?: number
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_email?: string | null
+          referred_store_id?: string | null
+          referred_subscription_id?: string | null
+          referrer_user_id: string
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+        }
+        Update: {
+          bonus_cents?: number
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_email?: string | null
+          referred_store_id?: string | null
+          referred_subscription_id?: string | null
+          referrer_user_id?: string
+          status?: Database["public"]["Enums"]["referral_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_store_id_fkey"
+            columns: ["referred_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referred_subscription_id_fkey"
+            columns: ["referred_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -2104,6 +2330,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_coupon: {
+        Args: { _amount_cents: number; _code: string }
+        Returns: Json
+      }
       create_purchase_with_stock: {
         Args: {
           _create_expense: boolean
@@ -2120,6 +2350,7 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_referral_code: { Args: { _user_id?: string }; Returns: string }
       get_meta_pixel_id: { Args: never; Returns: string }
       get_store_sellers: {
         Args: { _store_id: string }
@@ -2153,6 +2384,7 @@ export type Database = {
         }[]
       }
       mobileplus_overview: { Args: never; Returns: Json }
+      mobileplus_referrals_overview: { Args: never; Returns: Json }
       mobileplus_sales_traffic: {
         Args: {
           _days?: number
@@ -2217,6 +2449,41 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      redeem_coupon: {
+        Args: {
+          _code: string
+          _customer_email: string
+          _discount_cents: number
+          _original_cents: number
+          _store_id: string
+          _subscription_id: string
+        }
+        Returns: string
+      }
+      referral_balance: { Args: { _user_id?: string }; Returns: number }
+      referral_dashboard: { Args: { _user_id?: string }; Returns: Json }
+      referral_ranking: {
+        Args: never
+        Returns: {
+          convertidas: number
+          display_name: string
+          rank: number
+          total: number
+        }[]
+      }
+      register_referral: {
+        Args: {
+          _code: string
+          _referred_email?: string
+          _referred_store_id?: string
+          _referred_subscription_id?: string
+        }
+        Returns: string
+      }
+      use_referral_credit: {
+        Args: { _amount_cents: number; _notes?: string }
+        Returns: Json
+      }
       user_has_store_access: {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
@@ -2234,6 +2501,7 @@ export type Database = {
         | "financeiro"
         | "tecnico"
         | "atendimento"
+      coupon_discount_type: "valor" | "percentual"
       device_condition: "otimo" | "bom" | "regular" | "com_defeito"
       os_budget_status: "pendente" | "aprovado" | "reprovado"
       os_status:
@@ -2276,6 +2544,11 @@ export type Database = {
         | "recebido"
         | "parcial"
         | "cancelado"
+      referral_credit_type:
+        | "credito_indicacao"
+        | "uso_desconto"
+        | "ajuste_admin"
+      referral_status: "pendente" | "convertida" | "cancelada"
       stock_adjustment_reason:
         | "perda"
         | "brinde"
@@ -2431,6 +2704,7 @@ export const Constants = {
         "tecnico",
         "atendimento",
       ],
+      coupon_discount_type: ["valor", "percentual"],
       device_condition: ["otimo", "bom", "regular", "com_defeito"],
       os_budget_status: ["pendente", "aprovado", "reprovado"],
       os_status: [
@@ -2478,6 +2752,12 @@ export const Constants = {
         "parcial",
         "cancelado",
       ],
+      referral_credit_type: [
+        "credito_indicacao",
+        "uso_desconto",
+        "ajuste_admin",
+      ],
+      referral_status: ["pendente", "convertida", "cancelada"],
       stock_adjustment_reason: [
         "perda",
         "brinde",

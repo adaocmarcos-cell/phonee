@@ -13,6 +13,8 @@ const Schema = z.object({
   store_id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional(),
   billing_cycle: z.enum(["annual", "lifetime"]).optional(),
+  ref_code: z.string().trim().max(40).optional(),
+  coupon_code: z.string().trim().max(40).optional(),
 });
 
 function onlyDigits(s: string) { return s.replace(/\D/g, ""); }
@@ -36,6 +38,21 @@ Deno.serve(async (req) => {
     const installments = input.payment_method === "CREDIT_CARD" ? Math.min(input.installments, plan.max_installments) : 1;
     const docDigits = onlyDigits(input.customer_doc);
     const phoneDigits = onlyDigits(input.customer_phone);
+
+    // Aplica cupom (se válido) antes de criar a cobrança
+    let priceCents: number = plan.price_cents;
+    let couponDiscount = 0;
+    let couponData: any = null;
+    if (input.coupon_code) {
+      const { data: c } = await admin.rpc("apply_coupon", {
+        _code: input.coupon_code, _amount_cents: plan.price_cents,
+      });
+      if (c && (c as any).valid) {
+        couponData = c;
+        couponDiscount = (c as any).discount_cents ?? 0;
+        priceCents = Math.max(plan.price_cents - couponDiscount, 0);
+      }
+    }
 
     // 1) Customer — auto-detecta ambiente correto se a chave não pertencer ao env configurado
     const customerBody = JSON.stringify({
@@ -84,11 +101,12 @@ Deno.serve(async (req) => {
       description: `${plan.name} - Mobile+`,
       externalReference: `${plan.code}:${input.customer_email}`,
     };
+    const totalValueWithDiscount = priceCents / 100;
     if (input.payment_method === "CREDIT_CARD" && installments > 1) {
       paymentBody.installmentCount = installments;
-      paymentBody.installmentValue = Math.round((totalValue / installments) * 100) / 100;
+      paymentBody.installmentValue = Math.round((totalValueWithDiscount / installments) * 100) / 100;
     } else {
-      paymentBody.value = totalValue;
+      paymentBody.value = totalValueWithDiscount;
     }
     const payRes = await asaasFetch(env, "/payments", { method: "POST", body: JSON.stringify(paymentBody) });
     if (!payRes.ok) {
@@ -122,7 +140,7 @@ Deno.serve(async (req) => {
       customer_doc: docDigits,
       payment_method: input.payment_method,
       status: "pending",
-      amount_cents: plan.price_cents,
+      amount_cents: priceCents,
       installments,
       asaas_customer_id: customerId,
       asaas_charge_id: chargeId,
@@ -136,11 +154,37 @@ Deno.serve(async (req) => {
     }).select().single();
     if (subErr) return jsonResponse({ error: "Falha ao salvar assinatura", details: subErr.message }, 500);
 
+    // Registra resgate do cupom (best-effort)
+    if (couponData?.valid) {
+      try {
+        await admin.rpc("redeem_coupon", {
+          _code: input.coupon_code,
+          _subscription_id: sub.id,
+          _store_id: input.store_id ?? null,
+          _customer_email: input.customer_email.toLowerCase(),
+          _original_cents: plan.price_cents,
+          _discount_cents: couponDiscount,
+        });
+      } catch (e) { console.error("redeem_coupon failed", e); }
+    }
+
+    // Registra a indicação como pendente (será convertida pelo trigger no pagamento)
+    if (input.ref_code) {
+      try {
+        await admin.rpc("register_referral", {
+          _code: input.ref_code,
+          _referred_email: input.customer_email.toLowerCase(),
+          _referred_subscription_id: sub.id,
+          _referred_store_id: input.store_id ?? null,
+        });
+      } catch (e) { console.error("register_referral failed", e); }
+    }
+
     await admin.from("payment_logs").insert({
       subscription_id: sub.id,
       event_type: "PAYMENT_CREATED",
       status: "pending",
-      amount_cents: plan.price_cents,
+      amount_cents: priceCents,
       asaas_payload: payRes.data,
       action: "create_charge",
     });

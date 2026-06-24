@@ -1,56 +1,114 @@
-## Objetivo
-Adicionar um botão "Ver demonstração" na página de vendas (Landing) que abre o painel real do Phonee com dados fictícios, totalmente navegável pelo lead. Apenas a página de Configurações fica em modo somente-leitura.
 
-## Abordagem técnica
+## Visão geral
 
-O painel atual carrega tudo do banco (Supabase) por loja/usuário autenticado. Para o modo demo, vamos isolar o usuário em uma **loja-demo real e compartilhada** no próprio banco, com dados fictícios já populados. Isso evita reescrever 40+ páginas com mocks e garante que toda a UI funcione de verdade (criar venda, abrir OS, lançar despesa etc.) — só que dentro de uma sandbox que o lead não consegue corromper.
+Implementar o programa de indicações com bonificação automática (R$ 10 por assinatura confirmada), painel do indicador, sistema de cupons gerenciável pelo admin master e dashboards de performance — tudo conectado às assinaturas reais (tabela `subscriptions`) e ao financeiro.
 
-### 1. Botão na Landing
-- Adicionar CTA secundário "Ver demonstração" ao lado de "Comprar agora" no header e no hero da `src/pages/Landing.tsx`.
-- Clique chama `enterDemoMode()` e navega para `/painel`.
+A entrega será dividida em três frentes: backend (banco + automações), painel do usuário (Indique e Ganhe) e painel do admin master (Cupons + Dashboards).
 
-### 2. Modo demo (frontend)
-- Novo arquivo `src/lib/demoMode.ts` com:
-  - `isDemoMode()` — lê `sessionStorage["phonee.demo"]`
-  - `enterDemoMode()` — faz signIn anônimo (ou login fixo em uma conta `demo@phonee.com.br`) e marca a flag
-  - `exitDemoMode()` — signOut + limpa flag
-- `ProtectedRoute` continua exigindo sessão (mantemos segurança); o demo usa uma conta real `demo@phonee.com.br` com senha pública.
-- `AppLayout` exibe banner fixo no topo: "Modo demonstração — dados fictícios. [Sair da demo] [Comprar agora]".
+---
 
-### 3. Página de Configurações somente-leitura no demo
-- Em `src/pages/app/Configuracoes.tsx`, ler `isDemoMode()` e:
-  - Desabilitar todos os `<Input>`, `<Switch>`, `<Button>` de salvar (props `disabled` + `pointer-events-none` no formulário).
-  - Mostrar alerta no topo: "Configurações são apenas para exibição na demonstração."
-- Demais páginas permanecem 100% clicáveis.
+## 1. Backend (banco de dados)
 
-### 4. Conta e dados demo (backend)
-Migration que cria:
-- Usuário `demo@phonee.com.br` com senha fixa pública (ex: `demo123456`).
-- Loja "Loja Demonstração Phonee" vinculada ao usuário como dono.
-- Seed de dados fictícios: ~15 produtos, ~8 clientes, ~20 vendas dos últimos 30 dias, ~5 OS abertas/concluídas, ~6 despesas, 1 fornecedor, 1 tabela de preço.
-- **Reset automático**: trigger ou edge function `demo-reset` que, periodicamente (ou a cada login na conta demo), restaura os dados para o estado inicial — evita que leads "sujem" o ambiente.
+### Novas tabelas
+- `referral_codes` — código único por usuário (formato `PHONEE-XXXXXX`), gerado na primeira visita ao painel.
+- `referrals` — registro de cada indicação: indicador, loja indicada, código usado, status (`pendente | convertida | cancelada`), bônus em R$, datas.
+- `referral_credits` — extrato de créditos do indicador: tipo (`credito_indicacao | uso_desconto | ajuste_admin`), valor, saldo, referência.
+- `coupons` — código, tipo (`valor` | `percentual`), valor, validade, limite de usos, usos atuais, parceiro associado, ativo.
+- `coupon_redemptions` — cada uso de cupom: cupom, loja, assinatura, valor de desconto aplicado, data.
 
-### 5. Banner / proteções extras
-- `AppLayout` esconde o link "Comprar plano" e troca por "Voltar ao site".
-- `AdminMasterRoute` e `/phonee/*` continuam bloqueados (demo não vê painel master).
+Cada tabela com RLS, GRANTs e índices apropriados. Indicadores só leem seus próprios registros; admin master vê tudo.
 
-## Arquivos a criar/editar
+### Funções e triggers
+- `generate_referral_code(_user_id)` — cria/retorna o código único do usuário.
+- `register_referral(_ref_code, _store_id)` — chamada quando uma loja se cadastra com `?ref=...`; cria entrada em `referrals` como `pendente`.
+- `apply_coupon(_code, _store_id, _amount_cents)` — valida cupom (validade, limite, ativo) e devolve o desconto aplicado.
+- Trigger em `subscriptions`: quando `status` muda para `active`/`ativa`/`vitalicio`, marca o `referrals` correspondente como `convertida` e gera crédito de R$ 10 em `referral_credits`. Se subscription for cancelada antes da conversão real, marca como `cancelada`.
 
-**Criar**
-- `src/lib/demoMode.ts`
-- `src/components/layout/DemoBanner.tsx`
-- `supabase/migrations/<timestamp>_demo_account.sql` (cria usuário + loja + seed)
-- `supabase/functions/demo-reset/index.ts` (limpa e recria dados da loja demo)
+### Integração com checkout existente
+- Página de cadastro (`/cadastro`) lê `?ref=` da URL e armazena em `localStorage` até o cadastro concluir.
+- Modal/checkout de assinatura (Asaas) ganha campo "Cupom de Desconto". Valor é validado via RPC `apply_coupon` antes de enviar para `asaas-create-charge`.
+- Edge function `asaas-webhook` (já existente) dispara a conversão da indicação no `status = PAYMENT_RECEIVED/CONFIRMED`.
 
-**Editar**
-- `src/pages/Landing.tsx` — botões "Ver demonstração" no header e hero
-- `src/components/layout/AppLayout.tsx` — renderiza `<DemoBanner />` quando `isDemoMode()`
-- `src/pages/app/Configuracoes.tsx` — modo somente-leitura
+---
 
-## Pontos de atenção
-- Senha do usuário demo será pública (intencional); RLS continua isolando dados por loja, então o lead só vê/edita a loja demo.
-- O reset automático é essencial — sem ele, em 1 semana a loja demo vira lixo. Posso rodar o reset toda vez que alguém entra em `/painel` em modo demo (debounced a cada 30 min) ou via cron.
-- Cadastro de novos usuários/lojas dentro da demo deve ser bloqueado (botões desabilitados nas páginas Usuários/Lojas).
+## 2. Painel "Indique e Ganhe" (usuário logado)
 
-## Pergunta antes de implementar
-Confirma a abordagem de **conta demo real + seed + reset automático**? Ou prefere uma alternativa mais simples sem banco (tudo mockado no frontend, mais leve mas algumas ações como "salvar" não funcionariam de verdade)?
+### Acesso
+- Novo item no `AppSidebar` (final da lista, separado por divisor, com ícone `Gift`).
+- Botão "Indique e Ganhe" também na página `Vendas` (card destaque no topo ou na barra de ações).
+- Rota: `/painel/indique-e-ganhe`.
+
+### Conteúdo da página
+- Cards no topo: Total de indicações · Pendentes · Convertidas · Saldo disponível (R$).
+- Bloco "Seu código e link":
+  - Código `PHONEE-AB1234` com botão copiar.
+  - Link `https://phonee.com.br/cadastro?ref=AB1234` com botão copiar.
+  - Botões de compartilhar: WhatsApp (mensagem pronta), Instagram (copia link + abre app), Facebook (sharer), Copiar.
+- Tabela "Minhas indicações": loja indicada, data, status, bônus.
+- Bloco "Usar saldo": botão para aplicar saldo como desconto na próxima mensalidade (gera registro em `referral_credits` tipo `uso_desconto`).
+- Ranking público (top 10): "Os maiores indicadores do mês" — anônimo (primeiro nome + iniciais).
+
+---
+
+## 3. Painel do Admin Master
+
+### Cupons (`/phonee/cupons`)
+- Listagem com busca, filtros por status (ativo/expirado), por parceiro.
+- Botão "Novo cupom" → dialog: código, tipo (R$ ou %), valor, validade, limite de usos, parceiro (texto livre), ativo.
+- Ações por linha: editar, ativar/desativar, excluir (com confirmação), ver utilizações.
+
+### Indicações (`/phonee/indicacoes`)
+- Tabela de todas as indicações (indicador, loja indicada, status, bônus, data).
+- Filtros e exportação CSV.
+- Ação manual: cancelar / marcar como convertida (override).
+
+### Dashboard de crescimento (já existente em `/phonee/crescimento`)
+Acrescentar widgets:
+- Novos usuários por indicação (30d / 12m).
+- Receita gerada por indicações (assinaturas convertidas).
+- Receita gerada por cupons.
+- Top indicadores (mês e total).
+- Taxa de conversão (convertidas / total).
+- Economia concedida por cupons (somatório).
+
+---
+
+## 4. Fluxo end-to-end
+
+```text
+Usuário A copia link  -->  phonee.com.br/cadastro?ref=AB1234
+                                        |
+                  Loja B se cadastra   -->  referrals(pendente, indicador=A, loja=B)
+                                        |
+                      Loja B assina   -->  subscription pending
+                                        |
+   asaas-webhook PAYMENT_CONFIRMED   -->  trigger marca referral=convertida
+                                                + insere credito R$10 para A
+                                                + atualiza saldo de A
+                                        |
+              A aplica saldo no checkout -->  referral_credits(uso_desconto)
+                                                desconto aplicado na assinatura
+```
+
+---
+
+## 5. Detalhes técnicos
+
+- Geração do código: `'PHONEE-' || upper(substr(md5(user_id || now()), 1, 6))`, único.
+- Bônus configurável via `marketing_settings.referral_bonus_cents` (default 1000 = R$ 10).
+- `apply_coupon` retorna `{ valid, discount_cents, message }`.
+- Front: novo arquivo `src/pages/app/IndiqueGanhe.tsx`, `src/pages/mobileplus/Cupons.tsx`, `src/pages/mobileplus/Indicacoes.tsx`.
+- Cadastro público (`/cadastro` ou fluxo equivalente) já existente: adicionar leitura do `ref` e do campo de cupom — confirmar no código atual onde é o cadastro de novas lojas.
+- Sem mudanças de design global; reaproveita tokens existentes.
+
+---
+
+## 6. Entregáveis por etapa (uma migração + um lote de UI por vez)
+
+1. Migração: tabelas, RLS, funções, trigger no `subscriptions`.
+2. Backend extra: ajustar `asaas-webhook` para chamar a função de conversão.
+3. Frontend usuário: rota `/painel/indique-e-ganhe`, item no sidebar, botão na Vendas.
+4. Frontend admin: páginas de Cupons e Indicações + widgets no dashboard.
+5. Integração do campo cupom no checkout existente.
+
+Confirmar o plano para eu começar pela etapa 1 (migração + funções).
