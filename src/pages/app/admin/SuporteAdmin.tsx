@@ -10,11 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/PageHeader";
-import { Search, Send, CheckCircle2, Clock, AlertCircle, Inbox } from "lucide-react";
+import { Search, Send, CheckCircle2, Clock, AlertCircle, Inbox, History, UserCheck, Loader2, Lock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-type TicketStatus = "aberto" | "pendente" | "resolvido";
+type TicketStatus = "aberto" | "em_andamento" | "aguardando_cliente" | "pendente" | "resolvido" | "fechado";
 
 type Ticket = {
   id: string;
@@ -38,24 +42,61 @@ type TicketMessage = {
   created_at: string;
 };
 
+type StatusHistoryRow = {
+  id: string;
+  ticket_id: string;
+  from_status: TicketStatus | null;
+  to_status: TicketStatus;
+  changed_by: string | null;
+  changed_by_is_admin: boolean;
+  note: string | null;
+  created_at: string;
+};
+
 type Profile = { id: string; full_name: string | null; email: string | null };
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
-  aberto: "Em aberto",
+  aberto: "Novo",
+  em_andamento: "Em andamento",
+  aguardando_cliente: "Aguardando cliente",
   pendente: "Pendente",
   resolvido: "Resolvido",
+  fechado: "Fechado",
 };
 
 const STATUS_BADGE: Record<TicketStatus, string> = {
   aberto: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  em_andamento: "bg-indigo-500/15 text-indigo-600 border-indigo-500/30",
+  aguardando_cliente: "bg-orange-500/15 text-orange-600 border-orange-500/30",
   pendente: "bg-blue-500/15 text-blue-600 border-blue-500/30",
   resolvido: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  fechado: "bg-muted text-muted-foreground border-border",
 };
 
 const STATUS_ICON: Record<TicketStatus, any> = {
   aberto: AlertCircle,
+  em_andamento: Loader2,
+  aguardando_cliente: UserCheck,
   pendente: Clock,
   resolvido: CheckCircle2,
+  fechado: Lock,
+};
+
+const STATUS_OPTIONS: TicketStatus[] = ["aberto", "em_andamento", "aguardando_cliente", "pendente", "resolvido", "fechado"];
+
+const STATUS_CONFIRM: Partial<Record<TicketStatus, { title: string; description: string }>> = {
+  resolvido: {
+    title: "Marcar como Resolvido?",
+    description: "O lojista será notificado de que o chamado foi resolvido e poderá reabrir caso o problema persista.",
+  },
+  fechado: {
+    title: "Fechar chamado?",
+    description: "Chamados fechados não podem mais receber respostas. Use apenas quando o atendimento estiver concluído e validado.",
+  },
+  aguardando_cliente: {
+    title: "Aguardando retorno do cliente?",
+    description: "O chamado fica pausado até o lojista responder. Confirma a mudança?",
+  },
 };
 
 export default function SuporteAdmin() {
@@ -71,6 +112,8 @@ export default function SuporteAdmin() {
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null);
   const [thread, setThread] = useState<TicketMessage[]>([]);
   const [reply, setReply] = useState("");
+  const [history, setHistory] = useState<StatusHistoryRow[]>([]);
+  const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,20 +156,43 @@ export default function SuporteAdmin() {
       .eq("ticket_id", ticketId)
       .order("created_at", { ascending: true });
     setThread((data as TicketMessage[]) ?? []);
+    const { data: hist } = await (supabase.from("support_ticket_status_history") as any)
+      .select("*")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: false });
+    setHistory((hist as StatusHistoryRow[]) ?? []);
   };
 
-  const updateStatus = async (id: string, status: TicketStatus) => {
+  const performUpdateStatus = async (id: string, status: TicketStatus) => {
     const { error } = await (supabase.from("support_tickets") as any)
       .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     toast({ title: `Chamado marcado como ${STATUS_LABEL[status]}` });
-    if (openTicket?.id === id) setOpenTicket({ ...openTicket, status });
+    if (openTicket?.id === id) { setOpenTicket({ ...openTicket, status }); loadThread(id); }
     load();
+  };
+
+  const requestUpdateStatus = (status: TicketStatus) => {
+    if (!openTicket || openTicket.status === status) return;
+    if (openTicket.status === "fechado" && status !== "fechado") {
+      // Reabertura precisa confirmar
+      setPendingStatus(status);
+      return;
+    }
+    if (STATUS_CONFIRM[status]) {
+      setPendingStatus(status);
+      return;
+    }
+    performUpdateStatus(openTicket.id, status);
   };
 
   const sendReply = async () => {
     if (!openTicket || !user || reply.trim().length < 2) return;
+    if (openTicket.status === "fechado") {
+      toast({ title: "Chamado fechado", description: "Reabra o chamado antes de responder.", variant: "destructive" });
+      return;
+    }
     const { error } = await (supabase.from("support_ticket_messages") as any).insert({
       ticket_id: openTicket.id,
       user_id: user.id,
@@ -134,9 +200,12 @@ export default function SuporteAdmin() {
       message: reply.trim().slice(0, 4000),
     });
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    // Resposta do suporte → aguardando retorno do cliente
+    const next: TicketStatus = "aguardando_cliente";
     await (supabase.from("support_tickets") as any)
-      .update({ status: "pendente", updated_at: new Date().toISOString() })
+      .update({ status: next, updated_at: new Date().toISOString() })
       .eq("id", openTicket.id);
+    if (openTicket) setOpenTicket({ ...openTicket, status: next });
     setReply("");
     loadThread(openTicket.id);
     load();
@@ -154,8 +223,10 @@ export default function SuporteAdmin() {
 
   const counts = useMemo(() => ({
     aberto: tickets.filter((t) => t.status === "aberto").length,
-    pendente: tickets.filter((t) => t.status === "pendente").length,
+    em_andamento: tickets.filter((t) => t.status === "em_andamento" || t.status === "pendente").length,
+    aguardando_cliente: tickets.filter((t) => t.status === "aguardando_cliente").length,
     resolvido: tickets.filter((t) => t.status === "resolvido").length,
+    fechado: tickets.filter((t) => t.status === "fechado").length,
   }), [tickets]);
 
   if (accessState === "loading") {
@@ -172,14 +243,18 @@ export default function SuporteAdmin() {
         description="Gerencie dúvidas, dicas, bugs e sugestões enviados pelos lojistas."
       />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-4">
-          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Em aberto</div>
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Novos</div>
           <div className="text-2xl font-bold text-amber-600 mt-1">{counts.aberto}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Pendente</div>
-          <div className="text-2xl font-bold text-blue-600 mt-1">{counts.pendente}</div>
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Em andamento</div>
+          <div className="text-2xl font-bold text-indigo-600 mt-1">{counts.em_andamento}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Aguardando cliente</div>
+          <div className="text-2xl font-bold text-orange-600 mt-1">{counts.aguardando_cliente}</div>
         </Card>
         <Card className="p-4">
           <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Resolvido</div>
@@ -191,9 +266,11 @@ export default function SuporteAdmin() {
         <div className="flex items-center gap-3 flex-wrap">
           <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
             <TabsList>
-              <TabsTrigger value="aberto">Em aberto</TabsTrigger>
-              <TabsTrigger value="pendente">Pendente</TabsTrigger>
+              <TabsTrigger value="aberto">Novos</TabsTrigger>
+              <TabsTrigger value="em_andamento">Em andamento</TabsTrigger>
+              <TabsTrigger value="aguardando_cliente">Aguardando cliente</TabsTrigger>
               <TabsTrigger value="resolvido">Resolvido</TabsTrigger>
+              <TabsTrigger value="fechado">Fechado</TabsTrigger>
               <TabsTrigger value="todos">Todos</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -265,18 +342,45 @@ export default function SuporteAdmin() {
               </DialogHeader>
 
               <div className="flex gap-2 flex-wrap pb-2 border-b">
-                <Select value={openTicket.status} onValueChange={(v) => updateStatus(openTicket.id, v as TicketStatus)}>
-                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <Select value={openTicket.status} onValueChange={(v) => requestUpdateStatus(v as TicketStatus)}>
+                  <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="aberto">Em aberto</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="resolvido">Resolvido</SelectItem>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <div className="text-xs text-muted-foreground self-center">
                   {profiles[openTicket.user_id]?.full_name || profiles[openTicket.user_id]?.email || "Usuário"}
                 </div>
               </div>
+
+              {history.length > 0 && (
+                <div className="mt-3 rounded-md border border-border/60 bg-surface-elevated/30 p-3">
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground font-mono mb-2">
+                    <History className="h-3.5 w-3.5" /> Histórico de status
+                  </div>
+                  <ol className="space-y-1.5">
+                    {history.map((h) => (
+                      <li key={h.id} className="text-xs flex items-center gap-2 flex-wrap">
+                        <span className="text-muted-foreground tabular-nums">
+                          {new Date(h.created_at).toLocaleString("pt-BR")}
+                        </span>
+                        {h.from_status && (
+                          <>
+                            <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[h.from_status]}</Badge>
+                            <span className="text-muted-foreground">→</span>
+                          </>
+                        )}
+                        <Badge className={STATUS_BADGE[h.to_status] + " text-[10px]"}>{STATUS_LABEL[h.to_status]}</Badge>
+                        <span className="text-muted-foreground">
+                          {h.changed_by_is_admin ? "· Suporte" : "· Lojista"}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
               <div className="space-y-3 mt-3">
                 <Card className="p-3 bg-surface-elevated/40">
@@ -297,11 +401,12 @@ export default function SuporteAdmin() {
                   <Textarea
                     value={reply}
                     onChange={(e) => setReply(e.target.value)}
-                    placeholder="Responder ao lojista..."
+                    placeholder={openTicket.status === "fechado" ? "Chamado fechado — reabra para responder." : "Responder ao lojista..."}
                     rows={3}
                     maxLength={4000}
+                    disabled={openTicket.status === "fechado"}
                   />
-                  <Button onClick={sendReply} disabled={reply.trim().length < 2} size="sm">
+                  <Button onClick={sendReply} disabled={reply.trim().length < 2 || openTicket.status === "fechado"} size="sm">
                     <Send className="h-3.5 w-3.5 mr-1.5" />Enviar resposta
                   </Button>
                 </div>
@@ -310,6 +415,33 @@ export default function SuporteAdmin() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingStatus} onOpenChange={(o) => { if (!o) setPendingStatus(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingStatus ? (STATUS_CONFIRM[pendingStatus]?.title ?? `Mudar para ${STATUS_LABEL[pendingStatus]}?`) : ""}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatus
+                ? (STATUS_CONFIRM[pendingStatus]?.description ??
+                   `Confirma a mudança de status para "${STATUS_LABEL[pendingStatus]}"?`)
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (openTicket && pendingStatus) performUpdateStatus(openTicket.id, pendingStatus);
+                setPendingStatus(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
