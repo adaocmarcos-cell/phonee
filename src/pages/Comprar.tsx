@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check, Flame, Crown, Infinity as InfinityIcon, AlertTriangle, Sparkles } from "lucide-react";
+import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check, Flame, Crown, Infinity as InfinityIcon, AlertTriangle, Rocket, Hourglass, Users, Wallet, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
@@ -124,12 +124,12 @@ export default function Comprar() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-5 py-10 grid lg:grid-cols-[1fr_1.1fr] gap-8">
-        <div>
+      <div className="max-w-5xl mx-auto px-5 py-10 grid lg:grid-cols-[1fr_1.1fr] gap-8 items-stretch">
+        <div className="flex flex-col">
           <h1 className="text-3xl md:text-4xl font-extrabold leading-tight">Garanta seu acesso ao <span className="text-primary">Phonee</span></h1>
           <p className="mt-3 text-white/80">Pagamento seguro via Asaas. Acesso liberado automaticamente após a confirmação.</p>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 flex-1 flex flex-col gap-3">
             {plans.map((p) => {
               const active = selectedCode === p.code;
               const isLifetime = p.code === "lifetime";
@@ -146,11 +146,11 @@ export default function Comprar() {
                     }`}
                   >
                     <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold tracking-widest uppercase px-4 py-1 rounded-b-lg shadow-lg flex items-center gap-1">
+                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold tracking-widest uppercase px-4 py-1 rounded-b-xl shadow-lg flex items-center gap-1">
                         <Flame className="h-3 w-3" /> Oferta de Lançamento
                       </div>
                     </div>
-                    <div className="rounded-2xl bg-[hsl(224_30%_14%)] p-5 pt-7">
+                    <div className="rounded-[14px] bg-[hsl(224_30%_14%)] p-5 pt-7">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2 text-amber-400 text-xs font-mono tracking-widest uppercase">
@@ -183,7 +183,7 @@ export default function Comprar() {
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2 text-[11px] leading-relaxed text-amber-100/90">
+                      <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2 text-[11px] leading-relaxed text-amber-100/90">
                         <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                         <span>
                           Valor promocional disponível apenas durante o lançamento da Phonee. Após o encerramento desta fase, o Plano Vitalício poderá ser removido ou reajustado sem aviso prévio para novos assinantes.
@@ -198,7 +198,7 @@ export default function Comprar() {
                   key={p.id}
                   type="button"
                   onClick={() => setSelectedCode(p.code)}
-                  className={`w-full text-left rounded-2xl border-2 p-5 transition ${
+                  className={`flex-1 w-full text-left rounded-2xl border-2 p-5 transition flex flex-col ${
                     active
                       ? "border-primary bg-primary/10 shadow-[0_0_30px_-12px_hsl(var(--primary))]"
                       : "border-white/10 bg-white/5 hover:bg-white/10"
@@ -238,13 +238,15 @@ export default function Comprar() {
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3 flex gap-2 text-[11px] leading-relaxed text-white/85">
-                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="mt-auto pt-4">
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex gap-2 text-[11px] leading-relaxed text-white/85">
+                    <Rocket className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span>
                       Ideal para começar com baixo custo inicial. Você mantém todas as
                       funcionalidades da Phonee e pode migrar para o Plano Vitalício a
                       qualquer momento durante o período de lançamento.
                     </span>
+                    </div>
                   </div>
                 </button>
               );
@@ -256,7 +258,7 @@ export default function Comprar() {
           </div>
         </div>
 
-        <Card className="p-6 md:p-8 bg-[hsl(224_25%_18%)] border-2 border-primary/30 text-white">
+        <Card className="rounded-2xl p-6 md:p-8 bg-[hsl(224_25%_18%)] border-2 border-primary/30 text-white">
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
               <Label>Nome completo</Label>
