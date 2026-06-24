@@ -1107,6 +1107,7 @@ export type Database = {
       referral_credits: {
         Row: {
           amount_cents: number
+          available_at: string
           created_at: string
           id: string
           notes: string | null
@@ -1117,6 +1118,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          available_at?: string
           created_at?: string
           id?: string
           notes?: string | null
@@ -1127,6 +1129,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          available_at?: string
           created_at?: string
           id?: string
           notes?: string | null
@@ -2374,6 +2377,7 @@ export type Database = {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
+      mobileplus_coupons_revenue: { Args: { _days?: number }; Returns: Json }
       mobileplus_growth: {
         Args: never
         Returns: {
@@ -2462,6 +2466,7 @@ export type Database = {
       }
       referral_balance: { Args: { _user_id?: string }; Returns: number }
       referral_dashboard: { Args: { _user_id?: string }; Returns: Json }
+      referral_pending_balance: { Args: { _user_id?: string }; Returns: number }
       referral_ranking: {
         Args: never
         Returns: {
