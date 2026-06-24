@@ -19,6 +19,7 @@ import Alertas from "./pages/app/Alertas";
 import CurvaABC from "./pages/app/CurvaABC";
 import TradeIn from "./pages/app/TradeIn";
 import TradeInForm from "./pages/app/TradeInForm";
+import TradeInDetails from "./pages/app/TradeInDetails";
 import Pedidos from "./pages/app/Pedidos";
 import PedidoNovo from "./pages/app/PedidoNovo";
 import Despesas from "./pages/app/Despesas";
@@ -93,6 +94,7 @@ const App = () => (
               <Route path="curva-abc" element={<CurvaABC />} />
               <Route path="troca" element={<TradeIn />} />
               <Route path="troca/novo" element={<TradeInForm />} />
+              <Route path="troca/:id/detalhes" element={<TradeInDetails />} />
               <Route path="troca/:id" element={<TradeInForm />} />
               <Route path="pedidos" element={<Pedidos />} />
               <Route path="pedidos/novo" element={<PedidoNovo />} />
