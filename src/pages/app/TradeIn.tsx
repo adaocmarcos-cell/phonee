@@ -174,7 +174,7 @@ export default function TradeIn() {
               ) : filtered.map((r) => {
                 const margin = r.intended_sale_value > 0 ? ((r.intended_sale_value - r.entry_value) / r.intended_sale_value) * 100 : 0;
                 return (
-                  <tr key={r.id} className="hover:bg-surface-elevated/40 cursor-pointer" onClick={() => navigate(`/painel/troca/${r.id}`)}>
+                  <tr key={r.id} className="hover:bg-surface-elevated/40 cursor-pointer" onClick={() => navigate(`/painel/troca/${r.id}/detalhes`)}>
                     <td className="px-4 py-3">
                       <div className="font-medium">{r.customer_name}</div>
                       <div className="text-[11px] text-muted-foreground font-mono">{new Date(r.created_at).toLocaleDateString("pt-BR")}</div>
