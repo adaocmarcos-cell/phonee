@@ -303,8 +303,8 @@ export default function TradeInForm() {
   return (
     <div>
       <PageHeader
-        title={editing ? "Editar ficha de Compra & Troca" : "Nova ficha de Compra & Troca"}
-        description="Cadastro completo do aparelho seminovo recebido."
+        title={editing ? "Editar entrada de Compra & Troca" : "Lançar entrada de Compra & Troca"}
+        description="Controle de entrada de aparelhos usados. A saída sempre será registrada como Venda."
         actions={<Button variant="ghost" onClick={() => navigate("/painel/troca")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>}
       />
 
@@ -497,7 +497,7 @@ export default function TradeInForm() {
         <Card className="p-5 bg-card border-border">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Status da Compra & Troca</Label>
+              <Label>Status da entrada</Label>
               <Select value={form.status} onValueChange={(v) => update({ status: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -515,7 +515,7 @@ export default function TradeInForm() {
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => navigate("/painel/troca")}>Cancelar</Button>
           <Button type="submit" disabled={busy} className="bg-gradient-primary shadow-glow">
-            {busy ? "Salvando…" : editing ? "Salvar alterações" : pendingDevices.length > 0 ? `Criar ${pendingDevices.length + (form.model.trim() ? 1 : 0)} fichas` : "Criar ficha"}
+            {busy ? "Salvando…" : editing ? "Salvar alterações" : pendingDevices.length > 0 ? `Lançar ${pendingDevices.length + (form.model.trim() ? 1 : 0)} entradas` : "Lançar entrada"}
           </Button>
         </div>
       </form>
