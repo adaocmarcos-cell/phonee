@@ -18,6 +18,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Pencil } from "lucide-react";
 
 type Product = {
   id: string;
@@ -53,6 +58,9 @@ export default function Estoque() {
   const [filter, setFilter] = useState<"all" | "low" | "stalled">("all");
   const [delTarget, setDelTarget] = useState<Product | null>(null);
   const [saleTarget, setSaleTarget] = useState<Product | null>(null);
+  const [minTarget, setMinTarget] = useState<Product | null>(null);
+  const [minValue, setMinValue] = useState<string>("0");
+  const [minSaving, setMinSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [marcasOpen, setMarcasOpen] = useState(false);
   const fileInputId = "estoque-csv-import";
@@ -125,6 +133,23 @@ export default function Estoque() {
       return;
     }
     toast.success(next ? "Produto ativado" : "Produto desativado");
+  };
+
+  const openMinEdit = (p: Product) => {
+    setMinTarget(p);
+    setMinValue(String(p.stock_min ?? 0));
+  };
+
+  const saveMin = async () => {
+    if (!minTarget) return;
+    const n = Math.max(0, parseInt(minValue || "0", 10) || 0);
+    setMinSaving(true);
+    const { error } = await supabase.from("products").update({ stock_min: n }).eq("id", minTarget.id);
+    setMinSaving(false);
+    if (error) return toast.error(error.message);
+    setProducts((arr) => arr.map((x) => (x.id === minTarget.id ? { ...x, stock_min: n } : x)));
+    toast.success("Estoque mínimo atualizado");
+    setMinTarget(null);
   };
 
   const CSV_HEADERS = [
@@ -411,7 +436,20 @@ export default function Estoque() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className={`metric font-semibold ${low ? "text-warning" : ""}`}>{p.stock_current}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono">min {p.stock_min}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono inline-flex items-center gap-1 justify-end">
+                        <span>min {p.stock_min}</span>
+                        {canManageProducts(role) && (
+                          <button
+                            type="button"
+                            onClick={() => openMinEdit(p)}
+                            title="Editar estoque mínimo"
+                            aria-label="Editar estoque mínimo"
+                            className="p-0.5 rounded text-muted-foreground/70 hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                     {canSeeCost(role) && <td className="px-4 py-3 text-right metric text-muted-foreground">{brl(Number(p.cost_price))}</td>}
                     <td className="px-4 py-3 text-right metric font-semibold">{brl(Number(p.sale_price))}</td>
@@ -420,7 +458,18 @@ export default function Estoque() {
                     </td>}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {low && <Badge className="bg-warning/15 text-warning border-warning/30 hover:bg-warning/20"><AlertTriangle className="h-3 w-3 mr-1" />Baixo</Badge>}
+                        {low && (
+                          <button
+                            type="button"
+                            onClick={() => canManageProducts(role) && navigate("/painel/compras/novo")}
+                            title={canManageProducts(role) ? "Sugerir pedido de compra" : "Estoque abaixo do mínimo"}
+                            className="inline-flex"
+                          >
+                            <Badge className="bg-warning/15 text-warning border-warning/30 hover:bg-warning/20 cursor-pointer">
+                              <AlertTriangle className="h-3 w-3 mr-1" />Baixo
+                            </Badge>
+                          </button>
+                        )}
                         {p.status === "promocao" && <Badge className="bg-success/15 text-success border-success/30 hover:bg-success/20">Promo</Badge>}
                         {p.status === "inativo" && <Badge variant="outline">Inativo</Badge>}
                         {!low && p.status === "ativo" && <Badge variant="outline" className="border-border text-muted-foreground">Ativo</Badge>}
@@ -486,6 +535,46 @@ export default function Estoque() {
       />
 
       <MarcasModal open={marcasOpen} onOpenChange={setMarcasOpen} />
+
+      <Dialog open={!!minTarget} onOpenChange={(o) => !o && setMinTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar estoque mínimo</DialogTitle>
+            <DialogDescription className="truncate">
+              {minTarget?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label htmlFor="min-stock" className="text-xs text-muted-foreground">Quantidade mínima em estoque</Label>
+              <Input
+                id="min-stock"
+                type="number"
+                min={0}
+                value={minValue}
+                onChange={(e) => setMinValue(e.target.value)}
+                className="mt-1 h-10"
+                autoFocus
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Quando o estoque atual atingir ou ficar abaixo desse valor, o produto será marcado como "Baixo" e aparecerá nas sugestões de pedido de compra.
+              </p>
+            </div>
+            {minTarget && (
+              <div className="text-[11px] font-mono text-muted-foreground bg-surface-elevated rounded px-2 py-1.5 flex items-center justify-between">
+                <span>Estoque atual</span>
+                <span className="text-foreground">{minTarget.stock_current}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMinTarget(null)} disabled={minSaving}>Cancelar</Button>
+            <Button onClick={saveMin} disabled={minSaving} className="bg-gradient-primary">
+              {minSaving ? "Salvando…" : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Peças (sincronizado com Assistência) */}
       <Card className="bg-card border-border shadow-card overflow-hidden mt-6">
