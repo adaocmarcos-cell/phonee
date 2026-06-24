@@ -402,7 +402,7 @@ export default function Landing() {
               <div className="h-2.5 w-2.5 rounded-full bg-danger" />
               <div className="h-2.5 w-2.5 rounded-full bg-warning" />
               <div className="h-2.5 w-2.5 rounded-full bg-success" />
-              <div className="ml-3 text-xs font-mono text-slate-300">mobile+ / dashboard</div>
+              <div className="ml-3 text-xs font-mono text-slate-300">phonee / dashboard</div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
