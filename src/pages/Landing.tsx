@@ -439,6 +439,17 @@ export default function Landing() {
       <section className="py-20 md:py-28 bg-background">
         <div className="max-w-7xl mx-auto px-5 space-y-20">
 
+          <Reveal direction="up">
+            <div className="flex justify-center -mt-4">
+              <Link
+                to="/comprar?plano=annual"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base md:text-lg font-extrabold text-primary-foreground shadow-glow hover:bg-primary/90 transition"
+              >
+                Quero mais lucro e menos perdas
+              </Link>
+            </div>
+          </Reveal>
+
           <FeatureBlock
             icon={Boxes}
             eyebrow="ESTOQUE INTELIGENTE"
