@@ -2407,6 +2407,7 @@ export type Database = {
           created_at: string
           expires_at: string
           owner_email: string
+          owner_id: string
           owner_name: string
           plan_name: string
           sales_count: number
