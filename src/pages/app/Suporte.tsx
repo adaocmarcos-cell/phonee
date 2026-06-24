@@ -14,11 +14,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import {
   LifeBuoy, Search, Send, MessageCircle, BookOpen, HelpCircle, CheckCircle2, Clock, AlertCircle,
-  Bug, Lightbulb, Wrench,
+  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-type TicketStatus = "aberto" | "pendente" | "resolvido";
+type TicketStatus = "aberto" | "em_andamento" | "aguardando_cliente" | "pendente" | "resolvido" | "fechado";
 
 type Ticket = {
   id: string;
@@ -37,6 +37,15 @@ type TicketMessage = {
   user_id: string;
   is_admin: boolean;
   message: string;
+  created_at: string;
+};
+
+type StatusHistoryRow = {
+  id: string;
+  ticket_id: string;
+  from_status: TicketStatus | null;
+  to_status: TicketStatus;
+  changed_by_is_admin: boolean;
   created_at: string;
 };
 
@@ -89,21 +98,30 @@ const HELP_TOPICS: { module: string; items: { q: string; a: string }[] }[] = [
 ];
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
-  aberto: "Em aberto",
+  aberto: "Novo",
+  em_andamento: "Em andamento",
+  aguardando_cliente: "Aguardando você",
   pendente: "Pendente",
   resolvido: "Resolvido",
+  fechado: "Fechado",
 };
 
 const STATUS_BADGE: Record<TicketStatus, string> = {
   aberto: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  em_andamento: "bg-indigo-500/15 text-indigo-600 border-indigo-500/30",
+  aguardando_cliente: "bg-orange-500/15 text-orange-600 border-orange-500/30",
   pendente: "bg-blue-500/15 text-blue-600 border-blue-500/30",
   resolvido: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  fechado: "bg-muted text-muted-foreground border-border",
 };
 
 const STATUS_ICON: Record<TicketStatus, any> = {
   aberto: AlertCircle,
+  em_andamento: Loader2,
+  aguardando_cliente: UserCheck,
   pendente: Clock,
   resolvido: CheckCircle2,
+  fechado: Lock,
 };
 
 export default function Suporte() {
@@ -113,6 +131,7 @@ export default function Suporte() {
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null);
   const [thread, setThread] = useState<TicketMessage[]>([]);
   const [reply, setReply] = useState("");
+  const [history, setHistory] = useState<StatusHistoryRow[]>([]);
 
   const [form, setForm] = useState({ subject: "", category: "duvida", priority: "normal", message: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -163,6 +182,11 @@ export default function Suporte() {
       .eq("ticket_id", ticketId)
       .order("created_at", { ascending: true });
     setThread((data as TicketMessage[]) ?? []);
+    const { data: hist } = await (supabase.from("support_ticket_status_history") as any)
+      .select("*")
+      .eq("ticket_id", ticketId)
+      .order("created_at", { ascending: false });
+    setHistory((hist as StatusHistoryRow[]) ?? []);
   };
 
   const submitTicket = async () => {
@@ -192,6 +216,10 @@ export default function Suporte() {
 
   const sendReply = async () => {
     if (!openTicket || !user || reply.trim().length < 2) return;
+    if (openTicket.status === "fechado") {
+      toast({ title: "Chamado fechado", description: "Abra um novo chamado para continuar o atendimento.", variant: "destructive" });
+      return;
+    }
     const { error } = await (supabase.from("support_ticket_messages") as any).insert({
       ticket_id: openTicket.id,
       user_id: user.id,
@@ -202,9 +230,12 @@ export default function Suporte() {
       toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
       return;
     }
+    // Lojista respondeu → volta para "Em andamento" para o suporte
+    const next: TicketStatus = "em_andamento";
     await (supabase.from("support_tickets") as any)
-      .update({ status: "aberto", updated_at: new Date().toISOString() })
+      .update({ status: next, updated_at: new Date().toISOString() })
       .eq("id", openTicket.id);
+    setOpenTicket({ ...openTicket, status: next });
     setReply("");
     loadThread(openTicket.id);
     loadTickets();
@@ -442,7 +473,31 @@ export default function Suporte() {
                     <p className="text-sm whitespace-pre-wrap">{m.message}</p>
                   </Card>
                 ))}
-                {openTicket.status !== "resolvido" && (
+                {history.length > 0 && (
+                  <div className="rounded-md border border-border/60 bg-surface-elevated/30 p-3">
+                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground font-mono mb-2">
+                      <History className="h-3.5 w-3.5" /> Histórico do chamado
+                    </div>
+                    <ol className="space-y-1.5">
+                      {history.map((h) => (
+                        <li key={h.id} className="text-xs flex items-center gap-2 flex-wrap">
+                          <span className="text-muted-foreground tabular-nums">
+                            {new Date(h.created_at).toLocaleString("pt-BR")}
+                          </span>
+                          {h.from_status && (
+                            <>
+                              <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[h.from_status]}</Badge>
+                              <span className="text-muted-foreground">→</span>
+                            </>
+                          )}
+                          <Badge className={STATUS_BADGE[h.to_status] + " text-[10px]"}>{STATUS_LABEL[h.to_status]}</Badge>
+                          <span className="text-muted-foreground">{h.changed_by_is_admin ? "· Suporte" : "· Você"}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {openTicket.status !== "resolvido" && openTicket.status !== "fechado" && (
                   <div className="space-y-2 pt-2 border-t">
                     <Textarea
                       value={reply}
@@ -455,6 +510,11 @@ export default function Suporte() {
                       <Send className="h-3.5 w-3.5 mr-1.5" />Enviar resposta
                     </Button>
                   </div>
+                )}
+                {openTicket.status === "fechado" && (
+                  <p className="text-xs text-muted-foreground text-center py-2 border-t">
+                    Este chamado foi fechado. Abra um novo se precisar de mais suporte.
+                  </p>
                 )}
               </div>
             </>
