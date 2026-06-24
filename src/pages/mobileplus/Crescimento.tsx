@@ -88,6 +88,87 @@ export default function PhoneeCrescimento() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-slate-800 bg-slate-900 md:col-span-2">
+          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="font-semibold">Receita gerada por cupons</h2>
+              <p className="text-xs text-slate-500">
+                Receita líquida (após desconto) atribuída a vendas com cupom — últimos {cup?.dias ?? cupDays} dias.
+              </p>
+            </div>
+            <div className="flex gap-1">
+              {[7, 30, 90, 180].map((d) => (
+                <button key={d} onClick={() => setCupDays(d)}
+                  className={`px-2.5 py-1 rounded-md text-xs border ${cupDays === d ? "bg-slate-800 border-slate-600 text-white" : "border-slate-800 text-slate-400 hover:text-white"}`}>
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-3 p-4">
+            <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-500">Receita c/ cupons</div>
+              <div className="text-xl font-semibold mt-1">{brl(cup?.receita_total ?? 0)}</div>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-500">Desconto concedido</div>
+              <div className="text-xl font-semibold mt-1 text-amber-400">{brl(cup?.desconto_total ?? 0)}</div>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+              <div className="text-[11px] uppercase tracking-widest text-slate-500">Usos de cupom</div>
+              <div className="text-xl font-semibold mt-1">{cup?.usos ?? 0}</div>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4 px-4 pb-4">
+            <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <div className="text-xs text-slate-400 mb-2">Receita por período</div>
+              <div style={{ width: "100%", height: 220 }}>
+                <ResponsiveContainer>
+                  <AreaChart data={cup?.by_day ?? []}>
+                    <defs>
+                      <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.6} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                    <XAxis dataKey="day" stroke="#64748b" fontSize={10}
+                      tickFormatter={(v) => new Date(v).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} />
+                    <YAxis stroke="#64748b" fontSize={10} tickFormatter={(v) => `R$${v}`} />
+                    <Tooltip
+                      contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }}
+                      labelFormatter={(v) => new Date(v as string).toLocaleDateString("pt-BR")}
+                      formatter={(v: number, n) => [brl(v), n === "receita" ? "Receita" : "Desconto"]}
+                    />
+                    <Area type="monotone" dataKey="receita" stroke="#10b981" fill="url(#rev)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="desconto" stroke="#f59e0b" fill="transparent" strokeWidth={1.5} strokeDasharray="3 3" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <div className="text-xs text-slate-400 mb-2">Receita por cupom</div>
+              <div style={{ width: "100%", height: 220 }}>
+                <ResponsiveContainer>
+                  <BarChart data={(cup?.by_coupon ?? []).slice(0, 8)} layout="vertical" margin={{ left: 12 }}>
+                    <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
+                    <XAxis type="number" stroke="#64748b" fontSize={10} tickFormatter={(v) => `R$${v}`} />
+                    <YAxis type="category" dataKey="code" stroke="#94a3b8" fontSize={11} width={110} />
+                    <Tooltip
+                      contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: number, n) => [brl(v), n === "receita" ? "Receita" : n === "desconto" ? "Desconto" : "Usos"]}
+                    />
+                    <Bar dataKey="receita" fill="#10b981" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {(cup?.by_coupon ?? []).length === 0 && (
+                <div className="text-xs text-slate-500 text-center py-4">Nenhum cupom resgatado no período.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-xl border border-slate-800 bg-slate-900">
           <div className="px-4 py-3 border-b border-slate-800">
             <h2 className="font-semibold">Top 10 — maior ticket médio</h2>
