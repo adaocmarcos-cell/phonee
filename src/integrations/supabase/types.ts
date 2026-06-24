@@ -2193,8 +2193,12 @@ export type Database = {
           created_at: string
           email: string
           full_name: string
+          is_admin_master: boolean
+          plan_name: string
           roles: string[]
+          stores: Json
           stores_count: number
+          subscription_status: string
           user_id: string
         }[]
       }
