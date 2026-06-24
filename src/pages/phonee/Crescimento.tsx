@@ -31,8 +31,8 @@ export default function PhoneeCrescimento() {
   useEffect(() => {
     (async () => {
       const [ov, st] = await Promise.all([
-        supabase.rpc("mobileplus_overview"),
-        supabase.rpc("mobileplus_stores"),
+        supabase.rpc("phonee_overview"),
+        supabase.rpc("phonee_stores"),
       ]);
       if (ov.data) setO(ov.data as unknown as Overview);
       if (st.data) setRows(st.data as unknown as StoreRow[]);
@@ -41,7 +41,7 @@ export default function PhoneeCrescimento() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.rpc("mobileplus_coupons_revenue", { _days: cupDays });
+      const { data } = await supabase.rpc("phonee_coupons_revenue", { _days: cupDays });
       if (data) setCup(data as unknown as CouponsRevenue);
     })();
   }, [cupDays]);

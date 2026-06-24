@@ -27,7 +27,7 @@ export default function PhoneeVisaoGeral() {
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.rpc("mobileplus_overview");
+      const { data, error } = await supabase.rpc("phonee_overview");
       if (error) setErr(error.message);
       else setD(data as unknown as Overview);
     })();

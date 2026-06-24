@@ -13,7 +13,7 @@ import {
   ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play,
   DollarSign, Percent, Package, Gift, type LucideIcon,
 } from "lucide-react";
-import logoAsset from "@/assets/mobileplus-logo-white.png.asset.json";
+import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 const logo = logoAsset.url;
 
 /* ---------- building blocks ---------- */

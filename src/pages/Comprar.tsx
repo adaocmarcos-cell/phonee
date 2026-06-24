@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check, Flame, Crown, Infinity as InfinityIcon, AlertTriangle, Rocket, Hourglass, Users, Wallet, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+import logoAsset from "@/assets/phonee-logo.png.asset.json";
 
 const Schema = z.object({
   customer_name: z.string().trim().min(2, "Informe seu nome").max(120),

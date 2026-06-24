@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+import logoAsset from "@/assets/phonee-logo.png.asset.json";
 
 export default function ComprarSucesso() {
   const { id } = useParams();

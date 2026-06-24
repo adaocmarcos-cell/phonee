@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import logoAsset from "@/assets/mobileplus-logo.png.asset.json";
+import logoAsset from "@/assets/phonee-logo.png.asset.json";
 const logo = logoAsset.url;
 
 const emailSchema = z.string().trim().email("E-mail inválido").max(255);

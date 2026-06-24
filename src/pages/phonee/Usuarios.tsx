@@ -43,7 +43,7 @@ export default function PhoneeUsuarios() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("mobileplus_users");
+    const { data, error } = await supabase.rpc("phonee_users");
     if (error) toast.error(error.message);
     setRows(((data ?? []) as unknown as Row[]).map((r) => ({
       ...r,
@@ -78,7 +78,7 @@ export default function PhoneeUsuarios() {
       return;
     }
     setSaving(true);
-    const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", {
+    const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
       body: {
         action: "update",
         user_id: editing.user_id,
@@ -100,7 +100,7 @@ export default function PhoneeUsuarios() {
   const runAction = async () => {
     if (!confirm) return;
     setBusy(true);
-    const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", {
+    const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
       body: { action: confirm.action, user_id: confirm.row.user_id },
     });
     setBusy(false);
