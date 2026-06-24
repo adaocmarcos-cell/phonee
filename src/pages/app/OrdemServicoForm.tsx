@@ -747,6 +747,37 @@ Status: ${os.status}`;
           </div>
         </div>
       )}
+
+      <Dialog open={laudoOpen} onOpenChange={setLaudoOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Laudo Técnico — OS #{String(os.os_number ?? "").padStart(4, "0")}</DialogTitle>
+            <DialogDescription>
+              Os dados do aparelho, cliente e orçamento serão preenchidos automaticamente. Edite a análise e as observações abaixo antes de gerar o laudo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs grid grid-cols-2 gap-x-4 gap-y-1">
+              <div><span className="text-muted-foreground">Cliente:</span> <strong>{os.customer_name || "—"}</strong></div>
+              <div><span className="text-muted-foreground">Aparelho:</span> <strong>{[os.device_brand, os.device_model].filter(Boolean).join(" ") || "—"}</strong></div>
+              <div><span className="text-muted-foreground">IMEI:</span> <strong>{os.device_imei1 || "—"}</strong></div>
+              <div><span className="text-muted-foreground">Total:</span> <strong>{brl(Number(os.total_value || 0))}</strong></div>
+            </div>
+            <Field label="Análise técnica (editável)">
+              <Textarea rows={6} value={laudoAnalise} onChange={(e) => setLaudoAnalise(e.target.value)} placeholder="Descreva os testes realizados, componentes inspecionados e diagnóstico." />
+            </Field>
+            <Field label="Observações (editável)">
+              <Textarea rows={4} value={laudoObs} onChange={(e) => setLaudoObs(e.target.value)} placeholder="Recomendações ao cliente, garantia, ressalvas, etc." />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLaudoOpen(false)}>Cancelar</Button>
+            <Button onClick={gerarLaudoHTML} className="bg-primary text-primary-foreground shadow-glow">
+              <FileText className="h-4 w-4 mr-1" />Gerar Laudo Técnico
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
