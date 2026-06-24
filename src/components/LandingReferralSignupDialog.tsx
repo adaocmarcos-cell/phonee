@@ -40,6 +40,7 @@ export function LandingReferralSignupDialog({ open, onOpenChange }: Props) {
   const [whatsapp, setWhatsapp] = useState("");
   const [pixType, setPixType] = useState<string>("cpf");
   const [pixKey, setPixKey] = useState("");
+  const [savingPix, setSavingPix] = useState(false);
 
   // If the visitor is already logged in, jump straight to "get the link" flow.
   useEffect(() => {
@@ -167,6 +168,28 @@ export function LandingReferralSignupDialog({ open, onOpenChange }: Props) {
     }
   };
 
+  const savePix = async () => {
+    if (!pixKey.trim()) {
+      toast.error("Informe a chave PIX.");
+      return;
+    }
+    setSavingPix(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada.");
+      const { error } = await supabase.from("profiles").update({
+        pix_key: pixKey.trim(),
+        pix_type: pixType,
+      }).eq("id", user.id);
+      if (error) throw error;
+      toast.success("Chave PIX salva!");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao salvar chave PIX.");
+    } finally {
+      setSavingPix(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
@@ -249,7 +272,7 @@ export function LandingReferralSignupDialog({ open, onOpenChange }: Props) {
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-start gap-2">
               <Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
               <div className="text-xs text-foreground/80 leading-relaxed">
-                Conta criada! Seu prêmio será pago via PIX na chave cadastrada,
+                Seu prêmio será pago via PIX na chave cadastrada,
                 <b> 7 dias após cada nova assinatura</b> confirmada pelo seu link.
               </div>
             </div>
@@ -284,6 +307,42 @@ export function LandingReferralSignupDialog({ open, onOpenChange }: Props) {
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Insira a chave PIX que deseja receber o prêmio
+              </Label>
+              <div className="flex gap-2">
+                <Select value={pixType} onValueChange={setPixType}>
+                  <SelectTrigger className="w-[96px] h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cpf">CPF</SelectItem>
+                    <SelectItem value="cnpj">CNPJ</SelectItem>
+                    <SelectItem value="email">E-mail</SelectItem>
+                    <SelectItem value="telefone">Telefone</SelectItem>
+                    <SelectItem value="aleatoria">Aleatória</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={pixKey}
+                  onChange={(e) => setPixKey(e.target.value)}
+                  placeholder="Sua chave PIX"
+                  className="h-9 text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9"
+                  disabled={savingPix}
+                  onClick={savePix}
+                >
+                  {savingPix ? "..." : "Salvar"}
+                </Button>
+              </div>
+            </div>
+
             <Button
               type="button"
               variant="outline"
@@ -295,7 +354,9 @@ export function LandingReferralSignupDialog({ open, onOpenChange }: Props) {
             </Button>
 
             <div className="flex items-center justify-between pt-1">
-              <Badge variant="secondary" className="text-[10px]">Bônus liberado em 7 dias</Badge>
+              <Badge variant="secondary" className="text-[10px] leading-tight">
+                Bônus liberado em 7 dias após confirmação de pagamento do seu indicado
+              </Badge>
               <Button variant="ghost" size="sm" onClick={() => { onOpenChange(false); reset(); }}>
                 Fechar
               </Button>
