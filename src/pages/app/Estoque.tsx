@@ -536,6 +536,46 @@ export default function Estoque() {
 
       <MarcasModal open={marcasOpen} onOpenChange={setMarcasOpen} />
 
+      <Dialog open={!!minTarget} onOpenChange={(o) => !o && setMinTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar estoque mínimo</DialogTitle>
+            <DialogDescription className="truncate">
+              {minTarget?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label htmlFor="min-stock" className="text-xs text-muted-foreground">Quantidade mínima em estoque</Label>
+              <Input
+                id="min-stock"
+                type="number"
+                min={0}
+                value={minValue}
+                onChange={(e) => setMinValue(e.target.value)}
+                className="mt-1 h-10"
+                autoFocus
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Quando o estoque atual atingir ou ficar abaixo desse valor, o produto será marcado como "Baixo" e aparecerá nas sugestões de pedido de compra.
+              </p>
+            </div>
+            {minTarget && (
+              <div className="text-[11px] font-mono text-muted-foreground bg-surface-elevated rounded px-2 py-1.5 flex items-center justify-between">
+                <span>Estoque atual</span>
+                <span className="text-foreground">{minTarget.stock_current}</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMinTarget(null)} disabled={minSaving}>Cancelar</Button>
+            <Button onClick={saveMin} disabled={minSaving} className="bg-gradient-primary">
+              {minSaving ? "Salvando…" : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Peças (sincronizado com Assistência) */}
       <Card className="bg-card border-border shadow-card overflow-hidden mt-6">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
