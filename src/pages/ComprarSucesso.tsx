@@ -65,8 +65,8 @@ export default function ComprarSucesso() {
                       <div className="text-sm text-white/70">PIX copia e cola:</div>
                       <div className="flex gap-2">
                         <input readOnly value={sub.pix_copy_paste} className="flex-1 bg-white/5 border border-white/15 rounded px-3 py-2 text-xs" />
-                        <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(sub.pix_copy_paste); toast.success("Copiado!"); }}>
-                          <Copy className="h-4 w-4" />
+                        <Button variant="outline" size="icon" className="bg-white hover:bg-white/90 border-white" onClick={() => { navigator.clipboard.writeText(sub.pix_copy_paste); toast.success("Copiado!"); }}>
+                          <Copy className="h-5 w-5 text-[hsl(217_91%_55%)]" strokeWidth={2.5} />
                         </Button>
                       </div>
                     </div>
@@ -78,8 +78,8 @@ export default function ComprarSucesso() {
                   <p className="text-white/80">Acesse a página segura do Asaas para concluir o pagamento com cartão:</p>
                   {sub.invoice_url && (
                     <a href={sub.invoice_url} target="_blank" rel="noreferrer">
-                      <Button size="lg" className="bg-gradient-primary shadow-glow">
-                        Pagar com cartão <ExternalLink className="ml-2 h-4 w-4" />
+                      <Button size="lg" className="bg-white text-[hsl(217_91%_55%)] hover:bg-white/90 shadow-glow font-semibold">
+                        Pagar com cartão <ExternalLink className="ml-2 h-5 w-5 text-[hsl(217_91%_55%)]" strokeWidth={2.5} />
                       </Button>
                     </a>
                   )}
