@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, Instagram, MessageCircle, Search, Trash2, Users } from "lucide-react";
+import { Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Lead {
   id: string;
@@ -29,6 +31,21 @@ function whatsappLink(v: string) {
   const d = digitsOnly(v);
   const intl = d.length <= 11 ? `55${d}` : d;
   return `https://wa.me/${intl}`;
+}
+
+const DEMO_URL = "https://phonee.com.br";
+const PITCH_MESSAGE = `Olá, tudo bem?
+
+Vi que você conheceu a Phonee. Ela foi criada especialmente para lojas de smartphones e assistências técnicas que precisam de mais controle e menos retrabalho.
+
+Com a Phonee você acompanha estoque, vendas, financeiro e indicadores em tempo real, evita falta de produtos, faz compras mais assertivas e reduz perdas por falta de controle.
+
+Tudo em um único sistema, pensado para ajudar sua loja a vender mais e operar com mais eficiência.
+
+Posso te mostrar rapidamente como funciona?`;
+
+function whatsappPitchLink(v: string) {
+  return `${whatsappLink(v)}?text=${encodeURIComponent(PITCH_MESSAGE)}`;
 }
 
 function instagramLink(handle: string) {
@@ -89,6 +106,93 @@ export default function PhoneeLeads() {
     toast.success(`${filtered.length} lead(s) exportados`);
   };
 
+  const exportPdf = () => {
+    if (filtered.length === 0) { toast.error("Sem leads para exportar"); return; }
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Leads Phonee", 40, 50);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      `${filtered.length} lead(s) · gerado em ${new Date().toLocaleString("pt-BR")}`,
+      40, 68,
+    );
+
+    autoTable(doc, {
+      startY: 88,
+      head: [["Data", "Nome", "Instagram", "WhatsApp"]],
+      body: filtered.map((l) => [
+        formatDate(l.created_at),
+        l.name,
+        `@${l.instagram.replace(/^@+/, "")}`,
+        formatWhats(l.whatsapp),
+      ]),
+      styles: { fontSize: 9, cellPadding: 6, textColor: [30, 41, 59] },
+      headStyles: { fillColor: [0, 171, 251], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 95 },
+        1: { cellWidth: 150 },
+        2: { cellWidth: 130 },
+        3: { cellWidth: 120 },
+      },
+      didDrawCell: (data) => {
+        if (data.section !== "body") return;
+        const lead = filtered[data.row.index];
+        if (!lead) return;
+        if (data.column.index === 2) {
+          doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, {
+            url: instagramLink(lead.instagram),
+          });
+        }
+        if (data.column.index === 3) {
+          doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, {
+            url: whatsappPitchLink(lead.whatsapp),
+          });
+        }
+      },
+    });
+
+    const finalY = (doc as any).lastAutoTable?.finalY ?? 120;
+    let y = finalY + 30;
+    if (y > doc.internal.pageSize.getHeight() - 120) {
+      doc.addPage();
+      y = 60;
+    }
+
+    doc.setDrawColor(226, 232, 240);
+    doc.line(40, y, pageW - 40, y);
+    y += 24;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Quer apresentar a demonstração para esses leads?", 40, y);
+    y += 18;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    doc.text(
+      "Compartilhe o link abaixo do botão \"Ver demonstração\" para que possam experimentar a plataforma:",
+      40, y, { maxWidth: pageW - 80 },
+    );
+    y += 30;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 171, 251);
+    doc.textWithLink(DEMO_URL, 40, y, { url: DEMO_URL });
+
+    doc.save(`phonee-leads-${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success(`${filtered.length} lead(s) exportados em PDF`);
+  };
+
   const remove = async (id: string) => {
     if (!confirm("Remover este lead?")) return;
     const { error } = await supabase.from("demo_leads").delete().eq("id", id);
@@ -109,9 +213,15 @@ export default function PhoneeLeads() {
             {leads.length} {leads.length === 1 ? "lead capturado" : "leads capturados"} pelo botão "Ver demonstração".
           </p>
         </div>
-        <Button onClick={exportCsv} className="bg-[#00abfb] text-slate-900 hover:bg-[#00abfb]/90 font-semibold">
-          <Download className="h-4 w-4 mr-2" /> Exportar CSV
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={exportPdf} className="bg-[#00abfb] text-slate-900 hover:bg-[#00abfb]/90 font-semibold">
+            <FileText className="h-4 w-4 mr-2" /> Exportar PDF
+          </Button>
+          <Button onClick={exportCsv} variant="outline"
+            className="border-slate-700 text-slate-200 hover:bg-slate-800">
+            <Download className="h-4 w-4 mr-2" /> Exportar CSV
+          </Button>
+        </div>
       </header>
 
       <div className="relative max-w-md">
@@ -158,7 +268,7 @@ export default function PhoneeLeads() {
                   </a>
                 </td>
                 <td className="px-4 py-3">
-                  <a href={whatsappLink(l.whatsapp)} target="_blank" rel="noreferrer"
+                  <a href={whatsappPitchLink(l.whatsapp)} target="_blank" rel="noreferrer"
                      className="inline-flex items-center gap-1.5 text-[#25d366] hover:underline">
                     <MessageCircle className="h-3.5 w-3.5" />
                     {formatWhats(l.whatsapp)}
@@ -204,7 +314,7 @@ export default function PhoneeLeads() {
               <Instagram className="h-4 w-4" /> @{l.instagram.replace(/^@+/, "")}
               <ExternalLink className="h-3 w-3 opacity-60 ml-auto" />
             </a>
-            <a href={whatsappLink(l.whatsapp)} target="_blank" rel="noreferrer"
+            <a href={whatsappPitchLink(l.whatsapp)} target="_blank" rel="noreferrer"
                className="flex items-center gap-2 text-sm text-[#25d366]">
               <MessageCircle className="h-4 w-4" /> {formatWhats(l.whatsapp)}
               <ExternalLink className="h-3 w-3 opacity-60 ml-auto" />
