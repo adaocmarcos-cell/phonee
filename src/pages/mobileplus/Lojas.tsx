@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle } from "lucide-react";
 
 type Row = {
   store_id: string; store_name: string;
@@ -26,6 +26,42 @@ export default function PhoneeLojas() {
   const [form, setForm] = useState({ store_name: "", owner_name: "", owner_email: "", new_password: "" });
   const [saving, setSaving] = useState(false);
   const [confirmPwd, setConfirmPwd] = useState(false);
+
+  // Exclusão com dupla confirmação
+  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [deleteTyped, setDeleteTyped] = useState("");
+  const [deleteUnderstood, setDeleteUnderstood] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const openDelete = (r: Row) => {
+    setDeleting(r);
+    setDeleteStep(1);
+    setDeleteTyped("");
+    setDeleteUnderstood(false);
+  };
+
+  const runDelete = async () => {
+    if (!deleting) return;
+    if (deleteTyped.trim() !== deleting.store_name) {
+      toast.error("Digite o nome exato da loja para confirmar.");
+      return;
+    }
+    setDeleteBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("mobileplus-admin-user", {
+        body: { action: "delete_store", store_id: deleting.store_id, confirm_name: deleteTyped.trim() },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error ?? error?.message);
+      toast.success(`Loja "${deleting.store_name}" excluída.`);
+      setDeleting(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao excluir loja.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   const load = async () => {
     const { data } = await supabase.rpc("mobileplus_stores");
@@ -134,6 +170,12 @@ export default function PhoneeLojas() {
                 >
                   <Pencil className="h-3 w-3" /> Editar
                 </button>
+                <button
+                  onClick={() => openDelete(r)}
+                  className="inline-flex items-center gap-1 text-[11px] text-rose-400 hover:underline"
+                >
+                  <Trash2 className="h-3 w-3" /> Excluir
+                </button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -202,12 +244,20 @@ export default function PhoneeLojas() {
                 <td className="px-4 py-3 text-right">{brl(Number(r.total_sales))}</td>
                 <td className="px-4 py-3 text-right">{brl(Number(r.avg_ticket))}</td>
                 <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => openEdit(r)}
-                    className="inline-flex items-center gap-1 text-[#00abfb] hover:underline text-xs"
-                  >
-                    <Pencil className="h-3 w-3" /> Editar
-                  </button>
+                  <div className="inline-flex items-center gap-3">
+                    <button
+                      onClick={() => openEdit(r)}
+                      className="inline-flex items-center gap-1 text-[#00abfb] hover:underline text-xs"
+                    >
+                      <Pencil className="h-3 w-3" /> Editar
+                    </button>
+                    <button
+                      onClick={() => openDelete(r)}
+                      className="inline-flex items-center gap-1 text-rose-400 hover:underline text-xs"
+                    >
+                      <Trash2 className="h-3 w-3" /> Excluir
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -286,6 +336,84 @@ export default function PhoneeLojas() {
               {saving ? "Salvando…" : "Salvar alterações"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Exclusão de loja — dupla confirmação */}
+      <Dialog open={!!deleting} onOpenChange={(o) => !o && !deleteBusy && setDeleting(null)}>
+        <DialogContent className="max-w-md bg-slate-900 border-rose-900/60 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-400">
+              <AlertTriangle className="h-5 w-5" />
+              {deleteStep === 1 ? "Excluir loja?" : "Confirmação final"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {deleteStep === 1 && deleting && (
+            <div className="space-y-3 text-sm">
+              <p className="text-slate-300">
+                Você está prestes a excluir <b className="text-white">{deleting.store_name}</b>
+                {deleting.owner_email && <> (dono: <span className="text-slate-400">{deleting.owner_email}</span>)</>}.
+              </p>
+              <div className="rounded-md border border-rose-900/50 bg-rose-950/30 p-3 text-xs text-rose-200 space-y-1">
+                <div className="font-semibold flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> Esta ação é irreversível.
+                </div>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  <li>Todos os dados desta loja (vendas, estoque, OS, financeiro, etc.) serão removidos.</li>
+                  <li>Assinaturas vinculadas serão canceladas.</li>
+                  <li>Sua identidade será registrada na auditoria.</li>
+                </ul>
+              </div>
+              <label className="flex items-start gap-2 text-xs text-amber-200">
+                <input
+                  type="checkbox"
+                  checked={deleteUnderstood}
+                  onChange={(e) => setDeleteUnderstood(e.target.checked)}
+                  className="mt-0.5"
+                />
+                Entendo as consequências e quero prosseguir.
+              </label>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleting(null)}>Cancelar</Button>
+                <Button
+                  disabled={!deleteUnderstood}
+                  onClick={() => setDeleteStep(2)}
+                  className="bg-rose-600 hover:bg-rose-700 text-white"
+                >
+                  Continuar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {deleteStep === 2 && deleting && (
+            <div className="space-y-3 text-sm">
+              <p className="text-slate-300">
+                Para confirmar, digite o nome exato da loja:
+              </p>
+              <div className="rounded-md bg-slate-950 border border-slate-700 px-3 py-2 font-mono text-sm text-rose-300">
+                {deleting.store_name}
+              </div>
+              <Input
+                autoFocus
+                value={deleteTyped}
+                onChange={(e) => setDeleteTyped(e.target.value)}
+                placeholder="Digite o nome da loja"
+                className="bg-slate-950 border-slate-700"
+              />
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteStep(1)} disabled={deleteBusy}>Voltar</Button>
+                <Button
+                  onClick={runDelete}
+                  disabled={deleteBusy || deleteTyped.trim() !== deleting.store_name}
+                  className="bg-rose-600 hover:bg-rose-700 text-white"
+                >
+                  {deleteBusy ? "Excluindo…" : "Excluir definitivamente"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
