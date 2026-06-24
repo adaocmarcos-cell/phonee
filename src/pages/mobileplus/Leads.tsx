@@ -229,7 +229,7 @@ export default function PhoneeLeads() {
             <FileText className="h-4 w-4 mr-2" /> Exportar PDF
           </Button>
           <Button onClick={exportCsv} variant="outline"
-            className="border-slate-700 text-slate-200 hover:bg-slate-800">
+            className="border-slate-300 bg-white text-[#0b2545] hover:bg-slate-100 hover:text-[#0b2545] font-semibold">
             <Download className="h-4 w-4 mr-2" /> Exportar CSV
           </Button>
         </div>
