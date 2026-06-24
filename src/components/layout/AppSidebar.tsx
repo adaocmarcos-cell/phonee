@@ -160,7 +160,7 @@ export function AppSidebar() {
           className={`flex items-center justify-center px-2 ${
             collapsed
               ? "py-1"
-              : location.pathname.startsWith("/painel/vendas")
+              : pathname.startsWith("/painel/vendas")
               ? "py-[0.28125rem]"
               : "py-1.5"
           }`}
