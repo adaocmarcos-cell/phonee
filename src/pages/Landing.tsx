@@ -158,7 +158,7 @@ export default function Landing() {
       {/* NAV — mesma cor do hero */}
       <header className="sticky top-0 z-50 bg-[hsl(226_50%_15%)] border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
-          <nav className="hidden md:flex items-center gap-8 text-base font-normal text-white">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-normal text-white">
             <a href="#beneficios" className="hover:text-primary transition">Benefícios</a>
             <a href="#dashboard" className="hover:text-primary transition">Dashboard</a>
             <a href="#preco" className="hover:text-primary transition">Preços</a>
