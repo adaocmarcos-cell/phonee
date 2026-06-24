@@ -219,9 +219,9 @@ export default function PhoneeLeads() {
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-500">
             <Users className="h-3.5 w-3.5" /> Captura
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mt-1">Leads da demonstração</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mt-1">Leads Phonee</h1>
           <p className="text-sm text-slate-400 mt-1">
-            {leads.length} {leads.length === 1 ? "lead capturado" : "leads capturados"} pelo botão "Ver demonstração".
+            {counts.all} total · {counts.demo} de demonstração · {counts.indic} de indicação.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -245,12 +245,33 @@ export default function PhoneeLeads() {
         />
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {([
+          { id: "all", label: `Todos (${counts.all})`, icon: <Users className="h-3.5 w-3.5" /> },
+          { id: "demo", label: `Demonstração (${counts.demo})`, icon: <Play className="h-3.5 w-3.5" /> },
+          { id: "indicacao", label: `Indicação (${counts.indic})`, icon: <Gift className="h-3.5 w-3.5" /> },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setKindFilter(t.id as any)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
+              kindFilter === t.id
+                ? "bg-[#00abfb] text-slate-900 border-[#00abfb] font-semibold"
+                : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Desktop table */}
       <div className="hidden md:block rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-950/60 text-slate-400 text-xs uppercase tracking-wider">
             <tr>
               <th className="text-left px-4 py-3">Data</th>
+              <th className="text-left px-4 py-3">Origem</th>
               <th className="text-left px-4 py-3">Nome</th>
               <th className="text-left px-4 py-3">Instagram</th>
               <th className="text-left px-4 py-3">WhatsApp</th>
@@ -259,16 +280,28 @@ export default function PhoneeLeads() {
           </thead>
           <tbody className="divide-y divide-slate-800">
             {loading && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
             )}
             {!loading && filtered.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                 {leads.length === 0 ? "Nenhum lead capturado ainda." : "Nenhum lead encontrado para a busca."}
               </td></tr>
             )}
             {filtered.map((l) => (
               <tr key={l.id} className="hover:bg-slate-800/40 transition">
                 <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{formatDate(l.created_at)}</td>
+                <td className="px-4 py-3">
+                  {l.kind === "indicacao" ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px]">
+                      <Gift className="h-3 w-3 mr-1" /> Indicação
+                      {l.referral_code ? <span className="ml-1 font-mono opacity-80">· {l.referral_code.replace(/^PHONEE-/, "")}</span> : null}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[10px]">
+                      <Play className="h-3 w-3 mr-1" /> Demonstração
+                    </Badge>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-slate-100 font-medium">{l.name}</td>
                 <td className="px-4 py-3">
                   <a href={instagramLink(l.instagram)} target="_blank" rel="noreferrer"
@@ -311,9 +344,20 @@ export default function PhoneeLeads() {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="font-semibold text-slate-100 truncate">{l.name}</div>
-                <Badge variant="outline" className="text-[10px] mt-1 border-slate-700 text-slate-400">
-                  {formatDate(l.created_at)}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                  {l.kind === "indicacao" ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px]">
+                      <Gift className="h-3 w-3 mr-1" /> Indicação
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[10px]">
+                      <Play className="h-3 w-3 mr-1" /> Demonstração
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-400">
+                    {formatDate(l.created_at)}
+                  </Badge>
+                </div>
               </div>
               <Button size="sm" variant="ghost" onClick={() => remove(l.id)}
                 className="text-slate-400 hover:text-red-400 h-8 px-2 shrink-0">
