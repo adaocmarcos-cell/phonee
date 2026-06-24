@@ -60,7 +60,18 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const ACTIVE_STORE_KEY = "mobileplus.active_store_id";
+const ACTIVE_STORE_KEY = "phonee.active_store_id";
+const LEGACY_ACTIVE_STORE_KEY = "mobileplus.active_store_id";
+function readActiveStore(): string | null {
+  if (typeof window === "undefined") return null;
+  const v = localStorage.getItem(ACTIVE_STORE_KEY);
+  if (v) return v;
+  const legacy = localStorage.getItem(LEGACY_ACTIVE_STORE_KEY);
+  if (legacy) {
+    try { localStorage.setItem(ACTIVE_STORE_KEY, legacy); localStorage.removeItem(LEGACY_ACTIVE_STORE_KEY); } catch {}
+  }
+  return legacy;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -85,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storeCols = STORE_COLS as any;
     // Try previously-active store from localStorage (multi-loja)
     let s: StoreSummary | null = null;
-    const savedId = typeof window !== "undefined" ? localStorage.getItem(ACTIVE_STORE_KEY) : null;
+    const savedId = readActiveStore();
     if (savedId) {
       const candidate = await loadStoreById(savedId);
       if (candidate) {
