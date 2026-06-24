@@ -198,16 +198,53 @@ export default function Comprar() {
                   key={p.id}
                   type="button"
                   onClick={() => setSelectedCode(p.code)}
-                  className={`w-full text-left rounded-xl border-2 p-4 transition ${
-                    active ? "border-primary bg-primary/10" : "border-white/10 bg-white/5 hover:bg-white/10"
+                  className={`w-full text-left rounded-2xl border-2 p-5 transition ${
+                    active
+                      ? "border-primary bg-primary/10 shadow-[0_0_30px_-12px_hsl(var(--primary))]"
+                      : "border-white/10 bg-white/5 hover:bg-white/10"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono tracking-widest text-white/70 uppercase">Plano Anual</span>
-                    <div className="text-right">
-                      <div className="text-xl font-extrabold">{formatBRL(p.price_cents)}</div>
-                      <div className="text-[10px] text-white/60">por 12 meses</div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-primary text-xs font-mono tracking-widest uppercase">
+                        <ShieldCheck className="h-3.5 w-3.5" /> Plano Anual
+                      </div>
+                      <h3 className="mt-2 text-base md:text-lg font-extrabold leading-snug">
+                        Comece com baixo investimento e renove só quando quiser.
+                      </h3>
+                      <p className="text-xs text-white/70 mt-1">
+                        Acesso completo por 12 meses, com flexibilidade de renovação anual.
+                      </p>
                     </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[10px] uppercase text-white/50 tracking-wider">por 12 meses</div>
+                      <div className="text-2xl md:text-3xl font-extrabold">{formatBRL(p.price_cents)}</div>
+                      <div className="text-[10px] text-white/60">
+                        ou 12x de {formatBRL(Math.round(p.price_cents / 12))}
+                      </div>
+                    </div>
+                  </div>
+                  <ul className="mt-4 grid sm:grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                    {[
+                      "Acesso completo a todos os módulos",
+                      "Atualizações inclusas no período",
+                      "Suporte humano por WhatsApp",
+                      "Sem fidelidade — renove se quiser",
+                      "Cancele a qualquer momento",
+                      "Garantia de 7 dias — 100% reembolso",
+                    ].map((b) => (
+                      <li key={b} className="flex items-center gap-1.5 text-white/90">
+                        <Check className="h-3.5 w-3.5 text-primary shrink-0" /> {b}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3 flex gap-2 text-[11px] leading-relaxed text-white/85">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      Ideal para começar com baixo custo inicial. Você mantém todas as
+                      funcionalidades da Phonee e pode migrar para o Plano Vitalício a
+                      qualquer momento durante o período de lançamento.
+                    </span>
                   </div>
                 </button>
               );
