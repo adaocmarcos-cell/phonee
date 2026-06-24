@@ -270,18 +270,82 @@ export default function TradeInForm() {
     }
   };
 
+  // Sync the entry value of a Trade-In to Financeiro as an ENTRADA of stock (cost expense, never an income/saída).
+  // Creates the expense once per trade_in (tracked via trade_ins.entry_expense_id) so reports stay consistent on edits.
+  const syncEntryExpense = async (tradeInId: string, src: TradeIn) => {
+    if (!store) return;
+    const amount = Number(src.entry_value) || 0;
+    if (amount <= 0) return;
+    // Check if we already created the expense for this trade-in
+    const { data: ti } = await supabase
+      .from("trade_ins")
+      .select("entry_expense_id" as any)
+      .eq("id", tradeInId)
+      .maybeSingle();
+    const existing = (ti as any)?.entry_expense_id as string | null | undefined;
+    if (existing) {
+      // Keep the financial entry in sync with current entry_value
+      await supabase.from("expenses").update({
+        amount,
+        description: `Compra & Troca · Entrada de aparelho${src.model ? ` · ${src.model}` : ""}`,
+        subcategory: src.model || null,
+      }).eq("id", existing);
+      return;
+    }
+    const { data: exp, error } = await supabase.from("expenses").insert({
+      store_id: store.id,
+      category_name: "Compra & Troca · Entradas",
+      subcategory: src.model || null,
+      description: `Compra & Troca · Entrada de aparelho${src.model ? ` · ${src.model}` : ""}`,
+      amount,
+      expense_date: new Date().toISOString().slice(0, 10),
+      payment_method: "compra_troca",
+      notes: `Entrada vinculada à ficha ${tradeInId}`,
+      created_by: user?.id ?? null,
+    }).select("id").maybeSingle();
+    if (error || !exp) return;
+    await supabase.from("trade_ins").update({ entry_expense_id: exp.id } as any).eq("id", tradeInId);
+  };
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     if (!store || !user) return;
     if (!form.customer_name.trim()) return toast.error("Informe o nome do cliente.");
     if (!form.model.trim() && pendingDevices.length === 0)
       return toast.error("Informe o modelo do aparelho ou adicione pelo menos um aparelho.");
+
+    // Validations + clear warnings on status changes (recusado / vendido)
+    if (editing && originalStatusRef.current && originalStatusRef.current !== form.status) {
+      if (form.status === "recusado") {
+        const ok = window.confirm(
+          "Marcar como RECUSADO devolve o aparelho ao cliente e remove a entrada do estoque ativo. " +
+          "O lançamento financeiro de entrada será estornado. Deseja continuar?"
+        );
+        if (!ok) return;
+      }
+      if (form.status === "vendido") {
+        const ok = window.confirm(
+          "Marcar como VENDIDO aqui apenas atualiza o status da ficha. " +
+          "Para registrar a receita corretamente, finalize a venda pelo módulo Vendas. Continuar?"
+        );
+        if (!ok) return;
+      }
+    }
+
     setBusy(true);
 
     if (editing) {
       const { error } = await supabase.from("trade_ins").update(buildPayload(form)).eq("id", id!);
       if (error) return toast.error(error.message);
       await applyRepairSideEffects(form);
+      // If recused, estornar entry expense (zera o valor) para não inconsistir relatório
+      if (form.status === "recusado") {
+        const { data: ti } = await supabase.from("trade_ins").select("entry_expense_id" as any).eq("id", id!).maybeSingle();
+        const expId = (ti as any)?.entry_expense_id as string | null;
+        if (expId) await supabase.from("expenses").update({ amount: 0, notes: "Estornado · entrada recusada" }).eq("id", expId);
+      } else {
+        await syncEntryExpense(id!, form);
+      }
       setBusy(false);
       toast.success("Ficha atualizada");
       navigate("/painel/troca");
@@ -290,9 +354,14 @@ export default function TradeInForm() {
 
     const all = form.model.trim() ? [...pendingDevices, form] : pendingDevices;
     const payloads = all.map(buildPayload);
-    const { error } = await supabase.from("trade_ins").insert(payloads);
+    const { data: inserted, error } = await supabase.from("trade_ins").insert(payloads).select("id");
     if (error) return toast.error(error.message);
-    for (const d of all) await applyRepairSideEffects(d);
+    for (let i = 0; i < all.length; i++) {
+      const d = all[i];
+      await applyRepairSideEffects(d);
+      const newId = (inserted as any)?.[i]?.id;
+      if (newId && d.status !== "recusado") await syncEntryExpense(newId, d);
+    }
     setBusy(false);
     toast.success(`${payloads.length} ficha(s) criada(s)`);
     navigate("/painel/troca");
