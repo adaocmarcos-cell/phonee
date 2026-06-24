@@ -282,10 +282,10 @@ export default function Comprar() {
             <div className="space-y-2">
               <Label>Forma de pagamento</Label>
               <RadioGroup value={method} onValueChange={(v) => setMethod(v as any)} className="grid grid-cols-2 gap-2">
-                <label className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer ${method === "PIX" ? "border-primary bg-primary/10" : "border-white/15"}`}>
+                <label className={`flex items-center gap-2 rounded-xl border-2 p-3 cursor-pointer ${method === "PIX" ? "border-primary bg-primary/10" : "border-white/15"}`}>
                   <RadioGroupItem value="PIX" /> PIX
                 </label>
-                <label className={`flex items-center gap-2 rounded-lg border-2 p-3 cursor-pointer ${method === "CREDIT_CARD" ? "border-primary bg-primary/10" : "border-white/15"}`}>
+                <label className={`flex items-center gap-2 rounded-xl border-2 p-3 cursor-pointer ${method === "CREDIT_CARD" ? "border-primary bg-primary/10" : "border-white/15"}`}>
                   <RadioGroupItem value="CREDIT_CARD" /> Cartão de crédito
                 </label>
               </RadioGroup>
@@ -295,7 +295,7 @@ export default function Comprar() {
               <div className="space-y-2">
                 <Label>Parcelamento</Label>
                 <select value={installments} onChange={(e) => setInstallments(Number(e.target.value))}
-                  className="w-full rounded-md bg-white/5 border border-white/20 px-3 py-2">
+                  className="w-full rounded-xl bg-white/5 border border-white/20 px-3 py-2">
                   {Array.from({ length: maxInst }, (_, i) => i + 1).map((n) => (
                     <option key={n} value={n} className="text-black">{n}x de {selected ? formatBRL(finalCents / n) : "—"}</option>
                   ))}
@@ -357,7 +357,7 @@ export default function Comprar() {
               </div>
             )}
 
-            <div className="rounded-lg bg-white/5 p-4 flex justify-between items-baseline">
+            <div className="rounded-xl bg-white/5 p-4 flex justify-between items-baseline">
               <span className="text-white/70 text-sm">Total</span>
               <div className="text-right">
                 {couponInfo?.valid && selected && (
