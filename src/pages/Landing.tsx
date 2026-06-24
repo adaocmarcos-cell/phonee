@@ -86,22 +86,51 @@ function DashStat({
   };
   return (
     <div
-      className={`relative rounded-2xl border bg-gradient-to-br ${grad[tone]} text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.45)] overflow-hidden ${highlight ? "p-6 md:p-7" : "p-5"} ${className}`}
+      className={`relative rounded-2xl border bg-gradient-to-br ${grad[tone]} text-white shadow-[0_10px_30px_-10px_rgba(0,0,0,0.45)] overflow-hidden ${
+        highlight ? "p-6 md:p-7" : "px-4 py-3 md:p-5"
+      } ${className}`}
     >
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <span className="text-[10px] md:text-[11px] font-mono tracking-[0.18em] uppercase font-semibold text-white/90">
-          {label}
-        </span>
-        {Icon && (
-          <div className="h-8 w-8 md:h-9 md:w-9 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
-            <Icon className="h-4 w-4 md:h-[18px] md:w-[18px] text-white" />
+      {/* Mobile compact: label esquerda · valor direita (apenas para cards não-highlight) */}
+      {!highlight && (
+        <div className="md:hidden flex items-center justify-between gap-3">
+          <div className="min-w-0 flex items-center gap-2">
+            {Icon && (
+              <div className="h-7 w-7 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
+                <Icon className="h-3.5 w-3.5 text-white" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-[9px] font-mono tracking-[0.18em] uppercase font-semibold text-white/85 leading-tight truncate">
+                {label}
+              </div>
+              {sub && (
+                <div className="text-[10px] text-white/80 font-medium leading-tight mt-0.5 truncate">
+                  {sub}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+          <div className="metric font-bold leading-none text-xl text-right shrink-0">{value}</div>
+        </div>
+      )}
+
+      {/* Desktop / highlight: layout original empilhado */}
+      <div className={highlight ? "" : "hidden md:block"}>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <span className="text-[10px] md:text-[11px] font-mono tracking-[0.18em] uppercase font-semibold text-white/90">
+            {label}
+          </span>
+          {Icon && (
+            <div className="h-8 w-8 md:h-9 md:w-9 rounded-md bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0">
+              <Icon className="h-4 w-4 md:h-[18px] md:w-[18px] text-white" />
+            </div>
+          )}
+        </div>
+        <div className={`metric font-bold leading-tight ${highlight ? "text-5xl md:text-6xl" : "text-3xl md:text-4xl"}`}>
+          {value}
+        </div>
+        {sub && <div className={`mt-2 ${highlight ? "text-sm" : "text-xs"} text-white/85 font-medium`}>{sub}</div>}
       </div>
-      <div className={`metric font-bold leading-tight ${highlight ? "text-5xl md:text-6xl" : "text-3xl md:text-4xl"}`}>
-        {value}
-      </div>
-      {sub && <div className={`mt-2 ${highlight ? "text-sm" : "text-xs"} text-white/85 font-medium`}>{sub}</div>}
     </div>
   );
 }
