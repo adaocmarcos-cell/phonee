@@ -91,6 +91,18 @@ export default function AppLayout() {
           <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto overflow-x-hidden" key={store?.id ?? "no-store"}>
             <Outlet />
           </main>
+          <footer className="border-t border-border bg-surface/40 px-4 py-2.5">
+            <div className="max-w-5xl mx-auto rounded-xl border border-border bg-background/40 px-4 py-2 text-[11px] md:text-xs text-muted-foreground text-center leading-snug">
+              <span className="font-semibold text-foreground">Use como app:</span>{" "}
+              <span className="md:hidden">
+                iPhone (Safari): Compartilhar → "Adicionar à Tela de Início".<br />
+                Android (Chrome): menu ⋮ → "Adicionar à tela inicial".
+              </span>
+              <span className="hidden md:inline">
+                iPhone/Safari: Compartilhar → "Adicionar à Tela de Início" · Android/Chrome: menu ⋮ → "Adicionar à tela inicial".
+              </span>
+            </div>
+          </footer>
         </div>
       </div>
     </SidebarProvider>
