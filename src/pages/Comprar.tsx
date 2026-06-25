@@ -47,6 +47,11 @@ export default function Comprar() {
   const [couponInfo, setCouponInfo] = useState<{ valid: boolean; discount_cents: number; message?: string } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
+  // Elegibilidade da Mensalidade Teste (debounce por e-mail/CPF)
+  const [trialEligible, setTrialEligible] = useState<boolean | null>(null);
+  const [trialEligibilityMsg, setTrialEligibilityMsg] = useState<string | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
+
   useEffect(() => {
     const r = params.get("ref");
     if (r) {
@@ -99,12 +104,45 @@ export default function Comprar() {
 
   useEffect(() => { setCouponInfo(null); }, [selectedCode]);
 
+  // Checagem de elegibilidade do trial, em tempo real (debounce 500ms)
+  useEffect(() => {
+    const email = form.customer_email.trim();
+    const doc = form.customer_doc.replace(/\D/g, "");
+    if (!email && !doc) { setTrialEligible(null); setTrialEligibilityMsg(null); return; }
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !doc) {
+      setTrialEligible(null); setTrialEligibilityMsg(null); return;
+    }
+    setCheckingEligibility(true);
+    const t = setTimeout(async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { data, error } = await supabase.functions.invoke("check-trial-eligibility", {
+        body: { email, doc, user_id: userRes?.user?.id },
+      });
+      setCheckingEligibility(false);
+      if (error) { setTrialEligible(null); return; }
+      const res = (data as any) ?? { eligible: true };
+      setTrialEligible(!!res.eligible);
+      setTrialEligibilityMsg(res.eligible ? null : (res.message ?? "Mensalidade Teste indisponível para este cadastro."));
+      if (!res.eligible && selectedCode === "trial") {
+        setSelectedCode("annual");
+        toast.warning("Mensalidade Teste já utilizada neste cadastro. Selecionamos o Plano Anual.");
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.customer_email, form.customer_doc, selectedCode]);
+
+  const trialBlocked = trialEligible === false;
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const parsed = Schema.safeParse(form);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     if (!selected) return toast.error("Selecione um plano");
     setBusy(true);
+    if (selected.code === "trial" && trialBlocked) {
+      setBusy(false);
+      return toast.error(trialEligibilityMsg ?? "Mensalidade Teste indisponível para este cadastro.");
+    }
     const { data, error } = await supabase.functions.invoke("asaas-create-charge", {
       body: {
         ...parsed.data,
@@ -145,15 +183,21 @@ export default function Comprar() {
               const isLifetime = p.code === "lifetime";
               const isTrial = p.code === "trial";
               if (isTrial) {
+                const disabled = trialBlocked;
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setSelectedCode(p.code)}
+                    onClick={() => !disabled && setSelectedCode(p.code)}
+                    aria-disabled={disabled}
+                    disabled={disabled}
+                    title={disabled ? (trialEligibilityMsg ?? "") : undefined}
                     className={`relative w-full text-left rounded-2xl p-[2px] transition overflow-hidden ${
-                      active
-                        ? "bg-gradient-to-br from-primary via-info to-primary shadow-[0_0_40px_-10px_hsl(var(--primary))]"
-                        : "bg-gradient-to-br from-primary/60 via-info/40 to-primary/60 hover:from-primary hover:to-primary"
+                      disabled
+                        ? "bg-white/10 cursor-not-allowed opacity-60"
+                        : active
+                          ? "bg-gradient-to-br from-primary via-info to-primary shadow-[0_0_40px_-10px_hsl(var(--primary))]"
+                          : "bg-gradient-to-br from-primary/60 via-info/40 to-primary/60 hover:from-primary hover:to-primary"
                     }`}
                   >
                     <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
@@ -200,6 +244,17 @@ export default function Comprar() {
                           <b>Apenas uma vez:</b> após o período de 1 mês, a contratação só poderá ser feita nas modalidades <b>Anual</b> ou <b>Vitalício</b>. Aproveite para experimentar antes de um compromisso maior.
                         </span>
                       </div>
+                      {disabled && (
+                        <div className="mt-3 rounded-xl border-2 border-danger/50 bg-danger/10 p-3 flex gap-2 text-[11px] leading-relaxed text-white">
+                          <Lock className="h-4 w-4 text-danger shrink-0 mt-0.5" />
+                          <span>
+                            <b>Indisponível para este cadastro.</b> {trialEligibilityMsg}
+                          </span>
+                        </div>
+                      )}
+                      {checkingEligibility && !disabled && (
+                        <div className="mt-2 text-[10px] text-white/50 italic">Verificando elegibilidade…</div>
+                      )}
                     </div>
                   </button>
                 );
