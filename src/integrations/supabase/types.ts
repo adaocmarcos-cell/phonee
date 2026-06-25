@@ -603,6 +603,69 @@ export type Database = {
           },
         ]
       }
+      partner_trials: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          email: string
+          full_access_ends_at: string | null
+          full_access_granted_at: string | null
+          full_access_months: number
+          full_name: string | null
+          id: string
+          invite_link: string | null
+          invited_at: string
+          invited_by: string | null
+          notes: string | null
+          status: string
+          trial_days: number
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          email: string
+          full_access_ends_at?: string | null
+          full_access_granted_at?: string | null
+          full_access_months?: number
+          full_name?: string | null
+          id?: string
+          invite_link?: string | null
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+          status?: string
+          trial_days?: number
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          email?: string
+          full_access_ends_at?: string | null
+          full_access_granted_at?: string | null
+          full_access_months?: number
+          full_name?: string | null
+          id?: string
+          invite_link?: string | null
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+          status?: string
+          trial_days?: number
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       parts_inventory: {
         Row: {
           brand: string | null
@@ -2354,6 +2417,7 @@ export type Database = {
         Row: {
           allowed_hours: Json | null
           created_at: string
+          expires_at: string | null
           failed_attempts: number
           job_title: string | null
           last_login_at: string | null
@@ -2368,6 +2432,7 @@ export type Database = {
         Insert: {
           allowed_hours?: Json | null
           created_at?: string
+          expires_at?: string | null
           failed_attempts?: number
           job_title?: string | null
           last_login_at?: string | null
@@ -2382,6 +2447,7 @@ export type Database = {
         Update: {
           allowed_hours?: Json | null
           created_at?: string
+          expires_at?: string | null
           failed_attempts?: number
           job_title?: string | null
           last_login_at?: string | null
@@ -2643,6 +2709,27 @@ export type Database = {
         }[]
       }
       phonee_overview: { Args: never; Returns: Json }
+      phonee_partner_trials_list: {
+        Args: never
+        Returns: {
+          activated_at: string
+          days_left: number
+          email: string
+          full_access_ends_at: string
+          full_access_granted_at: string
+          full_access_months: number
+          full_name: string
+          id: string
+          invite_link: string
+          invited_at: string
+          notes: string
+          status: string
+          trial_days: number
+          trial_ends_at: string
+          user_id: string
+          whatsapp: string
+        }[]
+      }
       phonee_referrals_overview: { Args: never; Returns: Json }
       phonee_sales_traffic: {
         Args: {

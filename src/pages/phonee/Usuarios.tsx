@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -35,11 +35,18 @@ export default function PhoneeUsuarios() {
   const [q, setQ] = useState("");
 
   const [editing, setEditing] = useState<Row | null>(null);
-  const [editForm, setEditForm] = useState({ full_name: "", email: "", new_password: "" });
+  const [editForm, setEditForm] = useState({ full_name: "", email: "", new_password: "", expires_at: "" });
   const [saving, setSaving] = useState(false);
 
   const [confirm, setConfirm] = useState<{ row: Row; action: Action } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [openNew, setOpenNew] = useState(false);
+  const [newForm, setNewForm] = useState({
+    full_name: "", email: "", phone: "", password: "",
+    has_expiration: false, expires_at: "", send_recovery: true,
+  });
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -68,7 +75,7 @@ export default function PhoneeUsuarios() {
 
   const openEdit = (r: Row) => {
     setEditing(r);
-    setEditForm({ full_name: r.full_name ?? "", email: r.email ?? "", new_password: "" });
+    setEditForm({ full_name: r.full_name ?? "", email: r.email ?? "", new_password: "", expires_at: "" });
   };
 
   const saveEdit = async () => {
@@ -85,6 +92,7 @@ export default function PhoneeUsuarios() {
         full_name: editForm.full_name,
         email: editForm.email,
         new_password: editForm.new_password || undefined,
+        expires_at: editForm.expires_at || undefined,
       },
     });
     setSaving(false);
@@ -94,6 +102,45 @@ export default function PhoneeUsuarios() {
     }
     toast.success("Usuário atualizado.");
     setEditing(null);
+    load();
+  };
+
+  const createUser = async () => {
+    if (!newForm.email.trim() || !newForm.full_name.trim()) {
+      return toast.error("Nome e e-mail são obrigatórios.");
+    }
+    if (newForm.has_expiration && !newForm.expires_at) {
+      return toast.error("Defina a data de expiração ou desmarque a opção.");
+    }
+    setCreating(true);
+    const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
+      body: {
+        action: "create_user",
+        full_name: newForm.full_name,
+        email: newForm.email,
+        phone: newForm.phone || undefined,
+        password: newForm.password || undefined,
+        expires_at: newForm.has_expiration ? newForm.expires_at : null,
+        send_recovery: newForm.send_recovery,
+      },
+    });
+    setCreating(false);
+    if (error || (data as any)?.error) {
+      return toast.error(((data as any)?.error) || error?.message || "Falha ao criar usuário.");
+    }
+    const tempPass = (data as any)?.password;
+    const recovery = (data as any)?.recovery_link;
+    toast.success("Usuário criado.");
+    if (tempPass) {
+      navigator.clipboard.writeText(tempPass);
+      toast.message("Senha temporária copiada", { description: tempPass });
+    }
+    if (recovery) {
+      navigator.clipboard.writeText(recovery);
+      toast.message("Link de redefinição copiado para a área de transferência.");
+    }
+    setOpenNew(false);
+    setNewForm({ full_name: "", email: "", phone: "", password: "", has_expiration: false, expires_at: "", send_recovery: true });
     load();
   };
 
@@ -125,11 +172,16 @@ export default function PhoneeUsuarios() {
             {filtered.length} de {rows.length} usuário(s).
           </p>
         </div>
-        <input
-          placeholder="Buscar por nome, e-mail, loja, papel ou plano…"
-          value={q} onChange={(e) => setQ(e.target.value)}
-          className="w-full sm:w-96 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm text-slate-100"
-        />
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            placeholder="Buscar por nome, e-mail, loja, papel ou plano…"
+            value={q} onChange={(e) => setQ(e.target.value)}
+            className="w-full sm:w-80 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm text-slate-100"
+          />
+          <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
+            <UserPlus className="h-4 w-4 mr-1.5" /> Novo usuário
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
@@ -275,10 +327,78 @@ export default function PhoneeUsuarios() {
                 Útil para ajudar usuários secundários no login. Mínimo 8 caracteres.
               </p>
             </div>
+            <div>
+              <Label className="flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" /> Expiração do cadastro (opcional)
+              </Label>
+              <Input
+                type="date"
+                value={editForm.expires_at}
+                onChange={(e) => setEditForm((f) => ({ ...f, expires_at: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Deixe em branco para não expirar. Registra a data nos extras do perfil.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>Cancelar</Button>
             <Button onClick={saveEdit} disabled={saving}>{saving ? "Salvando…" : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New user dialog */}
+      <Dialog open={openNew} onOpenChange={setOpenNew}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nome completo *</Label>
+              <Input value={newForm.full_name}
+                onChange={(e) => setNewForm(f => ({...f, full_name: e.target.value}))}/>
+            </div>
+            <div>
+              <Label>E-mail *</Label>
+              <Input type="email" value={newForm.email}
+                onChange={(e) => setNewForm(f => ({...f, email: e.target.value}))}/>
+            </div>
+            <div>
+              <Label>WhatsApp / Telefone</Label>
+              <Input value={newForm.phone}
+                onChange={(e) => setNewForm(f => ({...f, phone: e.target.value}))}/>
+            </div>
+            <div>
+              <Label className="flex items-center gap-1.5"><KeyRound className="h-3.5 w-3.5"/> Senha (opcional)</Label>
+              <Input type="text" placeholder="Em branco gera senha aleatória"
+                value={newForm.password}
+                onChange={(e) => setNewForm(f => ({...f, password: e.target.value}))}/>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input type="checkbox" checked={newForm.has_expiration}
+                onChange={(e) => setNewForm(f => ({...f, has_expiration: e.target.checked}))}/>
+              Definir data de expiração do cadastro
+            </label>
+            {newForm.has_expiration && (
+              <div>
+                <Label>Expira em</Label>
+                <Input type="date" value={newForm.expires_at}
+                  onChange={(e) => setNewForm(f => ({...f, expires_at: e.target.value}))}/>
+              </div>
+            )}
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input type="checkbox" checked={newForm.send_recovery}
+                onChange={(e) => setNewForm(f => ({...f, send_recovery: e.target.checked}))}/>
+              Gerar link de redefinição de senha (copiado ao criar)
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenNew(false)} disabled={creating}>Cancelar</Button>
+            <Button onClick={createUser} disabled={creating} className="bg-sky-600 hover:bg-sky-700">
+              {creating ? "Criando…" : "Criar usuário"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
