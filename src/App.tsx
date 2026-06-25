@@ -41,6 +41,7 @@ import LogsPagamento from "./pages/app/admin/LogsPagamento";
 import LogsPage from "./pages/app/admin/Logs";
 import AjustesEstoque from "./pages/app/admin/AjustesEstoque";
 import Suporte from "./pages/app/Suporte";
+import Notificacoes from "./pages/app/Notificacoes";
 import SuporteAdmin from "./pages/app/admin/SuporteAdmin";
 import Clientes from "./pages/app/Clientes";
 import MinhasLojas from "./pages/app/MinhasLojas";
@@ -113,6 +114,7 @@ const App = () => (
               <Route path="pecas" element={<PartsInventory />} />
               <Route path="pecas/vendas" element={<VendasPecas />} />
               <Route path="alertas" element={<Alertas />} />
+              <Route path="notificacoes" element={<Notificacoes />} />
               <Route path="tabelas" element={<TabelasPreco />} />
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="cargos" element={<Cargos />} />
