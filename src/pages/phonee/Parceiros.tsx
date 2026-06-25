@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Handshake, Copy, RefreshCw, Trash2, ShieldCheck, MessageCircle, Calendar, Ban, Plus, AlertTriangle, Send,
+  Handshake, Copy, RefreshCw, Trash2, ShieldCheck, MessageCircle, Calendar, Ban, Plus, AlertTriangle, Send, Link2, Play,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -153,6 +153,18 @@ export default function PhoneeParceiros() {
     load();
   };
 
+  const reactivate = async (id: string) => {
+    const { error } = await supabase.functions.invoke("phonee-admin-user", {
+      body: { action: "partner_reactivate", trial_id: id, trial_days: 7 },
+    });
+    if (error) return toast.error("Falha ao reativar.");
+    toast.success("Parceiro reativado por mais 7 dias.");
+    load();
+  };
+
+  const publicSignupUrl =
+    (typeof window !== "undefined" ? window.location.origin : "https://phonee.com.br") + "/parceiros";
+
   const openWa = (r: Trial) => {
     if (!r.whatsapp) { toast.error("Parceiro sem WhatsApp cadastrado."); return; }
     if (!r.invite_link) { toast.error("Sem link de acesso. Gere um novo link primeiro."); return; }
@@ -198,6 +210,23 @@ export default function PhoneeParceiros() {
         <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
           <Plus className="h-4 w-4 mr-1.5" /> Novo parceiro
         </Button>
+      </div>
+
+      <div className="mb-4 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-sky-300 text-sm font-semibold">
+          <Link2 className="h-4 w-4" /> Link público de cadastro de parceiros
+        </div>
+        <code className="px-2 py-1 rounded bg-slate-900/70 border border-slate-700 text-xs text-slate-200 truncate max-w-[420px]">
+          {publicSignupUrl}
+        </code>
+        <Button size="sm" variant="outline" onClick={() => copy(publicSignupUrl)} className="h-8">
+          <Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar
+        </Button>
+        <a href={publicSignupUrl} target="_blank" rel="noreferrer"
+           className="text-xs text-slate-400 hover:text-slate-200 underline">abrir página</a>
+        <span className="text-[11px] text-slate-400 ml-auto">
+          Cadastros enviados por este link são aprovados automaticamente (7 dias). Use os botões da tabela para ativar/inativar.
+        </span>
       </div>
 
       {(trialEndingSoon.length > 0 || awaitingRelease.length > 0) && (
@@ -353,6 +382,10 @@ export default function PhoneeParceiros() {
                     <button onClick={() => revoke(r.id)} title="Revogar acesso"
                             className="p-1.5 rounded-md hover:bg-amber-500/10 text-amber-400">
                       <Ban className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => reactivate(r.id)} title="Reativar (novo período de 7 dias)"
+                            className="p-1.5 rounded-md hover:bg-sky-500/10 text-sky-400">
+                      <Play className="h-4 w-4" />
                     </button>
                     <button onClick={() => removeRow(r.id)} title="Remover do controle"
                             className="p-1.5 rounded-md hover:bg-rose-500/10 text-rose-400">

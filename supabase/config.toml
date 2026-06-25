@@ -1,1 +1,4 @@
 project_id = "tuvsrkrnoaicgcvnfkpu"
+
+[functions.partner-self-signup]
+verify_jwt = false
