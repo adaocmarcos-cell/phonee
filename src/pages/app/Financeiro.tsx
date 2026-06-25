@@ -253,14 +253,6 @@ export default function Financeiro() {
               <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Até</Label>
               <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-[160px] mt-1" />
             </div>
-            <Button
-              variant={editingLayout ? "default" : "outline"}
-              onClick={() => setEditingLayout((v) => !v)}
-              title={editingLayout ? "Concluir edição" : "Reordenar cards"}
-              aria-label={editingLayout ? "Concluir edição do layout" : "Reordenar cards"}
-            >
-              {editingLayout ? (<><Check className="h-4 w-4 mr-1" />Concluir</>) : (<><LayoutGrid className="h-4 w-4 mr-1" />Reordenar</>)}
-            </Button>
             <Button variant="outline" onClick={exportReport}><FileDown className="h-4 w-4 mr-1" />Exportar PDF</Button>
           </div>
         }
@@ -304,6 +296,22 @@ export default function Financeiro() {
           { id: "liquido", node: <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" /> },
         ]}
       />
+
+      <div className="-mt-2 mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setEditingLayout((v) => !v)}
+          title={editingLayout ? "Concluir edição" : "Reordenar cards"}
+          aria-label={editingLayout ? "Concluir edição do layout" : "Reordenar cards"}
+          className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70 hover:text-muted-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted/40"
+        >
+          {editingLayout ? (
+            <><Check className="h-3.5 w-3.5" />Concluir</>
+          ) : (
+            <><LayoutGrid className="h-3.5 w-3.5" />Reordenar cards</>
+          )}
+        </button>
+      </div>
 
       {/* Recebimentos por método */}
       <Card className="p-4 mb-4">
