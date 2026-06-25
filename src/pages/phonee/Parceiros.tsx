@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Handshake, Copy, RefreshCw, Trash2, ShieldCheck, MessageCircle, Calendar, Ban, Plus,
+  Handshake, Copy, RefreshCw, Trash2, ShieldCheck, MessageCircle, Calendar, Ban, Plus, AlertTriangle, Send,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -26,8 +26,20 @@ type Trial = {
 const onlyDigits = (s: string) => s.replace(/\D/g, "");
 const waLink = (n?: string | null) =>
   n ? `https://wa.me/${onlyDigits(n).startsWith("55") ? onlyDigits(n) : "55" + onlyDigits(n)}` : "";
+const waSendLink = (n: string, text: string) =>
+  `https://wa.me/${onlyDigits(n).startsWith("55") ? onlyDigits(n) : "55" + onlyDigits(n)}?text=${encodeURIComponent(text)}`;
 const fmtDate = (s?: string | null) =>
   s ? new Date(s).toLocaleDateString("pt-BR") : "—";
+
+const DEFAULT_WA_TEMPLATE = (p: { name: string; link: string; days: number }) =>
+`Olá ${p.name || "parceiro(a)"}! 👋
+
+Liberei seu acesso ao *Phonee* para avaliação por ${p.days} dias.
+Acesse pelo link abaixo e crie sua senha:
+
+${p.link}
+
+Qualquer dúvida me chame por aqui. Boa avaliação! 🚀`;
 
 const statusStyles: Record<Trial["status"], string> = {
   em_teste: "bg-sky-500/15 text-sky-300 border-sky-500/30",
@@ -55,6 +67,9 @@ export default function PhoneeParceiros() {
 
   const [releaseFor, setReleaseFor] = useState<Trial | null>(null);
   const [releaseForm, setReleaseForm] = useState({ months: 12, start_at: "" });
+
+  const [waFor, setWaFor] = useState<Trial | null>(null);
+  const [waMsg, setWaMsg] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -138,6 +153,35 @@ export default function PhoneeParceiros() {
     load();
   };
 
+  const openWa = (r: Trial) => {
+    if (!r.whatsapp) { toast.error("Parceiro sem WhatsApp cadastrado."); return; }
+    if (!r.invite_link) { toast.error("Sem link de acesso. Gere um novo link primeiro."); return; }
+    setWaFor(r);
+    setWaMsg(DEFAULT_WA_TEMPLATE({
+      name: r.full_name || r.email.split("@")[0],
+      link: r.invite_link,
+      days: r.trial_days || 7,
+    }));
+  };
+  const sendWa = () => {
+    if (!waFor?.whatsapp) return;
+    window.open(waSendLink(waFor.whatsapp, waMsg), "_blank");
+    setWaFor(null);
+  };
+
+  // Alertas automáticos
+  const now = Date.now();
+  const D7 = 7 * 86400_000;
+  const trialEndingSoon = rows.filter(r =>
+    r.status === "em_teste" && r.trial_ends_at &&
+    new Date(r.trial_ends_at).getTime() - now > 0 &&
+    new Date(r.trial_ends_at).getTime() - now <= D7
+  );
+  const awaitingRelease = rows.filter(r =>
+    (r.status === "teste_expirado") ||
+    (r.status === "em_teste" && r.trial_ends_at && new Date(r.trial_ends_at).getTime() <= now && !r.full_access_granted_at)
+  );
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
@@ -154,6 +198,52 @@ export default function PhoneeParceiros() {
           <Plus className="h-4 w-4 mr-1.5" /> Novo parceiro
         </Button>
       </div>
+
+      {(trialEndingSoon.length > 0 || awaitingRelease.length > 0) && (
+        <div className="grid md:grid-cols-2 gap-3 mb-4">
+          {trialEndingSoon.length > 0 && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+              <div className="flex items-center gap-2 text-amber-300 font-semibold text-sm">
+                <AlertTriangle className="h-4 w-4" />
+                {trialEndingSoon.length} parceiro(s) a menos de 7 dias do fim do teste
+              </div>
+              <ul className="mt-2 space-y-1 text-xs text-amber-100/90">
+                {trialEndingSoon.slice(0, 5).map(p => (
+                  <li key={p.id} className="flex justify-between gap-2">
+                    <span className="truncate">{p.full_name || p.email}</span>
+                    <span className="opacity-80 shrink-0">
+                      vence {fmtDate(p.trial_ends_at)} · {Math.ceil((p.days_left ?? 0))}d
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {awaitingRelease.length > 0 && (
+            <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
+              <div className="flex items-center gap-2 text-sky-300 font-semibold text-sm">
+                <ShieldCheck className="h-4 w-4" />
+                {awaitingRelease.length} parceiro(s) aguardando liberação manual (12 meses)
+              </div>
+              <ul className="mt-2 space-y-1 text-xs text-sky-100/90">
+                {awaitingRelease.slice(0, 5).map(p => (
+                  <li key={p.id} className="flex justify-between gap-2">
+                    <span className="truncate">{p.full_name || p.email}</span>
+                    <button
+                      onClick={() => {
+                        const start = p.trial_ends_at ?? new Date().toISOString();
+                        setReleaseForm({ months: p.full_access_months || 12, start_at: start.slice(0,10) });
+                        setReleaseFor(p);
+                      }}
+                      className="shrink-0 text-emerald-300 hover:underline"
+                    >Liberar 12m</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
         <table className="w-full text-sm min-w-[1100px]">
@@ -228,6 +318,11 @@ export default function PhoneeParceiros() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => openWa(r)} title="Reenviar link via WhatsApp"
+                            disabled={!r.whatsapp || !r.invite_link}
+                            className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Send className="h-4 w-4" />
+                    </button>
                     <button onClick={() => regen(r.id)} title="Gerar novo link"
                             className="p-1.5 rounded-md hover:bg-slate-800 text-slate-300">
                       <RefreshCw className="h-4 w-4" />
@@ -337,6 +432,51 @@ export default function PhoneeParceiros() {
             <Button variant="ghost" onClick={() => setReleaseFor(null)}>Cancelar</Button>
             <Button onClick={release} className="bg-emerald-600 hover:bg-emerald-700">
               Liberar período
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* WhatsApp resend dialog */}
+      <Dialog open={!!waFor} onOpenChange={(o) => !o && setWaFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-emerald-400" />
+              Reenviar link via WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-xs text-slate-400">
+              Enviando para <b className="text-slate-200">{waFor?.full_name || waFor?.email}</b>
+              {" · "}<span className="text-emerald-300">{waFor?.whatsapp}</span>
+            </div>
+            <div>
+              <Label>Mensagem (personalize se quiser)</Label>
+              <Textarea rows={9} value={waMsg} onChange={(e) => setWaMsg(e.target.value)} />
+            </div>
+            <div className="flex flex-wrap gap-1.5 text-[11px]">
+              <button onClick={() => setWaMsg(DEFAULT_WA_TEMPLATE({
+                name: waFor?.full_name || waFor?.email.split("@")[0] || "",
+                link: waFor?.invite_link || "",
+                days: waFor?.trial_days || 7,
+              }))} className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                Restaurar modelo padrão
+              </button>
+              <button onClick={() => setWaMsg(m => m + "\n\nQualquer dúvida estou à disposição.")}
+                      className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                + assinatura cordial
+              </button>
+              <button onClick={() => setWaMsg(`Oi! Renovei seu link de acesso ao Phonee.\n\n${waFor?.invite_link}\n\nValidade do teste: ${waFor?.trial_days || 7} dias.`)}
+                      className="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">
+                Versão curta
+              </button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setWaFor(null)}>Cancelar</Button>
+            <Button onClick={sendWa} className="bg-emerald-600 hover:bg-emerald-700">
+              <Send className="h-4 w-4 mr-1.5" /> Abrir WhatsApp
             </Button>
           </DialogFooter>
         </DialogContent>
