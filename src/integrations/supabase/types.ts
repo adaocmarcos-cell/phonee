@@ -515,6 +515,53 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          notify_bill_due: boolean
+          notify_low_stock: boolean
+          notify_monthly_report: boolean
+          notify_new_sale: boolean
+          notify_new_service: boolean
+          push_enabled: boolean
+          store_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          notify_bill_due?: boolean
+          notify_low_stock?: boolean
+          notify_monthly_report?: boolean
+          notify_new_sale?: boolean
+          notify_new_service?: boolean
+          push_enabled?: boolean
+          store_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          notify_bill_due?: boolean
+          notify_low_stock?: boolean
+          notify_monthly_report?: boolean
+          notify_new_sale?: boolean
+          notify_new_service?: boolean
+          push_enabled?: boolean
+          store_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_visits: {
         Row: {
           created_at: string
@@ -1094,6 +1141,50 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          store_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          store_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          store_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -2435,6 +2526,10 @@ export type Database = {
           _tags: string[]
         }
         Returns: Json
+      }
+      dispatch_push_event: {
+        Args: { _event: string; _payload: Json; _store_id: string }
+        Returns: undefined
       }
       generate_referral_code: { Args: { _user_id?: string }; Returns: string }
       get_meta_pixel_id: { Args: never; Returns: string }

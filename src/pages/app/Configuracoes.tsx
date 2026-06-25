@@ -15,6 +15,7 @@ import {
 } from "@/lib/preferences";
 import { ThemePicker } from "@/components/ThemePicker";
 import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon, Paintbrush } from "lucide-react";
+import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -434,6 +435,8 @@ export default function Configuracoes() {
           </div>
           <ThemePicker value={theme} onChange={onThemeChange} />
         </Card>
+
+        <NotificationsSettings />
       </div>
     </div>
   );
