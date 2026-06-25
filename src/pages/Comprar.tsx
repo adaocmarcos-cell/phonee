@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check, Flame, Crown, Infinity as InfinityIcon, AlertTriangle, Rocket, Hourglass, Users, Wallet, PiggyBank } from "lucide-react";
+import { Lock, ShieldCheck, ArrowLeft, Gift, Ticket, Check, Flame, Crown, Infinity as InfinityIcon, AlertTriangle, Rocket, Hourglass, Users, Wallet, PiggyBank, Sparkles, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
@@ -21,7 +21,7 @@ const Schema = z.object({
 });
 
 type Plan = {
-  id: string; code: "annual" | "lifetime"; name: string;
+  id: string; code: "trial" | "annual" | "lifetime"; name: string;
   description: string | null; price_cents: number; max_installments: number;
 };
 
@@ -32,10 +32,11 @@ function formatBRL(cents: number) {
 export default function Comprar() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const initialCode = (params.get("plano") === "lifetime" ? "lifetime" : "annual") as "annual" | "lifetime";
+  const initialCodeParam = params.get("plano");
+  const initialCode = (initialCodeParam === "lifetime" ? "lifetime" : initialCodeParam === "trial" ? "trial" : "annual") as "trial" | "annual" | "lifetime";
 
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedCode, setSelectedCode] = useState<"annual" | "lifetime">(initialCode);
+  const [selectedCode, setSelectedCode] = useState<"trial" | "annual" | "lifetime">(initialCode);
   const [method, setMethod] = useState<"PIX" | "CREDIT_CARD">("PIX");
   const [installments, setInstallments] = useState(1);
   const [form, setForm] = useState({ customer_name: "", customer_email: "", customer_phone: "", customer_doc: "" });
@@ -65,7 +66,11 @@ export default function Comprar() {
 
   useEffect(() => {
     supabase.from("plans").select("id,code,name,description,price_cents,max_installments").eq("active", true)
-      .then(({ data }) => setPlans((data ?? []) as Plan[]));
+      .then(({ data }) => {
+        const order: Record<string, number> = { trial: 0, annual: 1, lifetime: 2 };
+        const sorted = ((data ?? []) as Plan[]).slice().sort((a, b) => (order[a.code] ?? 9) - (order[b.code] ?? 9));
+        setPlans(sorted);
+      });
   }, []);
 
   const selected = useMemo(() => plans.find((p) => p.code === selectedCode), [plans, selectedCode]);
