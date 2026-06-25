@@ -565,6 +565,69 @@ export default function Suporte() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={sbOpen} onOpenChange={setSbOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Sugestões & Bugs
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm leading-relaxed">
+              Este é o espaço para <strong>sugerir melhorias</strong>, propor novas <strong>funcionalidades</strong> e <strong>reportar erros ou bugs</strong>.
+              Tudo o que você enviar é encaminhado direto para o time Phonee, fica registrado no seu histórico e você acompanha o status da análise por aqui.
+            </div>
+
+            <div>
+              <Label>Tipo</Label>
+              <Select value={sbForm.kind} onValueChange={(v: any) => setSbForm({ ...sbForm, kind: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sugestao">💡 Sugestão</SelectItem>
+                  <SelectItem value="melhoria">✨ Melhoria de algo existente</SelectItem>
+                  <SelectItem value="bug">🐞 Bug / erro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Título</Label>
+              <Input
+                value={sbForm.subject}
+                onChange={(e) => setSbForm({ ...sbForm, subject: e.target.value })}
+                placeholder="Resuma em uma frase"
+                maxLength={140}
+              />
+            </div>
+
+            <div>
+              <Label>Descrição</Label>
+              <Textarea
+                value={sbForm.message}
+                onChange={(e) => setSbForm({ ...sbForm, message: e.target.value })}
+                placeholder={
+                  sbForm.kind === "bug"
+                    ? "Em qual tela ocorre, o que aconteceu, o que era esperado e como reproduzir."
+                    : "Descreva sua ideia, onde no sistema ela se aplica e qual problema resolve."
+                }
+                rows={6}
+                maxLength={4000}
+              />
+              <p className="text-xs text-muted-foreground mt-1">{sbForm.message.length}/4000</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={() => setSbOpen(false)}>Cancelar</Button>
+              <Button onClick={submitSuggestion} disabled={sbSubmitting}>
+                <Send className="h-4 w-4 mr-2" />
+                {sbSubmitting ? "Enviando..." : "Enviar para análise"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
