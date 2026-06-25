@@ -16,6 +16,13 @@ self.addEventListener("push", (event) => {
     vibrate: [80, 40, 80],
   };
   event.waitUntil(self.registration.showNotification(title, options));
+  // Sinaliza para a UI mostrar a "bolinha" vermelha no sino do menu.
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of all) {
+      try { client.postMessage({ type: "phonee:new_notification" }); } catch (_) {}
+    }
+  })());
 });
 
 self.addEventListener("notificationclick", (event) => {
