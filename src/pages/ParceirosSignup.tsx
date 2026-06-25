@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Handshake, CheckCircle2, ArrowRight, ShieldCheck, Clock } from "lucide-react";
+import { CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ParceirosSignup() {
@@ -17,10 +16,10 @@ export default function ParceirosSignup() {
     email: "",
     whatsapp: "",
     password: "",
-    notes: "",
+    instagram: "",
   });
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
   const submit = async (e: React.FormEvent) => {
@@ -45,24 +44,11 @@ export default function ParceirosSignup() {
         <Link to="/entrar" className="text-sm text-slate-300 hover:text-white">Já tenho conta →</Link>
       </header>
 
-      <main className="max-w-5xl mx-auto px-5 pb-16 grid md:grid-cols-2 gap-10 items-start">
-        <section className="space-y-6">
-          <img src="/phonee-logo-parceiros.png" alt="Phonee" className="h-16 w-auto md:h-20" />
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs">
-            <Handshake className="h-3.5 w-3.5" /> Programa de Parceiros
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold leading-tight">
-            Avalie o Phonee gratuitamente por <span className="text-sky-400">7 dias</span>
-          </h1>
-          <p className="text-slate-300">
-            Cadastro rápido, aprovação automática. Você recebe acesso completo à plataforma por 7 dias para avaliar
-            todos os módulos. Após o período, o administrador master pode liberar 12 meses de uso conforme o contrato.
+      <main className="max-w-5xl mx-auto px-5 pb-16 grid md:grid-cols-2 gap-10 items-center">
+        <section className="flex items-center justify-center md:justify-start">
+          <p className="text-2xl md:text-3xl font-medium text-slate-100 leading-snug">
+            Página exclusiva para parceiros Phonee.
           </p>
-          <ul className="space-y-3 text-sm">
-            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5" /> Acesso total imediato após o cadastro.</li>
-            <li className="flex items-start gap-2"><Clock className="h-4 w-4 text-amber-400 mt-0.5" /> Bloqueio automático ao fim dos 7 dias.</li>
-            <li className="flex items-start gap-2"><ShieldCheck className="h-4 w-4 text-sky-400 mt-0.5" /> Liberação dos 12 meses sob aprovação manual.</li>
-          </ul>
         </section>
 
         <section className="rounded-2xl bg-slate-900/70 border border-slate-800 p-6 shadow-xl">
@@ -100,11 +86,11 @@ export default function ParceirosSignup() {
                 <p className="text-[11px] text-slate-400 mt-1">Mínimo 8 caracteres.</p>
               </div>
               <div>
-                <Label>Observações (opcional)</Label>
-                <Textarea value={form.notes} onChange={set("notes")} rows={2} placeholder="Sua loja, segmento, etc." />
+                <Label>Instagram</Label>
+                <Input value={form.instagram} onChange={set("instagram")} placeholder="@usuario" />
               </div>
               <Button type="submit" disabled={loading} className="w-full bg-sky-600 hover:bg-sky-700">
-                {loading ? "Enviando..." : "Quero avaliar por 7 dias"}
+                {loading ? "Enviando..." : "Cadastrar"}
               </Button>
               <p className="text-[11px] text-slate-500 text-center">
                 Ao cadastrar, você concorda em receber contato do time Phonee.
