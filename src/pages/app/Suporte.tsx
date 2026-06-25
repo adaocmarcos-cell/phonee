@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import {
   LifeBuoy, Search, Send, MessageCircle, BookOpen, HelpCircle, CheckCircle2, Clock, AlertCircle,
-  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock,
+  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock, Sparkles,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -136,6 +136,40 @@ export default function Suporte() {
   const [form, setForm] = useState({ subject: "", category: "duvida", priority: "normal", message: "" });
   const [submitting, setSubmitting] = useState(false);
   const [tab, setTab] = useState("ajuda");
+
+  // Sugestões & Bugs quick dialog
+  const [sbOpen, setSbOpen] = useState(false);
+  const [sbForm, setSbForm] = useState({ kind: "sugestao" as "sugestao" | "bug" | "melhoria", subject: "", message: "" });
+  const [sbSubmitting, setSbSubmitting] = useState(false);
+
+  const submitSuggestion = async () => {
+    if (!user) return;
+    if (sbForm.subject.trim().length < 3 || sbForm.message.trim().length < 5) {
+      toast({ title: "Preencha título e descrição", variant: "destructive" });
+      return;
+    }
+    setSbSubmitting(true);
+    const tag = sbForm.kind === "bug" ? "[BUG]" : sbForm.kind === "melhoria" ? "[MELHORIA]" : "[SUGESTÃO]";
+    const category = sbForm.kind === "bug" ? "bug" : "sugestao";
+    const { error } = await (supabase.from("support_tickets") as any).insert({
+      user_id: user.id,
+      subject: `${tag} ${sbForm.subject.trim()}`.slice(0, 160),
+      category,
+      priority: sbForm.kind === "bug" ? "alta" : "normal",
+      message: sbForm.message.trim().slice(0, 4000),
+      status: "aberto",
+    });
+    setSbSubmitting(false);
+    if (error) {
+      toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Enviado para análise", description: "Acompanhe o status em 'Meus chamados'." });
+    setSbForm({ kind: "sugestao", subject: "", message: "" });
+    setSbOpen(false);
+    setTab("meus");
+    loadTickets();
+  };
 
   const applyTemplate = (kind: "bug" | "ajuste" | "melhoria") => {
     const templates = {
@@ -265,6 +299,16 @@ export default function Suporte() {
             <MessageCircle className="h-4 w-4 mr-2" />Meus chamados
             {tickets.length > 0 && <Badge className="ml-2 bg-primary/15 text-primary border-primary/30">{tickets.length}</Badge>}
           </TabsTrigger>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setSbOpen(true)}
+            className="ml-2 h-8 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Sugestões & Bugs
+          </Button>
         </TabsList>
 
         <TabsContent value="ajuda" className="space-y-4 mt-4">
@@ -519,6 +563,69 @@ export default function Suporte() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sbOpen} onOpenChange={setSbOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Sugestões & Bugs
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm leading-relaxed">
+              Este é o espaço para <strong>sugerir melhorias</strong>, propor novas <strong>funcionalidades</strong> e <strong>reportar erros ou bugs</strong>.
+              Tudo o que você enviar é encaminhado direto para o time Phonee, fica registrado no seu histórico e você acompanha o status da análise por aqui.
+            </div>
+
+            <div>
+              <Label>Tipo</Label>
+              <Select value={sbForm.kind} onValueChange={(v: any) => setSbForm({ ...sbForm, kind: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sugestao">💡 Sugestão</SelectItem>
+                  <SelectItem value="melhoria">✨ Melhoria de algo existente</SelectItem>
+                  <SelectItem value="bug">🐞 Bug / erro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Título</Label>
+              <Input
+                value={sbForm.subject}
+                onChange={(e) => setSbForm({ ...sbForm, subject: e.target.value })}
+                placeholder="Resuma em uma frase"
+                maxLength={140}
+              />
+            </div>
+
+            <div>
+              <Label>Descrição</Label>
+              <Textarea
+                value={sbForm.message}
+                onChange={(e) => setSbForm({ ...sbForm, message: e.target.value })}
+                placeholder={
+                  sbForm.kind === "bug"
+                    ? "Em qual tela ocorre, o que aconteceu, o que era esperado e como reproduzir."
+                    : "Descreva sua ideia, onde no sistema ela se aplica e qual problema resolve."
+                }
+                rows={6}
+                maxLength={4000}
+              />
+              <p className="text-xs text-muted-foreground mt-1">{sbForm.message.length}/4000</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={() => setSbOpen(false)}>Cancelar</Button>
+              <Button onClick={submitSuggestion} disabled={sbSubmitting}>
+                <Send className="h-4 w-4 mr-2" />
+                {sbSubmitting ? "Enviando..." : "Enviar para análise"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
