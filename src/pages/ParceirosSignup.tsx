@@ -48,6 +48,7 @@ export default function ParceirosSignup() {
 
       <main className="max-w-5xl mx-auto px-5 pb-16 grid md:grid-cols-2 gap-10 items-start">
         <section className="space-y-6">
+          <img src={logoAsset.url} alt="Phonee" className="h-16 w-auto md:h-20" />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs">
             <Handshake className="h-3.5 w-3.5" /> Programa de Parceiros
           </div>
