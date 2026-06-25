@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import {
   LifeBuoy, Search, Send, MessageCircle, BookOpen, HelpCircle, CheckCircle2, Clock, AlertCircle,
-  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock,
+  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock, Sparkles,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -136,6 +136,40 @@ export default function Suporte() {
   const [form, setForm] = useState({ subject: "", category: "duvida", priority: "normal", message: "" });
   const [submitting, setSubmitting] = useState(false);
   const [tab, setTab] = useState("ajuda");
+
+  // Sugestões & Bugs quick dialog
+  const [sbOpen, setSbOpen] = useState(false);
+  const [sbForm, setSbForm] = useState({ kind: "sugestao" as "sugestao" | "bug" | "melhoria", subject: "", message: "" });
+  const [sbSubmitting, setSbSubmitting] = useState(false);
+
+  const submitSuggestion = async () => {
+    if (!user) return;
+    if (sbForm.subject.trim().length < 3 || sbForm.message.trim().length < 5) {
+      toast({ title: "Preencha título e descrição", variant: "destructive" });
+      return;
+    }
+    setSbSubmitting(true);
+    const tag = sbForm.kind === "bug" ? "[BUG]" : sbForm.kind === "melhoria" ? "[MELHORIA]" : "[SUGESTÃO]";
+    const category = sbForm.kind === "bug" ? "bug" : "sugestao";
+    const { error } = await (supabase.from("support_tickets") as any).insert({
+      user_id: user.id,
+      subject: `${tag} ${sbForm.subject.trim()}`.slice(0, 160),
+      category,
+      priority: sbForm.kind === "bug" ? "alta" : "normal",
+      message: sbForm.message.trim().slice(0, 4000),
+      status: "aberto",
+    });
+    setSbSubmitting(false);
+    if (error) {
+      toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Enviado para análise", description: "Acompanhe o status em 'Meus chamados'." });
+    setSbForm({ kind: "sugestao", subject: "", message: "" });
+    setSbOpen(false);
+    setTab("meus");
+    loadTickets();
+  };
 
   const applyTemplate = (kind: "bug" | "ajuste" | "melhoria") => {
     const templates = {
@@ -265,6 +299,16 @@ export default function Suporte() {
             <MessageCircle className="h-4 w-4 mr-2" />Meus chamados
             {tickets.length > 0 && <Badge className="ml-2 bg-primary/15 text-primary border-primary/30">{tickets.length}</Badge>}
           </TabsTrigger>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setSbOpen(true)}
+            className="ml-2 h-8 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Sugestões & Bugs
+          </Button>
         </TabsList>
 
         <TabsContent value="ajuda" className="space-y-4 mt-4">
