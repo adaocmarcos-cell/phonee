@@ -33,6 +33,39 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // ---------- Audit helper ----------
+    const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? null;
+    const ua = req.headers.get("user-agent") ?? null;
+    async function audit(
+      auditAction: string,
+      entity: string,
+      entityId: string | null,
+      details: Record<string, unknown> = {},
+      status: "concluido" | "erro" = "concluido",
+      storeId: string | null = null,
+      oldValue: unknown = null,
+      newValue: unknown = null,
+    ) {
+      try {
+        await admin.from("audit_log").insert({
+          user_id: callerId,
+          store_id: storeId,
+          module: "admin_master",
+          screen: "phonee/admin",
+          action: auditAction,
+          entity,
+          entity_id: entityId,
+          role: "admin_master",
+          status,
+          ip,
+          user_agent: ua,
+          old_value: oldValue as any,
+          new_value: newValue as any,
+          details,
+        });
+      } catch (_e) { /* never block flow on audit failure */ }
+    }
+
     // Only admin_master can call this
     const { data: callerRoles } = await admin
       .from("user_roles")
@@ -84,6 +117,21 @@ Deno.serve(async (req) => {
           { onConflict: "user_id" },
         );
       }
+      await audit(
+        new_password ? "user_reset_password" : "user_update",
+        "users", user_id,
+        {
+          changed_fields: {
+            full_name: typeof full_name === "string",
+            email: typeof email === "string" && !!email.trim(),
+            phone: typeof phone === "string",
+            password: !!new_password,
+            expires_at: expires_at !== undefined,
+          },
+          email: typeof email === "string" ? email : undefined,
+          expires_at: expires_at ?? undefined,
+        },
+      );
       return json({ ok: true });
     }
 
@@ -121,6 +169,12 @@ Deno.serve(async (req) => {
         });
         recoveryLink = (link as any)?.properties?.action_link ?? null;
       }
+      await audit("user_create_manual", "users", uid, {
+        email: email.trim().toLowerCase(),
+        full_name: full_name ?? null,
+        expires_at: expires_at ?? null,
+        sent_recovery: !!send_recovery,
+      });
       return json({ ok: true, user_id: uid, password: password ? undefined : finalPass, recovery_link: recoveryLink });
     }
 
@@ -197,6 +251,14 @@ Deno.serve(async (req) => {
         );
       }
 
+      await audit("partner_create_trial", "partner_trials", (row as any)?.id ?? null, {
+        email: cleanEmail,
+        full_name: full_name ?? null,
+        whatsapp: whatsapp ?? null,
+        trial_days: tDays,
+        full_access_months: fMonths,
+        invite_link_generated: !!inviteLink,
+      });
       return json({ ok: true, trial: row, invite_link: inviteLink, temp_password: tempPass });
     }
 
@@ -224,6 +286,10 @@ Deno.serve(async (req) => {
           { onConflict: "user_id" },
         );
       }
+      await audit("partner_release_full", "partner_trials", trial_id, {
+        email: tr.email, months: m, start_at: start.toISOString(),
+        full_access_ends_at: end.toISOString(),
+      });
       return json({ ok: true, full_access_ends_at: end.toISOString() });
     }
 
@@ -239,6 +305,7 @@ Deno.serve(async (req) => {
           { onConflict: "user_id" },
         );
       }
+      await audit("partner_revoke", "partner_trials", trial_id, {});
       return json({ ok: true });
     }
 
@@ -253,6 +320,7 @@ Deno.serve(async (req) => {
       if (lErr) return json({ error: lErr.message }, 400);
       const url = (link as any)?.properties?.action_link ?? null;
       await admin.from("partner_trials").update({ invite_link: url }).eq("id", trial_id);
+      await audit("partner_regenerate_link", "partner_trials", trial_id, { email: tr.email, link_generated: !!url });
       return json({ ok: true, invite_link: url });
     }
 
@@ -264,6 +332,7 @@ Deno.serve(async (req) => {
       if (delete_user && tr?.user_id) {
         await admin.auth.admin.deleteUser(tr.user_id);
       }
+      await audit("partner_delete", "partner_trials", trial_id, { also_deleted_user: !!delete_user });
       return json({ ok: true });
     }
 
@@ -275,6 +344,7 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message }, 400);
       // Mark all extras as inativo
       await admin.from("user_profile_extras").update({ status: "inativo" }).eq("user_id", user_id);
+      await audit("user_block", "users", user_id, {});
       return json({ ok: true });
     }
 
@@ -284,12 +354,14 @@ Deno.serve(async (req) => {
       } as any);
       if (error) return json({ error: error.message }, 400);
       await admin.from("user_profile_extras").update({ status: "ativo" }).eq("user_id", user_id);
+      await audit("user_unblock", "users", user_id, {});
       return json({ ok: true });
     }
 
     if (action === "delete") {
       const { error } = await admin.auth.admin.deleteUser(user_id);
       if (error) return json({ error: error.message }, 400);
+      await audit("user_delete", "users", user_id, {});
       return json({ ok: true });
     }
 
