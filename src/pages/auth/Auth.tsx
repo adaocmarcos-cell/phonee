@@ -106,7 +106,8 @@ export default function Auth() {
         <div className="absolute inset-0 bg-grid opacity-[0.18] pointer-events-none" />
         <div className="relative flex flex-col items-center text-center">
           <img src={logo} alt="Phonee" className="h-32 w-auto object-contain mb-6" style={{ filter: "invert(1) hue-rotate(180deg)" }} />
-          <div className="text-[11px] font-mono text-muted-foreground tracking-widest">ERP · SMARTPHONES</div>
+          <div className="text-[11px] font-mono text-muted-foreground tracking-[0.35em] uppercase">Gestão inteligente</div>
+          <div className="mt-2 text-[10px] font-mono text-muted-foreground/70 tracking-widest">ERP · SMARTPHONES</div>
         </div>
         <div className="absolute bottom-6 text-[11px] font-mono text-muted-foreground tracking-widest">© PHONEE · 2026</div>
       </div>
@@ -117,6 +118,7 @@ export default function Auth() {
           {/* Logo centralizado acima do formulário */}
           <div className="flex flex-col items-center text-center mb-8 lg:hidden">
             <img src={logo} alt="Phonee" className="h-20 w-auto object-contain" style={{ filter: "invert(1) hue-rotate(180deg)" }} />
+            <div className="mt-2 text-[10px] font-mono text-muted-foreground tracking-[0.35em] uppercase">Gestão inteligente</div>
           </div>
 
           <h2 className="text-xl font-semibold mb-1 text-center">Acesse sua conta</h2>
