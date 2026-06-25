@@ -509,6 +509,46 @@ export default function PhoneeUsuarios() {
         </DialogContent>
       </Dialog>
 
+      {/* Partner user dialog */}
+      <Dialog open={openPartner} onOpenChange={setOpenPartner}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Handshake className="h-4 w-4 text-amber-400" /> Adicionar Usuário Parceiro
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200/90">
+              Acesso de avaliação por <b>7 dias</b>. Senha padrão <b className="font-mono">1234567890</b>.
+              No primeiro login o parceiro será obrigado a criar sua própria senha.
+              O link de acesso será exibido somente para você nesta tela (não é público).
+            </div>
+            <div>
+              <Label>Nome completo *</Label>
+              <Input value={partnerForm.full_name}
+                onChange={(e) => setPartnerForm(f => ({...f, full_name: e.target.value}))}/>
+            </div>
+            <div>
+              <Label>E-mail *</Label>
+              <Input type="email" value={partnerForm.email}
+                onChange={(e) => setPartnerForm(f => ({...f, email: e.target.value}))}/>
+            </div>
+            <div>
+              <Label>WhatsApp (opcional)</Label>
+              <Input value={partnerForm.whatsapp}
+                onChange={(e) => setPartnerForm(f => ({...f, whatsapp: e.target.value}))}/>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenPartner(false)} disabled={creatingPartner}>Cancelar</Button>
+            <Button onClick={createPartner} disabled={creatingPartner}
+              className="bg-amber-600 hover:bg-amber-700 text-white">
+              {creatingPartner ? "Criando…" : "Criar parceiro (7 dias)"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Confirm dialog */}
       <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
