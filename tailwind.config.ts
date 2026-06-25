@@ -120,11 +120,22 @@ export default {
               "inset 0 0 0 1.5px hsl(var(--primary) / 0.85), 0 0 0 2px hsl(var(--primary) / 0.55), 0 0 14px 2px hsl(var(--primary) / 0.45)",
           },
         },
+        "neon-soft": {
+          "0%, 100%": {
+            boxShadow:
+              "0 0 0 1px hsl(var(--primary) / 0.25), 0 0 6px 0 hsl(var(--primary) / 0.20)",
+          },
+          "50%": {
+            boxShadow:
+              "0 0 0 1.5px hsl(var(--primary) / 0.55), 0 0 16px 2px hsl(var(--primary) / 0.45)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "neon-pulse": "neon-pulse 2.6s ease-in-out infinite",
+        "neon-soft": "neon-soft 2.8s ease-in-out infinite",
       },
     },
   },
