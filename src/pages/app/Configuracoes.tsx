@@ -13,7 +13,8 @@ import {
   FONT_SIZE_OPTIONS, getFontSize, setFontSize,
   getTheme, setTheme, type Theme,
 } from "@/lib/preferences";
-import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon } from "lucide-react";
+import { ThemePicker } from "@/components/ThemePicker";
+import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon, Paintbrush } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -143,8 +144,7 @@ export default function Configuracoes() {
     setFontSize(n);
   };
 
-  const onTheme = (dark: boolean) => {
-    const next: Theme = dark ? "dark" : "light";
+  const onThemeChange = (next: Theme) => {
     setThemeState(next);
     setTheme(next);
   };
@@ -340,20 +340,17 @@ export default function Configuracoes() {
 
         <Card className="p-5 bg-card border-border">
           <div className="flex items-start gap-3 mb-4">
-            {theme === "dark" ? <Moon className="h-5 w-5 text-primary mt-0.5" /> : <Sun className="h-5 w-5 text-primary mt-0.5" />}
+            <Paintbrush className="h-5 w-5 text-primary mt-0.5" />
             <div>
               <h3 className="font-semibold">Aparência</h3>
-              <p className="text-xs text-muted-foreground">Escolha entre modo claro e escuro.</p>
+              <p className="text-xs text-muted-foreground">
+                Escolha entre o tema padrão e os temas monocromáticos. Passe o mouse em
+                <strong className="text-foreground"> Pré-visualizar</strong> para ver ao vivo e clique em
+                <strong className="text-foreground"> Usar este tema</strong> para aplicar.
+              </p>
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-md border border-border p-3 bg-surface-elevated">
-            <div className="flex items-center gap-3">
-              <Sun className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{theme === "dark" ? "Modo escuro" : "Modo claro"}</span>
-              <Moon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <Switch checked={theme === "dark"} onCheckedChange={onTheme} aria-label="Alternar tema" />
-          </div>
+          <ThemePicker value={theme} onChange={onThemeChange} />
         </Card>
 
         <Card className="p-5 bg-card border-border">
