@@ -39,12 +39,15 @@ export default function ParceirosSignup() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
       <header className="max-w-5xl mx-auto px-5 py-6 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold tracking-tight">phonee</Link>
+        <Link to="/" className="flex items-center">
+          <img src="/phonee-logo-parceiros.png" alt="Phonee" className="h-8 w-auto" />
+        </Link>
         <Link to="/entrar" className="text-sm text-slate-300 hover:text-white">Já tenho conta →</Link>
       </header>
 
       <main className="max-w-5xl mx-auto px-5 pb-16 grid md:grid-cols-2 gap-10 items-start">
         <section className="space-y-6">
+          <img src="/phonee-logo-parceiros.png" alt="Phonee" className="h-16 w-auto md:h-20" />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs">
             <Handshake className="h-3.5 w-3.5" /> Programa de Parceiros
           </div>
