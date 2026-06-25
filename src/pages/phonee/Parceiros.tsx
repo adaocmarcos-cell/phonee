@@ -181,6 +181,7 @@ export default function PhoneeParceiros() {
     (r.status === "teste_expirado") ||
     (r.status === "em_teste" && r.trial_ends_at && new Date(r.trial_ends_at).getTime() <= now && !r.full_access_granted_at)
   );
+  const autoBlocked = rows.filter(r => r.status === "teste_expirado");
 
   return (
     <div>
@@ -242,6 +243,18 @@ export default function PhoneeParceiros() {
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {autoBlocked.length > 0 && (
+        <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
+          <div className="flex items-center gap-2 text-rose-300 font-semibold text-sm">
+            <AlertTriangle className="h-4 w-4" />
+            {autoBlocked.length} parceiro(s) bloqueado(s) automaticamente após 7 dias de teste
+          </div>
+          <p className="mt-1 text-xs text-rose-100/80">
+            O acesso foi revogado e registrado na auditoria. Libere manualmente os 12 meses para reativar o parceiro.
+          </p>
         </div>
       )}
 
