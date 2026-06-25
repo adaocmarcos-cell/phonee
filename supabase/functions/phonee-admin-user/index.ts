@@ -389,6 +389,31 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === "partner_reactivate") {
+      const { trial_id, trial_days } = body;
+      if (!trial_id) return json({ error: "trial_id é obrigatório." }, 400);
+      const { data: tr } = await admin.from("partner_trials").select("user_id, trial_days").eq("id", trial_id).maybeSingle();
+      const days = Number(trial_days) > 0 ? Number(trial_days) : (tr?.trial_days ?? 7);
+      const now = new Date();
+      const ends = new Date(now.getTime() + days * 86400_000);
+      const { error: upErr } = await admin.from("partner_trials").update({
+        status: "em_teste",
+        activated_at: now.toISOString(),
+        trial_days: days,
+        trial_ends_at: ends.toISOString(),
+      }).eq("id", trial_id);
+      if (upErr) return json({ error: upErr.message }, 500);
+      if (tr?.user_id) {
+        await admin.auth.admin.updateUserById(tr.user_id, { ban_duration: "none" } as any);
+        await admin.from("user_profile_extras").upsert(
+          { user_id: tr.user_id, status: "ativo", expires_at: ends.toISOString() },
+          { onConflict: "user_id" },
+        );
+      }
+      await audit("partner_reactivate", "partner_trials", trial_id, { trial_days: days });
+      return json({ ok: true, trial_ends_at: ends.toISOString() });
+    }
+
     if (action === "partner_regenerate_link") {
       const { trial_id } = body;
       if (!trial_id) return json({ error: "trial_id é obrigatório." }, 400);
