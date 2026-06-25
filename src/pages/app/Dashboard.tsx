@@ -3,10 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
+import { SortableCards } from "@/components/SortableCards";
+import { Button } from "@/components/ui/button";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Users, Wrench } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Users, Wrench, LayoutGrid, Check } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
@@ -19,6 +21,7 @@ export default function Dashboard() {
   const { store, role } = useAuth();
   const [period, setPeriod] = useState<PeriodValue>("month");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
+  const [editingLayout, setEditingLayout] = useState(false);
   const [revenueToday, setRevenueToday] = useState(0);
   const [revenueMonth, setRevenueMonth] = useState(0);
   const [salesCount, setSalesCount] = useState(0);
@@ -273,38 +276,84 @@ export default function Dashboard() {
       <PageHeader
         title="Visão geral"
         description="Tudo que importa na sua loja, em um só lugar."
+        actions={
+          <Button
+            variant={editingLayout ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEditingLayout((v) => !v)}
+            title={editingLayout ? "Concluir edição" : "Reordenar cards"}
+            aria-label={editingLayout ? "Concluir edição do layout" : "Reordenar cards"}
+          >
+            {editingLayout ? (
+              <>
+                <Check className="h-4 w-4 mr-1.5" />
+                Concluir
+              </>
+            ) : (
+              <>
+                <LayoutGrid className="h-4 w-4 mr-1.5" />
+                Reordenar
+              </>
+            )}
+          </Button>
+        }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <MetricCard
-          label="Faturamento hoje"
-          value={brl(revenueToday)}
-          delta={canSeeCost(role) ? `Lucro bruto hoje: ${brl(lucroBrutoHoje)}` : undefined}
-          icon={DollarSign}
-          tone="info"
-        />
-        <MetricCard
-          label={`Faturamento — ${periodLabel}`}
-          value={brl(revenueMonth)}
-          delta={`${num(salesCount)} vendas`}
-          icon={TrendingUp}
-          tone="primary"
-        />
-        <MetricCard
-          label={canSeeCost(role) ? "Margem média" : "Estoque baixo"}
-          value={canSeeCost(role) ? pct(margin) : num(productsLow)}
-          icon={canSeeCost(role) ? Percent : AlertTriangle}
-          tone={canSeeCost(role) ? "violet" : "warning"}
-        />
-        <MetricCard
-          label="Estoque encalhado"
-          value={num(stalled)}
-          delta="+30 dias sem venda"
-          trend="down"
-          icon={Package}
-          tone="danger"
-        />
-      </div>
+      <SortableCards
+        storageKey="dashboard.kpis.top"
+        editing={editingLayout}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"
+        items={[
+          {
+            id: "faturamento-hoje",
+            node: (
+              <MetricCard
+                label="Faturamento hoje"
+                value={brl(revenueToday)}
+                delta={canSeeCost(role) ? `Lucro bruto hoje: ${brl(lucroBrutoHoje)}` : undefined}
+                icon={DollarSign}
+                tone="info"
+              />
+            ),
+          },
+          {
+            id: "faturamento-periodo",
+            node: (
+              <MetricCard
+                label={`Faturamento — ${periodLabel}`}
+                value={brl(revenueMonth)}
+                delta={`${num(salesCount)} vendas`}
+                icon={TrendingUp}
+                tone="primary"
+              />
+            ),
+          },
+          {
+            id: "margem-ou-baixo",
+            node: (
+              <MetricCard
+                label={canSeeCost(role) ? "Margem média" : "Estoque baixo"}
+                value={canSeeCost(role) ? pct(margin) : num(productsLow)}
+                icon={canSeeCost(role) ? Percent : AlertTriangle}
+                tone={canSeeCost(role) ? "violet" : "warning"}
+              />
+            ),
+          },
+          {
+            id: "estoque-encalhado",
+            node: (
+              <MetricCard
+                label="Estoque encalhado"
+                value={num(stalled)}
+                delta="+30 dias sem venda"
+                trend="down"
+                icon={Package}
+                tone="danger"
+              />
+            ),
+          },
+        ]}
+      />
 
       <div className="grid grid-cols-1 gap-4 mb-6">
         {canSeeCost(role) ? (
@@ -322,46 +371,69 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <MetricCard
-          label="Ticket médio"
-          value={brl(ticketMedio)}
-          delta={`${num(salesCount)} vendas no período`}
-          icon={ShoppingCart}
-          tone="primary"
-        />
-        <MetricCard
-          label="Despesas do período"
-          value={brl(expensesMonth)}
-          delta="Custos operacionais"
-          icon={Receipt}
-          tone="warning"
-        />
-        {canSeeCost(role) ? (
-          <MetricCard
-            label="Custo de produtos"
-            value={brl(costMonth)}
-            delta="CMV + peças O.S."
-            icon={Boxes}
-            tone="violet"
-          />
-        ) : (
-          <MetricCard
-            label="Estoque baixo"
-            value={num(productsLow)}
-            delta="Itens abaixo do mínimo"
-            icon={AlertTriangle}
-            tone="warning"
-          />
-        )}
-        <MetricCard
-          label="Itens em alerta"
-          value={num(itensAlerta)}
-          delta={`${num(productsLow)} baixo · ${num(stalled)} encalhado`}
-          icon={Wrench}
-          tone="danger"
-        />
-      </div>
+      <SortableCards
+        storageKey="dashboard.kpis.secondary"
+        editing={editingLayout}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+        items={[
+          {
+            id: "ticket-medio",
+            node: (
+              <MetricCard
+                label="Ticket médio"
+                value={brl(ticketMedio)}
+                delta={`${num(salesCount)} vendas no período`}
+                icon={ShoppingCart}
+                tone="primary"
+              />
+            ),
+          },
+          {
+            id: "despesas-periodo",
+            node: (
+              <MetricCard
+                label="Despesas do período"
+                value={brl(expensesMonth)}
+                delta="Custos operacionais"
+                icon={Receipt}
+                tone="warning"
+              />
+            ),
+          },
+          {
+            id: "custo-ou-baixo",
+            node: canSeeCost(role) ? (
+              <MetricCard
+                label="Custo de produtos"
+                value={brl(costMonth)}
+                delta="CMV + peças O.S."
+                icon={Boxes}
+                tone="violet"
+              />
+            ) : (
+              <MetricCard
+                label="Estoque baixo"
+                value={num(productsLow)}
+                delta="Itens abaixo do mínimo"
+                icon={AlertTriangle}
+                tone="warning"
+              />
+            ),
+          },
+          {
+            id: "itens-alerta",
+            node: (
+              <MetricCard
+                label="Itens em alerta"
+                value={num(itensAlerta)}
+                delta={`${num(productsLow)} baixo · ${num(stalled)} encalhado`}
+                icon={Wrench}
+                tone="danger"
+              />
+            ),
+          },
+        ]}
+      />
 
       <Card className="p-5 mb-6 bg-card border-border shadow-card">
         <div className="mb-3">
