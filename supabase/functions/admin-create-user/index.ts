@@ -96,6 +96,12 @@ Deno.serve(async (req) => {
     });
     if (roleErr) return json({ error: roleErr.message }, 500);
 
+    // Link user to store (required for my_stores / store access)
+    const { error: linkErr } = await admin
+      .from("user_stores")
+      .upsert({ user_id: newUserId, store_id }, { onConflict: "user_id,store_id" });
+    if (linkErr) return json({ error: linkErr.message }, 500);
+
     // Extras (job_title/status)
     const { error: extraErr } = await admin.from("user_profile_extras").upsert({
       user_id: newUserId,

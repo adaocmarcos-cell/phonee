@@ -14,7 +14,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2, Pencil, UserCog } from "lucide-react";
+import { Plus, UserPlus, Search, ShieldAlert, KeyRound, ShieldCheck, Settings2, Pencil, UserCog, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ROLE_CATALOG, roleLabel, canManageUsers, type AppRole } from "@/lib/roles";
@@ -42,14 +46,35 @@ type Row = {
 };
 
 export default function Usuarios() {
-  const { store, role: myRole } = useAuth();
+  const { store, role: myRole, user: authUser } = useAuth();
   const allowed = canManageUsers(myRole as any);
+  const canDelete = ["admin_master", "dono", "administrador"].includes(String(myRole ?? ""));
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
+  const [deleting, setDeleting] = useState<Row | null>(null);
+  const [hardDelete, setHardDelete] = useState(false);
+  const [delBusy, setDelBusy] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleting || !store) return;
+    setDelBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { user_id: deleting.user_id, store_id: store.id, hard_delete: hardDelete },
+    });
+    setDelBusy(false);
+    if (error || (data && (data as any).error)) {
+      const msg = (data as any)?.error ?? error?.message ?? "Erro ao remover.";
+      return toast.error(`Não foi possível remover: ${msg}`);
+    }
+    toast.success("Colaborador removido.");
+    setDeleting(null);
+    setHardDelete(false);
+    load();
+  };
 
   const load = async () => {
     if (!store) return;
@@ -203,9 +228,21 @@ export default function Usuarios() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="outline" size="sm" onClick={() => setEditing(r)}>
-                      <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                    </Button>
+                    <div className="inline-flex gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setEditing(r)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                      </Button>
+                      {canDelete && r.user_id !== authUser?.id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => { setDeleting(r); setHardDelete(false); }}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -220,6 +257,38 @@ export default function Usuarios() {
         onClose={() => setEditing(null)}
         onSaved={() => { setEditing(null); load(); }}
       />
+
+      <AlertDialog open={!!deleting} onOpenChange={(v) => { if (!v) { setDeleting(null); setHardDelete(false); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover colaborador</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting && (
+                <>
+                  Tem certeza que deseja remover <strong>{deleting.full_name}</strong> ({deleting.email}) desta loja?
+                  O acesso será revogado imediatamente.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex items-start gap-2 text-xs text-muted-foreground border border-border rounded-md p-3">
+            <Checkbox checked={hardDelete} onCheckedChange={(v) => setHardDelete(!!v)} />
+            <span>
+              Excluir também a conta de login (somente se este colaborador não pertence a nenhuma outra loja).
+            </span>
+          </label>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={delBusy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={delBusy}
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {delBusy ? "Removendo…" : "Remover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
