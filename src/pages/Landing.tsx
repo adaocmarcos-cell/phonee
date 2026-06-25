@@ -619,9 +619,48 @@ export default function Landing() {
             subtitle="Escolha o plano que faz mais sentido para sua loja."
           />
 
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Anual — destaque */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Trial — Mensalidade Teste */}
             <Reveal direction="left" duration={1000} className="relative">
+              <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
+              <Card className="relative p-6 md:p-7 border-2 border-info/60 bg-card h-full">
+                <Badge className="bg-info/15 text-info border-info/40 text-sm">
+                  ⚡ OPORTUNIDADE ÚNICA
+                </Badge>
+                <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
+                  Mensalidade Teste
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="metric text-5xl md:text-6xl text-info">R$ 19,90</span>
+                </div>
+                <div className="mt-1 text-lg font-extrabold">por 1 mês — apenas uma vez</div>
+                <div className="mt-1 text-sm font-semibold text-foreground/80">
+                  Experimente o Phonee com investimento acessível antes de um compromisso maior.
+                </div>
+
+                <ul className="mt-5 space-y-2.5">
+                  {[
+                    "Acesso total por 30 dias",
+                    "Todos os módulos liberados",
+                    "Suporte humano por WhatsApp",
+                    "Sem renovação automática",
+                    "Garantia de 7 dias",
+                  ].map((i) => <CheckItem key={i}>{i}</CheckItem>)}
+                </ul>
+
+                <Link to="/comprar?plano=trial" className="block mt-6">
+                  <Button size="lg" className="w-full h-12 text-base bg-info hover:bg-info/90 text-white">
+                    Quero testar por R$19,90 <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="mt-3 text-[11px] text-foreground/70 leading-relaxed text-center">
+                  Após o teste, apenas Plano Anual ou Vitalício estarão disponíveis.
+                </div>
+              </Card>
+            </Reveal>
+
+            {/* Anual — destaque */}
+            <Reveal direction="left" duration={1000} delay={60} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/40 to-info/25 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full">
                 <Badge className="bg-success/15 text-success border-success/40 text-sm">
