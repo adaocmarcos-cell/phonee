@@ -40,7 +40,9 @@ export default function ParceirosSignup() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
       <header className="max-w-5xl mx-auto px-5 py-6 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold tracking-tight">phonee</Link>
+        <Link to="/" className="flex items-center">
+          <img src={logoAsset.url} alt="Phonee" className="h-8 w-auto" />
+        </Link>
         <Link to="/entrar" className="text-sm text-slate-300 hover:text-white">Já tenho conta →</Link>
       </header>
 
