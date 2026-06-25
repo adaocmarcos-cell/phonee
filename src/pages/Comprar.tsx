@@ -392,6 +392,17 @@ export default function Comprar() {
               )}
             </div>
 
+            {selectedCode === "trial" && (
+              <div className="rounded-xl border-2 border-info/40 bg-info/5 p-4 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-info">
+                  <Sparkles className="h-4 w-4" /> Apenas uma vez: Teste o Phonee por R$19,90
+                </div>
+                <p className="text-xs text-white/85 leading-relaxed">
+                  Acesso total à plataforma por 1 mês. Após o período de teste, a contratação só estará disponível nas modalidades <b>Anual</b> ou <b>Vitalício</b>.
+                </p>
+              </div>
+            )}
+
             {selectedCode === "lifetime" && (
               <div className="rounded-xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-primary/5 to-amber-500/10 p-4 space-y-3">
                 <div className="flex items-center gap-2 font-bold text-amber-300">
