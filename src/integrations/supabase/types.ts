@@ -1867,6 +1867,8 @@ export type Database = {
           started_at: string | null
           status: string
           store_id: string | null
+          trial_expired_notice_sent_at: string | null
+          trial_warning_sent_at: string | null
           updated_at: string
           user_id: string | null
         }
@@ -1893,6 +1895,8 @@ export type Database = {
           started_at?: string | null
           status?: string
           store_id?: string | null
+          trial_expired_notice_sent_at?: string | null
+          trial_warning_sent_at?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1919,6 +1923,8 @@ export type Database = {
           started_at?: string | null
           status?: string
           store_id?: string | null
+          trial_expired_notice_sent_at?: string | null
+          trial_warning_sent_at?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -2624,6 +2630,10 @@ export type Database = {
           _referred_subscription_id?: string
         }
         Returns: string
+      }
+      trial_eligibility: {
+        Args: { _doc?: string; _email?: string; _user_id?: string }
+        Returns: Json
       }
       use_referral_credit: {
         Args: { _amount_cents: number; _notes?: string }
