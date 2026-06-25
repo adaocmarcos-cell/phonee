@@ -44,7 +44,14 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action, user_id, store_id } = body ?? {};
     if (!action) return json({ error: "Ação é obrigatória." }, 400);
-    if (action !== "update_store" && !user_id) {
+    const noUserActions = new Set([
+      "update_store",
+      "delete_store",
+      "create_user",
+      "partner_create_trial",
+      "partner_list",
+    ]);
+    if (!noUserActions.has(action) && !user_id) {
       return json({ error: "Usuário é obrigatório." }, 400);
     }
     if (user_id === callerId && (action === "delete" || action === "block")) {
@@ -52,7 +59,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "update") {
-      const { full_name, email, phone, new_password } = body;
+      const { full_name, email, phone, new_password, expires_at } = body;
       const authPatch: Record<string, unknown> = {};
       if (typeof email === "string" && email.trim()) authPatch.email = email.trim().toLowerCase();
       if (typeof new_password === "string" && new_password) {
@@ -70,6 +77,192 @@ Deno.serve(async (req) => {
       if (Object.keys(profPatch).length > 1) {
         const { error } = await admin.from("profiles").upsert(profPatch);
         if (error) return json({ error: error.message }, 500);
+      }
+      if (expires_at !== undefined) {
+        await admin.from("user_profile_extras").upsert(
+          { user_id, expires_at: expires_at || null },
+          { onConflict: "user_id" },
+        );
+      }
+      return json({ ok: true });
+    }
+
+    // Manual creation of a regular user (with optional expiration)
+    if (action === "create_user") {
+      const { email, full_name, password, phone, expires_at, send_recovery } = body;
+      if (typeof email !== "string" || !email.trim()) return json({ error: "E-mail é obrigatório." }, 400);
+      if (password && password.length < 8) return json({ error: "Senha mínima de 8 caracteres." }, 400);
+      const finalPass = password || crypto.randomUUID().slice(0, 12) + "Aa1!";
+      const { data: created, error: cErr } = await admin.auth.admin.createUser({
+        email: email.trim().toLowerCase(),
+        password: finalPass,
+        email_confirm: true,
+        user_metadata: { full_name: full_name ?? "" },
+      });
+      if (cErr || !created?.user) return json({ error: cErr?.message ?? "Falha ao criar usuário." }, 400);
+      const uid = created.user.id;
+      await admin.from("profiles").upsert({
+        id: uid,
+        full_name: (full_name ?? "").trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone?.trim() || null,
+      });
+      if (expires_at) {
+        await admin.from("user_profile_extras").upsert(
+          { user_id: uid, expires_at },
+          { onConflict: "user_id" },
+        );
+      }
+      let recoveryLink: string | null = null;
+      if (send_recovery) {
+        const { data: link } = await admin.auth.admin.generateLink({
+          type: "recovery",
+          email: email.trim().toLowerCase(),
+        });
+        recoveryLink = (link as any)?.properties?.action_link ?? null;
+      }
+      return json({ ok: true, user_id: uid, password: password ? undefined : finalPass, recovery_link: recoveryLink });
+    }
+
+    // ============ Partner trials (7 days + 12 months manual) ============
+    if (action === "partner_create_trial") {
+      const { email, full_name, whatsapp, trial_days, full_access_months, notes } = body;
+      if (typeof email !== "string" || !email.trim()) return json({ error: "E-mail é obrigatório." }, 400);
+      const cleanEmail = email.trim().toLowerCase();
+      const tDays = Number(trial_days) > 0 ? Number(trial_days) : 7;
+      const fMonths = Number(full_access_months) > 0 ? Number(full_access_months) : 12;
+
+      // Create or get user
+      let uid: string | null = null;
+      const tempPass = crypto.randomUUID().slice(0, 8) + "Aa1!";
+      const { data: created, error: cErr } = await admin.auth.admin.createUser({
+        email: cleanEmail,
+        password: tempPass,
+        email_confirm: true,
+        user_metadata: { full_name: full_name ?? "", partner_trial: true },
+      });
+      if (cErr && !/already.*registered|exists/i.test(cErr.message)) {
+        return json({ error: cErr.message }, 400);
+      }
+      if (created?.user) {
+        uid = created.user.id;
+      } else {
+        // find existing
+        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        uid = list?.users?.find((u: any) => (u.email ?? "").toLowerCase() === cleanEmail)?.id ?? null;
+      }
+
+      await admin.from("profiles").upsert({
+        id: uid!,
+        full_name: (full_name ?? "").trim(),
+        email: cleanEmail,
+        phone: whatsapp?.trim() || null,
+      });
+
+      const now = new Date();
+      const trialEnds = new Date(now.getTime() + tDays * 86400_000);
+
+      // Magic link for the partner
+      const { data: link } = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email: cleanEmail,
+      });
+      const inviteLink = (link as any)?.properties?.action_link ?? null;
+
+      const { data: row, error: ptErr } = await admin
+        .from("partner_trials")
+        .insert({
+          user_id: uid,
+          email: cleanEmail,
+          full_name: full_name ?? null,
+          whatsapp: whatsapp?.trim() || null,
+          notes: notes ?? null,
+          invited_by: callerId,
+          activated_at: now.toISOString(),
+          trial_days: tDays,
+          trial_ends_at: trialEnds.toISOString(),
+          full_access_months: fMonths,
+          status: "em_teste",
+          invite_link: inviteLink,
+        })
+        .select()
+        .single();
+      if (ptErr) return json({ error: ptErr.message }, 500);
+
+      // also record expires_at on extras for visibility (= trial_ends_at)
+      if (uid) {
+        await admin.from("user_profile_extras").upsert(
+          { user_id: uid, expires_at: trialEnds.toISOString() },
+          { onConflict: "user_id" },
+        );
+      }
+
+      return json({ ok: true, trial: row, invite_link: inviteLink, temp_password: tempPass });
+    }
+
+    if (action === "partner_release_full") {
+      const { trial_id, months, start_at } = body;
+      if (!trial_id) return json({ error: "trial_id é obrigatório." }, 400);
+      const { data: tr, error: tErr } = await admin
+        .from("partner_trials").select("*").eq("id", trial_id).maybeSingle();
+      if (tErr || !tr) return json({ error: tErr?.message ?? "Parceiro não encontrado." }, 404);
+      const m = Number(months) > 0 ? Number(months) : (tr.full_access_months ?? 12);
+      const start = start_at ? new Date(start_at) : new Date();
+      const end = new Date(start.getTime() + m * 30 * 86400_000);
+      const { error: upErr } = await admin.from("partner_trials").update({
+        full_access_granted_at: start.toISOString(),
+        full_access_months: m,
+        full_access_ends_at: end.toISOString(),
+        status: "liberado",
+      }).eq("id", trial_id);
+      if (upErr) return json({ error: upErr.message }, 500);
+      // unblock user and align extras expiration
+      if (tr.user_id) {
+        await admin.auth.admin.updateUserById(tr.user_id, { ban_duration: "none" } as any);
+        await admin.from("user_profile_extras").upsert(
+          { user_id: tr.user_id, expires_at: end.toISOString(), status: "ativo" },
+          { onConflict: "user_id" },
+        );
+      }
+      return json({ ok: true, full_access_ends_at: end.toISOString() });
+    }
+
+    if (action === "partner_revoke") {
+      const { trial_id } = body;
+      if (!trial_id) return json({ error: "trial_id é obrigatório." }, 400);
+      const { data: tr } = await admin.from("partner_trials").select("user_id").eq("id", trial_id).maybeSingle();
+      await admin.from("partner_trials").update({ status: "revogado" }).eq("id", trial_id);
+      if (tr?.user_id) {
+        await admin.auth.admin.updateUserById(tr.user_id, { ban_duration: "876000h" } as any);
+        await admin.from("user_profile_extras").upsert(
+          { user_id: tr.user_id, status: "inativo" },
+          { onConflict: "user_id" },
+        );
+      }
+      return json({ ok: true });
+    }
+
+    if (action === "partner_regenerate_link") {
+      const { trial_id } = body;
+      if (!trial_id) return json({ error: "trial_id é obrigatório." }, 400);
+      const { data: tr } = await admin.from("partner_trials").select("email").eq("id", trial_id).maybeSingle();
+      if (!tr?.email) return json({ error: "Parceiro não encontrado." }, 404);
+      const { data: link, error: lErr } = await admin.auth.admin.generateLink({
+        type: "recovery", email: tr.email,
+      });
+      if (lErr) return json({ error: lErr.message }, 400);
+      const url = (link as any)?.properties?.action_link ?? null;
+      await admin.from("partner_trials").update({ invite_link: url }).eq("id", trial_id);
+      return json({ ok: true, invite_link: url });
+    }
+
+    if (action === "partner_delete") {
+      const { trial_id, delete_user } = body;
+      if (!trial_id) return json({ error: "trial_id é obrigatório." }, 400);
+      const { data: tr } = await admin.from("partner_trials").select("user_id").eq("id", trial_id).maybeSingle();
+      await admin.from("partner_trials").delete().eq("id", trial_id);
+      if (delete_user && tr?.user_id) {
+        await admin.auth.admin.deleteUser(tr.user_id);
       }
       return json({ ok: true });
     }
