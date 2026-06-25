@@ -3,7 +3,7 @@ import { z } from "npm:zod@3.23.8";
 import { asaasFetch, corsHeaders, jsonResponse } from "../_shared/asaas.ts";
 
 const Schema = z.object({
-  plan_code: z.enum(["annual", "lifetime"]),
+  plan_code: z.enum(["trial", "annual", "lifetime"]),
   customer_name: z.string().trim().min(2).max(120),
   customer_email: z.string().trim().email().max(255),
   customer_phone: z.string().trim().min(8).max(20),
@@ -12,7 +12,7 @@ const Schema = z.object({
   installments: z.number().int().min(1).max(12).default(1),
   store_id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional(),
-  billing_cycle: z.enum(["annual", "lifetime"]).optional(),
+  billing_cycle: z.enum(["trial", "annual", "lifetime"]).optional(),
   ref_code: z.string().trim().max(40).optional(),
   coupon_code: z.string().trim().max(40).optional(),
 });
@@ -148,9 +148,12 @@ Deno.serve(async (req) => {
       pix_qr_code: pixQr,
       pix_copy_paste: pixCopy,
       started_at: new Date().toISOString(),
-      expires_at: (input.billing_cycle ?? input.plan_code) === "annual"
-        ? new Date(Date.now() + 365 * 86400000).toISOString()
-        : null,
+      expires_at: (() => {
+        const cyc = input.billing_cycle ?? input.plan_code;
+        if (cyc === "annual") return new Date(Date.now() + 365 * 86400000).toISOString();
+        if (cyc === "trial") return new Date(Date.now() + 30 * 86400000).toISOString();
+        return null;
+      })(),
     }).select().single();
     if (subErr) return jsonResponse({ error: "Falha ao salvar assinatura", details: subErr.message }, 500);
 
