@@ -35,6 +35,29 @@ Deno.serve(async (req) => {
     const { data: plan, error: planErr } = await admin.from("plans").select("*").eq("code", input.plan_code).eq("active", true).single();
     if (planErr || !plan) return jsonResponse({ error: "Plano não encontrado" }, 404);
 
+    // Mensalidade Teste: pagamento único — bloqueia segunda ativação para o mesmo email, CPF/CNPJ ou usuário.
+    if (input.plan_code === "trial") {
+      const emailLower = input.customer_email.toLowerCase();
+      const docDigitsCheck = onlyDigits(input.customer_doc);
+      const orParts = [
+        `customer_email.eq.${emailLower}`,
+        `customer_doc.eq.${docDigitsCheck}`,
+      ];
+      if (input.user_id) orParts.push(`user_id.eq.${input.user_id}`);
+      const { data: prevTrial } = await admin
+        .from("subscriptions")
+        .select("id,status")
+        .eq("billing_cycle", "trial")
+        .or(orParts.join(","))
+        .limit(1);
+      if (prevTrial && prevTrial.length > 0) {
+        return jsonResponse({
+          error: "A Mensalidade Teste é uma oferta única por cadastro e já foi utilizada para este e-mail/CPF. Escolha o plano Anual ou Vitalício para continuar.",
+          code: "TRIAL_ALREADY_USED",
+        }, 409);
+      }
+    }
+
     const installments = input.payment_method === "CREDIT_CARD" ? Math.min(input.installments, plan.max_installments) : 1;
     const docDigits = onlyDigits(input.customer_doc);
     const phoneDigits = onlyDigits(input.customer_phone);
