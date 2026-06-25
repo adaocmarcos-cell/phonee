@@ -34,7 +34,7 @@ export default function MinhasLojas() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [cycle, setCycle] = useState<"annual" | "lifetime">("annual");
+  const [cycle, setCycle] = useState<"trial" | "annual" | "lifetime">("annual");
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "boleto" | "credit_card">("pix");
   const [saving, setSaving] = useState(false);
 
@@ -43,9 +43,10 @@ export default function MinhasLojas() {
       .then(({ data }) => setPlans((data ?? []) as Plan[]));
   }, []);
 
+  const planTrial = plans.find((p) => p.code === "trial");
   const planAnnual = plans.find((p) => p.code === "annual");
   const planLifetime = plans.find((p) => p.code === "lifetime");
-  const selectedPlan = cycle === "lifetime" ? planLifetime : planAnnual;
+  const selectedPlan = cycle === "lifetime" ? planLifetime : cycle === "trial" ? planTrial : planAnnual;
 
   const canManage = role === "dono";
 
@@ -90,7 +91,11 @@ export default function MinhasLojas() {
       }
 
       // Fallback (Asaas indisponível): cria assinatura pendente direto na base.
-      const expiresAt = cycle === "annual" ? new Date(Date.now() + 365 * 86400000).toISOString() : null;
+      const expiresAt = cycle === "annual"
+        ? new Date(Date.now() + 365 * 86400000).toISOString()
+        : cycle === "trial"
+          ? new Date(Date.now() + 30 * 86400000).toISOString()
+          : null;
       const { error: e2 } = await (supabase.from("subscriptions") as any).insert({
         user_id: user.id,
         store_id: created.id,
@@ -327,6 +332,7 @@ export default function MinhasLojas() {
               <Select value={cycle} onValueChange={(v) => setCycle(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  {planTrial && <SelectItem value="trial">{planTrial.name} — {brl(planTrial.price_cents / 100)} (teste de 1 mês · apenas uma vez)</SelectItem>}
                   {planAnnual && <SelectItem value="annual">{planAnnual.name} — {brl(planAnnual.price_cents / 100)} / ano</SelectItem>}
                   {planLifetime && <SelectItem value="lifetime">{planLifetime.name} — {brl(planLifetime.price_cents / 100)} (vitalício)</SelectItem>}
                 </SelectContent>
@@ -351,7 +357,9 @@ export default function MinhasLojas() {
               <div className="text-xs text-muted-foreground">
                 {cycle === "lifetime"
                   ? "Pagamento único — loja com acesso vitalício."
-                  : "Cobrança anual — renovação em 12 meses."}
+                  : cycle === "trial"
+                    ? "Apenas uma vez: teste o Phonee por R$19,90. Após 30 dias, somente Anual ou Vitalício."
+                    : "Cobrança anual — renovação em 12 meses."}
               </div>
             </div>
           </div>
