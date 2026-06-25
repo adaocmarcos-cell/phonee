@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Bell, BellOff, CheckCheck, Trash2, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import PageHeader from "@/components/PageHeader";
+import { PageHeader } from "@/components/PageHeader";
 
 type NotificationItem = {
   id: string;
