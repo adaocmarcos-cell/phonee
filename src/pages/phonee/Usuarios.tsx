@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -35,11 +35,18 @@ export default function PhoneeUsuarios() {
   const [q, setQ] = useState("");
 
   const [editing, setEditing] = useState<Row | null>(null);
-  const [editForm, setEditForm] = useState({ full_name: "", email: "", new_password: "" });
+  const [editForm, setEditForm] = useState({ full_name: "", email: "", new_password: "", expires_at: "" });
   const [saving, setSaving] = useState(false);
 
   const [confirm, setConfirm] = useState<{ row: Row; action: Action } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [openNew, setOpenNew] = useState(false);
+  const [newForm, setNewForm] = useState({
+    full_name: "", email: "", phone: "", password: "",
+    has_expiration: false, expires_at: "", send_recovery: true,
+  });
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -68,7 +75,7 @@ export default function PhoneeUsuarios() {
 
   const openEdit = (r: Row) => {
     setEditing(r);
-    setEditForm({ full_name: r.full_name ?? "", email: r.email ?? "", new_password: "" });
+    setEditForm({ full_name: r.full_name ?? "", email: r.email ?? "", new_password: "", expires_at: "" });
   };
 
   const saveEdit = async () => {
@@ -85,6 +92,7 @@ export default function PhoneeUsuarios() {
         full_name: editForm.full_name,
         email: editForm.email,
         new_password: editForm.new_password || undefined,
+        expires_at: editForm.expires_at || undefined,
       },
     });
     setSaving(false);
@@ -94,6 +102,45 @@ export default function PhoneeUsuarios() {
     }
     toast.success("Usuário atualizado.");
     setEditing(null);
+    load();
+  };
+
+  const createUser = async () => {
+    if (!newForm.email.trim() || !newForm.full_name.trim()) {
+      return toast.error("Nome e e-mail são obrigatórios.");
+    }
+    if (newForm.has_expiration && !newForm.expires_at) {
+      return toast.error("Defina a data de expiração ou desmarque a opção.");
+    }
+    setCreating(true);
+    const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
+      body: {
+        action: "create_user",
+        full_name: newForm.full_name,
+        email: newForm.email,
+        phone: newForm.phone || undefined,
+        password: newForm.password || undefined,
+        expires_at: newForm.has_expiration ? newForm.expires_at : null,
+        send_recovery: newForm.send_recovery,
+      },
+    });
+    setCreating(false);
+    if (error || (data as any)?.error) {
+      return toast.error(((data as any)?.error) || error?.message || "Falha ao criar usuário.");
+    }
+    const tempPass = (data as any)?.password;
+    const recovery = (data as any)?.recovery_link;
+    toast.success("Usuário criado.");
+    if (tempPass) {
+      navigator.clipboard.writeText(tempPass);
+      toast.message("Senha temporária copiada", { description: tempPass });
+    }
+    if (recovery) {
+      navigator.clipboard.writeText(recovery);
+      toast.message("Link de redefinição copiado para a área de transferência.");
+    }
+    setOpenNew(false);
+    setNewForm({ full_name: "", email: "", phone: "", password: "", has_expiration: false, expires_at: "", send_recovery: true });
     load();
   };
 
@@ -125,11 +172,16 @@ export default function PhoneeUsuarios() {
             {filtered.length} de {rows.length} usuário(s).
           </p>
         </div>
-        <input
-          placeholder="Buscar por nome, e-mail, loja, papel ou plano…"
-          value={q} onChange={(e) => setQ(e.target.value)}
-          className="w-full sm:w-96 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm text-slate-100"
-        />
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            placeholder="Buscar por nome, e-mail, loja, papel ou plano…"
+            value={q} onChange={(e) => setQ(e.target.value)}
+            className="w-full sm:w-80 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm text-slate-100"
+          />
+          <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
+            <UserPlus className="h-4 w-4 mr-1.5" /> Novo usuário
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
