@@ -414,6 +414,28 @@ export default function Dashboard() {
         ]}
       />
 
+      <div className="-mt-3 mb-6 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setEditingLayout((v) => !v)}
+          title={editingLayout ? "Concluir edição" : "Reordenar cards"}
+          aria-label={editingLayout ? "Concluir edição do layout" : "Reordenar cards"}
+          className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70 hover:text-muted-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted/40"
+        >
+          {editingLayout ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Concluir
+            </>
+          ) : (
+            <>
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Reordenar cards
+            </>
+          )}
+        </button>
+      </div>
+
       <Card className="p-5 mb-6 bg-card border-border shadow-card">
         <div className="mb-3">
           <h3 className="font-semibold">Evolução das vendas</h3>
