@@ -276,27 +276,6 @@ export default function Dashboard() {
       <PageHeader
         title="Visão geral"
         description="Tudo que importa na sua loja, em um só lugar."
-        actions={
-          <Button
-            variant={editingLayout ? "default" : "outline"}
-            size="sm"
-            onClick={() => setEditingLayout((v) => !v)}
-            title={editingLayout ? "Concluir edição" : "Reordenar cards"}
-            aria-label={editingLayout ? "Concluir edição do layout" : "Reordenar cards"}
-          >
-            {editingLayout ? (
-              <>
-                <Check className="h-4 w-4 mr-1.5" />
-                Concluir
-              </>
-            ) : (
-              <>
-                <LayoutGrid className="h-4 w-4 mr-1.5" />
-                Reordenar
-              </>
-            )}
-          </Button>
-        }
       />
 
       <SortableCards
