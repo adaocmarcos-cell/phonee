@@ -327,10 +327,78 @@ export default function PhoneeUsuarios() {
                 Útil para ajudar usuários secundários no login. Mínimo 8 caracteres.
               </p>
             </div>
+            <div>
+              <Label className="flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5" /> Expiração do cadastro (opcional)
+              </Label>
+              <Input
+                type="date"
+                value={editForm.expires_at}
+                onChange={(e) => setEditForm((f) => ({ ...f, expires_at: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Deixe em branco para não expirar. Registra a data nos extras do perfil.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>Cancelar</Button>
             <Button onClick={saveEdit} disabled={saving}>{saving ? "Salvando…" : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New user dialog */}
+      <Dialog open={openNew} onOpenChange={setOpenNew}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nome completo *</Label>
+              <Input value={newForm.full_name}
+                onChange={(e) => setNewForm(f => ({...f, full_name: e.target.value}))}/>
+            </div>
+            <div>
+              <Label>E-mail *</Label>
+              <Input type="email" value={newForm.email}
+                onChange={(e) => setNewForm(f => ({...f, email: e.target.value}))}/>
+            </div>
+            <div>
+              <Label>WhatsApp / Telefone</Label>
+              <Input value={newForm.phone}
+                onChange={(e) => setNewForm(f => ({...f, phone: e.target.value}))}/>
+            </div>
+            <div>
+              <Label className="flex items-center gap-1.5"><KeyRound className="h-3.5 w-3.5"/> Senha (opcional)</Label>
+              <Input type="text" placeholder="Em branco gera senha aleatória"
+                value={newForm.password}
+                onChange={(e) => setNewForm(f => ({...f, password: e.target.value}))}/>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input type="checkbox" checked={newForm.has_expiration}
+                onChange={(e) => setNewForm(f => ({...f, has_expiration: e.target.checked}))}/>
+              Definir data de expiração do cadastro
+            </label>
+            {newForm.has_expiration && (
+              <div>
+                <Label>Expira em</Label>
+                <Input type="date" value={newForm.expires_at}
+                  onChange={(e) => setNewForm(f => ({...f, expires_at: e.target.value}))}/>
+              </div>
+            )}
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input type="checkbox" checked={newForm.send_recovery}
+                onChange={(e) => setNewForm(f => ({...f, send_recovery: e.target.checked}))}/>
+              Gerar link de redefinição de senha (copiado ao criar)
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenNew(false)} disabled={creating}>Cancelar</Button>
+            <Button onClick={createUser} disabled={creating} className="bg-sky-600 hover:bg-sky-700">
+              {creating ? "Criando…" : "Criar usuário"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
