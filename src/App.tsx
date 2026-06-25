@@ -67,6 +67,7 @@ import PhoneeMarketing from "./pages/phonee/Marketing";
 import PhoneeCupons from "./pages/phonee/Cupons";
 import PhoneeIndicacoes from "./pages/phonee/Indicacoes";
 import PhoneeParceiros from "./pages/phonee/Parceiros";
+import PhoneeAuditoria from "./pages/phonee/Auditoria";
 import { MetaPixel } from "./components/MetaPixel";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
@@ -158,6 +159,7 @@ const App = () => (
               <Route path="cupons" element={<PhoneeCupons />} />
               <Route path="indicacoes" element={<PhoneeIndicacoes />} />
               <Route path="suporte" element={<SuporteAdmin />} />
+              <Route path="auditoria" element={<PhoneeAuditoria />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
