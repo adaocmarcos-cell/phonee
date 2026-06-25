@@ -26,7 +26,7 @@ const main: Item[] = [
   { title: "Pedidos de compra", url: "/painel/pedidos", icon: ShoppingCart },
   { title: "Logs", url: "/painel/logs", icon: FileSearch },
   { title: "Alertas", url: "/painel/alertas", icon: AlertTriangle, badgeKey: "alerts" },
-  { title: "Notificações", url: "/painel/configuracoes?tab=notificacoes", icon: Bell, badgeKey: "notifications" },
+  { title: "Notificações", url: "/painel/notificacoes", icon: Bell, badgeKey: "notifications" },
 ];
 
 const ops: Item[] = [
@@ -87,7 +87,7 @@ export function AppSidebar() {
   }, []);
 
   useEffect(() => {
-    if (pathname.startsWith("/painel/configuracoes") && hasNewNotification) {
+    if (pathname.startsWith("/painel/notificacoes") && hasNewNotification) {
       localStorage.removeItem("phonee:new_notification");
       setHasNewNotification(false);
     }
