@@ -2009,6 +2009,7 @@ export type Database = {
       }
       support_ticket_messages: {
         Row: {
+          attachments: Json
           created_at: string
           id: string
           is_admin: boolean
@@ -2017,6 +2018,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json
           created_at?: string
           id?: string
           is_admin?: boolean
@@ -2025,6 +2027,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json
           created_at?: string
           id?: string
           is_admin?: boolean
@@ -2091,6 +2094,7 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          attachments: Json
           category: string | null
           created_at: string
           id: string
@@ -2103,6 +2107,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json
           category?: string | null
           created_at?: string
           id?: string
@@ -2115,6 +2120,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json
           category?: string | null
           created_at?: string
           id?: string
