@@ -613,6 +613,7 @@ export type Database = {
           full_access_months: number
           full_name: string | null
           id: string
+          instagram: string | null
           invite_link: string | null
           invited_at: string
           invited_by: string | null
@@ -633,6 +634,7 @@ export type Database = {
           full_access_months?: number
           full_name?: string | null
           id?: string
+          instagram?: string | null
           invite_link?: string | null
           invited_at?: string
           invited_by?: string | null
@@ -653,6 +655,7 @@ export type Database = {
           full_access_months?: number
           full_name?: string | null
           id?: string
+          instagram?: string | null
           invite_link?: string | null
           invited_at?: string
           invited_by?: string | null
@@ -2720,6 +2723,7 @@ export type Database = {
           full_access_months: number
           full_name: string
           id: string
+          instagram: string
           invite_link: string
           invited_at: string
           notes: string

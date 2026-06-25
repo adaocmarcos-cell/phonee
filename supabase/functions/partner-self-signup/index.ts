@@ -25,7 +25,8 @@ Deno.serve(async (req) => {
     const full_name = String(body?.full_name ?? "").trim();
     const whatsapp = String(body?.whatsapp ?? "").trim();
     const password = String(body?.password ?? "");
-    const notes = String(body?.notes ?? "").trim();
+    const instagram = String(body?.instagram ?? "").trim();
+    const notes = instagram ? `Instagram: ${instagram}` : "Cadastro público via /parceiros";
 
     if (!email || !/.+@.+\..+/.test(email)) return json({ error: "E-mail inválido." }, 400);
     if (!full_name) return json({ error: "Informe seu nome." }, 400);
@@ -79,7 +80,8 @@ Deno.serve(async (req) => {
         email,
         full_name,
         whatsapp: whatsapp || null,
-        notes: notes || "Cadastro público via /parceiros",
+        instagram: instagram || null,
+        notes: instagram ? `Instagram: ${instagram}` : "Cadastro público via /parceiros",
         activated_at: now.toISOString(),
         trial_days: 7,
         trial_ends_at: trialEnds.toISOString(),
