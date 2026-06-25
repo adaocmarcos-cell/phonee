@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MetricCard } from "@/components/MetricCard";
+import { SortableCards } from "@/components/SortableCards";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import {
   Wallet, TrendingUp, TrendingDown, Receipt, ArrowRight, Clock, CheckCircle2,
-  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText,
+  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText, LayoutGrid, Check,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -44,6 +45,7 @@ export default function Financeiro() {
 
   const [from, setFrom] = useState(toInputDate(startOfMonth()));
   const [to, setTo] = useState(toInputDate(endOfMonth()));
+  const [editingLayout, setEditingLayout] = useState(false);
 
   const [sales, setSales] = useState<Sale[]>([]);
   const [partsSales, setPartsSales] = useState<PartsSale[]>([]);
@@ -251,6 +253,14 @@ export default function Financeiro() {
               <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Até</Label>
               <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-[160px] mt-1" />
             </div>
+            <Button
+              variant={editingLayout ? "default" : "outline"}
+              onClick={() => setEditingLayout((v) => !v)}
+              title={editingLayout ? "Concluir edição" : "Reordenar cards"}
+              aria-label={editingLayout ? "Concluir edição do layout" : "Reordenar cards"}
+            >
+              {editingLayout ? (<><Check className="h-4 w-4 mr-1" />Concluir</>) : (<><LayoutGrid className="h-4 w-4 mr-1" />Reordenar</>)}
+            </Button>
             <Button variant="outline" onClick={exportReport}><FileDown className="h-4 w-4 mr-1" />Exportar PDF</Button>
           </div>
         }
@@ -283,12 +293,17 @@ export default function Financeiro() {
       </div>
 
       {/* KPIs principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <MetricCard label="A receber" value={brl(totals.aReceber)} delta={`${receivables.filter(r => r.status !== "pago").length} título(s)`} icon={Clock} tone="warning" className="py-[18px]" />
-        <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="py-[18px]" />
-        <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" />
-        <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" />
-      </div>
+      <SortableCards
+        storageKey="financeiro.kpis"
+        editing={editingLayout}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"
+        items={[
+          { id: "a-receber", node: <MetricCard label="A receber" value={brl(totals.aReceber)} delta={`${receivables.filter(r => r.status !== "pago").length} título(s)`} icon={Clock} tone="warning" className="py-[18px]" /> },
+          { id: "a-pagar", node: <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="py-[18px]" /> },
+          { id: "recebido", node: <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" /> },
+          { id: "liquido", node: <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" /> },
+        ]}
+      />
 
       {/* Recebimentos por método */}
       <Card className="p-4 mb-4">
