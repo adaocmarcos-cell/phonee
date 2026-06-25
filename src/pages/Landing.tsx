@@ -616,7 +616,7 @@ export default function Landing() {
           <SectionTitle
             eyebrow="PREÇO"
             title="Sem mensalidades. Sem surpresas."
-            subtitle="Escolha o plano que faz mais sentido para sua loja."
+            subtitle="Apenas uma vez: Teste o Phonee por R$19,90. Depois, escolha Anual ou Vitalício."
           />
 
           <div className="grid lg:grid-cols-3 gap-6">
