@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Handshake, CheckCircle2, ArrowRight, ShieldCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
+import logoAsset from "@/assets/phonee-logo-parceiros.png.asset.json";
 
 export default function ParceirosSignup() {
   const nav = useNavigate();
