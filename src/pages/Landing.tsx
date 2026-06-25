@@ -233,6 +233,9 @@ export default function Landing() {
               style={{ background: "transparent", boxShadow: "none", border: 0 }}
             />
           </div>
+          <div className="-mt-1 mb-6 md:mb-8 text-center text-[11px] sm:text-xs md:text-sm font-mono tracking-[0.35em] uppercase text-slate-300/90">
+            Gestão inteligente
+          </div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center">
           <Reveal direction="up" duration={1000}>
@@ -776,7 +779,12 @@ export default function Landing() {
           </Reveal>
         </div>
         <Reveal direction="scale" duration={1100} className="max-w-7xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src={logo} alt="Phonee" className="h-16 md:h-20 w-auto drop-shadow-[0_8px_30px_rgba(59,130,246,0.35)]" />
+          <div className="flex flex-col items-center md:items-start gap-1">
+            <img src={logo} alt="Phonee" className="h-16 md:h-20 w-auto drop-shadow-[0_8px_30px_rgba(59,130,246,0.35)]" />
+            <div className="text-[10px] md:text-[11px] font-mono tracking-[0.35em] uppercase text-slate-400">
+              Gestão inteligente
+            </div>
+          </div>
           <div className="text-xs">© {new Date().getFullYear()} Phonee. Todos os direitos reservados.</div>
         </Reveal>
       </footer>
