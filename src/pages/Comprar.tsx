@@ -47,6 +47,11 @@ export default function Comprar() {
   const [couponInfo, setCouponInfo] = useState<{ valid: boolean; discount_cents: number; message?: string } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
+  // Elegibilidade da Mensalidade Teste (debounce por e-mail/CPF)
+  const [trialEligible, setTrialEligible] = useState<boolean | null>(null);
+  const [trialEligibilityMsg, setTrialEligibilityMsg] = useState<string | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
+
   useEffect(() => {
     const r = params.get("ref");
     if (r) {
@@ -99,12 +104,45 @@ export default function Comprar() {
 
   useEffect(() => { setCouponInfo(null); }, [selectedCode]);
 
+  // Checagem de elegibilidade do trial, em tempo real (debounce 500ms)
+  useEffect(() => {
+    const email = form.customer_email.trim();
+    const doc = form.customer_doc.replace(/\D/g, "");
+    if (!email && !doc) { setTrialEligible(null); setTrialEligibilityMsg(null); return; }
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !doc) {
+      setTrialEligible(null); setTrialEligibilityMsg(null); return;
+    }
+    setCheckingEligibility(true);
+    const t = setTimeout(async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const { data, error } = await supabase.functions.invoke("check-trial-eligibility", {
+        body: { email, doc, user_id: userRes?.user?.id },
+      });
+      setCheckingEligibility(false);
+      if (error) { setTrialEligible(null); return; }
+      const res = (data as any) ?? { eligible: true };
+      setTrialEligible(!!res.eligible);
+      setTrialEligibilityMsg(res.eligible ? null : (res.message ?? "Mensalidade Teste indisponível para este cadastro."));
+      if (!res.eligible && selectedCode === "trial") {
+        setSelectedCode("annual");
+        toast.warning("Mensalidade Teste já utilizada neste cadastro. Selecionamos o Plano Anual.");
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [form.customer_email, form.customer_doc, selectedCode]);
+
+  const trialBlocked = trialEligible === false;
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const parsed = Schema.safeParse(form);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     if (!selected) return toast.error("Selecione um plano");
     setBusy(true);
+    if (selected.code === "trial" && trialBlocked) {
+      setBusy(false);
+      return toast.error(trialEligibilityMsg ?? "Mensalidade Teste indisponível para este cadastro.");
+    }
     const { data, error } = await supabase.functions.invoke("asaas-create-charge", {
       body: {
         ...parsed.data,
