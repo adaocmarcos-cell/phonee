@@ -67,6 +67,7 @@ import PhoneeMarketing from "./pages/phonee/Marketing";
 import PhoneeCupons from "./pages/phonee/Cupons";
 import PhoneeIndicacoes from "./pages/phonee/Indicacoes";
 import PhoneeParceiros from "./pages/phonee/Parceiros";
+import ParceirosSignup from "./pages/ParceirosSignup";
 import PhoneeAuditoria from "./pages/phonee/Auditoria";
 import { MetaPixel } from "./components/MetaPixel";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/comprar" element={<Comprar />} />
             <Route path="/comprar/sucesso/:id" element={<ComprarSucesso />} />
+            <Route path="/parceiros" element={<ParceirosSignup />} />
             <Route path="/painel" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="estoque" element={<Estoque />} />
