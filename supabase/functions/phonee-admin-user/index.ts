@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
       "create_user",
       "partner_create_trial",
       "partner_list",
+      "create_partner_user",
     ]);
     if (!noUserActions.has(action) && !user_id) {
       return json({ error: "Usuário é obrigatório." }, 400);
@@ -179,6 +180,85 @@ Deno.serve(async (req) => {
     }
 
     // ============ Partner trials (7 days + 12 months manual) ============
+    // Quick partner user: fixed password 1234567890, 7 days expiration,
+    // force password change on first login. Returns the private access URL.
+    if (action === "create_partner_user") {
+      const { email, full_name, whatsapp, access_origin } = body;
+      if (typeof email !== "string" || !email.trim())
+        return json({ error: "E-mail é obrigatório." }, 400);
+      const cleanEmail = email.trim().toLowerCase();
+      const DEFAULT_PASS = "1234567890";
+      const trialDays = 7;
+      const trialEnds = new Date(Date.now() + trialDays * 86400_000);
+
+      const { data: created, error: cErr } = await admin.auth.admin.createUser({
+        email: cleanEmail,
+        password: DEFAULT_PASS,
+        email_confirm: true,
+        user_metadata: {
+          full_name: full_name ?? "",
+          partner_trial: true,
+          must_change_password: true,
+        },
+      });
+      if (cErr || !created?.user) {
+        return json({ error: cErr?.message ?? "Falha ao criar parceiro." }, 400);
+      }
+      const uid = created.user.id;
+      await admin.from("profiles").upsert({
+        id: uid,
+        full_name: (full_name ?? "").trim(),
+        email: cleanEmail,
+        phone: whatsapp?.trim() || null,
+      });
+      await admin.from("user_profile_extras").upsert(
+        { user_id: uid, expires_at: trialEnds.toISOString(), status: "ativo" },
+        { onConflict: "user_id" },
+      );
+
+      // Record in partner_trials so it shows in Parceiros panel too
+      const { data: pt } = await admin
+        .from("partner_trials")
+        .insert({
+          user_id: uid,
+          email: cleanEmail,
+          full_name: full_name ?? null,
+          whatsapp: whatsapp?.trim() || null,
+          invited_by: callerId,
+          activated_at: new Date().toISOString(),
+          trial_days: trialDays,
+          trial_ends_at: trialEnds.toISOString(),
+          full_access_months: 12,
+          status: "em_teste",
+          notes: "Criado via Usuários · senha padrão 1234567890",
+        })
+        .select()
+        .single();
+
+      const origin = typeof access_origin === "string" && access_origin.startsWith("http")
+        ? access_origin.replace(/\/+$/, "")
+        : "https://phonee.com.br";
+      const accessUrl = `${origin}/entrar?partner=1&email=${encodeURIComponent(cleanEmail)}`;
+
+      await audit("partner_user_create", "users", uid, {
+        email: cleanEmail,
+        full_name: full_name ?? null,
+        expires_at: trialEnds.toISOString(),
+        force_password_change: true,
+        partner_trial_id: (pt as any)?.id ?? null,
+      });
+
+      return json({
+        ok: true,
+        user_id: uid,
+        email: cleanEmail,
+        temp_password: DEFAULT_PASS,
+        expires_at: trialEnds.toISOString(),
+        access_url: accessUrl,
+        partner_trial_id: (pt as any)?.id ?? null,
+      });
+    }
+
     if (action === "partner_create_trial") {
       const { email, full_name, whatsapp, trial_days, full_access_months, notes } = body;
       if (typeof email !== "string" || !email.trim()) return json({ error: "E-mail é obrigatório." }, 400);
