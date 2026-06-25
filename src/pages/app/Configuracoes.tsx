@@ -318,42 +318,6 @@ export default function Configuracoes() {
         </Card>
 
         <Card className="p-5 bg-card border-border">
-          <div className="flex items-start gap-3 mb-4">
-            <Type className="h-5 w-5 text-primary mt-0.5" />
-            <div>
-              <h3 className="font-semibold">Tamanho da fonte</h3>
-              <p className="text-xs text-muted-foreground">Selecione o tamanho da fonte do sistema.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Label className="text-sm w-32">Tamanho (px)</Label>
-            <Select value={String(font)} onValueChange={onFont}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {FONT_SIZE_OPTIONS.map((n) => (
-                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </Card>
-
-        <Card className="p-5 bg-card border-border">
-          <div className="flex items-start gap-3 mb-4">
-            <Paintbrush className="h-5 w-5 text-primary mt-0.5" />
-            <div>
-              <h3 className="font-semibold">Aparência</h3>
-              <p className="text-xs text-muted-foreground">
-                Escolha entre o tema padrão e os temas monocromáticos. Passe o mouse em
-                <strong className="text-foreground"> Pré-visualizar</strong> para ver ao vivo e clique em
-                <strong className="text-foreground"> Usar este tema</strong> para aplicar.
-              </p>
-            </div>
-          </div>
-          <ThemePicker value={theme} onChange={onThemeChange} />
-        </Card>
-
-        <Card className="p-5 bg-card border-border">
           <div className="flex items-start gap-3">
             <FileText className="h-5 w-5 text-primary mt-0.5" />
             <div>
@@ -430,6 +394,47 @@ export default function Configuracoes() {
         </Card>
       </div>
       </fieldset>
+
+      {/* Preferências locais de UI (fonte e tema) ficam FORA do fieldset de demo
+          porque são apenas visuais — não tocam o backend e devem estar sempre
+          clicáveis, inclusive em contas demo. */}
+      <div className="max-w-2xl grid gap-4 mt-4">
+        <Card className="p-5 bg-card border-border">
+          <div className="flex items-start gap-3 mb-4">
+            <Type className="h-5 w-5 text-primary mt-0.5" />
+            <div>
+              <h3 className="font-semibold">Tamanho da fonte</h3>
+              <p className="text-xs text-muted-foreground">Selecione o tamanho da fonte do sistema.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Label className="text-sm w-32">Tamanho (px)</Label>
+            <Select value={String(font)} onValueChange={onFont}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FONT_SIZE_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </Card>
+
+        <Card className="p-5 bg-card border-border">
+          <div className="flex items-start gap-3 mb-4">
+            <Paintbrush className="h-5 w-5 text-primary mt-0.5" />
+            <div>
+              <h3 className="font-semibold">Aparência</h3>
+              <p className="text-xs text-muted-foreground">
+                Escolha entre o tema padrão e os temas monocromáticos. Passe o mouse em
+                <strong className="text-foreground"> Pré-visualizar</strong> para ver ao vivo e clique em
+                <strong className="text-foreground"> Usar este tema</strong> para aplicar.
+              </p>
+            </div>
+          </div>
+          <ThemePicker value={theme} onChange={onThemeChange} />
+        </Card>
+      </div>
     </div>
   );
 }
