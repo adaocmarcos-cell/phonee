@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
       "create_user",
       "partner_create_trial",
       "partner_list",
+      "create_partner_user",
     ]);
     if (!noUserActions.has(action) && !user_id) {
       return json({ error: "Usuário é obrigatório." }, 400);
