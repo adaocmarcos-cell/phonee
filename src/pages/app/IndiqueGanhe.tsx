@@ -172,7 +172,7 @@ export default function IndiqueGanhe() {
             </div>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Link</Label>
+            <Label className="text-xs text-muted-foreground">Copie e compartilhe o link</Label>
             <div className="flex gap-2 mt-1">
               <Input value={link} readOnly className="font-mono text-xs" />
               <Button variant="outline" onClick={() => copy(link, "Link")} title="Copiar link">
