@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
   ArrowRightLeft, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
-  DollarSign, Building2, Gift,
+  DollarSign, Building2, Gift, AlertTriangle,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -18,14 +18,15 @@ import { canManageUsers, isAdminMaster } from "@/lib/roles";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 import { StoreSwitcher } from "./StoreSwitcher";
 
-type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" };
+type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" | "notifications" };
 
 const main: Item[] = [
   { title: "Curva ABC", url: "/painel/curva-abc", icon: BarChart3 },
   { title: "Compra & Troca", url: "/painel/troca", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/painel/pedidos", icon: ShoppingCart },
   { title: "Logs", url: "/painel/logs", icon: FileSearch },
-  { title: "Alertas", url: "/painel/alertas", icon: Bell, badgeKey: "alerts" },
+  { title: "Alertas", url: "/painel/alertas", icon: AlertTriangle, badgeKey: "alerts" },
+  { title: "Notificações", url: "/painel/configuracoes?tab=notificacoes", icon: Bell, badgeKey: "notifications" },
 ];
 
 const ops: Item[] = [
@@ -62,6 +63,27 @@ export function AppSidebar() {
   const showAdmin = canManageUsers(role as any);
   const showLogsOnly = isAdminMaster(role as any) || role === "dono";
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [hasNewNotification, setHasNewNotification] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("phonee:new_notification") === "1";
+  });
+
+  useEffect(() => {
+    const sync = () => setHasNewNotification(localStorage.getItem("phonee:new_notification") === "1");
+    window.addEventListener("storage", sync);
+    window.addEventListener("phonee:new_notification", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("phonee:new_notification", sync);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (pathname.startsWith("/painel/configuracoes") && hasNewNotification) {
+      localStorage.removeItem("phonee:new_notification");
+      setHasNewNotification(false);
+    }
+  }, [pathname, hasNewNotification]);
 
   useEffect(() => {
     if (!store) return;
@@ -110,6 +132,12 @@ export function AppSidebar() {
                         >
                           {unreadAlerts > 9 ? "9+" : unreadAlerts}
                         </span>
+                      )}
+                      {item.badgeKey === "notifications" && hasNewNotification && (
+                        <span
+                          className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-sidebar"
+                          aria-label="Nova notificação"
+                        />
                       )}
                     </span>
                     {!collapsed && (
