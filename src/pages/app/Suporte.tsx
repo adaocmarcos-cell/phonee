@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import {
   LifeBuoy, Search, Send, MessageCircle, BookOpen, HelpCircle, CheckCircle2, Clock, AlertCircle,
-  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock, Sparkles,
+  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock, Sparkles, Paperclip, X, FileText, Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -141,6 +141,24 @@ export default function Suporte() {
   const [sbOpen, setSbOpen] = useState(false);
   const [sbForm, setSbForm] = useState({ kind: "sugestao" as "sugestao" | "bug" | "melhoria", subject: "", message: "" });
   const [sbSubmitting, setSbSubmitting] = useState(false);
+  const [sbFiles, setSbFiles] = useState<File[]>([]);
+
+  const MAX_FILES = 5;
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    const incoming = Array.from(list);
+    const valid: File[] = [];
+    for (const f of incoming) {
+      if (f.size > MAX_SIZE) {
+        toast({ title: `"${f.name}" excede 10MB`, variant: "destructive" });
+        continue;
+      }
+      valid.push(f);
+    }
+    setSbFiles((prev) => [...prev, ...valid].slice(0, MAX_FILES));
+  };
+  const removeFile = (i: number) => setSbFiles((prev) => prev.filter((_, idx) => idx !== i));
 
   const submitSuggestion = async () => {
     if (!user) return;
@@ -151,14 +169,39 @@ export default function Suporte() {
     setSbSubmitting(true);
     const tag = sbForm.kind === "bug" ? "[BUG]" : sbForm.kind === "melhoria" ? "[MELHORIA]" : "[SUGESTÃO]";
     const category = sbForm.kind === "bug" ? "bug" : "sugestao";
-    const { error } = await (supabase.from("support_tickets") as any).insert({
+
+    // 1) Cria o ticket primeiro para termos o ID e organizarmos os anexos por ticket
+    const { data: created, error } = await (supabase.from("support_tickets") as any).insert({
       user_id: user.id,
       subject: `${tag} ${sbForm.subject.trim()}`.slice(0, 160),
       category,
       priority: sbForm.kind === "bug" ? "alta" : "normal",
       message: sbForm.message.trim().slice(0, 4000),
       status: "aberto",
-    });
+    }).select("id").single();
+
+    // 2) Faz upload dos anexos e atualiza o ticket
+    if (!error && created?.id && sbFiles.length > 0) {
+      const uploaded: { path: string; name: string; size: number; type: string }[] = [];
+      for (const f of sbFiles) {
+        const safe = f.name.replace(/[^\w.\-]+/g, "_");
+        const path = `${user.id}/${created.id}/${Date.now()}-${safe}`;
+        const { error: upErr } = await supabase.storage
+          .from("support-attachments")
+          .upload(path, f, { contentType: f.type || "application/octet-stream", upsert: false });
+        if (upErr) {
+          toast({ title: `Falha ao enviar "${f.name}"`, description: upErr.message, variant: "destructive" });
+          continue;
+        }
+        uploaded.push({ path, name: f.name, size: f.size, type: f.type });
+      }
+      if (uploaded.length > 0) {
+        await (supabase.from("support_tickets") as any)
+          .update({ attachments: uploaded })
+          .eq("id", created.id);
+      }
+    }
+
     setSbSubmitting(false);
     if (error) {
       toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
@@ -166,6 +209,7 @@ export default function Suporte() {
     }
     toast({ title: "Enviado para análise", description: "Acompanhe o status em 'Meus chamados'." });
     setSbForm({ kind: "sugestao", subject: "", message: "" });
+    setSbFiles([]);
     setSbOpen(false);
     setTab("meus");
     loadTickets();
