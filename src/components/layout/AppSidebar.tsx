@@ -72,9 +72,17 @@ export function AppSidebar() {
     const sync = () => setHasNewNotification(localStorage.getItem("phonee:new_notification") === "1");
     window.addEventListener("storage", sync);
     window.addEventListener("phonee:new_notification", sync);
+    const onSwMessage = (e: MessageEvent) => {
+      if (e?.data?.type === "phonee:new_notification") {
+        localStorage.setItem("phonee:new_notification", "1");
+        sync();
+      }
+    };
+    navigator.serviceWorker?.addEventListener?.("message", onSwMessage);
     return () => {
       window.removeEventListener("storage", sync);
       window.removeEventListener("phonee:new_notification", sync);
+      navigator.serviceWorker?.removeEventListener?.("message", onSwMessage);
     };
   }, []);
 
