@@ -20,7 +20,18 @@ self.addEventListener("push", (event) => {
   event.waitUntil((async () => {
     const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const client of all) {
-      try { client.postMessage({ type: "phonee:new_notification" }); } catch (_) {}
+      try {
+        client.postMessage({
+          type: "phonee:new_notification",
+          payload: {
+            title,
+            body: options.body,
+            url: options.data.url,
+            tag: options.tag,
+            ts: Date.now(),
+          },
+        });
+      } catch (_) {}
     }
   })());
 });

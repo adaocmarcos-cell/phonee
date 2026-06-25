@@ -3,7 +3,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { StoreSubscriptionBanner } from "./StoreSubscriptionBanner";
 import { TrialExpiryBanner } from "@/components/billing/TrialExpiryBanner";
-import { Bell, LogOut, Search } from "lucide-react";
+import { AlertTriangle, LogOut, Search } from "lucide-react";
+import { NotificationsBell } from "./NotificationsBell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -51,9 +52,16 @@ export default function AppLayout() {
                   {store.name}
                 </Badge>
               )}
-              <Button variant="ghost" size="icon" onClick={() => navigate("/painel/alertas")}>
-                <Bell className="h-[1.15rem] w-[1.15rem]" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/painel/alertas")}
+                aria-label="Alertas"
+                title="Alertas"
+              >
+                <AlertTriangle className="h-[1.15rem] w-[1.15rem]" />
               </Button>
+              <NotificationsBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-9 px-1.5 sm:px-2 gap-2">
