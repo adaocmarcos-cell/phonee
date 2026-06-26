@@ -283,6 +283,30 @@ export default function PhoneeLeads() {
         ))}
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {([
+          { id: "all", label: `Todos (${counts.all})`, icon: <Users className="h-3.5 w-3.5" /> },
+          { id: "contacted", label: `Contatados (${counts.contacted})`, icon: <Check className="h-3.5 w-3.5" /> },
+          { id: "pending", label: `Pendentes (${counts.pending})`, icon: <Clock className="h-3.5 w-3.5" /> },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setContactedFilter(t.id as any)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
+              contactedFilter === t.id
+                ? t.id === "contacted"
+                  ? "bg-emerald-500 text-slate-900 border-emerald-500 font-semibold"
+                  : t.id === "pending"
+                    ? "bg-amber-400 text-slate-900 border-amber-400 font-semibold"
+                    : "bg-[#00abfb] text-slate-900 border-[#00abfb] font-semibold"
+                : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* Desktop table */}
       <div className="hidden md:block rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
         <table className="w-full text-sm">
