@@ -12,6 +12,7 @@ import {
 import { Sparkles, ShieldCheck, Clock, ArrowRight, Check, Store, MapPin, Instagram, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { trackMetaEvent } from "@/lib/metaPixel";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
@@ -61,6 +62,12 @@ export function FreeTrialSignupDialog({ open, onOpenChange }: Props) {
     }
     setDone(true);
     toast.success("Conta criada! Acesso liberado por 7 dias.");
+    // Conversão Meta Ads (browser + CAPI deduplicados)
+    trackMetaEvent("Lead", {
+      email,
+      phone: whatsapp,
+      custom: { content_name: "free_trial_signup", store_name: storeName, city, state, instagram },
+    });
   };
 
   const reset = () => {

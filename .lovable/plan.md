@@ -1,114 +1,57 @@
+## Objetivo
+Transformar o Meta Pixel já instalado em um sistema completo de tracking para vender mais assinaturas Phonee: eventos certos disparados nas páginas de venda, envio em paralelo via Meta Conversions API (CAPI) para resistir a bloqueadores, controle de consentimento de cookies (LGPD-friendly), painel de monitoramento no admin master e modo debug.
 
-## Visão geral
+## 1. Eventos do Pixel (frontend)
+Disparar eventos padrão Meta nas páginas de venda, ao invés de só `PageView`:
+- `ViewContent` — entrada em `/comprar`, `/?demo=1`, `/testegratis` (com `content_name` do plano)
+- `Lead` — submissão de "Experimente grátis 7 dias" e "Indique e ganhe"
+- `InitiateCheckout` — clique no botão de assinar plano (anual / vitalício / trial)
+- `Purchase` — confirmação em `/comprar/sucesso` (com `value` e `currency=BRL`)
+- `CompleteRegistration` — cadastro de parceiro / signup
 
-Implementar o programa de indicações com bonificação automática (R$ 10 por assinatura confirmada), painel do indicador, sistema de cupons gerenciável pelo admin master e dashboards de performance — tudo conectado às assinaturas reais (tabela `subscriptions`) e ao financeiro.
+Helper único `src/lib/metaPixel.ts` com `track(event, params)` que gera um `event_id` (UUID) por evento — necessário para deduplicar com o envio via CAPI.
 
-A entrega será dividida em três frentes: backend (banco + automações), painel do usuário (Indique e Ganhe) e painel do admin master (Cupons + Dashboards).
+## 2. Consentimento de cookies (LGPD)
+- Novo componente `CookieConsentBanner.tsx`, exibido no rodapé na primeira visita de páginas públicas.
+- Opções: **Aceitar** / **Apenas essenciais**. Estado salvo em `localStorage` (`phn_consent=granted|denied`).
+- `MetaPixel.tsx` passa a só carregar o script e disparar eventos quando `consent === granted`. Se o usuário aceitar depois, o pixel inicializa em runtime sem reload.
+- Botão "Preferências de cookies" no rodapé do site para reabrir o banner.
 
----
+## 3. Meta Conversions API (CAPI) — servidor
+- Nova edge function `meta-capi-track` que recebe `{ event_name, event_id, event_source_url, user_data, custom_data }`, hash SHA-256 de email/telefone, e faz POST para `https://graph.facebook.com/v18.0/<PIXEL_ID>/events` usando o **access token** do Meta (secret).
+- Todo evento disparado no front também é enviado em paralelo para essa função com o mesmo `event_id` — Meta usa o ID para deduplicar Pixel + CAPI.
+- Cada chamada grava uma linha em `meta_pixel_events` (tabela nova) para o painel admin.
 
-## 1. Backend (banco de dados)
+## 4. Painel admin master — Marketing → Meta Pixel
+Em `src/pages/phonee/Marketing.tsx`, nova aba "Meta Pixel" com:
+- **KPIs últimos 30 dias**: total de eventos, eventos por tipo, taxa CAPI vs Pixel, conversões (Lead/Purchase), valor total.
+- **Gráfico diário** de eventos por tipo (Recharts).
+- **Top páginas** que mais geraram eventos.
+- **Tabela de últimos 50 eventos** com tipo, origem (browser/server), página, valor, status do envio CAPI.
+- Botões de configuração: Pixel ID (já existe), **Access Token CAPI** (secret), **Test Event Code** (opcional para debug Meta).
 
-### Novas tabelas
-- `referral_codes` — código único por usuário (formato `PHONEE-XXXXXX`), gerado na primeira visita ao painel.
-- `referrals` — registro de cada indicação: indicador, loja indicada, código usado, status (`pendente | convertida | cancelada`), bônus em R$, datas.
-- `referral_credits` — extrato de créditos do indicador: tipo (`credito_indicacao | uso_desconto | ajuste_admin`), valor, saldo, referência.
-- `coupons` — código, tipo (`valor` | `percentual`), valor, validade, limite de usos, usos atuais, parceiro associado, ativo.
-- `coupon_redemptions` — cada uso de cupom: cupom, loja, assinatura, valor de desconto aplicado, data.
+## 5. Painel de debug
+- Aba "Debug" dentro do mesmo módulo: campo para colar o **Test Event Code** do Meta Events Manager.
+- Quando preenchido, o front anexa esse código em `fbq('track', ...)` (via `fbq('set', 'agent', ...)` não — usa o parâmetro `test_event_code` na chamada CAPI) e o backend também envia para CAPI.
+- Stream em tempo real (polling 3s) dos últimos eventos disparados pela sessão atual, mostrando se chegou no Pixel, no CAPI, e o response do Meta.
 
-Cada tabela com RLS, GRANTs e índices apropriados. Indicadores só leem seus próprios registros; admin master vê tudo.
+## 6. Validação do filtro de preço
+Já foi entregue na rodada anterior (bordas vermelhas + mensagem clara quando "De" > "Até") em `TabelasPreco.tsx`. Vou apenas reconferir a UX e ajustar a mensagem se necessário.
 
-### Funções e triggers
-- `generate_referral_code(_user_id)` — cria/retorna o código único do usuário.
-- `register_referral(_ref_code, _store_id)` — chamada quando uma loja se cadastra com `?ref=...`; cria entrada em `referrals` como `pendente`.
-- `apply_coupon(_code, _store_id, _amount_cents)` — valida cupom (validade, limite, ativo) e devolve o desconto aplicado.
-- Trigger em `subscriptions`: quando `status` muda para `active`/`ativa`/`vitalicio`, marca o `referrals` correspondente como `convertida` e gera crédito de R$ 10 em `referral_credits`. Se subscription for cancelada antes da conversão real, marca como `cancelada`.
+## Detalhes técnicos
+- **Tabela nova** `meta_pixel_events`: `event_name`, `event_id` (UUID), `source` (`browser`|`server`), `event_source_url`, `value`, `currency`, `email_hash`, `phone_hash`, `fbp`, `fbc`, `user_agent`, `ip`, `capi_status`, `capi_response`, `test_event_code`, `created_at`. RLS: apenas `admin_master` lê; insert via service role (edge function).
+- **RPC** `phonee_pixel_events_overview(_days int)` retorna KPIs/series/top paths/last 50 — restrita a `is_admin_master`.
+- **Secret necessário**: `META_CAPI_ACCESS_TOKEN` (System User access token do Meta Business com permissão no dataset do pixel). Antes de criar a edge function, vou pedir confirmação para você gerar e colar via formulário seguro do Lovable (passo a passo: Meta Business → Configurações do Evento → seu Pixel → Configurações → "Gerar token de acesso"). Sem esse token a parte CAPI fica desativada, mas todo o resto (Pixel, consentimento, painel, debug) funciona.
+- O Pixel ID `1545906780399824` já está salvo em `marketing_settings` e exposto via `get_meta_pixel_id()`.
 
-### Integração com checkout existente
-- Página de cadastro (`/cadastro`) lê `?ref=` da URL e armazena em `localStorage` até o cadastro concluir.
-- Modal/checkout de assinatura (Asaas) ganha campo "Cupom de Desconto". Valor é validado via RPC `apply_coupon` antes de enviar para `asaas-create-charge`.
-- Edge function `asaas-webhook` (já existente) dispara a conversão da indicação no `status = PAYMENT_RECEIVED/CONFIRMED`.
+## Arquivos afetados
+- `src/lib/metaPixel.ts` (novo helper de tracking)
+- `src/components/MetaPixel.tsx` (consent gating + event_id + CAPI dispatch)
+- `src/components/CookieConsentBanner.tsx` (novo)
+- `src/pages/Landing.tsx`, `src/pages/Comprar.tsx`, `src/pages/ComprarSucesso.tsx`, `src/components/FreeTrialSignupDialog.tsx`, `src/components/LandingReferralSignupDialog.tsx`, `src/pages/ParceirosSignup.tsx` (chamadas `track()`)
+- `src/pages/phonee/Marketing.tsx` (abas + KPIs + debug)
+- `supabase/functions/meta-capi-track/index.ts` (nova edge function)
+- Migration: tabela `meta_pixel_events`, RPC `phonee_pixel_events_overview`
 
----
-
-## 2. Painel "Indique e Ganhe" (usuário logado)
-
-### Acesso
-- Novo item no `AppSidebar` (final da lista, separado por divisor, com ícone `Gift`).
-- Botão "Indique e Ganhe" também na página `Vendas` (card destaque no topo ou na barra de ações).
-- Rota: `/painel/indique-e-ganhe`.
-
-### Conteúdo da página
-- Cards no topo: Total de indicações · Pendentes · Convertidas · Saldo disponível (R$).
-- Bloco "Seu código e link":
-  - Código `PHONEE-AB1234` com botão copiar.
-  - Link `https://phonee.com.br/cadastro?ref=AB1234` com botão copiar.
-  - Botões de compartilhar: WhatsApp (mensagem pronta), Instagram (copia link + abre app), Facebook (sharer), Copiar.
-- Tabela "Minhas indicações": loja indicada, data, status, bônus.
-- Bloco "Usar saldo": botão para aplicar saldo como desconto na próxima mensalidade (gera registro em `referral_credits` tipo `uso_desconto`).
-- Ranking público (top 10): "Os maiores indicadores do mês" — anônimo (primeiro nome + iniciais).
-
----
-
-## 3. Painel do Admin Master
-
-### Cupons (`/phonee/cupons`)
-- Listagem com busca, filtros por status (ativo/expirado), por parceiro.
-- Botão "Novo cupom" → dialog: código, tipo (R$ ou %), valor, validade, limite de usos, parceiro (texto livre), ativo.
-- Ações por linha: editar, ativar/desativar, excluir (com confirmação), ver utilizações.
-
-### Indicações (`/phonee/indicacoes`)
-- Tabela de todas as indicações (indicador, loja indicada, status, bônus, data).
-- Filtros e exportação CSV.
-- Ação manual: cancelar / marcar como convertida (override).
-
-### Dashboard de crescimento (já existente em `/phonee/crescimento`)
-Acrescentar widgets:
-- Novos usuários por indicação (30d / 12m).
-- Receita gerada por indicações (assinaturas convertidas).
-- Receita gerada por cupons.
-- Top indicadores (mês e total).
-- Taxa de conversão (convertidas / total).
-- Economia concedida por cupons (somatório).
-
----
-
-## 4. Fluxo end-to-end
-
-```text
-Usuário A copia link  -->  phonee.com.br/cadastro?ref=AB1234
-                                        |
-                  Loja B se cadastra   -->  referrals(pendente, indicador=A, loja=B)
-                                        |
-                      Loja B assina   -->  subscription pending
-                                        |
-   asaas-webhook PAYMENT_CONFIRMED   -->  trigger marca referral=convertida
-                                                + insere credito R$10 para A
-                                                + atualiza saldo de A
-                                        |
-              A aplica saldo no checkout -->  referral_credits(uso_desconto)
-                                                desconto aplicado na assinatura
-```
-
----
-
-## 5. Detalhes técnicos
-
-- Geração do código: `'PHONEE-' || upper(substr(md5(user_id || now()), 1, 6))`, único.
-- Bônus configurável via `marketing_settings.referral_bonus_cents` (default 1000 = R$ 10).
-- `apply_coupon` retorna `{ valid, discount_cents, message }`.
-- Front: novo arquivo `src/pages/app/IndiqueGanhe.tsx`, `src/pages/mobileplus/Cupons.tsx`, `src/pages/mobileplus/Indicacoes.tsx`.
-- Cadastro público (`/cadastro` ou fluxo equivalente) já existente: adicionar leitura do `ref` e do campo de cupom — confirmar no código atual onde é o cadastro de novas lojas.
-- Sem mudanças de design global; reaproveita tokens existentes.
-
----
-
-## 6. Entregáveis por etapa (uma migração + um lote de UI por vez)
-
-1. Migração: tabelas, RLS, funções, trigger no `subscriptions`.
-2. Backend extra: ajustar `asaas-webhook` para chamar a função de conversão.
-3. Frontend usuário: rota `/painel/indique-e-ganhe`, item no sidebar, botão na Vendas.
-4. Frontend admin: páginas de Cupons e Indicações + widgets no dashboard.
-5. Integração do campo cupom no checkout existente.
-
-Confirmar o plano para eu começar pela etapa 1 (migração + funções).
+## Confirmação
+Confirma que posso seguir com este escopo? E me autoriza a já solicitar o **META_CAPI_ACCESS_TOKEN** para ativar o envio server-side? (sem ele, só Pixel + painel + consentimento funcionam — o CAPI fica pronto mas inativo).

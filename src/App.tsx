@@ -71,6 +71,7 @@ import PhoneeParceiros from "./pages/phonee/Parceiros";
 import ParceirosSignup from "./pages/ParceirosSignup";
 import PhoneeAuditoria from "./pages/phonee/Auditoria";
 import { MetaPixel } from "./components/MetaPixel";
+import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
 const queryClient = new QueryClient();
@@ -83,6 +84,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <MetaPixel />
+          <CookieConsentBanner />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/entrar" element={<Auth />} />

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { trackMetaEvent } from "@/lib/metaPixel";
 
 export default function ParceirosSignup() {
   const nav = useNavigate();
@@ -33,6 +34,11 @@ export default function ParceirosSignup() {
     }
     setDone(true);
     toast.success("Cadastro aprovado! Acesso liberado por 7 dias.");
+    trackMetaEvent("Lead", {
+      email: form.email,
+      phone: form.whatsapp,
+      custom: { content_name: "partner_signup", instagram: form.instagram },
+    });
   };
 
   return (
