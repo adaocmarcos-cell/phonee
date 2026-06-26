@@ -54,6 +54,21 @@ export default function Financeiro() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [splits, setSplits] = useState<{ method: string; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openReceivables, setOpenReceivables] = useState(false);
+
+  const sendWhatsAppReminder = (r: Receivable) => {
+    const digits = (r.whatsapp ?? "").replace(/\D/g, "");
+    if (!digits) return;
+    const phone = digits.startsWith("55") ? digits : `55${digits}`;
+    const storeName = store?.name ? ` da ${store.name}` : "";
+    const venc = r.due ? ` (vencimento ${new Date(r.due).toLocaleDateString("pt-BR")})` : "";
+    const refLabel = r.source === "serviço" ? r.ref : `pedido ${r.ref}`;
+    const msg =
+      `Olá ${r.customer}, tudo bem? 😊\n\n` +
+      `Passando um lembrete sutil sobre o ${refLabel}${storeName}, no valor de ${brl(r.total)}${venc}.\n` +
+      `Qualquer dúvida estamos à disposição. Obrigado!`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   useEffect(() => {
     if (!store) return;
