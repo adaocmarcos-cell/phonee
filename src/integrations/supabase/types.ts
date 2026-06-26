@@ -344,42 +344,69 @@ export type Database = {
       }
       demo_leads: {
         Row: {
+          city: string | null
+          company: string | null
           contacted: boolean
           contacted_at: string | null
           created_at: string
+          fbclid: string | null
           id: string
           instagram: string
           kind: string
           name: string
+          notes: string | null
           referral_code: string | null
           referrer: string | null
+          state: string | null
+          status: string
           user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
           whatsapp: string
         }
         Insert: {
+          city?: string | null
+          company?: string | null
           contacted?: boolean
           contacted_at?: string | null
           created_at?: string
+          fbclid?: string | null
           id?: string
           instagram: string
           kind?: string
           name: string
+          notes?: string | null
           referral_code?: string | null
           referrer?: string | null
+          state?: string | null
+          status?: string
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           whatsapp: string
         }
         Update: {
+          city?: string | null
+          company?: string | null
           contacted?: boolean
           contacted_at?: string | null
           created_at?: string
+          fbclid?: string | null
           id?: string
           instagram?: string
           kind?: string
           name?: string
+          notes?: string | null
           referral_code?: string | null
           referrer?: string | null
+          state?: string | null
+          status?: string
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           whatsapp?: string
         }
         Relationships: []
@@ -499,6 +526,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      marketing_investments: {
+        Row: {
+          ad: string | null
+          adset: string | null
+          amount_cents: number
+          campaign: string | null
+          channel: string
+          clicks: number
+          created_at: string
+          created_by: string | null
+          id: string
+          impressions: number
+          notes: string | null
+          reach: number
+          reference_date: string
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          ad?: string | null
+          adset?: string | null
+          amount_cents?: number
+          campaign?: string | null
+          channel?: string
+          clicks?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impressions?: number
+          notes?: string | null
+          reach?: number
+          reference_date?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          ad?: string | null
+          adset?: string | null
+          amount_cents?: number
+          campaign?: string | null
+          channel?: string
+          clicks?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impressions?: number
+          notes?: string | null
+          reach?: number
+          reference_date?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
       }
       marketing_settings: {
         Row: {
@@ -2815,6 +2902,10 @@ export type Database = {
           new_stores: number
           new_subscriptions: number
         }[]
+      }
+      phonee_marketing_dashboard: {
+        Args: { _from?: string; _to?: string }
+        Returns: Json
       }
       phonee_overview: { Args: never; Returns: Json }
       phonee_partner_trials_list: {
