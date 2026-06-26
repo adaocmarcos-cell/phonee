@@ -16,6 +16,48 @@ import { FileDown, Filter, Search, CheckSquare, Square } from "lucide-react";
 import { DEFAULT_CATEGORIES, getCustomCategories, categoryLabel } from "@/lib/categories";
 import { brl as formatBRL } from "@/lib/format";
 
+// --- Sub-filters configuration (price table) ---
+const PHONE_BRANDS = [
+  "Samsung","Motorola","Xiaomi","Apple","Oppo","Realme","Honor","Infinix",
+  "Tecno","POCO","Redmi","Vivo","ASUS","Nokia","Google","Huawei","OnePlus",
+  "ZTE","Nubia","Sony",
+];
+const FONE_TYPES: { value: string; label: string; match: RegExp }[] = [
+  { value: "fio", label: "Com fio", match: /\b(com\s*fio|p2|3\.5|cabo)\b/i },
+  { value: "bluetooth", label: "Bluetooth", match: /bluetooth|bt\b|sem\s*fio|wireless|tws/i },
+  { value: "headset", label: "Headset", match: /headset|headphone|over[-\s]?ear/i },
+  { value: "intra", label: "Intra-auricular", match: /intra|in[-\s]?ear|earbud|earphone/i },
+];
+const MEMORY_SIZES = ["4GB","8GB","16GB","32GB","64GB","128GB","256GB","512GB","1TB","2TB"];
+const CHARGER_TYPES: { value: string; label: string; match: RegExp }[] = [
+  { value: "parede", label: "Carregador de parede", match: /parede|wall|tomada|fonte/i },
+  { value: "powerbank", label: "Powerbank", match: /power\s*bank|powerbank|bateria\s*externa/i },
+];
+const CABLE_TYPES: { value: string; label: string; match: RegExp }[] = [
+  { value: "usba_typec",   label: "USB-A → Type-C",         match: /usb[-\s]?a.*(type[-\s]?c|tipo[-\s]?c)|\ba\s*[-→x]\s*c\b/i },
+  { value: "usbc_typec",   label: "USB-C → Type-C",         match: /usb[-\s]?c.*(type[-\s]?c|tipo[-\s]?c)|\bc\s*[-→x]\s*c\b/i },
+  { value: "usba_light",   label: "USB-A → Lightning",      match: /usb[-\s]?a.*lightning|\ba\s*[-→x]\s*lightning\b/i },
+  { value: "usbc_light",   label: "USB-C → Lightning",      match: /usb[-\s]?c.*lightning|\bc\s*[-→x]\s*lightning\b/i },
+  { value: "usba_v8",      label: "USB-A → V8 (Micro USB)", match: /usb[-\s]?a.*(v8|micro\s*usb)|\ba\s*[-→x]\s*(v8|micro)/i },
+  { value: "usbc_v8",      label: "USB-C → V8 (Micro USB)", match: /usb[-\s]?c.*(v8|micro\s*usb)|\bc\s*[-→x]\s*(v8|micro)/i },
+];
+
+function matchesBrandList(p: { name: string; brand: string | null }, brands: Set<string>) {
+  if (!brands.size) return true;
+  const hay = `${p.brand || ""} ${p.name}`.toLowerCase();
+  for (const b of brands) if (hay.includes(b.toLowerCase())) return true;
+  return false;
+}
+function matchesTypeList(p: { name: string }, types: Set<string>, defs: { value: string; match: RegExp }[]) {
+  if (!types.size) return true;
+  return defs.some((d) => types.has(d.value) && d.match.test(p.name));
+}
+function matchesMemory(p: { name: string }, sizes: Set<string>) {
+  if (!sizes.size) return true;
+  const name = p.name.toUpperCase().replace(/\s+/g, "");
+  return [...sizes].some((s) => name.includes(s));
+}
+
 type Product = {
   id: string;
   name: string;
@@ -35,6 +77,13 @@ export default function TabelasPreco() {
   const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set());
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [storeBrands, setStoreBrands] = useState<string[]>([]);
+  // sub-filters per category
+  const [phoneBrands, setPhoneBrands] = useState<Set<string>>(new Set());
+  const [capaBrands, setCapaBrands] = useState<Set<string>>(new Set());
+  const [foneTypes, setFoneTypes] = useState<Set<string>>(new Set());
+  const [memorySizes, setMemorySizes] = useState<Set<string>>(new Set());
+  const [chargerTypes, setChargerTypes] = useState<Set<string>>(new Set());
+  const [cableTypes, setCableTypes] = useState<Set<string>>(new Set());
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [filterName, setFilterName] = useState("");
   const [filterSku, setFilterSku] = useState("");
@@ -88,9 +137,17 @@ export default function TabelasPreco() {
       if (filterSku && !(p.sku || "").toLowerCase().includes(filterSku.toLowerCase())) return false;
       if (filterAvailable === "in" && p.stock_current <= 0) return false;
       if (filterAvailable === "out" && p.stock_current > 0) return false;
+      // category-specific sub-filters (apply only to relevant category)
+      const cat = p.category || "";
+      if (cat === "smartphones" && !matchesBrandList(p, phoneBrands)) return false;
+      if (cat === "capas" && !matchesBrandList(p, capaBrands)) return false;
+      if (cat === "fones" && !matchesTypeList(p, foneTypes, FONE_TYPES)) return false;
+      if (cat === "memoria" && !matchesMemory(p, memorySizes)) return false;
+      if ((cat === "carregadores" || cat === "powerbanks") && !matchesTypeList(p, chargerTypes, CHARGER_TYPES)) return false;
+      if (cat === "cabos" && !matchesTypeList(p, cableTypes, CABLE_TYPES)) return false;
       return true;
     });
-  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable]);
+  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable, phoneBrands, capaBrands, foneTypes, memorySizes, chargerTypes, cableTypes]);
 
   const toggleProduct = (id: string) => {
     const next = new Set(selectedProducts);
@@ -244,6 +301,12 @@ export default function TabelasPreco() {
               filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
               showAvailability={showAvailability} setShowAvailability={setShowAvailability}
               showNotes={showNotes} setShowNotes={setShowNotes}
+              phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
+              capaBrands={capaBrands} setCapaBrands={setCapaBrands}
+              foneTypes={foneTypes} setFoneTypes={setFoneTypes}
+              memorySizes={memorySizes} setMemorySizes={setMemorySizes}
+              chargerTypes={chargerTypes} setChargerTypes={setChargerTypes}
+              cableTypes={cableTypes} setCableTypes={setCableTypes}
             />
           </CollapsibleContent>
         </Collapsible>
@@ -259,6 +322,12 @@ export default function TabelasPreco() {
             filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
             showAvailability={showAvailability} setShowAvailability={setShowAvailability}
             showNotes={showNotes} setShowNotes={setShowNotes}
+            phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
+            capaBrands={capaBrands} setCapaBrands={setCapaBrands}
+            foneTypes={foneTypes} setFoneTypes={setFoneTypes}
+            memorySizes={memorySizes} setMemorySizes={setMemorySizes}
+            chargerTypes={chargerTypes} setChargerTypes={setChargerTypes}
+            cableTypes={cableTypes} setCableTypes={setCableTypes}
           />
         </div>
 
@@ -327,6 +396,12 @@ function FiltersPanel(props: {
   filterAvailable: "all" | "in" | "out"; setFilterAvailable: (v: "all" | "in" | "out") => void;
   showAvailability: boolean; setShowAvailability: (v: boolean) => void;
   showNotes: boolean; setShowNotes: (v: boolean) => void;
+  phoneBrands: Set<string>; setPhoneBrands: (v: Set<string>) => void;
+  capaBrands: Set<string>; setCapaBrands: (v: Set<string>) => void;
+  foneTypes: Set<string>; setFoneTypes: (v: Set<string>) => void;
+  memorySizes: Set<string>; setMemorySizes: (v: Set<string>) => void;
+  chargerTypes: Set<string>; setChargerTypes: (v: Set<string>) => void;
+  cableTypes: Set<string>; setCableTypes: (v: Set<string>) => void;
 }) {
   const {
     allCats, selectedCats, toggleCat,
@@ -335,7 +410,55 @@ function FiltersPanel(props: {
     filterAvailable, setFilterAvailable,
     showAvailability, setShowAvailability,
     showNotes, setShowNotes,
+    phoneBrands, setPhoneBrands,
+    capaBrands, setCapaBrands,
+    foneTypes, setFoneTypes,
+    memorySizes, setMemorySizes,
+    chargerTypes, setChargerTypes,
+    cableTypes, setCableTypes,
   } = props;
+
+  const toggleIn = (set: Set<string>, v: string, apply: (s: Set<string>) => void) => {
+    const n = new Set(set);
+    n.has(v) ? n.delete(v) : n.add(v);
+    apply(n);
+  };
+  const showSmart = !selectedCats.size || selectedCats.has("smartphones");
+  const showCapas = !selectedCats.size || selectedCats.has("capas");
+  const showFones = !selectedCats.size || selectedCats.has("fones");
+  const showMem   = !selectedCats.size || selectedCats.has("memoria");
+  const showCarr  = !selectedCats.size || selectedCats.has("carregadores") || selectedCats.has("powerbanks");
+  const showCab   = !selectedCats.size || selectedCats.has("cabos");
+
+  const renderChips = (
+    title: string,
+    items: { value: string; label: string }[],
+    set: Set<string>,
+    apply: (s: Set<string>) => void,
+  ) => (
+    <div>
+      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</Label>
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        {items.map((it) => {
+          const active = set.has(it.value);
+          return (
+            <button
+              key={it.value}
+              type="button"
+              onClick={() => toggleIn(set, it.value, apply)}
+              className={`text-xs px-2 py-1 rounded-md border transition ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border hover:bg-muted"
+              }`}
+            >
+              {it.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <Card className="p-4 bg-card border-border space-y-4">
@@ -350,6 +473,37 @@ function FiltersPanel(props: {
           ))}
         </div>
       </div>
+
+      {showSmart && renderChips(
+        "Smartphones · Marca",
+        PHONE_BRANDS.map((b) => ({ value: b, label: b })),
+        phoneBrands, setPhoneBrands,
+      )}
+      {showCapas && renderChips(
+        "Capas · Marca",
+        PHONE_BRANDS.map((b) => ({ value: b, label: b })),
+        capaBrands, setCapaBrands,
+      )}
+      {showFones && renderChips(
+        "Fones · Tipo",
+        FONE_TYPES.map((t) => ({ value: t.value, label: t.label })),
+        foneTypes, setFoneTypes,
+      )}
+      {showMem && renderChips(
+        "Memória · Capacidade",
+        MEMORY_SIZES.map((s) => ({ value: s, label: s })),
+        memorySizes, setMemorySizes,
+      )}
+      {showCarr && renderChips(
+        "Carregadores · Tipo",
+        CHARGER_TYPES.map((t) => ({ value: t.value, label: t.label })),
+        chargerTypes, setChargerTypes,
+      )}
+      {showCab && renderChips(
+        "Cabos · Conector",
+        CABLE_TYPES.map((t) => ({ value: t.value, label: t.label })),
+        cableTypes, setCableTypes,
+      )}
 
       {storeBrands.length > 0 && (
         <div>
