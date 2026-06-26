@@ -538,6 +538,72 @@ export default function Financeiro() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={openReceivables} onOpenChange={setOpenReceivables}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-warning" />
+              Cobranças em aberto
+            </DialogTitle>
+            <DialogDescription>
+              Total a receber: <span className="font-semibold text-warning">{brl(totals.aReceber)}</span> ·{" "}
+              {receivables.filter((r) => r.status !== "pago").length} título(s). Envie um lembrete sutil ao
+              cliente direto pelo WhatsApp cadastrado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto -mx-2">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Cliente</th>
+                  <th className="text-left px-3 py-2 font-medium">Pedido</th>
+                  <th className="text-left px-3 py-2 font-medium">Vencimento</th>
+                  <th className="text-right px-3 py-2 font-medium">Valor</th>
+                  <th className="text-center px-3 py-2 font-medium">Lembrete</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {receivables.filter((r) => r.status !== "pago").length === 0 ? (
+                  <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">Nenhuma cobrança em aberto. 🎉</td></tr>
+                ) : receivables.filter((r) => r.status !== "pago").map((r) => {
+                  const hasWa = !!(r.whatsapp && r.whatsapp.replace(/\D/g, "").length >= 10);
+                  return (
+                    <tr key={`open-${r.source}-${r.id}`} className="hover:bg-muted/30">
+                      <td className="px-3 py-2.5">
+                        <div className="font-medium truncate max-w-[200px]" title={r.customer}>{r.customer}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono">
+                          {hasWa ? r.whatsapp : "sem WhatsApp cadastrado"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge variant="outline" className="text-[10px] gap-1">{sourceIcon(r.source)}{r.ref}</Badge>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs font-mono">
+                        {r.due ? new Date(r.due).toLocaleDateString("pt-BR") : "—"}
+                        {" "}<StatusBadge s={r.status} />
+                      </td>
+                      <td className="px-3 py-2.5 text-right metric font-semibold">{brl(r.total)}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <Button
+                          size="sm"
+                          variant={hasWa ? "default" : "outline"}
+                          disabled={!hasWa}
+                          onClick={() => sendWhatsAppReminder(r)}
+                          className={hasWa ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                          WhatsApp
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
