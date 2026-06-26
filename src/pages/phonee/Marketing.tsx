@@ -750,6 +750,10 @@ export default function PhoneeMarketing() {
       </Card>
 
       {/* Meta Pixel config */}
+        </TabsContent>
+
+        {/* === INTEGRAÇÃO PIXEL & CAPI === */}
+        <TabsContent value="integracao" className="space-y-4">
       <Card className="p-5 bg-slate-900 border-slate-800 text-slate-100">
         <h2 className="font-semibold mb-1">Integração Meta Ads (Pixel)</h2>
         <p className="text-xs text-slate-400 mb-4">
@@ -950,6 +954,85 @@ export default function PhoneeMarketing() {
           Os disparos do painel ignoram o consentimento de cookies (force=true) e marcam <span className="font-mono">source=admin_debug_panel</span> nos eventos para identificação.
         </p>
       </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={invDialog} onOpenChange={(o) => { setInvDialog(o); if (!o) setEditingInv(null); }}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-2xl">
+          <DialogHeader><DialogTitle>{editingInv?.id ? "Editar lançamento" : "Novo lançamento de investimento"}</DialogTitle></DialogHeader>
+          {editingInv && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="space-y-1">
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={editingInv.reference_date ?? ""} onChange={(e) => setEditingInv({ ...editingInv, reference_date: e.target.value })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Canal</Label>
+                <Select value={editingInv.channel ?? "meta_ads"} onValueChange={(v) => setEditingInv({ ...editingInv, channel: v })}>
+                  <SelectTrigger className="bg-slate-950 border-slate-800"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meta_ads">Meta Ads</SelectItem>
+                    <SelectItem value="google_ads">Google Ads</SelectItem>
+                    <SelectItem value="tiktok_ads">TikTok Ads</SelectItem>
+                    <SelectItem value="influencer">Influencer</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1 col-span-2">
+                <Label className="text-xs">Campanha</Label>
+                <Input value={editingInv.campaign ?? ""} onChange={(e) => setEditingInv({ ...editingInv, campaign: e.target.value })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Conjunto (adset)</Label>
+                <Input value={editingInv.adset ?? ""} onChange={(e) => setEditingInv({ ...editingInv, adset: e.target.value })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Anúncio</Label>
+                <Input value={editingInv.ad ?? ""} onChange={(e) => setEditingInv({ ...editingInv, ad: e.target.value })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">utm_source</Label>
+                <Input value={editingInv.utm_source ?? ""} onChange={(e) => setEditingInv({ ...editingInv, utm_source: e.target.value })} className="bg-slate-950 border-slate-800 font-mono" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">utm_medium</Label>
+                <Input value={editingInv.utm_medium ?? ""} onChange={(e) => setEditingInv({ ...editingInv, utm_medium: e.target.value })} className="bg-slate-950 border-slate-800 font-mono" />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <Label className="text-xs">utm_campaign (para atribuição)</Label>
+                <Input value={editingInv.utm_campaign ?? ""} onChange={(e) => setEditingInv({ ...editingInv, utm_campaign: e.target.value })} className="bg-slate-950 border-slate-800 font-mono" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Investimento (R$)</Label>
+                <Input type="number" step="0.01" value={(editingInv as any).amount_brl ?? ((editingInv.amount_cents ?? 0) / 100)} onChange={(e) => setEditingInv({ ...editingInv, ...({ amount_brl: e.target.value } as any) })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Impressões</Label>
+                <Input type="number" value={editingInv.impressions ?? 0} onChange={(e) => setEditingInv({ ...editingInv, impressions: Number(e.target.value) })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Alcance</Label>
+                <Input type="number" value={editingInv.reach ?? 0} onChange={(e) => setEditingInv({ ...editingInv, reach: Number(e.target.value) })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Cliques</Label>
+                <Input type="number" value={editingInv.clicks ?? 0} onChange={(e) => setEditingInv({ ...editingInv, clicks: Number(e.target.value) })} className="bg-slate-950 border-slate-800" />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <Label className="text-xs">Observações</Label>
+                <Textarea value={editingInv.notes ?? ""} onChange={(e) => setEditingInv({ ...editingInv, notes: e.target.value })} className="bg-slate-950 border-slate-800" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setInvDialog(false); setEditingInv(null); }}>Cancelar</Button>
+            <Button onClick={saveInvestment} className="bg-[#00abfb] text-slate-900 hover:bg-[#00abfb]/90">
+              <Save className="h-4 w-4 mr-1" /> Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
