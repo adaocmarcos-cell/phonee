@@ -301,6 +301,12 @@ export default function TabelasPreco() {
               filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
               showAvailability={showAvailability} setShowAvailability={setShowAvailability}
               showNotes={showNotes} setShowNotes={setShowNotes}
+              phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
+              capaBrands={capaBrands} setCapaBrands={setCapaBrands}
+              foneTypes={foneTypes} setFoneTypes={setFoneTypes}
+              memorySizes={memorySizes} setMemorySizes={setMemorySizes}
+              chargerTypes={chargerTypes} setChargerTypes={setChargerTypes}
+              cableTypes={cableTypes} setCableTypes={setCableTypes}
             />
           </CollapsibleContent>
         </Collapsible>
@@ -316,6 +322,12 @@ export default function TabelasPreco() {
             filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
             showAvailability={showAvailability} setShowAvailability={setShowAvailability}
             showNotes={showNotes} setShowNotes={setShowNotes}
+            phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
+            capaBrands={capaBrands} setCapaBrands={setCapaBrands}
+            foneTypes={foneTypes} setFoneTypes={setFoneTypes}
+            memorySizes={memorySizes} setMemorySizes={setMemorySizes}
+            chargerTypes={chargerTypes} setChargerTypes={setChargerTypes}
+            cableTypes={cableTypes} setCableTypes={setCableTypes}
           />
         </div>
 
@@ -384,6 +396,12 @@ function FiltersPanel(props: {
   filterAvailable: "all" | "in" | "out"; setFilterAvailable: (v: "all" | "in" | "out") => void;
   showAvailability: boolean; setShowAvailability: (v: boolean) => void;
   showNotes: boolean; setShowNotes: (v: boolean) => void;
+  phoneBrands: Set<string>; setPhoneBrands: (v: Set<string>) => void;
+  capaBrands: Set<string>; setCapaBrands: (v: Set<string>) => void;
+  foneTypes: Set<string>; setFoneTypes: (v: Set<string>) => void;
+  memorySizes: Set<string>; setMemorySizes: (v: Set<string>) => void;
+  chargerTypes: Set<string>; setChargerTypes: (v: Set<string>) => void;
+  cableTypes: Set<string>; setCableTypes: (v: Set<string>) => void;
 }) {
   const {
     allCats, selectedCats, toggleCat,
@@ -392,7 +410,55 @@ function FiltersPanel(props: {
     filterAvailable, setFilterAvailable,
     showAvailability, setShowAvailability,
     showNotes, setShowNotes,
+    phoneBrands, setPhoneBrands,
+    capaBrands, setCapaBrands,
+    foneTypes, setFoneTypes,
+    memorySizes, setMemorySizes,
+    chargerTypes, setChargerTypes,
+    cableTypes, setCableTypes,
   } = props;
+
+  const toggleIn = (set: Set<string>, v: string, apply: (s: Set<string>) => void) => {
+    const n = new Set(set);
+    n.has(v) ? n.delete(v) : n.add(v);
+    apply(n);
+  };
+  const showSmart = !selectedCats.size || selectedCats.has("smartphones");
+  const showCapas = !selectedCats.size || selectedCats.has("capas");
+  const showFones = !selectedCats.size || selectedCats.has("fones");
+  const showMem   = !selectedCats.size || selectedCats.has("memoria");
+  const showCarr  = !selectedCats.size || selectedCats.has("carregadores") || selectedCats.has("powerbanks");
+  const showCab   = !selectedCats.size || selectedCats.has("cabos");
+
+  const renderChips = (
+    title: string,
+    items: { value: string; label: string }[],
+    set: Set<string>,
+    apply: (s: Set<string>) => void,
+  ) => (
+    <div>
+      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</Label>
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        {items.map((it) => {
+          const active = set.has(it.value);
+          return (
+            <button
+              key={it.value}
+              type="button"
+              onClick={() => toggleIn(set, it.value, apply)}
+              className={`text-xs px-2 py-1 rounded-md border transition ${
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background border-border hover:bg-muted"
+              }`}
+            >
+              {it.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <Card className="p-4 bg-card border-border space-y-4">
@@ -407,6 +473,37 @@ function FiltersPanel(props: {
           ))}
         </div>
       </div>
+
+      {showSmart && renderChips(
+        "Smartphones · Marca",
+        PHONE_BRANDS.map((b) => ({ value: b, label: b })),
+        phoneBrands, setPhoneBrands,
+      )}
+      {showCapas && renderChips(
+        "Capas · Marca",
+        PHONE_BRANDS.map((b) => ({ value: b, label: b })),
+        capaBrands, setCapaBrands,
+      )}
+      {showFones && renderChips(
+        "Fones · Tipo",
+        FONE_TYPES.map((t) => ({ value: t.value, label: t.label })),
+        foneTypes, setFoneTypes,
+      )}
+      {showMem && renderChips(
+        "Memória · Capacidade",
+        MEMORY_SIZES.map((s) => ({ value: s, label: s })),
+        memorySizes, setMemorySizes,
+      )}
+      {showCarr && renderChips(
+        "Carregadores · Tipo",
+        CHARGER_TYPES.map((t) => ({ value: t.value, label: t.label })),
+        chargerTypes, setChargerTypes,
+      )}
+      {showCab && renderChips(
+        "Cabos · Conector",
+        CABLE_TYPES.map((t) => ({ value: t.value, label: t.label })),
+        cableTypes, setCableTypes,
+      )}
 
       {storeBrands.length > 0 && (
         <div>
