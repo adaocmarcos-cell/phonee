@@ -30,10 +30,16 @@ type PixelOverview = {
   by_day: { day: string; total: number; browser: number; server: number }[];
   by_event: { event_name: string; count: number }[];
   by_path: { path: string; count: number }[];
+  by_utm_source: { utm_source: string; total: number; leads: number; purchases: number; revenue: number }[];
+  by_utm_medium: { utm_medium: string; total: number; leads: number; purchases: number; revenue: number }[];
+  by_utm_campaign: { utm_campaign: string; total: number; leads: number; purchases: number; revenue: number }[];
+  attribution: { utm_source: string; utm_medium: string; utm_campaign: string; total: number; leads: number; purchases: number; revenue: number }[];
   recent: {
     id: string; event_name: string; source: "browser" | "server";
     event_source_url: string | null; value: number | null; currency: string | null;
     capi_status: number | null; test_event_code: string | null; created_at: string;
+    utm_source?: string | null; utm_medium?: string | null; utm_campaign?: string | null;
+    utm_term?: string | null; utm_content?: string | null; referrer?: string | null;
   }[];
 };
 
