@@ -142,8 +142,15 @@ export default function TabelasPreco() {
       const price = Number(p.sale_price) || 0;
       const minN = priceMin === "" ? null : Number(priceMin);
       const maxN = priceMax === "" ? null : Number(priceMax);
-      if (minN !== null && !isNaN(minN) && price < minN) return false;
-      if (maxN !== null && !isNaN(maxN) && price > maxN) return false;
+      const minInvalid = minN !== null && (isNaN(minN) || minN < 0);
+      const maxInvalid = maxN !== null && (isNaN(maxN) || maxN < 0);
+      const rangeInvalid =
+        minN !== null && maxN !== null && !isNaN(minN) && !isNaN(maxN) && minN > maxN;
+      // intervalo inválido → ignora filtro de preço (erro mostrado na UI)
+      if (!minInvalid && !maxInvalid && !rangeInvalid) {
+        if (minN !== null && price < minN) return false;
+        if (maxN !== null && price > maxN) return false;
+      }
       // category-specific sub-filters (apply only to relevant category)
       const cat = p.category || "";
       if (cat === "smartphones" && !matchesBrandList(p, phoneBrands)) return false;
@@ -445,6 +452,17 @@ function FiltersPanel(props: {
   const showCarr  = !selectedCats.size || selectedCats.has("carregadores") || selectedCats.has("powerbanks");
   const showCab   = !selectedCats.size || selectedCats.has("cabos");
 
+  const minN = priceMin === "" ? null : Number(priceMin);
+  const maxN = priceMax === "" ? null : Number(priceMax);
+  let priceError = "";
+  if (priceMin !== "" && (isNaN(Number(priceMin)) || Number(priceMin) < 0)) {
+    priceError = "Valor 'De' inválido.";
+  } else if (priceMax !== "" && (isNaN(Number(priceMax)) || Number(priceMax) < 0)) {
+    priceError = "Valor 'Até' inválido.";
+  } else if (minN !== null && maxN !== null && minN > maxN) {
+    priceError = "O valor 'De' não pode ser maior que 'Até'.";
+  }
+
   const renderChips = (
     title: string,
     items: { value: string; label: string }[],
@@ -567,7 +585,7 @@ function FiltersPanel(props: {
               min="0"
               step="0.01"
               placeholder="De"
-              className="h-9"
+              className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
               value={priceMin}
               onChange={(e) => setPriceMin(e.target.value)}
             />
@@ -578,11 +596,14 @@ function FiltersPanel(props: {
               min="0"
               step="0.01"
               placeholder="Até"
-              className="h-9"
+              className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
               value={priceMax}
               onChange={(e) => setPriceMax(e.target.value)}
             />
           </div>
+          {priceError && (
+            <p className="text-xs text-destructive mt-1.5">{priceError}</p>
+          )}
         </div>
       </div>
 
