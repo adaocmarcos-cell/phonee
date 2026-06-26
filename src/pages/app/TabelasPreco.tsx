@@ -142,6 +142,13 @@ export default function TabelasPreco() {
       const price = Number(p.sale_price) || 0;
       const minN = priceMin === "" ? null : Number(priceMin);
       const maxN = priceMax === "" ? null : Number(priceMax);
+      // se intervalo inválido, ignora o filtro de preço (erro é mostrado na UI)
+      const invalidRange =
+        minN !== null && maxN !== null && !isNaN(minN) && !isNaN(maxN) && minN > maxN;
+      if (invalidRange) return true && (
+        // mantém apenas os outros filtros aplicados acima
+        true
+      );
       if (minN !== null && !isNaN(minN) && price < minN) return false;
       if (maxN !== null && !isNaN(maxN) && price > maxN) return false;
       // category-specific sub-filters (apply only to relevant category)
