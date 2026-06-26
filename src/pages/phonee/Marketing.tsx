@@ -238,7 +238,8 @@ export default function PhoneeMarketing() {
   };
 
   useEffect(() => { loadSettings(); loadFilters(); }, []);
-  useEffect(() => { loadTraffic(); /* eslint-disable-next-line */ }, [from, to, storeId, pathFilter]);
+  useEffect(() => { loadTraffic(); loadDashboard(); loadInvestments(); /* eslint-disable-next-line */ }, [from, to, storeId, pathFilter]);
+  useEffect(() => { loadLeads(); /* eslint-disable-next-line */ }, [leadKindFilter, leadStatusFilter]);
 
   const loadPixelOverview = async () => {
     setPxLoading(true);
