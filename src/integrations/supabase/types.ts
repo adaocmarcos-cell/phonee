@@ -521,6 +521,72 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_pixel_events: {
+        Row: {
+          capi_response: Json | null
+          capi_status: number | null
+          created_at: string
+          currency: string | null
+          custom_data: Json | null
+          email_hash: string | null
+          event_id: string
+          event_name: string
+          event_source_url: string | null
+          fbc: string | null
+          fbp: string | null
+          id: string
+          ip: string | null
+          phone_hash: string | null
+          session_id: string | null
+          source: string
+          test_event_code: string | null
+          user_agent: string | null
+          value: number | null
+        }
+        Insert: {
+          capi_response?: Json | null
+          capi_status?: number | null
+          created_at?: string
+          currency?: string | null
+          custom_data?: Json | null
+          email_hash?: string | null
+          event_id: string
+          event_name: string
+          event_source_url?: string | null
+          fbc?: string | null
+          fbp?: string | null
+          id?: string
+          ip?: string | null
+          phone_hash?: string | null
+          session_id?: string | null
+          source: string
+          test_event_code?: string | null
+          user_agent?: string | null
+          value?: number | null
+        }
+        Update: {
+          capi_response?: Json | null
+          capi_status?: number | null
+          created_at?: string
+          currency?: string | null
+          custom_data?: Json | null
+          email_hash?: string | null
+          event_id?: string
+          event_name?: string
+          event_source_url?: string | null
+          fbc?: string | null
+          fbp?: string | null
+          id?: string
+          ip?: string | null
+          phone_hash?: string | null
+          session_id?: string | null
+          source?: string
+          test_event_code?: string | null
+          user_agent?: string | null
+          value?: number | null
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -2756,6 +2822,7 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      phonee_pixel_events_overview: { Args: { _days?: number }; Returns: Json }
       phonee_referrals_overview: { Args: never; Returns: Json }
       phonee_sales_traffic: {
         Args: {
