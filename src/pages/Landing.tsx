@@ -173,7 +173,7 @@ export default function Landing() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-normal text-white">
             <a href="#beneficios" className="hover:text-primary transition">Benefícios</a>
             <a href="#dashboard" className="hover:text-primary transition">Dashboard</a>
-            <a href="#preco" className="hover:text-primary transition">Preços</a>
+            <a href="#preco" className="hover:text-primary transition">Planos &amp; Preços</a>
             <a href="#garantia" className="hover:text-primary transition">Garantia</a>
             <button
               type="button"
@@ -624,6 +624,19 @@ export default function Landing() {
             title="Sem mensalidades. Sem surpresas."
             subtitle="Experimente grátis por 7 dias. Depois, escolha Plano Anual ou Vitalício."
           />
+
+          <div className="flex justify-center -mt-4 mb-10">
+            <Button
+              size="lg"
+              type="button"
+              onClick={() => setFreeTrialOpen(true)}
+              className="h-12 px-6 text-base bg-info hover:bg-info/90 text-white shadow-glow"
+            >
+              <Gift className="mr-1.5 h-4 w-4" />
+              Experimente grátis por 7 dias
+              <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Teste grátis — 7 dias */}
