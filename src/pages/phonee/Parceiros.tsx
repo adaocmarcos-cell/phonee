@@ -455,7 +455,8 @@ export default function PhoneeParceiros() {
                 <td className="px-4 py-3">
                   {r.whatsapp ? (
                     <a href={waLink(r.whatsapp)} target="_blank" rel="noreferrer"
-                       className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300">
+                       title="Abrir conversa no WhatsApp"
+                       className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs">
                       <MessageCircle className="h-3.5 w-3.5" /> {r.whatsapp}
                     </a>
                   ) : <span className="text-slate-500">—</span>}
