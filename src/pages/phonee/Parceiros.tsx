@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 type Trial = {
   id: string; user_id: string | null; email: string; full_name: string | null;
   whatsapp: string | null; notes: string | null; instagram: string | null;
+  store_name: string | null; city: string | null; state: string | null; kind: string | null;
   invited_at: string; activated_at: string | null;
   trial_days: number; trial_ends_at: string | null;
   full_access_granted_at: string | null; full_access_months: number;
