@@ -306,6 +306,8 @@ export default function TabelasPreco() {
               filterName={filterName} setFilterName={setFilterName}
               filterSku={filterSku} setFilterSku={setFilterSku}
               filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
+              priceMin={priceMin} setPriceMin={setPriceMin}
+              priceMax={priceMax} setPriceMax={setPriceMax}
               showAvailability={showAvailability} setShowAvailability={setShowAvailability}
               showNotes={showNotes} setShowNotes={setShowNotes}
               phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
@@ -327,6 +329,8 @@ export default function TabelasPreco() {
             filterName={filterName} setFilterName={setFilterName}
             filterSku={filterSku} setFilterSku={setFilterSku}
             filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
+            priceMin={priceMin} setPriceMin={setPriceMin}
+            priceMax={priceMax} setPriceMax={setPriceMax}
             showAvailability={showAvailability} setShowAvailability={setShowAvailability}
             showNotes={showNotes} setShowNotes={setShowNotes}
             phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
@@ -401,6 +405,8 @@ function FiltersPanel(props: {
   filterName: string; setFilterName: (v: string) => void;
   filterSku: string; setFilterSku: (v: string) => void;
   filterAvailable: "all" | "in" | "out"; setFilterAvailable: (v: "all" | "in" | "out") => void;
+  priceMin: string; setPriceMin: (v: string) => void;
+  priceMax: string; setPriceMax: (v: string) => void;
   showAvailability: boolean; setShowAvailability: (v: boolean) => void;
   showNotes: boolean; setShowNotes: (v: boolean) => void;
   phoneBrands: Set<string>; setPhoneBrands: (v: Set<string>) => void;
@@ -415,6 +421,8 @@ function FiltersPanel(props: {
     storeBrands, selectedBrands, toggleBrand,
     filterName, setFilterName, filterSku, setFilterSku,
     filterAvailable, setFilterAvailable,
+    priceMin, setPriceMin,
+    priceMax, setPriceMax,
     showAvailability, setShowAvailability,
     showNotes, setShowNotes,
     phoneBrands, setPhoneBrands,
