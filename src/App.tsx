@@ -91,6 +91,8 @@ const App = () => (
             <Route path="/comprar" element={<Comprar />} />
             <Route path="/comprar/sucesso/:id" element={<ComprarSucesso />} />
             <Route path="/parceiros" element={<ParceirosSignup />} />
+            <Route path="/testegratis" element={<Navigate to="/?trial=1" replace />} />
+            <Route path="/teste-gratis" element={<Navigate to="/?trial=1" replace />} />
             <Route path="/painel" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="estoque" element={<Estoque />} />
