@@ -676,6 +676,7 @@ export default function CurvaABC() {
           </div>
         </DialogContent>
       </Dialog>
+    </>
   );
 }
 
