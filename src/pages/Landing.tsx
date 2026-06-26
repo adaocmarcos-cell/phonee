@@ -629,12 +629,14 @@ export default function Landing() {
             <Button
               size="lg"
               type="button"
-              onClick={() => setFreeTrialOpen(true)}
+              asChild
               className="h-12 px-6 text-base bg-info hover:bg-info/90 text-white shadow-glow"
             >
-              <Gift className="mr-1.5 h-4 w-4" />
-              Experimente grátis por 7 dias
-              <ArrowRight className="ml-1.5 h-4 w-4" />
+              <a href="/testegratis">
+                <Gift className="mr-1.5 h-4 w-4" />
+                Experimente grátis por 7 dias
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </a>
             </Button>
           </div>
 
