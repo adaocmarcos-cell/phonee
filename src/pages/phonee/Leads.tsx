@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Check, Clock, Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users, Gift, Play } from "lucide-react";
+import { Check, Clock, Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users, Gift, Play, UserCheck, Hourglass } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -64,6 +64,11 @@ export default function PhoneeLeads() {
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | "demo" | "indicacao">("all");
   const [contactedFilter, setContactedFilter] = useState<"all" | "contacted" | "pending">("all");
+  const [userFilter, setUserFilter] = useState<"all" | "is_user" | "in_trial">("all");
+  const [userWhats, setUserWhats] = useState<Set<string>>(new Set());
+  const [userInsta, setUserInsta] = useState<Set<string>>(new Set());
+  const [trialWhats, setTrialWhats] = useState<Set<string>>(new Set());
+  const [trialInsta, setTrialInsta] = useState<Set<string>>(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -76,27 +81,57 @@ export default function PhoneeLeads() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase.rpc as any)("phonee_partner_trials_list");
+      const allW = new Set<string>(); const allI = new Set<string>();
+      const trW = new Set<string>(); const trI = new Set<string>();
+      const now = Date.now();
+      ((data ?? []) as any[]).forEach((t) => {
+        const w = digitsOnly(t.whatsapp || "");
+        const i = (t.instagram || "").replace(/^@+/, "").toLowerCase();
+        if (w) allW.add(w);
+        if (i) allI.add(i);
+        const ends = t.trial_ends_at ? new Date(t.trial_ends_at).getTime() : 0;
+        if (t.status === "em_teste" && ends > now) {
+          if (w) trW.add(w);
+          if (i) trI.add(i);
+        }
+      });
+      setUserWhats(allW); setUserInsta(allI); setTrialWhats(trW); setTrialInsta(trI);
+    })();
+  }, []);
+
+  const isUser = (l: Lead) =>
+    userWhats.has(digitsOnly(l.whatsapp)) || userInsta.has((l.instagram || "").replace(/^@+/, "").toLowerCase());
+  const isInTrial = (l: Lead) =>
+    trialWhats.has(digitsOnly(l.whatsapp)) || trialInsta.has((l.instagram || "").replace(/^@+/, "").toLowerCase());
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let base = leads;
     if (kindFilter !== "all") base = base.filter((l) => (l.kind ?? "demo") === kindFilter);
     if (contactedFilter === "contacted") base = base.filter((l) => !!l.contacted);
     if (contactedFilter === "pending") base = base.filter((l) => !l.contacted);
+    if (userFilter === "is_user") base = base.filter(isUser);
+    if (userFilter === "in_trial") base = base.filter(isInTrial);
     if (!q) return base;
     return base.filter((l) =>
       l.name.toLowerCase().includes(q) ||
       l.instagram.toLowerCase().includes(q) ||
       digitsOnly(l.whatsapp).includes(digitsOnly(q)),
     );
-  }, [leads, query, kindFilter, contactedFilter]);
+  }, [leads, query, kindFilter, contactedFilter, userFilter, userWhats, userInsta, trialWhats, trialInsta]);
 
   const counts = useMemo(() => {
     const demo = leads.filter((l) => (l.kind ?? "demo") === "demo").length;
     const indic = leads.filter((l) => l.kind === "indicacao").length;
     const contacted = leads.filter((l) => !!l.contacted).length;
     const pending = leads.length - contacted;
-    return { demo, indic, all: leads.length, contacted, pending };
-  }, [leads]);
+    const users = leads.filter(isUser).length;
+    const trials = leads.filter(isInTrial).length;
+    return { demo, indic, all: leads.length, contacted, pending, users, trials };
+  }, [leads, userWhats, userInsta, trialWhats, trialInsta]);
 
   const exportCsv = () => {
     if (filtered.length === 0) { toast.error("Sem leads para exportar"); return; }
