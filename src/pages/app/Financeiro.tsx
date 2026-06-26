@@ -55,6 +55,9 @@ export default function Financeiro() {
   const [splits, setSplits] = useState<{ method: string; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [openReceivables, setOpenReceivables] = useState(false);
+  const [openPayables, setOpenPayables] = useState(false);
+  const [openReceived, setOpenReceived] = useState(false);
+  const [openLiquido, setOpenLiquido] = useState(false);
 
   const sendWhatsAppReminder = (r: Receivable) => {
     const digits = (r.whatsapp ?? "").replace(/\D/g, "");
@@ -323,9 +326,57 @@ export default function Financeiro() {
               />
             </button>
           ) },
-          { id: "a-pagar", node: <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="py-[18px]" /> },
-          { id: "recebido", node: <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" /> },
-          { id: "liquido", node: <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" /> },
+          { id: "a-pagar", node: (
+            <button
+              type="button"
+              onClick={() => setOpenPayables(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-danger rounded-lg group"
+              title="Ver contas a pagar em aberto"
+            >
+              <MetricCard
+                label="A pagar"
+                value={brl(totals.aPagar)}
+                delta={`${payables.filter(p => p.status !== "pago").length} título(s) · clique para ver`}
+                icon={TrendingDown}
+                tone="danger"
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
+          { id: "recebido", node: (
+            <button
+              type="button"
+              onClick={() => setOpenReceived(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-success rounded-lg group"
+              title="Ver recebimentos confirmados no período"
+            >
+              <MetricCard
+                label="Recebido"
+                value={brl(totals.recebido)}
+                delta={`${receivables.filter(r => r.status === "pago").length} recebimento(s) · clique para ver`}
+                icon={CheckCircle2}
+                tone="success"
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
+          { id: "liquido", node: (
+            <button
+              type="button"
+              onClick={() => setOpenLiquido(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg group"
+              title="Ver composição do resultado líquido"
+            >
+              <MetricCard
+                label="Resultado líquido"
+                value={brl(totals.liquido)}
+                delta="Receita − Despesas · clique para detalhar"
+                icon={Wallet}
+                tone={totals.liquido >= 0 ? "info" : "danger"}
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
         ]}
       />
 
