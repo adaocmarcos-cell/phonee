@@ -154,7 +154,7 @@ export default function TabelasPreco() {
       if (cat === "cabos" && !matchesTypeList(p, cableTypes, CABLE_TYPES)) return false;
       return true;
     });
-  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable, phoneBrands, capaBrands, foneTypes, memorySizes, chargerTypes, cableTypes]);
+  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable, priceMin, priceMax, phoneBrands, capaBrands, foneTypes, memorySizes, chargerTypes, cableTypes]);
 
   const toggleProduct = (id: string) => {
     const next = new Set(selectedProducts);
@@ -557,6 +557,32 @@ function FiltersPanel(props: {
               {v === "all" ? "Todos" : v === "in" ? "Em estoque" : "Sem estoque"}
             </Button>
           ))}
+        </div>
+        <div>
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preço (R$)</Label>
+          <div className="flex items-center gap-1.5 mt-2">
+            <Input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="De"
+              className="h-9"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">—</span>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="Até"
+              className="h-9"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
