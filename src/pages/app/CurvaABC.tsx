@@ -594,5 +594,92 @@ export default function CurvaABC() {
         </div>
       </Card>
     </div>
+
+      {/* Compra sugerida */}
+      <Dialog open={openSuggest} onOpenChange={setOpenSuggest}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-primary" /> Compra sugerida
+            </DialogTitle>
+            <DialogDescription>
+              Calculada a partir das vendas dos últimos {histDays} dias projetadas para os próximos {projDays} dias, descontando o estoque atual.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Histórico (dias)</Label>
+              <Input type="number" min={1} value={histDays}
+                onChange={(e) => { setHistDays(Math.max(1, Number(e.target.value) || 1)); setSuggestEdits({}); }} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Projeção (dias)</Label>
+              <Input type="number" min={1} value={projDays}
+                onChange={(e) => { setProjDays(Math.max(1, Number(e.target.value) || 1)); setSuggestEdits({}); }} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Investimento estimado</Label>
+              <div className="h-10 flex items-center px-3 rounded-md bg-surface-elevated border border-border font-semibold tabular-nums">
+                {brl(suggestTotal)}
+              </div>
+            </div>
+          </div>
+
+          <div className="max-h-[55vh] overflow-y-auto border border-border rounded-md">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Produto</th>
+                  <th className="text-right px-3 py-2 font-medium">Vendido</th>
+                  <th className="text-right px-3 py-2 font-medium">Estoque</th>
+                  <th className="text-right px-3 py-2 font-medium">Projeção</th>
+                  <th className="text-right px-3 py-2 font-medium w-28">Comprar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {suggestions.length === 0 ? (
+                  <tr><td colSpan={5} className="px-3 py-8 text-center text-muted-foreground text-sm">Sem dados para sugerir compras.</td></tr>
+                ) : suggestions.map((r) => (
+                  <tr key={r.id} className="hover:bg-surface-elevated/40">
+                    <td className="px-3 py-2">{r.name}</td>
+                    <td className="px-3 py-2 text-right metric">{r.qtySold}</td>
+                    <td className="px-3 py-2 text-right metric">{r.stock}</td>
+                    <td className="px-3 py-2 text-right metric text-muted-foreground">{r.projected}</td>
+                    <td className="px-3 py-2 text-right">
+                      <Input
+                        type="number" min={0}
+                        value={r.suggested}
+                        onChange={(e) =>
+                          setSuggestEdits((prev) => ({ ...prev, [r.id]: Math.max(0, Number(e.target.value) || 0) }))
+                        }
+                        className="h-8 text-right w-24 ml-auto"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2 pt-3">
+            <Button variant="outline" onClick={handleSaveSuggest}>
+              <Save className="h-4 w-4 mr-1" /> Salvar lista
+            </Button>
+            <Button variant="outline" onClick={() => handlePrintSuggest(true)}>
+              <FileDown className="h-4 w-4 mr-1" /> Salvar PDF
+            </Button>
+            <Button onClick={() => handlePrintSuggest(true)} className="bg-gradient-primary">
+              <Printer className="h-4 w-4 mr-1" /> Imprimir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
   );
+}
+
+function escapeHtml(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
