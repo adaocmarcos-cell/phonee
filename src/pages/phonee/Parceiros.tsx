@@ -201,6 +201,86 @@ export default function PhoneeParceiros() {
     setWaFor(null);
   };
 
+  // Follow-up por status (ativo / prestes a expirar / expirado)
+  const followUp = (r: Trial) => {
+    if (!r.whatsapp) { toast.error("Parceiro sem WhatsApp cadastrado."); return; }
+    const name = (r.full_name || r.email.split("@")[0] || "").split(" ")[0];
+    const ends = r.full_access_ends_at || r.trial_ends_at;
+    const dl = ends ? Math.ceil((new Date(ends).getTime() - Date.now()) / 86400000) : 0;
+    let msg = "";
+    if (r.status === "em_teste" && dl > 3) msg = FU_ACTIVE(name, dl);
+    else if (r.status === "em_teste" && dl <= 3) msg = FU_EXPIRING(name, Math.max(0, dl));
+    else msg = FU_EXPIRED(name);
+    setWaFor(r);
+    setWaMsg(msg);
+  };
+
+  // Exportações
+  const exportRows = () => rows.map((r) => ({
+    nome_loja: r.store_name || "",
+    cidade_uf: [r.city, r.state].filter(Boolean).join(" / "),
+    nome: r.full_name || "",
+    email: r.email,
+    whatsapp: r.whatsapp || "",
+    instagram: r.instagram || "",
+    tipo: r.kind === "free_trial" ? "Teste grátis 7d" : "Parceiro",
+    status: statusLabel[r.status],
+  }));
+
+  const exportCSV = () => {
+    const data = exportRows();
+    if (!data.length) return toast.error("Nada para exportar.");
+    const headers = ["Loja","Cidade/UF","Nome","E-mail","WhatsApp","Instagram","Tipo","Status"];
+    const csv = [
+      headers.join(";"),
+      ...data.map(d => [d.nome_loja, d.cidade_uf, d.nome, d.email, d.whatsapp, d.instagram, d.tipo, d.status]
+        .map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")),
+    ].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `phonee-testadores-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success("CSV exportado.");
+  };
+
+  const exportPDF = () => {
+    const data = exportRows();
+    if (!data.length) return toast.error("Nada para exportar.");
+    const w = window.open("", "_blank");
+    if (!w) return toast.error("Bloqueie de pop-ups está ativo.");
+    const tableRows = data.map(d => `
+      <tr>
+        <td>${d.nome_loja || "—"}</td>
+        <td>${d.cidade_uf || "—"}</td>
+        <td>${d.nome || "—"}</td>
+        <td>${d.email}</td>
+        <td>${d.whatsapp || "—"}</td>
+        <td>${d.instagram || "—"}</td>
+        <td>${d.tipo}</td>
+        <td>${d.status}</td>
+      </tr>`).join("");
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
+      <title>Leads de teste · Phonee</title>
+      <style>
+        body{font-family:system-ui,-apple-system,sans-serif;color:#111;margin:24px}
+        h1{margin:0 0 4px;font-size:18px}
+        .sub{color:#666;font-size:12px;margin-bottom:14px}
+        table{width:100%;border-collapse:collapse;font-size:11px}
+        th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}
+        th{background:#f4f4f5}
+      </style></head><body>
+      <h1>Leads de teste · Phonee</h1>
+      <div class="sub">Gerado em ${new Date().toLocaleString("pt-BR")} · ${data.length} registros</div>
+      <table><thead><tr>
+        <th>Loja</th><th>Cidade/UF</th><th>Nome</th><th>E-mail</th>
+        <th>WhatsApp</th><th>Instagram</th><th>Tipo</th><th>Status</th>
+      </tr></thead><tbody>${tableRows}</tbody></table>
+      <script>window.onload=()=>window.print()</script>
+      </body></html>`);
+    w.document.close();
+  };
+
   // Alertas automáticos
   const now = Date.now();
   const D7 = 7 * 86400_000;
