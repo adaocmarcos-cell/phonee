@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Handshake, Copy, RefreshCw, Trash2, ShieldCheck, MessageCircle, Calendar, Ban, Plus, AlertTriangle, Send, Link2, Play,
+  Download, FileText, Instagram,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -41,6 +42,24 @@ Acesse pelo link abaixo e crie sua senha:
 ${p.link}
 
 Qualquer dúvida me chame por aqui. Boa avaliação! 🚀`;
+
+const FU_ACTIVE = (name: string, days: number) =>
+`Olá ${name || "tudo bem"}! 👋
+
+Tudo certo com seu teste do *Phonee*? Você ainda tem ${days} dia(s) de acesso liberado.
+Se quiser uma ajuda rápida pra configurar sua loja, é só me chamar.`;
+
+const FU_EXPIRING = (name: string, days: number) =>
+`Oi ${name || ""}! ⏳
+
+Seu teste grátis do *Phonee* termina em ${days} dia(s).
+Quer continuar usando sem interrupção? Posso te enviar agora as opções de plano (Anual ou Vitalício) com a melhor condição.`;
+
+const FU_EXPIRED = (name: string) =>
+`Oi ${name || ""}!
+
+Seu período de teste do *Phonee* expirou, mas seus dados continuam salvos. ✅
+Pra reativar o acesso é só escolher um plano (Anual ou Vitalício). Posso te enviar o link de pagamento agora?`;
 
 const statusStyles: Record<Trial["status"], string> = {
   em_teste: "bg-sky-500/15 text-sky-300 border-sky-500/30",
