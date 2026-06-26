@@ -306,7 +306,23 @@ export default function Financeiro() {
         editing={editingLayout}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"
         items={[
-          { id: "a-receber", node: <MetricCard label="A receber" value={brl(totals.aReceber)} delta={`${receivables.filter(r => r.status !== "pago").length} título(s)`} icon={Clock} tone="warning" className="py-[18px]" /> },
+          { id: "a-receber", node: (
+            <button
+              type="button"
+              onClick={() => setOpenReceivables(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-warning rounded-lg group"
+              title="Ver lista de contas a receber em aberto"
+            >
+              <MetricCard
+                label="A receber"
+                value={brl(totals.aReceber)}
+                delta={`${receivables.filter(r => r.status !== "pago").length} título(s) · clique para cobrar`}
+                icon={Clock}
+                tone="warning"
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
           { id: "a-pagar", node: <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="py-[18px]" /> },
           { id: "recebido", node: <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" /> },
           { id: "liquido", node: <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" /> },
