@@ -220,7 +220,7 @@ export default function Landing() {
                 Fazer login
               </Button>
             </Link>
-            <Link to="/comprar?plano=annual">
+            <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "header")}>
               <Button className="bg-gradient-primary hidden sm:inline-flex animate-neon-pulse rounded-md">Comprar agora</Button>
             </Link>
           </div>
@@ -466,6 +466,7 @@ export default function Landing() {
             <div className="flex justify-center -mt-4">
               <Link
                 to="/comprar?plano=annual"
+                onClick={() => trackCheckoutClick("annual", "midpage_cta")}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base md:text-lg font-extrabold text-primary-foreground shadow-glow hover:bg-primary/90 transition"
               >
                 Quero mais lucro e menos perdas
@@ -723,7 +724,7 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <Link to="/comprar?plano=annual" className="block mt-7">
+                <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "pricing_card")} className="block mt-7">
                   <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
                     Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
@@ -770,7 +771,7 @@ export default function Landing() {
                   sem cobranças de mensalidade ou renovação.
                 </p>
 
-                <Link to="/comprar?plano=lifetime" className="block mt-7">
+                <Link to="/comprar?plano=lifetime" onClick={() => trackCheckoutClick("lifetime", "pricing_card")} className="block mt-7">
                   <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
                     Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
@@ -798,7 +799,7 @@ export default function Landing() {
             e tenha mais liberdade para crescer.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link to="/comprar?plano=annual">
+            <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "final_cta")}>
               <Button size="lg" className="bg-gradient-primary h-12 px-7 text-base animate-neon-pulse rounded-md">
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
