@@ -321,6 +321,30 @@ export default function PhoneeLeads() {
       <div className="flex flex-wrap gap-2">
         {([
           { id: "all", label: `Todos (${counts.all})`, icon: <Users className="h-3.5 w-3.5" /> },
+          { id: "is_user", label: `Virou usuário (${counts.users})`, icon: <UserCheck className="h-3.5 w-3.5" /> },
+          { id: "in_trial", label: `Em teste grátis (${counts.trials})`, icon: <Hourglass className="h-3.5 w-3.5" /> },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setUserFilter(t.id as any)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
+              userFilter === t.id
+                ? t.id === "is_user"
+                  ? "bg-violet-500 text-white border-violet-500 font-semibold"
+                  : t.id === "in_trial"
+                    ? "bg-amber-400 text-slate-900 border-amber-400 font-semibold"
+                    : "bg-[#00abfb] text-slate-900 border-[#00abfb] font-semibold"
+                : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {([
+          { id: "all", label: `Todos (${counts.all})`, icon: <Users className="h-3.5 w-3.5" /> },
           { id: "contacted", label: `Contatados (${counts.contacted})`, icon: <Check className="h-3.5 w-3.5" /> },
           { id: "pending", label: `Pendentes (${counts.pending})`, icon: <Clock className="h-3.5 w-3.5" /> },
         ] as const).map((t) => (
