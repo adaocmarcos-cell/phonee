@@ -142,15 +142,15 @@ export default function TabelasPreco() {
       const price = Number(p.sale_price) || 0;
       const minN = priceMin === "" ? null : Number(priceMin);
       const maxN = priceMax === "" ? null : Number(priceMax);
-      // se intervalo inválido, ignora o filtro de preço (erro é mostrado na UI)
-      const invalidRange =
+      const minInvalid = minN !== null && (isNaN(minN) || minN < 0);
+      const maxInvalid = maxN !== null && (isNaN(maxN) || maxN < 0);
+      const rangeInvalid =
         minN !== null && maxN !== null && !isNaN(minN) && !isNaN(maxN) && minN > maxN;
-      if (invalidRange) return true && (
-        // mantém apenas os outros filtros aplicados acima
-        true
-      );
-      if (minN !== null && !isNaN(minN) && price < minN) return false;
-      if (maxN !== null && !isNaN(maxN) && price > maxN) return false;
+      // intervalo inválido → ignora filtro de preço (erro mostrado na UI)
+      if (!minInvalid && !maxInvalid && !rangeInvalid) {
+        if (minN !== null && price < minN) return false;
+        if (maxN !== null && price > maxN) return false;
+      }
       // category-specific sub-filters (apply only to relevant category)
       const cat = p.category || "";
       if (cat === "smartphones" && !matchesBrandList(p, phoneBrands)) return false;
