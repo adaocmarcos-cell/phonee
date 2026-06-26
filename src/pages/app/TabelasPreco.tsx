@@ -88,6 +88,8 @@ export default function TabelasPreco() {
   const [filterName, setFilterName] = useState("");
   const [filterSku, setFilterSku] = useState("");
   const [filterAvailable, setFilterAvailable] = useState<"all" | "in" | "out">("all");
+  const [priceMin, setPriceMin] = useState<string>("");
+  const [priceMax, setPriceMax] = useState<string>("");
 
   const [showAvailability, setShowAvailability] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -137,6 +139,11 @@ export default function TabelasPreco() {
       if (filterSku && !(p.sku || "").toLowerCase().includes(filterSku.toLowerCase())) return false;
       if (filterAvailable === "in" && p.stock_current <= 0) return false;
       if (filterAvailable === "out" && p.stock_current > 0) return false;
+      const price = Number(p.sale_price) || 0;
+      const minN = priceMin === "" ? null : Number(priceMin);
+      const maxN = priceMax === "" ? null : Number(priceMax);
+      if (minN !== null && !isNaN(minN) && price < minN) return false;
+      if (maxN !== null && !isNaN(maxN) && price > maxN) return false;
       // category-specific sub-filters (apply only to relevant category)
       const cat = p.category || "";
       if (cat === "smartphones" && !matchesBrandList(p, phoneBrands)) return false;
