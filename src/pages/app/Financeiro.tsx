@@ -9,24 +9,25 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MetricCard } from "@/components/MetricCard";
 import { SortableCards } from "@/components/SortableCards";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import {
   Wallet, TrendingUp, TrendingDown, Receipt, ArrowRight, Clock, CheckCircle2,
-  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText, LayoutGrid, Check,
+  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText, LayoutGrid, Check, MessageCircle, Send,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-type Sale = { id: string; sale_number: number | null; total: number; created_at: string; payment_status: string; due_date: string | null; customer_name: string | null; payment_method: string };
+type Sale = { id: string; sale_number: number | null; total: number; created_at: string; payment_status: string; due_date: string | null; customer_name: string | null; customer_whatsapp: string | null; payment_method: string };
 type PartsSale = { id: string; total: number; created_at: string; payment_method: string; customer_name: string | null };
-type ServiceOrder = { id: string; os_number: number | null; total_value: number; status: string; budget_status: string; created_at: string; customer_name: string };
+type ServiceOrder = { id: string; os_number: number | null; total_value: number; status: string; budget_status: string; created_at: string; customer_name: string; customer_whatsapp: string | null };
 type Expense = { id: string; amount: number; expense_date: string; description: string; category_name: string; payment_method: string };
 
 type Receivable = {
   id: string; ref: string; source: "venda" | "peça" | "serviço";
-  customer: string; total: number; date: string; due: string | null; status: "aberto" | "vencido" | "pago"; method: string;
+  customer: string; whatsapp: string | null; total: number; date: string; due: string | null; status: "aberto" | "vencido" | "pago"; method: string;
 };
 type Payable = {
   id: string; description: string; category: string;
@@ -53,6 +54,21 @@ export default function Financeiro() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [splits, setSplits] = useState<{ method: string; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openReceivables, setOpenReceivables] = useState(false);
+
+  const sendWhatsAppReminder = (r: Receivable) => {
+    const digits = (r.whatsapp ?? "").replace(/\D/g, "");
+    if (!digits) return;
+    const phone = digits.startsWith("55") ? digits : `55${digits}`;
+    const storeName = store?.name ? ` da ${store.name}` : "";
+    const venc = r.due ? ` (vencimento ${new Date(r.due).toLocaleDateString("pt-BR")})` : "";
+    const refLabel = r.source === "serviço" ? r.ref : `pedido ${r.ref}`;
+    const msg =
+      `Olá ${r.customer}, tudo bem? 😊\n\n` +
+      `Passando um lembrete sutil sobre o ${refLabel}${storeName}, no valor de ${brl(r.total)}${venc}.\n` +
+      `Qualquer dúvida estamos à disposição. Obrigado!`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   useEffect(() => {
     if (!store) return;
@@ -61,9 +77,9 @@ export default function Financeiro() {
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
       const [{ data: s }, { data: ps }, { data: o }, { data: e }, { data: sp }] = await Promise.all([
-        supabase.from("sales").select("id,sale_number,total,net_value,created_at,payment_status,due_date,customer_name,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
+        supabase.from("sales").select("id,sale_number,total,net_value,created_at,payment_status,due_date,customer_name,customer_whatsapp,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         supabase.from("parts_sales").select("id,total,net_value,created_at,payment_method,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
-        supabase.from("service_orders").select("id,os_number,total_value,net_value,status,budget_status,created_at,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
+        supabase.from("service_orders").select("id,os_number,total_value,net_value,status,budget_status,created_at,customer_name,customer_whatsapp").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         (supabase as any).from("expenses").select("id,amount,expense_date,description,category_name,payment_method").eq("store_id", store.id).gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: false }),
         (supabase as any).from("sale_payments").select("method,amount,created_at").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso),
       ]);
@@ -87,14 +103,14 @@ export default function Financeiro() {
       const status: Receivable["status"] = isPaid ? "pago" : dueDate && dueDate < today ? "vencido" : "aberto";
       items.push({
         id: s.id, ref: `#${s.sale_number ?? "—"}`, source: "venda",
-        customer: s.customer_name || "—", total: Number((s as any).net_value ?? s.total ?? 0),
+        customer: s.customer_name || "—", whatsapp: s.customer_whatsapp ?? null, total: Number((s as any).net_value ?? s.total ?? 0),
         date: s.created_at, due: s.due_date, status, method: s.payment_method,
       });
     });
     partsSales.forEach((p) => {
       items.push({
         id: p.id, ref: "peça", source: "peça",
-        customer: p.customer_name || "—", total: Number((p as any).net_value ?? p.total ?? 0),
+        customer: p.customer_name || "—", whatsapp: null, total: Number((p as any).net_value ?? p.total ?? 0),
         date: p.created_at, due: null, status: "pago", method: p.payment_method,
       });
     });
@@ -105,7 +121,7 @@ export default function Financeiro() {
       if (osVal > 0) {
         items.push({
           id: o.id, ref: `OS #${o.os_number ?? "—"}`, source: "serviço",
-          customer: o.customer_name || "—", total: osVal,
+          customer: o.customer_name || "—", whatsapp: o.customer_whatsapp ?? null, total: osVal,
           date: o.created_at, due: null, status, method: "—",
         });
       }
@@ -290,7 +306,23 @@ export default function Financeiro() {
         editing={editingLayout}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"
         items={[
-          { id: "a-receber", node: <MetricCard label="A receber" value={brl(totals.aReceber)} delta={`${receivables.filter(r => r.status !== "pago").length} título(s)`} icon={Clock} tone="warning" className="py-[18px]" /> },
+          { id: "a-receber", node: (
+            <button
+              type="button"
+              onClick={() => setOpenReceivables(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-warning rounded-lg group"
+              title="Ver lista de contas a receber em aberto"
+            >
+              <MetricCard
+                label="A receber"
+                value={brl(totals.aReceber)}
+                delta={`${receivables.filter(r => r.status !== "pago").length} título(s) · clique para cobrar`}
+                icon={Clock}
+                tone="warning"
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
           { id: "a-pagar", node: <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="py-[18px]" /> },
           { id: "recebido", node: <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" /> },
           { id: "liquido", node: <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" /> },
@@ -506,6 +538,72 @@ export default function Financeiro() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={openReceivables} onOpenChange={setOpenReceivables}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-warning" />
+              Cobranças em aberto
+            </DialogTitle>
+            <DialogDescription>
+              Total a receber: <span className="font-semibold text-warning">{brl(totals.aReceber)}</span> ·{" "}
+              {receivables.filter((r) => r.status !== "pago").length} título(s). Envie um lembrete sutil ao
+              cliente direto pelo WhatsApp cadastrado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto -mx-2">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Cliente</th>
+                  <th className="text-left px-3 py-2 font-medium">Pedido</th>
+                  <th className="text-left px-3 py-2 font-medium">Vencimento</th>
+                  <th className="text-right px-3 py-2 font-medium">Valor</th>
+                  <th className="text-center px-3 py-2 font-medium">Lembrete</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {receivables.filter((r) => r.status !== "pago").length === 0 ? (
+                  <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">Nenhuma cobrança em aberto. 🎉</td></tr>
+                ) : receivables.filter((r) => r.status !== "pago").map((r) => {
+                  const hasWa = !!(r.whatsapp && r.whatsapp.replace(/\D/g, "").length >= 10);
+                  return (
+                    <tr key={`open-${r.source}-${r.id}`} className="hover:bg-muted/30">
+                      <td className="px-3 py-2.5">
+                        <div className="font-medium truncate max-w-[200px]" title={r.customer}>{r.customer}</div>
+                        <div className="text-[11px] text-muted-foreground font-mono">
+                          {hasWa ? r.whatsapp : "sem WhatsApp cadastrado"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge variant="outline" className="text-[10px] gap-1">{sourceIcon(r.source)}{r.ref}</Badge>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs font-mono">
+                        {r.due ? new Date(r.due).toLocaleDateString("pt-BR") : "—"}
+                        {" "}<StatusBadge s={r.status} />
+                      </td>
+                      <td className="px-3 py-2.5 text-right metric font-semibold">{brl(r.total)}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <Button
+                          size="sm"
+                          variant={hasWa ? "default" : "outline"}
+                          disabled={!hasWa}
+                          onClick={() => sendWhatsAppReminder(r)}
+                          className={hasWa ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                          WhatsApp
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
