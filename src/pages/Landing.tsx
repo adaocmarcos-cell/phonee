@@ -147,11 +147,14 @@ export default function Landing() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [refOpen, setRefOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
-  const handleDemo = () => setDemoOpen(true);
-  // Deep-link: /?demo=1 abre direto o modal de demonstração
+  // "Ver demonstração" foi temporariamente desativado — agora abre "Experimente grátis".
+  const handleDemo = () => setFreeTrialOpen(true);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (p.get("demo") === "1" || p.get("demonstracao") === "1") setDemoOpen(true);
+    // deep-link /?demo=1 agora aponta para o cadastro grátis
+    if (p.get("demo") === "1" || p.get("demonstracao") === "1" || p.get("trial") === "1") {
+      setFreeTrialOpen(true);
+    }
     if (p.get("indique") === "1" || p.get("indicacao") === "1") setRefOpen(true);
     trackPageVisit("/");
   }, []);
