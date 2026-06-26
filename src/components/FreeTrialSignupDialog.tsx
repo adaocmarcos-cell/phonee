@@ -150,8 +150,9 @@ export function FreeTrialSignupDialog({ open, onOpenChange }: Props) {
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-[12px] text-foreground/80 flex gap-2">
               <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <span>
-                Acesso liberado por <b>7 dias</b>. Após esse período, o acesso é bloqueado automaticamente
-                e a continuidade exige a contratação de um plano (<b>Anual</b> ou <b>Vitalício</b>).
+                Experimente o <b>Phonee GRÁTIS por 7 dias</b> e descubra nossa solução incrível para gerir
+                o seu negócio de onde estiver, com dados em tempo real em um sistema eficaz de gestão
+                inteligente. Vem com a gente!
               </span>
             </div>
 
