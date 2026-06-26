@@ -1047,3 +1047,14 @@ function Stat({ icon, label, value, loading }: { icon: React.ReactNode; label: s
     </div>
   );
 }
+
+function KPI({ icon, label, value, loading }: { icon: React.ReactNode; label: string; value: string | number; loading?: boolean }) {
+  return (
+    <div className="rounded-lg bg-gradient-to-br from-slate-800/60 to-slate-900 border border-slate-800 p-3">
+      <div className="flex items-center gap-2 text-[11px] text-slate-400 uppercase tracking-wide">{icon}{label}</div>
+      <div className="text-lg font-semibold mt-1 tabular-nums truncate">
+        {loading ? "…" : value}
+      </div>
+    </div>
+  );
+}
