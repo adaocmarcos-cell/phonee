@@ -452,6 +452,17 @@ function FiltersPanel(props: {
   const showCarr  = !selectedCats.size || selectedCats.has("carregadores") || selectedCats.has("powerbanks");
   const showCab   = !selectedCats.size || selectedCats.has("cabos");
 
+  const minN = priceMin === "" ? null : Number(priceMin);
+  const maxN = priceMax === "" ? null : Number(priceMax);
+  let priceError = "";
+  if (priceMin !== "" && (isNaN(Number(priceMin)) || Number(priceMin) < 0)) {
+    priceError = "Valor 'De' inválido.";
+  } else if (priceMax !== "" && (isNaN(Number(priceMax)) || Number(priceMax) < 0)) {
+    priceError = "Valor 'Até' inválido.";
+  } else if (minN !== null && maxN !== null && minN > maxN) {
+    priceError = "O valor 'De' não pode ser maior que 'Até'.";
+  }
+
   const renderChips = (
     title: string,
     items: { value: string; label: string }[],
