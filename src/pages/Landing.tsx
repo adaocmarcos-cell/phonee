@@ -147,11 +147,14 @@ export default function Landing() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [refOpen, setRefOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
-  const handleDemo = () => setDemoOpen(true);
-  // Deep-link: /?demo=1 abre direto o modal de demonstração
+  // "Ver demonstração" foi temporariamente desativado — agora abre "Experimente grátis".
+  const handleDemo = () => setFreeTrialOpen(true);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (p.get("demo") === "1" || p.get("demonstracao") === "1") setDemoOpen(true);
+    // deep-link /?demo=1 agora aponta para o cadastro grátis
+    if (p.get("demo") === "1" || p.get("demonstracao") === "1" || p.get("trial") === "1") {
+      setFreeTrialOpen(true);
+    }
     if (p.get("indique") === "1" || p.get("indicacao") === "1") setRefOpen(true);
     trackPageVisit("/");
   }, []);
@@ -196,7 +199,7 @@ export default function Landing() {
               className="hidden sm:inline-flex border-primary/60 text-white bg-primary/15 hover:bg-primary/25 hover:text-white animate-neon-soft"
             >
               <Play className="h-4 w-4 mr-1.5" />
-              Ver demonstração
+              Experimente grátis
             </Button>
             <Link to="/entrar">
               <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10">
@@ -267,7 +270,7 @@ export default function Landing() {
                   className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg animate-neon-soft"
                 >
                   <Play className="h-4 w-4 mr-1.5" />
-                  Ver demonstração
+                  Experimente grátis
                 </Button>
               </div>
               {/* "Ver planos" — mobile ocupa a largura total (= linha acima) */}

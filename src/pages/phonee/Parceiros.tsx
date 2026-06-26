@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Handshake, Copy, RefreshCw, Trash2, ShieldCheck, MessageCircle, Calendar, Ban, Plus, AlertTriangle, Send, Link2, Play,
+  Download, FileText, Instagram,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -41,6 +42,24 @@ Acesse pelo link abaixo e crie sua senha:
 ${p.link}
 
 Qualquer dúvida me chame por aqui. Boa avaliação! 🚀`;
+
+const FU_ACTIVE = (name: string, days: number) =>
+`Olá ${name || "tudo bem"}! 👋
+
+Tudo certo com seu teste do *Phonee*? Você ainda tem ${days} dia(s) de acesso liberado.
+Se quiser uma ajuda rápida pra configurar sua loja, é só me chamar.`;
+
+const FU_EXPIRING = (name: string, days: number) =>
+`Oi ${name || ""}! ⏳
+
+Seu teste grátis do *Phonee* termina em ${days} dia(s).
+Quer continuar usando sem interrupção? Posso te enviar agora as opções de plano (Anual ou Vitalício) com a melhor condição.`;
+
+const FU_EXPIRED = (name: string) =>
+`Oi ${name || ""}!
+
+Seu período de teste do *Phonee* expirou, mas seus dados continuam salvos. ✅
+Pra reativar o acesso é só escolher um plano (Anual ou Vitalício). Posso te enviar o link de pagamento agora?`;
 
 const statusStyles: Record<Trial["status"], string> = {
   em_teste: "bg-sky-500/15 text-sky-300 border-sky-500/30",
@@ -182,6 +201,86 @@ export default function PhoneeParceiros() {
     setWaFor(null);
   };
 
+  // Follow-up por status (ativo / prestes a expirar / expirado)
+  const followUp = (r: Trial) => {
+    if (!r.whatsapp) { toast.error("Parceiro sem WhatsApp cadastrado."); return; }
+    const name = (r.full_name || r.email.split("@")[0] || "").split(" ")[0];
+    const ends = r.full_access_ends_at || r.trial_ends_at;
+    const dl = ends ? Math.ceil((new Date(ends).getTime() - Date.now()) / 86400000) : 0;
+    let msg = "";
+    if (r.status === "em_teste" && dl > 3) msg = FU_ACTIVE(name, dl);
+    else if (r.status === "em_teste" && dl <= 3) msg = FU_EXPIRING(name, Math.max(0, dl));
+    else msg = FU_EXPIRED(name);
+    setWaFor(r);
+    setWaMsg(msg);
+  };
+
+  // Exportações
+  const exportRows = () => rows.map((r) => ({
+    nome_loja: r.store_name || "",
+    cidade_uf: [r.city, r.state].filter(Boolean).join(" / "),
+    nome: r.full_name || "",
+    email: r.email,
+    whatsapp: r.whatsapp || "",
+    instagram: r.instagram || "",
+    tipo: r.kind === "free_trial" ? "Teste grátis 7d" : "Parceiro",
+    status: statusLabel[r.status],
+  }));
+
+  const exportCSV = () => {
+    const data = exportRows();
+    if (!data.length) return toast.error("Nada para exportar.");
+    const headers = ["Loja","Cidade/UF","Nome","E-mail","WhatsApp","Instagram","Tipo","Status"];
+    const csv = [
+      headers.join(";"),
+      ...data.map(d => [d.nome_loja, d.cidade_uf, d.nome, d.email, d.whatsapp, d.instagram, d.tipo, d.status]
+        .map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")),
+    ].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `phonee-testadores-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast.success("CSV exportado.");
+  };
+
+  const exportPDF = () => {
+    const data = exportRows();
+    if (!data.length) return toast.error("Nada para exportar.");
+    const w = window.open("", "_blank");
+    if (!w) return toast.error("Bloqueie de pop-ups está ativo.");
+    const tableRows = data.map(d => `
+      <tr>
+        <td>${d.nome_loja || "—"}</td>
+        <td>${d.cidade_uf || "—"}</td>
+        <td>${d.nome || "—"}</td>
+        <td>${d.email}</td>
+        <td>${d.whatsapp || "—"}</td>
+        <td>${d.instagram || "—"}</td>
+        <td>${d.tipo}</td>
+        <td>${d.status}</td>
+      </tr>`).join("");
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
+      <title>Leads de teste · Phonee</title>
+      <style>
+        body{font-family:system-ui,-apple-system,sans-serif;color:#111;margin:24px}
+        h1{margin:0 0 4px;font-size:18px}
+        .sub{color:#666;font-size:12px;margin-bottom:14px}
+        table{width:100%;border-collapse:collapse;font-size:11px}
+        th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}
+        th{background:#f4f4f5}
+      </style></head><body>
+      <h1>Leads de teste · Phonee</h1>
+      <div class="sub">Gerado em ${new Date().toLocaleString("pt-BR")} · ${data.length} registros</div>
+      <table><thead><tr>
+        <th>Loja</th><th>Cidade/UF</th><th>Nome</th><th>E-mail</th>
+        <th>WhatsApp</th><th>Instagram</th><th>Tipo</th><th>Status</th>
+      </tr></thead><tbody>${tableRows}</tbody></table>
+      <script>window.onload=()=>window.print()</script>
+      </body></html>`);
+    w.document.close();
+  };
+
   // Alertas automáticos
   const now = Date.now();
   const D7 = 7 * 86400_000;
@@ -208,9 +307,17 @@ export default function PhoneeParceiros() {
             Libere manualmente os 12 meses contados a partir do fim do teste.
           </p>
         </div>
-        <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
-          <Plus className="h-4 w-4 mr-1.5" /> Novo parceiro
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportCSV} className="h-9">
+            <Download className="h-4 w-4 mr-1.5" /> CSV
+          </Button>
+          <Button variant="outline" onClick={exportPDF} className="h-9">
+            <FileText className="h-4 w-4 mr-1.5" /> PDF
+          </Button>
+          <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
+            <Plus className="h-4 w-4 mr-1.5" /> Novo parceiro
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 flex flex-wrap items-center gap-3">
@@ -337,8 +444,10 @@ export default function PhoneeParceiros() {
                     <a
                       href={`https://instagram.com/${r.instagram.replace(/^@+/, "")}`}
                       target="_blank" rel="noreferrer"
-                      className="text-pink-400 hover:text-pink-300 inline-flex items-center gap-1 mt-0.5"
+                      title="Abrir Instagram"
+                      className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-pink-500/30 bg-pink-500/10 text-pink-300 hover:bg-pink-500/20 text-[11px]"
                     >
+                      <Instagram className="h-3 w-3" />
                       {r.instagram.startsWith("@") ? r.instagram : `@${r.instagram}`}
                     </a>
                   )}
@@ -346,7 +455,8 @@ export default function PhoneeParceiros() {
                 <td className="px-4 py-3">
                   {r.whatsapp ? (
                     <a href={waLink(r.whatsapp)} target="_blank" rel="noreferrer"
-                       className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300">
+                       title="Abrir conversa no WhatsApp"
+                       className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs">
                       <MessageCircle className="h-3.5 w-3.5" /> {r.whatsapp}
                     </a>
                   ) : <span className="text-slate-500">—</span>}
@@ -388,6 +498,11 @@ export default function PhoneeParceiros() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => followUp(r)} title="Follow-up por status (WhatsApp)"
+                            disabled={!r.whatsapp}
+                            className="p-1.5 rounded-md hover:bg-sky-500/10 text-sky-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <MessageCircle className="h-4 w-4" />
+                    </button>
                     <button onClick={() => openWa(r)} title="Reenviar link via WhatsApp"
                             disabled={!r.whatsapp || !r.invite_link}
                             className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed">
