@@ -307,9 +307,17 @@ export default function PhoneeParceiros() {
             Libere manualmente os 12 meses contados a partir do fim do teste.
           </p>
         </div>
-        <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
-          <Plus className="h-4 w-4 mr-1.5" /> Novo parceiro
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportCSV} className="h-9">
+            <Download className="h-4 w-4 mr-1.5" /> CSV
+          </Button>
+          <Button variant="outline" onClick={exportPDF} className="h-9">
+            <FileText className="h-4 w-4 mr-1.5" /> PDF
+          </Button>
+          <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
+            <Plus className="h-4 w-4 mr-1.5" /> Novo parceiro
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 flex flex-wrap items-center gap-3">
