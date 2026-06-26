@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
+import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
 import { trackPageVisit } from "@/lib/trackVisit";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -145,6 +146,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [demoOpen, setDemoOpen] = useState(false);
   const [refOpen, setRefOpen] = useState(false);
+  const [freeTrialOpen, setFreeTrialOpen] = useState(false);
   const handleDemo = () => setDemoOpen(true);
   // Deep-link: /?demo=1 abre direto o modal de demonstração
   useEffect(() => {
@@ -161,6 +163,7 @@ export default function Landing() {
         onSuccess={() => navigate("/painel")}
       />
       <LandingReferralSignupDialog open={refOpen} onOpenChange={setRefOpen} />
+      <FreeTrialSignupDialog open={freeTrialOpen} onOpenChange={setFreeTrialOpen} />
       {/* NAV — mesma cor do hero */}
       <header className="sticky top-0 z-50 bg-[hsl(226_50%_15%)] border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
