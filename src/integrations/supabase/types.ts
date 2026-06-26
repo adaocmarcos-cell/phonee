@@ -606,6 +606,7 @@ export type Database = {
       partner_trials: {
         Row: {
           activated_at: string | null
+          city: string | null
           created_at: string
           email: string
           full_access_ends_at: string | null
@@ -617,8 +618,11 @@ export type Database = {
           invite_link: string | null
           invited_at: string
           invited_by: string | null
+          kind: string
           notes: string | null
+          state: string | null
           status: string
+          store_name: string | null
           trial_days: number
           trial_ends_at: string | null
           updated_at: string
@@ -627,6 +631,7 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
+          city?: string | null
           created_at?: string
           email: string
           full_access_ends_at?: string | null
@@ -638,8 +643,11 @@ export type Database = {
           invite_link?: string | null
           invited_at?: string
           invited_by?: string | null
+          kind?: string
           notes?: string | null
+          state?: string | null
           status?: string
+          store_name?: string | null
           trial_days?: number
           trial_ends_at?: string | null
           updated_at?: string
@@ -648,6 +656,7 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
+          city?: string | null
           created_at?: string
           email?: string
           full_access_ends_at?: string | null
@@ -659,8 +668,11 @@ export type Database = {
           invite_link?: string | null
           invited_at?: string
           invited_by?: string | null
+          kind?: string
           notes?: string | null
+          state?: string | null
           status?: string
+          store_name?: string | null
           trial_days?: number
           trial_ends_at?: string | null
           updated_at?: string
@@ -2716,6 +2728,7 @@ export type Database = {
         Args: never
         Returns: {
           activated_at: string
+          city: string
           days_left: number
           email: string
           full_access_ends_at: string
@@ -2726,8 +2739,11 @@ export type Database = {
           instagram: string
           invite_link: string
           invited_at: string
+          kind: string
           notes: string
+          state: string
           status: string
+          store_name: string
           trial_days: number
           trial_ends_at: string
           user_id: string
