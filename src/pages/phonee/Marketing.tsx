@@ -115,6 +115,94 @@ export default function PhoneeMarketing() {
   const [debugCode, setDebugCode] = useState<string>(getTestEventCode() ?? "");
   const [debugBusy, setDebugBusy] = useState(false);
 
+  // Dashboard / Investimentos / Leads
+  const [dash, setDash] = useState<DashboardData | null>(null);
+  const [dashLoading, setDashLoading] = useState(false);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [invDialog, setInvDialog] = useState(false);
+  const [editingInv, setEditingInv] = useState<Partial<Investment> | null>(null);
+  const [leads, setLeads] = useState<LeadRow[]>([]);
+  const [leadsLoading, setLeadsLoading] = useState(false);
+  const [leadStatusFilter, setLeadStatusFilter] = useState<string>("all");
+  const [leadKindFilter, setLeadKindFilter] = useState<string>("all");
+  const [leadSearch, setLeadSearch] = useState("");
+
+  const loadDashboard = async () => {
+    setDashLoading(true);
+    const { data, error } = await (supabase as any).rpc("phonee_marketing_dashboard", {
+      _from: new Date(from + "T00:00:00").toISOString(),
+      _to: new Date(to + "T23:59:59").toISOString(),
+    });
+    setDashLoading(false);
+    if (error) return toast.error(error.message);
+    setDash(data as DashboardData);
+  };
+
+  const loadInvestments = async () => {
+    const { data, error } = await (supabase as any)
+      .from("marketing_investments")
+      .select("*")
+      .gte("reference_date", from)
+      .lte("reference_date", to)
+      .order("reference_date", { ascending: false });
+    if (error) return toast.error(error.message);
+    setInvestments((data as Investment[]) ?? []);
+  };
+
+  const saveInvestment = async () => {
+    if (!editingInv) return;
+    const payload: any = {
+      reference_date: editingInv.reference_date || toInputDate(new Date()),
+      channel: editingInv.channel || "meta_ads",
+      campaign: editingInv.campaign || null,
+      adset: editingInv.adset || null,
+      ad: editingInv.ad || null,
+      utm_source: editingInv.utm_source || null,
+      utm_medium: editingInv.utm_medium || null,
+      utm_campaign: editingInv.utm_campaign || null,
+      amount_cents: Math.round(Number((editingInv as any).amount_brl || 0) * 100),
+      impressions: Number(editingInv.impressions || 0),
+      reach: Number(editingInv.reach || 0),
+      clicks: Number(editingInv.clicks || 0),
+      notes: editingInv.notes || null,
+    };
+    const q = editingInv.id
+      ? (supabase as any).from("marketing_investments").update(payload).eq("id", editingInv.id)
+      : (supabase as any).from("marketing_investments").insert(payload);
+    const { error } = await q;
+    if (error) return toast.error(error.message);
+    toast.success("Investimento salvo");
+    setInvDialog(false); setEditingInv(null);
+    loadInvestments(); loadDashboard();
+  };
+
+  const deleteInvestment = async (id: string) => {
+    if (!confirm("Excluir este lançamento?")) return;
+    const { error } = await (supabase as any).from("marketing_investments").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Lançamento removido");
+    loadInvestments(); loadDashboard();
+  };
+
+  const loadLeads = async () => {
+    setLeadsLoading(true);
+    let q = (supabase as any).from("demo_leads").select("*").order("created_at", { ascending: false }).limit(500);
+    if (leadKindFilter !== "all") q = q.eq("kind", leadKindFilter);
+    if (leadStatusFilter !== "all") q = q.eq("status", leadStatusFilter);
+    const { data, error } = await q;
+    setLeadsLoading(false);
+    if (error) return toast.error(error.message);
+    setLeads((data as LeadRow[]) ?? []);
+  };
+
+  const updateLeadStatus = async (id: string, status: string) => {
+    const patch: any = { status };
+    if (status === "contatado") { patch.contacted = true; patch.contacted_at = new Date().toISOString(); }
+    const { error } = await (supabase as any).from("demo_leads").update(patch).eq("id", id);
+    if (error) return toast.error(error.message);
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  };
+
   const loadFilters = async () => {
     const [{ data: st }, { data: pa }] = await Promise.all([
       (supabase as any).from("stores").select("id, name").order("name"),
