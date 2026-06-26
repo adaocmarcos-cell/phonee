@@ -50,6 +50,44 @@ type PixelOverview = {
   }[];
 };
 
+type DashboardData = {
+  investment: number; impressions: number; reach: number; clicks: number;
+  cpc: number; cpm: number; ctr: number;
+  leads: number; cpl: number;
+  sales: number; cps: number;
+  revenue: number; roas: number;
+  by_day: { day: string; investment: number; leads: number; purchases: number; revenue: number; clicks: number }[];
+  by_campaign: { campaign: string; investment: number; clicks: number; impressions: number; leads: number; sales: number; revenue: number; cpl: number; roas: number }[];
+  funnel: { visits: number; view_content: number; leads: number; initiate_checkout: number; purchases: number };
+};
+
+type Investment = {
+  id: string; reference_date: string; channel: string; campaign: string | null; adset: string | null; ad: string | null;
+  utm_campaign: string | null; utm_source: string | null; utm_medium: string | null;
+  amount_cents: number; impressions: number; reach: number; clicks: number; notes: string | null;
+};
+
+type LeadRow = {
+  id: string; name: string; whatsapp: string; instagram: string;
+  company: string | null; city: string | null; state: string | null;
+  kind: string; status: string; notes: string | null;
+  utm_source: string | null; utm_medium: string | null; utm_campaign: string | null;
+  fbclid: string | null; referrer: string | null; contacted: boolean;
+  created_at: string;
+};
+
+const LEAD_STATUSES = [
+  { value: "novo", label: "Novo", color: "bg-sky-500/20 text-sky-300" },
+  { value: "contatado", label: "Contatado", color: "bg-amber-500/20 text-amber-300" },
+  { value: "qualificado", label: "Qualificado", color: "bg-violet-500/20 text-violet-300" },
+  { value: "convertido", label: "Convertido", color: "bg-emerald-500/20 text-emerald-300" },
+  { value: "perdido", label: "Perdido", color: "bg-rose-500/20 text-rose-300" },
+];
+
+const brl = (n: number) => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const num = (n: number) => Number(n || 0).toLocaleString("pt-BR");
+const pct = (n: number) => `${Number(n || 0).toFixed(2)}%`;
+
 function toInputDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
