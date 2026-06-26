@@ -55,6 +55,9 @@ export default function Financeiro() {
   const [splits, setSplits] = useState<{ method: string; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [openReceivables, setOpenReceivables] = useState(false);
+  const [openPayables, setOpenPayables] = useState(false);
+  const [openReceived, setOpenReceived] = useState(false);
+  const [openLiquido, setOpenLiquido] = useState(false);
 
   const sendWhatsAppReminder = (r: Receivable) => {
     const digits = (r.whatsapp ?? "").replace(/\D/g, "");
@@ -323,9 +326,57 @@ export default function Financeiro() {
               />
             </button>
           ) },
-          { id: "a-pagar", node: <MetricCard label="A pagar" value={brl(totals.aPagar)} delta={`${payables.filter(p => p.status !== "pago").length} título(s)`} icon={TrendingDown} tone="danger" className="py-[18px]" /> },
-          { id: "recebido", node: <MetricCard label="Recebido" value={brl(totals.recebido)} delta="No período" icon={CheckCircle2} tone="success" className="py-[18px]" /> },
-          { id: "liquido", node: <MetricCard label="Resultado líquido" value={brl(totals.liquido)} delta="Receita − Despesas" icon={Wallet} tone={totals.liquido >= 0 ? "info" : "danger"} className="py-[18px]" /> },
+          { id: "a-pagar", node: (
+            <button
+              type="button"
+              onClick={() => setOpenPayables(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-danger rounded-lg group"
+              title="Ver contas a pagar em aberto"
+            >
+              <MetricCard
+                label="A pagar"
+                value={brl(totals.aPagar)}
+                delta={`${payables.filter(p => p.status !== "pago").length} título(s) · clique para ver`}
+                icon={TrendingDown}
+                tone="danger"
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
+          { id: "recebido", node: (
+            <button
+              type="button"
+              onClick={() => setOpenReceived(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-success rounded-lg group"
+              title="Ver recebimentos confirmados no período"
+            >
+              <MetricCard
+                label="Recebido"
+                value={brl(totals.recebido)}
+                delta={`${receivables.filter(r => r.status === "pago").length} recebimento(s) · clique para ver`}
+                icon={CheckCircle2}
+                tone="success"
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
+          { id: "liquido", node: (
+            <button
+              type="button"
+              onClick={() => setOpenLiquido(true)}
+              className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg group"
+              title="Ver composição do resultado líquido"
+            >
+              <MetricCard
+                label="Resultado líquido"
+                value={brl(totals.liquido)}
+                delta="Receita − Despesas · clique para detalhar"
+                icon={Wallet}
+                tone={totals.liquido >= 0 ? "info" : "danger"}
+                className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
+              />
+            </button>
+          ) },
         ]}
       />
 
@@ -601,6 +652,134 @@ export default function Financeiro() {
                 })}
               </tbody>
             </table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* A pagar */}
+      <Dialog open={openPayables} onOpenChange={setOpenPayables}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-danger" />
+              Contas a pagar em aberto
+            </DialogTitle>
+            <DialogDescription>
+              Total a pagar: <span className="font-semibold text-danger">{brl(totals.aPagar)}</span> ·{" "}
+              {payables.filter((p) => p.status !== "pago").length} título(s). Lance ou edite no módulo Despesas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto -mx-2">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Descrição</th>
+                  <th className="text-left px-3 py-2 font-medium">Categoria</th>
+                  <th className="text-left px-3 py-2 font-medium">Data</th>
+                  <th className="text-right px-3 py-2 font-medium">Valor</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {payables.filter((p) => p.status !== "pago").length === 0 ? (
+                  <tr><td colSpan={4} className="px-3 py-10 text-center text-muted-foreground">Sem contas em aberto. 👌</td></tr>
+                ) : payables.filter((p) => p.status !== "pago").map((p) => (
+                  <tr key={`pay-${p.id}`} className="hover:bg-muted/30">
+                    <td className="px-3 py-2.5 font-medium truncate max-w-[260px]" title={p.description}>{p.description || "—"}</td>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{p.category || "—"}</td>
+                    <td className="px-3 py-2.5 text-xs font-mono">{new Date(p.date).toLocaleDateString("pt-BR")} <StatusBadge s={p.status} /></td>
+                    <td className="px-3 py-2.5 text-right metric font-semibold text-danger">{brl(p.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => navigate("/painel/despesas")} variant="outline">
+              <Receipt className="h-4 w-4 mr-1" /> Abrir Despesas
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recebido */}
+      <Dialog open={openReceived} onOpenChange={setOpenReceived}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              Recebimentos confirmados
+            </DialogTitle>
+            <DialogDescription>
+              Total recebido no período: <span className="font-semibold text-success">{brl(totals.recebido)}</span> ·{" "}
+              {receivables.filter((r) => r.status === "pago").length} recebimento(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto -mx-2">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Cliente</th>
+                  <th className="text-left px-3 py-2 font-medium">Origem</th>
+                  <th className="text-left px-3 py-2 font-medium">Forma</th>
+                  <th className="text-left px-3 py-2 font-medium">Data</th>
+                  <th className="text-right px-3 py-2 font-medium">Valor</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {receivables.filter((r) => r.status === "pago").length === 0 ? (
+                  <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">Sem recebimentos no período.</td></tr>
+                ) : receivables.filter((r) => r.status === "pago").map((r) => (
+                  <tr key={`rec-${r.source}-${r.id}`} className="hover:bg-muted/30">
+                    <td className="px-3 py-2.5 font-medium truncate max-w-[200px]" title={r.customer}>{r.customer}</td>
+                    <td className="px-3 py-2.5">
+                      <Badge variant="outline" className="text-[10px] gap-1">{sourceIcon(r.source)}{r.ref}</Badge>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs">{r.method || "—"}</td>
+                    <td className="px-3 py-2.5 text-xs font-mono">{new Date(r.date).toLocaleDateString("pt-BR")}</td>
+                    <td className="px-3 py-2.5 text-right metric font-semibold text-success">{brl(r.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-end pt-2 gap-2">
+            <Button onClick={exportReceiptsCSV} variant="outline" disabled={receiptsByMethod.length === 0}>
+              <FileDown className="h-4 w-4 mr-1" /> CSV por método
+            </Button>
+            <Button onClick={() => navigate("/painel/vendas")} variant="outline">
+              <TrendingUp className="h-4 w-4 mr-1" /> Abrir Vendas
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resultado líquido */}
+      <Dialog open={openLiquido} onOpenChange={setOpenLiquido}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              Resultado líquido do período
+            </DialogTitle>
+            <DialogDescription>
+              Composição entre receitas e despesas no intervalo selecionado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between py-2 border-b border-border"><span>Receita bruta</span><span className="metric font-semibold">{brl(totals.receita)}</span></div>
+            <div className="flex justify-between py-2 border-b border-border"><span className="text-success">Recebido</span><span className="metric font-semibold text-success">{brl(totals.recebido)}</span></div>
+            <div className="flex justify-between py-2 border-b border-border"><span className="text-warning">A receber</span><span className="metric font-semibold text-warning">{brl(totals.aReceber)}</span></div>
+            <div className="flex justify-between py-2 border-b border-border"><span className="text-danger">Despesas totais</span><span className="metric font-semibold text-danger">{brl(totals.despesa)}</span></div>
+            <div className="flex justify-between py-2 border-b border-border"><span>Pago</span><span className="metric font-semibold">{brl(totals.pago)}</span></div>
+            <div className="flex justify-between py-2 border-b border-border"><span>A pagar</span><span className="metric font-semibold">{brl(totals.aPagar)}</span></div>
+            <div className="flex justify-between py-3 text-base"><span className="font-semibold">Resultado líquido</span>
+              <span className={`metric font-bold ${totals.liquido >= 0 ? "text-success" : "text-danger"}`}>{brl(totals.liquido)}</span>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button onClick={exportReport} className="bg-gradient-primary">
+              <FileDown className="h-4 w-4 mr-1" /> Relatório completo (PDF)
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
