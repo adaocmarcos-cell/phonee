@@ -40,6 +40,13 @@ Deno.serve(async (req) => {
       custom_data,
       session_id,
       test_event_code,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_term,
+      utm_content,
+      referrer,
+      landing_path,
     } = body || {};
 
     if (!event_name || !event_id) {
@@ -132,6 +139,13 @@ Deno.serve(async (req) => {
       capi_response: capiResponse,
       custom_data: custom_data ?? null,
       session_id: session_id ?? null,
+      utm_source: utm_source ?? null,
+      utm_medium: utm_medium ?? null,
+      utm_campaign: utm_campaign ?? null,
+      utm_term: utm_term ?? null,
+      utm_content: utm_content ?? null,
+      referrer: referrer ?? null,
+      landing_path: landing_path ?? null,
     });
 
     // Also log browser side echo (so painel shows pixel event too)
@@ -148,6 +162,13 @@ Deno.serve(async (req) => {
         session_id: session_id ?? null,
         custom_data: custom_data ?? null,
         test_event_code: test_event_code ?? null,
+        utm_source: utm_source ?? null,
+        utm_medium: utm_medium ?? null,
+        utm_campaign: utm_campaign ?? null,
+        utm_term: utm_term ?? null,
+        utm_content: utm_content ?? null,
+        referrer: referrer ?? null,
+        landing_path: landing_path ?? null,
       });
     }
 

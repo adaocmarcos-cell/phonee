@@ -30,10 +30,16 @@ type PixelOverview = {
   by_day: { day: string; total: number; browser: number; server: number }[];
   by_event: { event_name: string; count: number }[];
   by_path: { path: string; count: number }[];
+  by_utm_source: { utm_source: string; total: number; leads: number; purchases: number; revenue: number }[];
+  by_utm_medium: { utm_medium: string; total: number; leads: number; purchases: number; revenue: number }[];
+  by_utm_campaign: { utm_campaign: string; total: number; leads: number; purchases: number; revenue: number }[];
+  attribution: { utm_source: string; utm_medium: string; utm_campaign: string; total: number; leads: number; purchases: number; revenue: number }[];
   recent: {
     id: string; event_name: string; source: "browser" | "server";
     event_source_url: string | null; value: number | null; currency: string | null;
     capi_status: number | null; test_event_code: string | null; created_at: string;
+    utm_source?: string | null; utm_medium?: string | null; utm_campaign?: string | null;
+    utm_term?: string | null; utm_content?: string | null; referrer?: string | null;
   }[];
 };
 
@@ -351,17 +357,80 @@ export default function PhoneeMarketing() {
           </div>
         </div>
 
+        {/* Atribuição UTM */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {[
+            { title: "Por utm_source", rows: pxData?.by_utm_source ?? [], key: "utm_source" as const },
+            { title: "Por utm_medium", rows: pxData?.by_utm_medium ?? [], key: "utm_medium" as const },
+            { title: "Por utm_campaign", rows: pxData?.by_utm_campaign ?? [], key: "utm_campaign" as const },
+          ].map((b) => (
+            <div key={b.title}>
+              <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">{b.title}</div>
+              <div className="border border-slate-800 rounded-md divide-y divide-slate-800 max-h-72 overflow-auto">
+                {b.rows.map((r: any, i: number) => (
+                  <div key={i} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
+                    <span className="col-span-5 font-mono truncate" title={r[b.key]}>{r[b.key]}</span>
+                    <span className="col-span-2 text-right tabular-nums text-slate-300">{r.total}</span>
+                    <span className="col-span-2 text-right tabular-nums text-amber-300" title="Leads">{r.leads}</span>
+                    <span className="col-span-3 text-right tabular-nums text-emerald-400" title="Compras / Receita">
+                      {r.purchases}{r.revenue > 0 ? ` · R$ ${Number(r.revenue).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})}` : ""}
+                    </span>
+                  </div>
+                ))}
+                {b.rows.length === 0 && <div className="px-3 py-3 text-xs text-slate-500">Sem dados UTM.</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Atribuição combinada */}
+        <div className="mt-6">
+          <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Atribuição completa (source · medium · campaign)</div>
+          <div className="border border-slate-800 rounded-md divide-y divide-slate-800 max-h-80 overflow-auto">
+            <div className="grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 bg-slate-950/40">
+              <span className="col-span-6">Fonte / Mídia / Campanha</span>
+              <span className="col-span-2 text-right">Eventos</span>
+              <span className="col-span-2 text-right">Leads</span>
+              <span className="col-span-2 text-right">Compras · Receita</span>
+            </div>
+            {(pxData?.attribution ?? []).map((r, i) => (
+              <div key={i} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
+                <span className="col-span-6 font-mono truncate">
+                  <span className="text-slate-300">{r.utm_source}</span>
+                  <span className="text-slate-600"> · </span>
+                  <span className="text-slate-400">{r.utm_medium}</span>
+                  <span className="text-slate-600"> · </span>
+                  <span className="text-slate-400">{r.utm_campaign}</span>
+                </span>
+                <span className="col-span-2 text-right tabular-nums text-slate-300">{r.total}</span>
+                <span className="col-span-2 text-right tabular-nums text-amber-300">{r.leads}</span>
+                <span className="col-span-2 text-right tabular-nums text-emerald-400">
+                  {r.purchases}{r.revenue > 0 ? ` · R$ ${Number(r.revenue).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})}` : ""}
+                </span>
+              </div>
+            ))}
+            {(pxData?.attribution.length ?? 0) === 0 && <div className="px-3 py-3 text-xs text-slate-500">Sem dados de atribuição UTM ainda.</div>}
+          </div>
+        </div>
+
         <div>
           <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Últimos eventos</div>
           <div className="border border-slate-800 rounded-md divide-y divide-slate-800 max-h-80 overflow-auto">
             {(pxData?.recent ?? []).map((r) => (
-              <div key={r.id} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
+              <div key={r.id} className="grid grid-cols-12 px-3 py-2 text-xs items-center gap-y-0.5">
                 <span className="col-span-3 font-mono">{r.event_name}</span>
                 <span className={`col-span-2 ${r.source === "server" ? "text-emerald-400" : "text-[#00abfb]"}`}>
                   {r.source}{r.capi_status ? ` · ${r.capi_status}` : ""}
                 </span>
                 <span className="col-span-5 font-mono truncate text-slate-400">{r.event_source_url ?? "—"}</span>
                 <span className="col-span-2 text-right text-slate-500">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                {(r.utm_source || r.utm_medium || r.utm_campaign) && (
+                  <span className="col-span-12 text-[10px] text-slate-500 font-mono truncate pl-1">
+                    utm: {r.utm_source ?? "—"} / {r.utm_medium ?? "—"} / {r.utm_campaign ?? "—"}
+                    {r.utm_content ? ` · content=${r.utm_content}` : ""}
+                    {r.utm_term ? ` · term=${r.utm_term}` : ""}
+                  </span>
+                )}
               </div>
             ))}
             {(pxData?.recent.length ?? 0) === 0 && <div className="px-3 py-3 text-xs text-slate-500">Nenhum evento registrado ainda.</div>}

@@ -536,11 +536,18 @@ export type Database = {
           fbp: string | null
           id: string
           ip: string | null
+          landing_path: string | null
           phone_hash: string | null
+          referrer: string | null
           session_id: string | null
           source: string
           test_event_code: string | null
           user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           value: number | null
         }
         Insert: {
@@ -557,11 +564,18 @@ export type Database = {
           fbp?: string | null
           id?: string
           ip?: string | null
+          landing_path?: string | null
           phone_hash?: string | null
+          referrer?: string | null
           session_id?: string | null
           source: string
           test_event_code?: string | null
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           value?: number | null
         }
         Update: {
@@ -578,11 +592,18 @@ export type Database = {
           fbp?: string | null
           id?: string
           ip?: string | null
+          landing_path?: string | null
           phone_hash?: string | null
+          referrer?: string | null
           session_id?: string | null
           source?: string
           test_event_code?: string | null
           user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           value?: number | null
         }
         Relationships: []
