@@ -49,6 +49,7 @@ import TransferenciaProdutos from "./pages/app/TransferenciaProdutos";
 import Compras from "./pages/app/Compras";
 import Fornecedores from "./pages/app/Fornecedores";
 import IndiqueGanhe from "./pages/app/IndiqueGanhe";
+import MeuTeste from "./pages/app/MeuTeste";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comprar from "./pages/Comprar";
@@ -134,6 +135,7 @@ const App = () => (
               <Route path="suporte" element={<Suporte />} />
               <Route path="suporte-admin" element={<SuporteAdmin />} />
               <Route path="indique-e-ganhe" element={<IndiqueGanhe />} />
+              <Route path="meu-teste" element={<MeuTeste />} />
             </Route>
             {/* Redirects: URLs antigas /app/* -> /painel/* e /auth -> /entrar */}
             <Route path="/auth" element={<Navigate to="/entrar" replace />} />
