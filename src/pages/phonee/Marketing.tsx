@@ -296,17 +296,360 @@ export default function PhoneeMarketing() {
 
   const maxDay = Math.max(1, ...(traffic?.by_day.map((d) => d.visits) ?? [1]));
   const pxMaxDay = Math.max(1, ...(pxData?.by_day.map((d) => d.total) ?? [1]));
+  const dashMaxDay = Math.max(1, ...((dash?.by_day ?? []).flatMap((d) => [d.investment, d.revenue])), 1);
+
+  const filteredLeads = leads.filter((l) => {
+    if (!leadSearch) return true;
+    const q = leadSearch.toLowerCase();
+    return [l.name, l.whatsapp, l.company, l.city, l.utm_campaign, l.utm_source]
+      .filter(Boolean).some((v) => String(v).toLowerCase().includes(q));
+  });
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold">Marketing & Tráfego</h1>
         <p className="text-sm text-slate-400">
-          Monitore visitantes das páginas (incl. Vendas) e configure a integração com o Meta Ads via Pixel.
+          Painel central de campanhas, visitantes, leads e conversões — investimento, ROAS, funil e atribuição em um único lugar.
         </p>
       </header>
 
-      {/* Traffic stats */}
+      {/* Filtros globais */}
+      <Card className="p-4 bg-slate-900 border-slate-800 text-slate-100">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase tracking-widest text-slate-500">De</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-slate-950 border-slate-800 h-9 w-[150px]" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase tracking-widest text-slate-500">Até</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-slate-950 border-slate-800 h-9 w-[150px]" />
+          </div>
+          <div className="flex gap-1">
+            {[7, 30, 60, 90].map((d) => (
+              <button key={d} onClick={() => setQuickRange(d)}
+                className="px-3 py-1.5 text-xs rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700">{d}d</button>
+            ))}
+          </div>
+          <Button variant="ghost" size="sm" onClick={resetFilters} className="text-slate-400">
+            <RotateCcw className="h-3 w-3 mr-1" /> Limpar
+          </Button>
+        </div>
+      </Card>
+
+      <Tabs defaultValue="dashboard" className="space-y-4">
+        <TabsList className="bg-slate-900 border border-slate-800 flex-wrap h-auto">
+          <TabsTrigger value="dashboard"><BarChart3 className="h-3.5 w-3.5 mr-1" /> Dashboard</TabsTrigger>
+          <TabsTrigger value="funil"><Target className="h-3.5 w-3.5 mr-1" /> Funil</TabsTrigger>
+          <TabsTrigger value="leads"><Users className="h-3.5 w-3.5 mr-1" /> Leads</TabsTrigger>
+          <TabsTrigger value="campanhas"><Megaphone className="h-3.5 w-3.5 mr-1" /> Campanhas</TabsTrigger>
+          <TabsTrigger value="investimentos"><Wallet className="h-3.5 w-3.5 mr-1" /> Investimentos</TabsTrigger>
+          <TabsTrigger value="trafego"><Globe className="h-3.5 w-3.5 mr-1" /> Tráfego</TabsTrigger>
+          <TabsTrigger value="integracao"><ShieldCheck className="h-3.5 w-3.5 mr-1" /> Pixel & CAPI</TabsTrigger>
+        </TabsList>
+
+        {/* === DASHBOARD === */}
+        <TabsContent value="dashboard" className="space-y-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <KPI icon={<DollarSign className="h-4 w-4" />} label="Investimento" value={brl(dash?.investment ?? 0)} loading={dashLoading} />
+            <KPI icon={<Eye className="h-4 w-4" />} label="Impressões" value={num(dash?.impressions ?? 0)} loading={dashLoading} />
+            <KPI icon={<Users className="h-4 w-4" />} label="Alcance" value={num(dash?.reach ?? 0)} loading={dashLoading} />
+            <KPI icon={<MousePointerClick className="h-4 w-4" />} label="Cliques" value={num(dash?.clicks ?? 0)} loading={dashLoading} />
+            <KPI icon={<Activity className="h-4 w-4" />} label="CTR" value={pct(dash?.ctr ?? 0)} loading={dashLoading} />
+            <KPI icon={<DollarSign className="h-4 w-4" />} label="CPC" value={brl(dash?.cpc ?? 0)} loading={dashLoading} />
+            <KPI icon={<DollarSign className="h-4 w-4" />} label="CPM" value={brl(dash?.cpm ?? 0)} loading={dashLoading} />
+            <KPI icon={<Target className="h-4 w-4" />} label="Leads" value={num(dash?.leads ?? 0)} loading={dashLoading} />
+            <KPI icon={<DollarSign className="h-4 w-4" />} label="Custo / Lead" value={brl(dash?.cpl ?? 0)} loading={dashLoading} />
+            <KPI icon={<Zap className="h-4 w-4" />} label="Vendas" value={num(dash?.sales ?? 0)} loading={dashLoading} />
+            <KPI icon={<DollarSign className="h-4 w-4" />} label="Custo / Venda" value={brl(dash?.cps ?? 0)} loading={dashLoading} />
+            <KPI icon={<TrendingUp className="h-4 w-4" />} label="Receita / ROAS" value={`${brl(dash?.revenue ?? 0)} · ${(dash?.roas ?? 0).toFixed(2)}x`} loading={dashLoading} />
+          </div>
+
+          <Card className="p-5 bg-slate-900 border-slate-800 text-slate-100">
+            <div className="text-xs uppercase tracking-widest text-slate-500 mb-3">Investimento × Receita por dia</div>
+            <div className="flex items-end gap-1 h-40">
+              {(dash?.by_day ?? []).map((d) => (
+                <div key={d.day} className="flex-1 flex gap-[2px] items-end" title={`${d.day} · invest ${brl(d.investment)} · receita ${brl(d.revenue)} · leads ${d.leads} · vendas ${d.purchases}`}>
+                  <div className="flex-1 bg-sky-500 rounded-t" style={{ height: `${(d.investment / dashMaxDay) * 100}%` }} />
+                  <div className="flex-1 bg-emerald-500 rounded-t" style={{ height: `${(d.revenue / dashMaxDay) * 100}%` }} />
+                </div>
+              ))}
+              {(dash?.by_day.length ?? 0) === 0 && <div className="text-xs text-slate-500">Sem dados no período.</div>}
+            </div>
+            <div className="mt-2 text-[10px] text-slate-500 flex gap-3">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 bg-sky-500" /> Investimento</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 bg-emerald-500" /> Receita</span>
+            </div>
+          </Card>
+
+          <Card className="p-5 bg-slate-900 border-slate-800 text-slate-100">
+            <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Campanhas com melhor desempenho</div>
+            <div className="border border-slate-800 rounded-md overflow-hidden">
+              <div className="grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 bg-slate-950/40">
+                <span className="col-span-4">Campanha</span>
+                <span className="col-span-2 text-right">Investido</span>
+                <span className="col-span-1 text-right">Cliq.</span>
+                <span className="col-span-1 text-right">Leads</span>
+                <span className="col-span-1 text-right">Vendas</span>
+                <span className="col-span-2 text-right">Receita</span>
+                <span className="col-span-1 text-right">ROAS</span>
+              </div>
+              <div className="divide-y divide-slate-800 max-h-96 overflow-auto">
+                {(dash?.by_campaign ?? []).map((c, i) => (
+                  <div key={i} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
+                    <span className="col-span-4 font-mono truncate" title={c.campaign}>{c.campaign}</span>
+                    <span className="col-span-2 text-right tabular-nums">{brl(c.investment)}</span>
+                    <span className="col-span-1 text-right tabular-nums text-slate-300">{num(c.clicks)}</span>
+                    <span className="col-span-1 text-right tabular-nums text-amber-300">{num(c.leads)}</span>
+                    <span className="col-span-1 text-right tabular-nums text-emerald-400">{num(c.sales)}</span>
+                    <span className="col-span-2 text-right tabular-nums text-emerald-400">{brl(c.revenue)}</span>
+                    <span className={`col-span-1 text-right tabular-nums ${c.roas >= 1 ? "text-emerald-400" : "text-rose-400"}`}>{c.roas.toFixed(2)}x</span>
+                  </div>
+                ))}
+                {(dash?.by_campaign.length ?? 0) === 0 && <div className="px-3 py-3 text-xs text-slate-500">Sem dados de campanhas.</div>}
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* === FUNIL === */}
+        <TabsContent value="funil" className="space-y-4">
+          <Card className="p-5 bg-slate-900 border-slate-800 text-slate-100">
+            <h2 className="font-semibold flex items-center gap-2 mb-4"><Target className="h-4 w-4" /> Funil de Conversão</h2>
+            {(() => {
+              const f = dash?.funnel ?? { visits: 0, view_content: 0, leads: 0, initiate_checkout: 0, purchases: 0 };
+              const steps = [
+                { label: "Visitou a página", value: f.visits, color: "bg-sky-500" },
+                { label: "Visualizou conteúdo (ViewContent)", value: f.view_content, color: "bg-cyan-500" },
+                { label: "Lead / Cadastro", value: f.leads, color: "bg-amber-500" },
+                { label: "Iniciou checkout", value: f.initiate_checkout, color: "bg-orange-500" },
+                { label: "Finalizou pagamento", value: f.purchases, color: "bg-emerald-500" },
+              ];
+              const max = Math.max(1, ...steps.map((s) => s.value));
+              return (
+                <div className="space-y-3">
+                  {steps.map((s, i) => {
+                    const prev = i > 0 ? steps[i - 1].value : null;
+                    const conv = prev && prev > 0 ? (s.value / prev) * 100 : null;
+                    return (
+                      <div key={s.label}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-slate-300">{s.label}</span>
+                          <span className="tabular-nums text-slate-400">
+                            {num(s.value)}{conv !== null ? ` · ${conv.toFixed(1)}%` : ""}
+                          </span>
+                        </div>
+                        <div className="h-7 bg-slate-800 rounded overflow-hidden">
+                          <div className={`h-full ${s.color}`} style={{ width: `${(s.value / max) * 100}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-800">
+                    Taxa global Visitas → Pagamentos: {f.visits > 0 ? ((f.purchases / f.visits) * 100).toFixed(2) : "0"}%
+                  </div>
+                </div>
+              );
+            })()}
+          </Card>
+        </TabsContent>
+
+        {/* === LEADS === */}
+        <TabsContent value="leads" className="space-y-4">
+          <Card className="p-4 bg-slate-900 border-slate-800 text-slate-100">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1 flex-1 min-w-[220px]">
+                <Label className="text-[10px] uppercase tracking-widest text-slate-500">Buscar</Label>
+                <Input value={leadSearch} onChange={(e) => setLeadSearch(e.target.value)}
+                  placeholder="Nome, WhatsApp, cidade, campanha…" className="bg-slate-950 border-slate-800 h-9" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase tracking-widest text-slate-500">Tipo</Label>
+                <Select value={leadKindFilter} onValueChange={setLeadKindFilter}>
+                  <SelectTrigger className="bg-slate-950 border-slate-800 h-9 w-[160px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="demo">Demonstração</SelectItem>
+                    <SelectItem value="indicacao">Indicação</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase tracking-widest text-slate-500">Status</Label>
+                <Select value={leadStatusFilter} onValueChange={setLeadStatusFilter}>
+                  <SelectTrigger className="bg-slate-950 border-slate-800 h-9 w-[160px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {LEAD_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-0 bg-slate-900 border-slate-800 text-slate-100 overflow-hidden">
+            <div className="grid grid-cols-12 px-4 py-2 text-[10px] uppercase tracking-widest text-slate-500 bg-slate-950/40 border-b border-slate-800">
+              <span className="col-span-3">Lead</span>
+              <span className="col-span-2">Localização</span>
+              <span className="col-span-3">Origem / Campanha</span>
+              <span className="col-span-2">Status</span>
+              <span className="col-span-2 text-right">Ações</span>
+            </div>
+            <div className="divide-y divide-slate-800 max-h-[600px] overflow-auto">
+              {leadsLoading && <div className="px-4 py-3 text-xs text-slate-500">Carregando…</div>}
+              {!leadsLoading && filteredLeads.length === 0 && <div className="px-4 py-3 text-xs text-slate-500">Nenhum lead encontrado.</div>}
+              {filteredLeads.map((l) => {
+                const status = LEAD_STATUSES.find((s) => s.value === l.status) ?? LEAD_STATUSES[0];
+                const wa = (l.whatsapp || "").replace(/\D/g, "");
+                return (
+                  <div key={l.id} className="grid grid-cols-12 px-4 py-3 items-center text-sm hover:bg-slate-950/40">
+                    <div className="col-span-3">
+                      <div className="font-medium">{l.name}</div>
+                      <div className="text-[11px] text-slate-400">{l.whatsapp} {l.company ? `· ${l.company}` : ""}</div>
+                      <div className="text-[10px] text-slate-500">{new Date(l.created_at).toLocaleString("pt-BR")}</div>
+                    </div>
+                    <div className="col-span-2 text-xs text-slate-300">
+                      {l.city || "—"}{l.state ? `/${l.state}` : ""}
+                    </div>
+                    <div className="col-span-3 text-[11px] font-mono text-slate-400 truncate">
+                      <Badge variant="outline" className="mr-1 capitalize">{l.kind}</Badge>
+                      {l.utm_source || "(direto)"} · {l.utm_campaign || "—"}
+                      {l.fbclid ? <span className="text-sky-400"> · fbclid</span> : null}
+                    </div>
+                    <div className="col-span-2">
+                      <Select value={l.status} onValueChange={(v) => updateLeadStatus(l.id, v)}>
+                        <SelectTrigger className={`h-7 text-xs border-0 ${status.color}`}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {LEAD_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2 flex justify-end gap-1">
+                      {wa && (
+                        <a href={`https://wa.me/55${wa}`} target="_blank" rel="noreferrer"
+                          className="px-2 py-1 text-xs rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 inline-flex items-center gap-1">
+                          <MessageCircle className="h-3 w-3" /> WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* === CAMPANHAS === */}
+        <TabsContent value="campanhas" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {[
+              { title: "Por utm_source", rows: pxData?.by_utm_source ?? [], key: "utm_source" as const },
+              { title: "Por utm_medium", rows: pxData?.by_utm_medium ?? [], key: "utm_medium" as const },
+              { title: "Por utm_campaign", rows: pxData?.by_utm_campaign ?? [], key: "utm_campaign" as const },
+            ].map((b) => (
+              <Card key={b.title} className="p-4 bg-slate-900 border-slate-800 text-slate-100">
+                <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">{b.title}</div>
+                <div className="border border-slate-800 rounded-md divide-y divide-slate-800 max-h-72 overflow-auto">
+                  {b.rows.map((r: any, i: number) => (
+                    <div key={i} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
+                      <span className="col-span-5 font-mono truncate" title={r[b.key]}>{r[b.key]}</span>
+                      <span className="col-span-2 text-right tabular-nums text-slate-300">{r.total}</span>
+                      <span className="col-span-2 text-right tabular-nums text-amber-300">{r.leads}</span>
+                      <span className="col-span-3 text-right tabular-nums text-emerald-400">
+                        {r.purchases}{r.revenue > 0 ? ` · ${brl(r.revenue)}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                  {b.rows.length === 0 && <div className="px-3 py-3 text-xs text-slate-500">Sem dados UTM.</div>}
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="p-4 bg-slate-900 border-slate-800 text-slate-100">
+            <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Atribuição completa (source · medium · campaign)</div>
+            <div className="border border-slate-800 rounded-md divide-y divide-slate-800 max-h-96 overflow-auto">
+              <div className="grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 bg-slate-950/40">
+                <span className="col-span-6">Fonte / Mídia / Campanha</span>
+                <span className="col-span-2 text-right">Eventos</span>
+                <span className="col-span-2 text-right">Leads</span>
+                <span className="col-span-2 text-right">Compras · Receita</span>
+              </div>
+              {(pxData?.attribution ?? []).map((r, i) => (
+                <div key={i} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
+                  <span className="col-span-6 font-mono truncate">
+                    <span className="text-slate-300">{r.utm_source}</span>
+                    <span className="text-slate-600"> · </span>
+                    <span className="text-slate-400">{r.utm_medium}</span>
+                    <span className="text-slate-600"> · </span>
+                    <span className="text-slate-400">{r.utm_campaign}</span>
+                  </span>
+                  <span className="col-span-2 text-right tabular-nums text-slate-300">{r.total}</span>
+                  <span className="col-span-2 text-right tabular-nums text-amber-300">{r.leads}</span>
+                  <span className="col-span-2 text-right tabular-nums text-emerald-400">
+                    {r.purchases}{r.revenue > 0 ? ` · ${brl(r.revenue)}` : ""}
+                  </span>
+                </div>
+              ))}
+              {(pxData?.attribution.length ?? 0) === 0 && <div className="px-3 py-3 text-xs text-slate-500">Sem dados de atribuição ainda.</div>}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* === INVESTIMENTOS === */}
+        <TabsContent value="investimentos" className="space-y-4">
+          <Card className="p-5 bg-slate-900 border-slate-800 text-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-semibold flex items-center gap-2"><Wallet className="h-4 w-4" /> Lançamentos de investimento</h2>
+                <p className="text-xs text-slate-400 mt-1">Registre investimento, impressões, alcance e cliques por campanha — alimenta CPC, CPM, CTR, CPL e ROAS.</p>
+              </div>
+              <Button onClick={() => { setEditingInv({ reference_date: toInputDate(new Date()), channel: "meta_ads" }); setInvDialog(true); }}
+                className="bg-[#00abfb] text-slate-900 hover:bg-[#00abfb]/90">
+                <Plus className="h-4 w-4 mr-1" /> Novo lançamento
+              </Button>
+            </div>
+
+            <div className="border border-slate-800 rounded-md overflow-hidden">
+              <div className="grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 bg-slate-950/40">
+                <span className="col-span-2">Data</span>
+                <span className="col-span-3">Campanha / utm</span>
+                <span className="col-span-2 text-right">Investido</span>
+                <span className="col-span-1 text-right">Impr.</span>
+                <span className="col-span-1 text-right">Alc.</span>
+                <span className="col-span-1 text-right">Cliq.</span>
+                <span className="col-span-2 text-right">Ações</span>
+              </div>
+              <div className="divide-y divide-slate-800 max-h-[500px] overflow-auto">
+                {investments.map((i) => (
+                  <div key={i.id} className="grid grid-cols-12 px-3 py-2 text-xs items-center">
+                    <span className="col-span-2 text-slate-300">{new Date(i.reference_date).toLocaleDateString("pt-BR")}</span>
+                    <span className="col-span-3 font-mono truncate" title={`${i.campaign} · ${i.utm_campaign}`}>
+                      {i.campaign || i.utm_campaign || "—"}
+                      {i.adset ? <span className="text-slate-500"> · {i.adset}</span> : null}
+                    </span>
+                    <span className="col-span-2 text-right tabular-nums">{brl(i.amount_cents / 100)}</span>
+                    <span className="col-span-1 text-right tabular-nums text-slate-400">{num(i.impressions)}</span>
+                    <span className="col-span-1 text-right tabular-nums text-slate-400">{num(i.reach)}</span>
+                    <span className="col-span-1 text-right tabular-nums text-slate-400">{num(i.clicks)}</span>
+                    <span className="col-span-2 flex justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => { setEditingInv({ ...i, ...({ amount_brl: i.amount_cents / 100 } as any) }); setInvDialog(true); }}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => deleteInvestment(i.id)}>
+                        <Trash2 className="h-3 w-3 text-rose-400" />
+                      </Button>
+                    </span>
+                  </div>
+                ))}
+                {investments.length === 0 && <div className="px-3 py-3 text-xs text-slate-500">Nenhum lançamento no período.</div>}
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* === TRÁFEGO === */}
+        <TabsContent value="trafego" className="space-y-4">
       <Card className="p-5 bg-slate-900 border-slate-800 text-slate-100">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-semibold flex items-center gap-2"><Activity className="h-4 w-4" /> Tráfego das páginas</h2>
