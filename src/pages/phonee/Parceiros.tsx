@@ -495,6 +495,11 @@ export default function PhoneeParceiros() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => followUp(r)} title="Follow-up por status (WhatsApp)"
+                            disabled={!r.whatsapp}
+                            className="p-1.5 rounded-md hover:bg-sky-500/10 text-sky-300 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <MessageCircle className="h-4 w-4" />
+                    </button>
                     <button onClick={() => openWa(r)} title="Reenviar link via WhatsApp"
                             disabled={!r.whatsapp || !r.invite_link}
                             className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed">
