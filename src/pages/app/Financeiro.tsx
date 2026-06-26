@@ -62,9 +62,9 @@ export default function Financeiro() {
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
       const [{ data: s }, { data: ps }, { data: o }, { data: e }, { data: sp }] = await Promise.all([
-        supabase.from("sales").select("id,sale_number,total,net_value,created_at,payment_status,due_date,customer_name,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
+        supabase.from("sales").select("id,sale_number,total,net_value,created_at,payment_status,due_date,customer_name,customer_whatsapp,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         supabase.from("parts_sales").select("id,total,net_value,created_at,payment_method,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
-        supabase.from("service_orders").select("id,os_number,total_value,net_value,status,budget_status,created_at,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
+        supabase.from("service_orders").select("id,os_number,total_value,net_value,status,budget_status,created_at,customer_name,customer_whatsapp").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         (supabase as any).from("expenses").select("id,amount,expense_date,description,category_name,payment_method").eq("store_id", store.id).gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: false }),
         (supabase as any).from("sale_payments").select("method,amount,created_at").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso),
       ]);
@@ -88,14 +88,14 @@ export default function Financeiro() {
       const status: Receivable["status"] = isPaid ? "pago" : dueDate && dueDate < today ? "vencido" : "aberto";
       items.push({
         id: s.id, ref: `#${s.sale_number ?? "—"}`, source: "venda",
-        customer: s.customer_name || "—", total: Number((s as any).net_value ?? s.total ?? 0),
+        customer: s.customer_name || "—", whatsapp: s.customer_whatsapp ?? null, total: Number((s as any).net_value ?? s.total ?? 0),
         date: s.created_at, due: s.due_date, status, method: s.payment_method,
       });
     });
     partsSales.forEach((p) => {
       items.push({
         id: p.id, ref: "peça", source: "peça",
-        customer: p.customer_name || "—", total: Number((p as any).net_value ?? p.total ?? 0),
+        customer: p.customer_name || "—", whatsapp: null, total: Number((p as any).net_value ?? p.total ?? 0),
         date: p.created_at, due: null, status: "pago", method: p.payment_method,
       });
     });
@@ -106,7 +106,7 @@ export default function Financeiro() {
       if (osVal > 0) {
         items.push({
           id: o.id, ref: `OS #${o.os_number ?? "—"}`, source: "serviço",
-          customer: o.customer_name || "—", total: osVal,
+          customer: o.customer_name || "—", whatsapp: o.customer_whatsapp ?? null, total: osVal,
           date: o.created_at, due: null, status, method: "—",
         });
       }
