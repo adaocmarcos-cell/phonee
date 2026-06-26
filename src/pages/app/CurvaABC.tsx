@@ -366,6 +366,7 @@ export default function CurvaABC() {
   };
 
   return (
+    <>
     <div>
       <PageHeader
         title="Curva ABC & Regra 80/20"
