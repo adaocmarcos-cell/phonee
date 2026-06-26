@@ -103,6 +103,21 @@ export default function Comprar() {
 
   useEffect(() => { setCouponInfo(null); }, [selectedCode]);
 
+  // Conversão Meta: ViewContent ao carregar/trocar plano
+  useEffect(() => {
+    if (!selected) return;
+    trackMetaEvent("ViewContent", {
+      value: selected.price_cents / 100,
+      currency: "BRL",
+      custom: {
+        content_ids: [selected.code],
+        content_name: selected.name,
+        content_category: "subscription_plan",
+        content_type: "product",
+      },
+    });
+  }, [selected?.id]);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const parsed = Schema.safeParse(form);
