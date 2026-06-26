@@ -574,7 +574,7 @@ function FiltersPanel(props: {
               min="0"
               step="0.01"
               placeholder="De"
-              className="h-9"
+              className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
               value={priceMin}
               onChange={(e) => setPriceMin(e.target.value)}
             />
@@ -585,11 +585,14 @@ function FiltersPanel(props: {
               min="0"
               step="0.01"
               placeholder="Até"
-              className="h-9"
+              className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
               value={priceMax}
               onChange={(e) => setPriceMax(e.target.value)}
             />
           </div>
+          {priceError && (
+            <p className="text-xs text-destructive mt-1.5">{priceError}</p>
+          )}
         </div>
       </div>
 
