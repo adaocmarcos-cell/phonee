@@ -5,6 +5,7 @@ import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
 import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
 import { trackPageVisit } from "@/lib/trackVisit";
+import { trackMetaEvent } from "@/lib/metaPixel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -157,7 +158,20 @@ export default function Landing() {
     }
     if (p.get("indique") === "1" || p.get("indicacao") === "1") setRefOpen(true);
     trackPageVisit("/");
+    // Conversão Meta: visualização da página de vendas
+    trackMetaEvent("ViewContent", {
+      custom: { content_name: "Landing Phonee", content_category: "sales_page" },
+    });
   }, []);
+
+  // Helper: registra InitiateCheckout antes de mandar para /comprar
+  const trackCheckoutClick = (plan: "annual" | "lifetime", source: string) => {
+    trackMetaEvent("InitiateCheckout", {
+      value: plan === "lifetime" ? 197 : undefined,
+      currency: "BRL",
+      custom: { content_name: plan === "lifetime" ? "Plano Vitalício" : "Plano Anual", content_category: "subscription", source },
+    });
+  };
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DemoLeadModal
