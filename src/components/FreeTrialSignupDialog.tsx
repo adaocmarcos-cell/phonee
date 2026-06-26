@@ -102,7 +102,7 @@ export function FreeTrialSignupDialog({ open, onOpenChange }: Props) {
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <div className="grid grid-cols-1 gap-3">
-              <div>
+              <div className="space-y-1.5">
                 <Label className="flex items-center gap-1.5"><Store className="h-3.5 w-3.5 text-primary" /> Nome da loja *</Label>
                 <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="Ex: Loja do João Celulares" />
               </div>
