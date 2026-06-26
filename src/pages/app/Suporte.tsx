@@ -350,7 +350,7 @@ export default function Suporte() {
             onClick={() => setSbOpen(true)}
             className="ml-2 h-8 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <Lightbulb className="h-3.5 w-3.5" />
             Sugestões & Bugs
           </Button>
         </TabsList>
@@ -614,7 +614,7 @@ export default function Suporte() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Lightbulb className="h-4 w-4 text-primary" />
               Sugestões & Bugs
             </DialogTitle>
           </DialogHeader>
