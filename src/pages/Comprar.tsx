@@ -21,7 +21,7 @@ const Schema = z.object({
 });
 
 type Plan = {
-  id: string; code: "trial" | "annual" | "lifetime"; name: string;
+  id: string; code: "annual" | "lifetime"; name: string;
   description: string | null; price_cents: number; max_installments: number;
 };
 
@@ -33,10 +33,10 @@ export default function Comprar() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const initialCodeParam = params.get("plano");
-  const initialCode = (initialCodeParam === "lifetime" ? "lifetime" : initialCodeParam === "trial" ? "trial" : "annual") as "trial" | "annual" | "lifetime";
+  const initialCode = (initialCodeParam === "lifetime" ? "lifetime" : "annual") as "annual" | "lifetime";
 
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedCode, setSelectedCode] = useState<"trial" | "annual" | "lifetime">(initialCode);
+  const [selectedCode, setSelectedCode] = useState<"annual" | "lifetime">(initialCode);
   const [method, setMethod] = useState<"PIX" | "CREDIT_CARD">("PIX");
   const [installments, setInstallments] = useState(1);
   const [form, setForm] = useState({ customer_name: "", customer_email: "", customer_phone: "", customer_doc: "" });
@@ -46,11 +46,6 @@ export default function Comprar() {
   const [coupon, setCoupon] = useState("");
   const [couponInfo, setCouponInfo] = useState<{ valid: boolean; discount_cents: number; message?: string } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
-
-  // Elegibilidade da Mensalidade Teste (debounce por e-mail/CPF)
-  const [trialEligible, setTrialEligible] = useState<boolean | null>(null);
-  const [trialEligibilityMsg, setTrialEligibilityMsg] = useState<string | null>(null);
-  const [checkingEligibility, setCheckingEligibility] = useState(false);
 
   useEffect(() => {
     const r = params.get("ref");
@@ -72,9 +67,12 @@ export default function Comprar() {
   useEffect(() => {
     supabase.from("plans").select("id,code,name,description,price_cents,max_installments").eq("active", true)
       .then(({ data }) => {
-        const order: Record<string, number> = { trial: 0, annual: 1, lifetime: 2 };
-        const sorted = ((data ?? []) as Plan[]).slice().sort((a, b) => (order[a.code] ?? 9) - (order[b.code] ?? 9));
-        setPlans(sorted);
+        const order: Record<string, number> = { annual: 0, lifetime: 1 };
+        const sorted = ((data ?? []) as any[])
+          .filter((p) => p.code !== "trial")
+          .slice()
+          .sort((a, b) => (order[a.code] ?? 9) - (order[b.code] ?? 9));
+        setPlans(sorted as Plan[]);
       });
   }, []);
 
@@ -104,45 +102,12 @@ export default function Comprar() {
 
   useEffect(() => { setCouponInfo(null); }, [selectedCode]);
 
-  // Checagem de elegibilidade do trial, em tempo real (debounce 500ms)
-  useEffect(() => {
-    const email = form.customer_email.trim();
-    const doc = form.customer_doc.replace(/\D/g, "");
-    if (!email && !doc) { setTrialEligible(null); setTrialEligibilityMsg(null); return; }
-    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !doc) {
-      setTrialEligible(null); setTrialEligibilityMsg(null); return;
-    }
-    setCheckingEligibility(true);
-    const t = setTimeout(async () => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const { data, error } = await supabase.functions.invoke("check-trial-eligibility", {
-        body: { email, doc, user_id: userRes?.user?.id },
-      });
-      setCheckingEligibility(false);
-      if (error) { setTrialEligible(null); return; }
-      const res = (data as any) ?? { eligible: true };
-      setTrialEligible(!!res.eligible);
-      setTrialEligibilityMsg(res.eligible ? null : (res.message ?? "Mensalidade Teste indisponível para este cadastro."));
-      if (!res.eligible && selectedCode === "trial") {
-        setSelectedCode("annual");
-        toast.warning("Mensalidade Teste já utilizada neste cadastro. Selecionamos o Plano Anual.");
-      }
-    }, 500);
-    return () => clearTimeout(t);
-  }, [form.customer_email, form.customer_doc, selectedCode]);
-
-  const trialBlocked = trialEligible === false;
-
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const parsed = Schema.safeParse(form);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     if (!selected) return toast.error("Selecione um plano");
     setBusy(true);
-    if (selected.code === "trial" && trialBlocked) {
-      setBusy(false);
-      return toast.error(trialEligibilityMsg ?? "Mensalidade Teste indisponível para este cadastro.");
-    }
     const { data, error } = await supabase.functions.invoke("asaas-create-charge", {
       body: {
         ...parsed.data,
@@ -181,84 +146,6 @@ export default function Comprar() {
             {plans.map((p) => {
               const active = selectedCode === p.code;
               const isLifetime = p.code === "lifetime";
-              const isTrial = p.code === "trial";
-              if (isTrial) {
-                const disabled = trialBlocked;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => !disabled && setSelectedCode(p.code)}
-                    aria-disabled={disabled}
-                    disabled={disabled}
-                    title={disabled ? (trialEligibilityMsg ?? "") : undefined}
-                    className={`relative w-full text-left rounded-2xl p-[2px] transition overflow-hidden ${
-                      disabled
-                        ? "bg-white/10 cursor-not-allowed opacity-60"
-                        : active
-                          ? "bg-gradient-to-br from-primary via-info to-primary shadow-[0_0_40px_-10px_hsl(var(--primary))]"
-                          : "bg-gradient-to-br from-primary/60 via-info/40 to-primary/60 hover:from-primary hover:to-primary"
-                    }`}
-                  >
-                    <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-primary to-info text-white text-[10px] font-bold tracking-widest uppercase px-4 py-1 rounded-b-xl shadow-lg flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" /> Oportunidade Única
-                      </div>
-                    </div>
-                    <div className="rounded-[14px] bg-[hsl(224_30%_14%)] p-5 pt-7">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2 text-info text-xs font-mono tracking-widest uppercase">
-                            <Clock className="h-3.5 w-3.5" /> Mensalidade Teste
-                          </div>
-                          <h3 className="mt-2 text-lg md:text-xl font-extrabold leading-snug">
-                            Teste o Phonee por R$19,90 — apenas uma vez.
-                          </h3>
-                          <p className="text-xs text-white/70 mt-1">
-                            Acesso total por 1 mês. Depois, só Plano Anual ou Vitalício.
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-[10px] uppercase text-white/50 tracking-wider">por 30 dias</div>
-                          <div className="text-2xl md:text-3xl font-extrabold text-info">{formatBRL(p.price_cents)}</div>
-                          <div className="text-[10px] text-white/60">pagamento único</div>
-                        </div>
-                      </div>
-                      <ul className="mt-4 grid sm:grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                        {[
-                          "Acesso completo ao sistema",
-                          "Todos os módulos liberados",
-                          "Suporte humano por WhatsApp",
-                          "Sem renovação automática",
-                          "Ideal para experimentar",
-                          "Garantia de 7 dias",
-                        ].map((b) => (
-                          <li key={b} className="flex items-center gap-1.5 text-white/90">
-                            <Check className="h-3.5 w-3.5 text-info shrink-0" /> {b}
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="mt-4 rounded-xl border border-info/30 bg-info/5 p-3 flex gap-2 text-[11px] leading-relaxed text-white/85">
-                        <AlertTriangle className="h-4 w-4 text-info shrink-0 mt-0.5" />
-                        <span>
-                          <b>Apenas uma vez:</b> após o período de 1 mês, a contratação só poderá ser feita nas modalidades <b>Anual</b> ou <b>Vitalício</b>. Aproveite para experimentar antes de um compromisso maior.
-                        </span>
-                      </div>
-                      {disabled && (
-                        <div className="mt-3 rounded-xl border-2 border-danger/50 bg-danger/10 p-3 flex gap-2 text-[11px] leading-relaxed text-white">
-                          <Lock className="h-4 w-4 text-danger shrink-0 mt-0.5" />
-                          <span>
-                            <b>Indisponível para este cadastro.</b> {trialEligibilityMsg}
-                          </span>
-                        </div>
-                      )}
-                      {checkingEligibility && !disabled && (
-                        <div className="mt-2 text-[10px] text-white/50 italic">Verificando elegibilidade…</div>
-                      )}
-                    </div>
-                  </button>
-                );
-              }
               if (isLifetime) {
                 return (
                   <button
@@ -446,17 +333,6 @@ export default function Comprar() {
                 <div className="text-xs text-success flex items-center gap-1"><Check className="h-3 w-3" /> Desconto de {formatBRL(couponInfo.discount_cents)} aplicado.</div>
               )}
             </div>
-
-            {selectedCode === "trial" && (
-              <div className="rounded-xl border-2 border-info/40 bg-info/5 p-4 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-info">
-                  <Sparkles className="h-4 w-4" /> Apenas uma vez: Teste o Phonee por R$19,90
-                </div>
-                <p className="text-xs text-white/85 leading-relaxed">
-                  Acesso total à plataforma por 1 mês. Após o período de teste, a contratação só estará disponível nas modalidades <b>Anual</b> ou <b>Vitalício</b>.
-                </p>
-              </div>
-            )}
 
             {selectedCode === "lifetime" && (
               <div className="rounded-xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-primary/5 to-amber-500/10 p-4 space-y-3">

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 type Trial = {
   id: string; user_id: string | null; email: string; full_name: string | null;
   whatsapp: string | null; notes: string | null; instagram: string | null;
+  store_name: string | null; city: string | null; state: string | null; kind: string | null;
   invited_at: string; activated_at: string | null;
   trial_days: number; trial_ends_at: string | null;
   full_access_granted_at: string | null; full_access_months: number;
@@ -292,6 +293,7 @@ export default function PhoneeParceiros() {
           <thead className="text-left text-[11px] uppercase tracking-widest text-slate-500 border-b border-slate-800">
             <tr>
               <th className="px-4 py-3">Parceiro</th>
+              <th className="px-4 py-3">Loja / Origem</th>
               <th className="px-4 py-3">WhatsApp</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Período concedido</th>
@@ -302,10 +304,10 @@ export default function PhoneeParceiros() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
             )}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                 Nenhum parceiro cadastrado ainda.
               </td></tr>
             )}
@@ -314,6 +316,32 @@ export default function PhoneeParceiros() {
                 <td className="px-4 py-3">
                   <div className="font-medium text-slate-100">{r.full_name || "—"}</div>
                   <div className="text-xs text-slate-400">{r.email}</div>
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <div className="flex items-center gap-2 mb-1">
+                    {r.kind === "free_trial" ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] border bg-info/15 text-info border-info/30">
+                        Teste grátis 7d
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] border bg-violet-500/15 text-violet-300 border-violet-500/30">
+                        Parceiro
+                      </span>
+                    )}
+                  </div>
+                  {r.store_name && <div className="text-slate-200 font-medium">{r.store_name}</div>}
+                  {(r.city || r.state) && (
+                    <div className="text-slate-400">{[r.city, r.state].filter(Boolean).join(" / ")}</div>
+                  )}
+                  {r.instagram && (
+                    <a
+                      href={`https://instagram.com/${r.instagram.replace(/^@+/, "")}`}
+                      target="_blank" rel="noreferrer"
+                      className="text-pink-400 hover:text-pink-300 inline-flex items-center gap-1 mt-0.5"
+                    >
+                      {r.instagram.startsWith("@") ? r.instagram : `@${r.instagram}`}
+                    </a>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   {r.whatsapp ? (

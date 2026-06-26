@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
+import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
 import { trackPageVisit } from "@/lib/trackVisit";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -145,6 +146,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [demoOpen, setDemoOpen] = useState(false);
   const [refOpen, setRefOpen] = useState(false);
+  const [freeTrialOpen, setFreeTrialOpen] = useState(false);
   const handleDemo = () => setDemoOpen(true);
   // Deep-link: /?demo=1 abre direto o modal de demonstração
   useEffect(() => {
@@ -161,6 +163,7 @@ export default function Landing() {
         onSuccess={() => navigate("/painel")}
       />
       <LandingReferralSignupDialog open={refOpen} onOpenChange={setRefOpen} />
+      <FreeTrialSignupDialog open={freeTrialOpen} onOpenChange={setFreeTrialOpen} />
       {/* NAV — mesma cor do hero */}
       <header className="sticky top-0 z-50 bg-[hsl(226_50%_15%)] border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
@@ -616,45 +619,48 @@ export default function Landing() {
           <SectionTitle
             eyebrow="PREÇO"
             title="Sem mensalidades. Sem surpresas."
-            subtitle="Apenas uma vez: Teste o Phonee por R$19,90. Depois, escolha Anual ou Vitalício."
+            subtitle="Experimente grátis por 7 dias. Depois, escolha Plano Anual ou Vitalício."
           />
 
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Trial — Mensalidade Teste */}
+            {/* Teste grátis — 7 dias */}
             <Reveal direction="left" duration={1000} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
               <Card className="relative p-6 md:p-7 border-2 border-info/60 bg-card h-full">
                 <Badge className="bg-info/15 text-info border-info/40 text-sm">
-                  ⚡ OPORTUNIDADE ÚNICA
+                  🎁 GRÁTIS · SEM CARTÃO
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
-                  Mensalidade Teste
+                  Experimente grátis
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-5xl md:text-6xl text-info">R$ 19,90</span>
+                  <span className="metric text-5xl md:text-6xl text-info">7 dias</span>
                 </div>
-                <div className="mt-1 text-lg font-extrabold">por 1 mês — apenas uma vez</div>
+                <div className="mt-1 text-lg font-extrabold">Acesso completo · sem cobrança</div>
                 <div className="mt-1 text-sm font-semibold text-foreground/80">
-                  Experimente o Phonee com investimento acessível antes de um compromisso maior.
+                  Teste o Phonee na sua loja antes de contratar. Cancelamento automático.
                 </div>
 
                 <ul className="mt-5 space-y-2.5">
                   {[
-                    "Acesso total por 30 dias",
+                    "Acesso total por 7 dias",
                     "Todos os módulos liberados",
+                    "Sem cartão de crédito",
                     "Suporte humano por WhatsApp",
-                    "Sem renovação automática",
-                    "Garantia de 7 dias",
+                    "Bloqueio automático ao final",
                   ].map((i) => <CheckItem key={i}>{i}</CheckItem>)}
                 </ul>
 
-                <Link to="/comprar?plano=trial" className="block mt-6">
-                  <Button size="lg" className="w-full h-12 text-base bg-info hover:bg-info/90 text-white">
-                    Quero testar por R$19,90 <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  type="button"
+                  onClick={() => setFreeTrialOpen(true)}
+                  className="mt-6 w-full h-12 text-base bg-info hover:bg-info/90 text-white"
+                >
+                  Experimente grátis por 7 dias <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Button>
                 <div className="mt-3 text-[11px] text-foreground/70 leading-relaxed text-center">
-                  Após o teste, apenas Plano Anual ou Vitalício estarão disponíveis.
+                  Após 7 dias, contratação apenas nas modalidades <b>Anual</b> ou <b>Vitalício</b>.
                 </div>
               </Card>
             </Reveal>
@@ -765,6 +771,14 @@ export default function Landing() {
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
+            <Button
+              size="lg"
+              type="button"
+              onClick={() => setFreeTrialOpen(true)}
+              className="h-12 px-7 text-base bg-info hover:bg-info/90 text-white rounded-md"
+            >
+              Experimente grátis por 7 dias
+            </Button>
             <Link to="/entrar">
               <Button size="lg" variant="outline" className="h-12 px-7 text-base bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                 Fazer login
