@@ -77,6 +77,13 @@ export default function TabelasPreco() {
   const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set());
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [storeBrands, setStoreBrands] = useState<string[]>([]);
+  // sub-filters per category
+  const [phoneBrands, setPhoneBrands] = useState<Set<string>>(new Set());
+  const [capaBrands, setCapaBrands] = useState<Set<string>>(new Set());
+  const [foneTypes, setFoneTypes] = useState<Set<string>>(new Set());
+  const [memorySizes, setMemorySizes] = useState<Set<string>>(new Set());
+  const [chargerTypes, setChargerTypes] = useState<Set<string>>(new Set());
+  const [cableTypes, setCableTypes] = useState<Set<string>>(new Set());
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [filterName, setFilterName] = useState("");
   const [filterSku, setFilterSku] = useState("");
@@ -130,9 +137,17 @@ export default function TabelasPreco() {
       if (filterSku && !(p.sku || "").toLowerCase().includes(filterSku.toLowerCase())) return false;
       if (filterAvailable === "in" && p.stock_current <= 0) return false;
       if (filterAvailable === "out" && p.stock_current > 0) return false;
+      // category-specific sub-filters (apply only to relevant category)
+      const cat = p.category || "";
+      if (cat === "smartphones" && !matchesBrandList(p, phoneBrands)) return false;
+      if (cat === "capas" && !matchesBrandList(p, capaBrands)) return false;
+      if (cat === "fones" && !matchesTypeList(p, foneTypes, FONE_TYPES)) return false;
+      if (cat === "memoria" && !matchesMemory(p, memorySizes)) return false;
+      if ((cat === "carregadores" || cat === "powerbanks") && !matchesTypeList(p, chargerTypes, CHARGER_TYPES)) return false;
+      if (cat === "cabos" && !matchesTypeList(p, cableTypes, CABLE_TYPES)) return false;
       return true;
     });
-  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable]);
+  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable, phoneBrands, capaBrands, foneTypes, memorySizes, chargerTypes, cableTypes]);
 
   const toggleProduct = (id: string) => {
     const next = new Set(selectedProducts);
