@@ -16,6 +16,48 @@ import { FileDown, Filter, Search, CheckSquare, Square } from "lucide-react";
 import { DEFAULT_CATEGORIES, getCustomCategories, categoryLabel } from "@/lib/categories";
 import { brl as formatBRL } from "@/lib/format";
 
+// --- Sub-filters configuration (price table) ---
+const PHONE_BRANDS = [
+  "Samsung","Motorola","Xiaomi","Apple","Oppo","Realme","Honor","Infinix",
+  "Tecno","POCO","Redmi","Vivo","ASUS","Nokia","Google","Huawei","OnePlus",
+  "ZTE","Nubia","Sony",
+];
+const FONE_TYPES: { value: string; label: string; match: RegExp }[] = [
+  { value: "fio", label: "Com fio", match: /\b(com\s*fio|p2|3\.5|cabo)\b/i },
+  { value: "bluetooth", label: "Bluetooth", match: /bluetooth|bt\b|sem\s*fio|wireless|tws/i },
+  { value: "headset", label: "Headset", match: /headset|headphone|over[-\s]?ear/i },
+  { value: "intra", label: "Intra-auricular", match: /intra|in[-\s]?ear|earbud|earphone/i },
+];
+const MEMORY_SIZES = ["4GB","8GB","16GB","32GB","64GB","128GB","256GB","512GB","1TB","2TB"];
+const CHARGER_TYPES: { value: string; label: string; match: RegExp }[] = [
+  { value: "parede", label: "Carregador de parede", match: /parede|wall|tomada|fonte/i },
+  { value: "powerbank", label: "Powerbank", match: /power\s*bank|powerbank|bateria\s*externa/i },
+];
+const CABLE_TYPES: { value: string; label: string; match: RegExp }[] = [
+  { value: "usba_typec",   label: "USB-A → Type-C",         match: /usb[-\s]?a.*(type[-\s]?c|tipo[-\s]?c)|\ba\s*[-→x]\s*c\b/i },
+  { value: "usbc_typec",   label: "USB-C → Type-C",         match: /usb[-\s]?c.*(type[-\s]?c|tipo[-\s]?c)|\bc\s*[-→x]\s*c\b/i },
+  { value: "usba_light",   label: "USB-A → Lightning",      match: /usb[-\s]?a.*lightning|\ba\s*[-→x]\s*lightning\b/i },
+  { value: "usbc_light",   label: "USB-C → Lightning",      match: /usb[-\s]?c.*lightning|\bc\s*[-→x]\s*lightning\b/i },
+  { value: "usba_v8",      label: "USB-A → V8 (Micro USB)", match: /usb[-\s]?a.*(v8|micro\s*usb)|\ba\s*[-→x]\s*(v8|micro)/i },
+  { value: "usbc_v8",      label: "USB-C → V8 (Micro USB)", match: /usb[-\s]?c.*(v8|micro\s*usb)|\bc\s*[-→x]\s*(v8|micro)/i },
+];
+
+function matchesBrandList(p: { name: string; brand: string | null }, brands: Set<string>) {
+  if (!brands.size) return true;
+  const hay = `${p.brand || ""} ${p.name}`.toLowerCase();
+  for (const b of brands) if (hay.includes(b.toLowerCase())) return true;
+  return false;
+}
+function matchesTypeList(p: { name: string }, types: Set<string>, defs: { value: string; match: RegExp }[]) {
+  if (!types.size) return true;
+  return defs.some((d) => types.has(d.value) && d.match.test(p.name));
+}
+function matchesMemory(p: { name: string }, sizes: Set<string>) {
+  if (!sizes.size) return true;
+  const name = p.name.toUpperCase().replace(/\s+/g, "");
+  return [...sizes].some((s) => name.includes(s));
+}
+
 type Product = {
   id: string;
   name: string;
