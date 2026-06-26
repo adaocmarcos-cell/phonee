@@ -9,24 +9,25 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MetricCard } from "@/components/MetricCard";
 import { SortableCards } from "@/components/SortableCards";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import {
   Wallet, TrendingUp, TrendingDown, Receipt, ArrowRight, Clock, CheckCircle2,
-  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText, LayoutGrid, Check,
+  AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText, LayoutGrid, Check, MessageCircle, Send,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-type Sale = { id: string; sale_number: number | null; total: number; created_at: string; payment_status: string; due_date: string | null; customer_name: string | null; payment_method: string };
+type Sale = { id: string; sale_number: number | null; total: number; created_at: string; payment_status: string; due_date: string | null; customer_name: string | null; customer_whatsapp: string | null; payment_method: string };
 type PartsSale = { id: string; total: number; created_at: string; payment_method: string; customer_name: string | null };
-type ServiceOrder = { id: string; os_number: number | null; total_value: number; status: string; budget_status: string; created_at: string; customer_name: string };
+type ServiceOrder = { id: string; os_number: number | null; total_value: number; status: string; budget_status: string; created_at: string; customer_name: string; customer_whatsapp: string | null };
 type Expense = { id: string; amount: number; expense_date: string; description: string; category_name: string; payment_method: string };
 
 type Receivable = {
   id: string; ref: string; source: "venda" | "peça" | "serviço";
-  customer: string; total: number; date: string; due: string | null; status: "aberto" | "vencido" | "pago"; method: string;
+  customer: string; whatsapp: string | null; total: number; date: string; due: string | null; status: "aberto" | "vencido" | "pago"; method: string;
 };
 type Payable = {
   id: string; description: string; category: string;
