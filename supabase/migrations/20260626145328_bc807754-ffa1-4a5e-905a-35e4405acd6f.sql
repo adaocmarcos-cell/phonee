@@ -1,0 +1,2 @@
+ALTER TABLE public.demo_leads ADD COLUMN IF NOT EXISTS contacted BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.demo_leads ADD COLUMN IF NOT EXISTS contacted_at TIMESTAMPTZ;
