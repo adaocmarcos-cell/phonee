@@ -88,6 +88,8 @@ export default function TabelasPreco() {
   const [filterName, setFilterName] = useState("");
   const [filterSku, setFilterSku] = useState("");
   const [filterAvailable, setFilterAvailable] = useState<"all" | "in" | "out">("all");
+  const [priceMin, setPriceMin] = useState<string>("");
+  const [priceMax, setPriceMax] = useState<string>("");
 
   const [showAvailability, setShowAvailability] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -137,6 +139,11 @@ export default function TabelasPreco() {
       if (filterSku && !(p.sku || "").toLowerCase().includes(filterSku.toLowerCase())) return false;
       if (filterAvailable === "in" && p.stock_current <= 0) return false;
       if (filterAvailable === "out" && p.stock_current > 0) return false;
+      const price = Number(p.sale_price) || 0;
+      const minN = priceMin === "" ? null : Number(priceMin);
+      const maxN = priceMax === "" ? null : Number(priceMax);
+      if (minN !== null && !isNaN(minN) && price < minN) return false;
+      if (maxN !== null && !isNaN(maxN) && price > maxN) return false;
       // category-specific sub-filters (apply only to relevant category)
       const cat = p.category || "";
       if (cat === "smartphones" && !matchesBrandList(p, phoneBrands)) return false;
@@ -147,7 +154,7 @@ export default function TabelasPreco() {
       if (cat === "cabos" && !matchesTypeList(p, cableTypes, CABLE_TYPES)) return false;
       return true;
     });
-  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable, phoneBrands, capaBrands, foneTypes, memorySizes, chargerTypes, cableTypes]);
+  }, [products, selectedCats, selectedBrands, filterName, filterSku, filterAvailable, priceMin, priceMax, phoneBrands, capaBrands, foneTypes, memorySizes, chargerTypes, cableTypes]);
 
   const toggleProduct = (id: string) => {
     const next = new Set(selectedProducts);
@@ -299,6 +306,8 @@ export default function TabelasPreco() {
               filterName={filterName} setFilterName={setFilterName}
               filterSku={filterSku} setFilterSku={setFilterSku}
               filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
+              priceMin={priceMin} setPriceMin={setPriceMin}
+              priceMax={priceMax} setPriceMax={setPriceMax}
               showAvailability={showAvailability} setShowAvailability={setShowAvailability}
               showNotes={showNotes} setShowNotes={setShowNotes}
               phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
@@ -320,6 +329,8 @@ export default function TabelasPreco() {
             filterName={filterName} setFilterName={setFilterName}
             filterSku={filterSku} setFilterSku={setFilterSku}
             filterAvailable={filterAvailable} setFilterAvailable={setFilterAvailable}
+            priceMin={priceMin} setPriceMin={setPriceMin}
+            priceMax={priceMax} setPriceMax={setPriceMax}
             showAvailability={showAvailability} setShowAvailability={setShowAvailability}
             showNotes={showNotes} setShowNotes={setShowNotes}
             phoneBrands={phoneBrands} setPhoneBrands={setPhoneBrands}
@@ -394,6 +405,8 @@ function FiltersPanel(props: {
   filterName: string; setFilterName: (v: string) => void;
   filterSku: string; setFilterSku: (v: string) => void;
   filterAvailable: "all" | "in" | "out"; setFilterAvailable: (v: "all" | "in" | "out") => void;
+  priceMin: string; setPriceMin: (v: string) => void;
+  priceMax: string; setPriceMax: (v: string) => void;
   showAvailability: boolean; setShowAvailability: (v: boolean) => void;
   showNotes: boolean; setShowNotes: (v: boolean) => void;
   phoneBrands: Set<string>; setPhoneBrands: (v: Set<string>) => void;
@@ -408,6 +421,8 @@ function FiltersPanel(props: {
     storeBrands, selectedBrands, toggleBrand,
     filterName, setFilterName, filterSku, setFilterSku,
     filterAvailable, setFilterAvailable,
+    priceMin, setPriceMin,
+    priceMax, setPriceMax,
     showAvailability, setShowAvailability,
     showNotes, setShowNotes,
     phoneBrands, setPhoneBrands,
@@ -542,6 +557,32 @@ function FiltersPanel(props: {
               {v === "all" ? "Todos" : v === "in" ? "Em estoque" : "Sem estoque"}
             </Button>
           ))}
+        </div>
+        <div>
+          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preço (R$)</Label>
+          <div className="flex items-center gap-1.5 mt-2">
+            <Input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="De"
+              className="h-9"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">—</span>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="Até"
+              className="h-9"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
