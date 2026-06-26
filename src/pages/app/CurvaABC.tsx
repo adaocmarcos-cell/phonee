@@ -9,6 +9,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Info, TrendingUp, TrendingDown, Minus, Trophy, Percent, Wallet, Award, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { FileDown, Printer, Save, Calculator } from "lucide-react";
 import { brl, num, pct, daysAgo } from "@/lib/format";
 import { MetricCard } from "@/components/MetricCard";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
@@ -128,6 +133,10 @@ export default function CurvaABC() {
   const [allSales, setAllSales] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [openClass, setOpenClass] = useState<"A" | "B" | "C" | null>(null);
+  const [openSuggest, setOpenSuggest] = useState(false);
+  const [histDays, setHistDays] = useState(90);
+  const [projDays, setProjDays] = useState(30);
+  const [suggestEdits, setSuggestEdits] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!store) return;
@@ -251,11 +260,122 @@ export default function CurvaABC() {
     return { label: "Encalhado", color: "text-danger", icon: <TrendingDown className="h-3 w-3" /> };
   };
 
+  // --- Compra sugerida ---
+  const suggestions = useMemo(() => {
+    const since = Date.now() - histDays * 86400_000;
+    const sold = new Map<string, number>();
+    allSales.forEach((s: any) => {
+      const t = new Date(s.created_at).getTime();
+      if (t < since) return;
+      (s.sale_items ?? []).forEach((it: any) => {
+        if (!it.product_id) return;
+        sold.set(it.product_id, (sold.get(it.product_id) ?? 0) + (Number(it.quantity) || 0));
+      });
+    });
+    const factor = histDays > 0 ? projDays / histDays : 0;
+    return allProducts
+      .map((p: any) => {
+        const qtySold = sold.get(p.id) ?? 0;
+        const projected = Math.ceil(qtySold * factor);
+        const stock = Number(p.stock_current || 0);
+        const baseSuggest = Math.max(0, projected - stock);
+        const cost = Number(p.cost_price || 0);
+        return {
+          id: p.id,
+          name: p.name,
+          stock,
+          qtySold,
+          projected,
+          suggested: suggestEdits[p.id] ?? baseSuggest,
+          baseSuggest,
+          cost,
+        };
+      })
+      .filter((r) => r.qtySold > 0 || r.suggested > 0)
+      .sort((a, b) => b.suggested - a.suggested || b.qtySold - a.qtySold);
+  }, [allProducts, allSales, histDays, projDays, suggestEdits]);
+
+  const suggestTotal = useMemo(
+    () => suggestions.reduce((s, r) => s + r.suggested * r.cost, 0),
+    [suggestions],
+  );
+
+  const buildSuggestHtml = () => {
+    const today = new Date().toLocaleDateString("pt-BR");
+    const storeName = (store as any)?.trade_name || (store as any)?.name || "Loja";
+    const rowsHtml = suggestions.map((r, i) => `
+      <tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;color:#64748b">${i + 1}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9">${escapeHtml(r.name)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right">${r.qtySold}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right">${r.stock}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right">${r.projected}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:700;color:#0f172a">${r.suggested}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right">${brl(r.suggested * r.cost)}</td>
+      </tr>`).join("");
+    return `<!doctype html><html><head><meta charset="utf-8"><title>Compra sugerida</title>
+      <style>
+        @page { size:A4; margin:14mm }
+        body { font-family: system-ui, -apple-system, sans-serif; color:#0f172a; margin:0 }
+        h1 { font-size:18px; margin:0 0 4px }
+        .meta { font-size:11px; color:#64748b; margin-bottom:12px }
+        table { width:100%; border-collapse:collapse; font-size:12px }
+        th { background:#f1f5f9; text-align:left; padding:8px; border-bottom:1px solid #e2e8f0 }
+        tfoot td { padding:8px; font-weight:700; border-top:2px solid #0f172a }
+      </style></head><body>
+      <h1>Compra sugerida — ${escapeHtml(storeName)}</h1>
+      <div class="meta">Base: últimos ${histDays} dias · Projeção: próximos ${projDays} dias · Emitido em ${today}</div>
+      <table>
+        <thead><tr>
+          <th>#</th><th>Produto</th>
+          <th style="text-align:right">Vendido (${histDays}d)</th>
+          <th style="text-align:right">Estoque</th>
+          <th style="text-align:right">Projeção (${projDays}d)</th>
+          <th style="text-align:right">Comprar</th>
+          <th style="text-align:right">Custo total</th>
+        </tr></thead>
+        <tbody>${rowsHtml || `<tr><td colspan="7" style="padding:24px;text-align:center;color:#64748b">Sem dados.</td></tr>`}</tbody>
+        <tfoot><tr><td colspan="6" style="text-align:right">Investimento estimado</td><td style="text-align:right">${brl(suggestTotal)}</td></tr></tfoot>
+      </table>
+      </body></html>`;
+  };
+
+  const handlePrintSuggest = (autoPrint: boolean) => {
+    const html = buildSuggestHtml() + (autoPrint ? `<script>window.onload=()=>setTimeout(()=>window.print(),250)</script>` : "");
+    const w = window.open("", "_blank");
+    if (!w) return toast.error("Permita pop-ups para abrir o documento.");
+    w.document.write(html);
+    w.document.close();
+  };
+
+  const handleSaveSuggest = () => {
+    try {
+      const key = `phonee.suggestList.${(store as any)?.id || "default"}`;
+      const prev = JSON.parse(localStorage.getItem(key) || "[]");
+      prev.unshift({
+        savedAt: new Date().toISOString(),
+        histDays, projDays,
+        total: suggestTotal,
+        items: suggestions.map((r) => ({ id: r.id, name: r.name, suggested: r.suggested, cost: r.cost })),
+      });
+      localStorage.setItem(key, JSON.stringify(prev.slice(0, 20)));
+      toast.success("Lista de compra salva.");
+    } catch {
+      toast.error("Não foi possível salvar a lista.");
+    }
+  };
+
   return (
+    <>
     <div>
       <PageHeader
         title="Curva ABC & Regra 80/20"
         description="Classificação automática dos produtos por faturamento."
+        actions={
+          <Button onClick={() => setOpenSuggest(true)} className="bg-gradient-primary shadow-glow">
+            <ShoppingCart className="h-4 w-4 mr-1" /> Compra sugerida
+          </Button>
+        }
       />
 
       <Card className="mb-4 p-3 border-primary/30 bg-primary/[0.04] flex items-start gap-3">
@@ -475,5 +595,93 @@ export default function CurvaABC() {
         </div>
       </Card>
     </div>
+
+      {/* Compra sugerida */}
+      <Dialog open={openSuggest} onOpenChange={setOpenSuggest}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-primary" /> Compra sugerida
+            </DialogTitle>
+            <DialogDescription>
+              Calculada a partir das vendas dos últimos {histDays} dias projetadas para os próximos {projDays} dias, descontando o estoque atual.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Histórico (dias)</Label>
+              <Input type="number" min={1} value={histDays}
+                onChange={(e) => { setHistDays(Math.max(1, Number(e.target.value) || 1)); setSuggestEdits({}); }} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Projeção (dias)</Label>
+              <Input type="number" min={1} value={projDays}
+                onChange={(e) => { setProjDays(Math.max(1, Number(e.target.value) || 1)); setSuggestEdits({}); }} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Investimento estimado</Label>
+              <div className="h-10 flex items-center px-3 rounded-md bg-surface-elevated border border-border font-semibold tabular-nums">
+                {brl(suggestTotal)}
+              </div>
+            </div>
+          </div>
+
+          <div className="max-h-[55vh] overflow-y-auto border border-border rounded-md">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Produto</th>
+                  <th className="text-right px-3 py-2 font-medium">Vendido</th>
+                  <th className="text-right px-3 py-2 font-medium">Estoque</th>
+                  <th className="text-right px-3 py-2 font-medium">Projeção</th>
+                  <th className="text-right px-3 py-2 font-medium w-28">Comprar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {suggestions.length === 0 ? (
+                  <tr><td colSpan={5} className="px-3 py-8 text-center text-muted-foreground text-sm">Sem dados para sugerir compras.</td></tr>
+                ) : suggestions.map((r) => (
+                  <tr key={r.id} className="hover:bg-surface-elevated/40">
+                    <td className="px-3 py-2">{r.name}</td>
+                    <td className="px-3 py-2 text-right metric">{r.qtySold}</td>
+                    <td className="px-3 py-2 text-right metric">{r.stock}</td>
+                    <td className="px-3 py-2 text-right metric text-muted-foreground">{r.projected}</td>
+                    <td className="px-3 py-2 text-right">
+                      <Input
+                        type="number" min={0}
+                        value={r.suggested}
+                        onChange={(e) =>
+                          setSuggestEdits((prev) => ({ ...prev, [r.id]: Math.max(0, Number(e.target.value) || 0) }))
+                        }
+                        className="h-8 text-right w-24 ml-auto"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2 pt-3">
+            <Button variant="outline" onClick={handleSaveSuggest}>
+              <Save className="h-4 w-4 mr-1" /> Salvar lista
+            </Button>
+            <Button variant="outline" onClick={() => handlePrintSuggest(true)}>
+              <FileDown className="h-4 w-4 mr-1" /> Salvar PDF
+            </Button>
+            <Button onClick={() => handlePrintSuggest(true)} className="bg-gradient-primary">
+              <Printer className="h-4 w-4 mr-1" /> Imprimir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
+}
+
+function escapeHtml(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
