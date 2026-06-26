@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 import { trackPageVisit } from "@/lib/trackVisit";
+import { trackMetaEvent } from "@/lib/metaPixel";
 
 const Schema = z.object({
   customer_name: z.string().trim().min(2, "Informe seu nome").max(120),
@@ -102,12 +103,42 @@ export default function Comprar() {
 
   useEffect(() => { setCouponInfo(null); }, [selectedCode]);
 
+  // Conversão Meta: ViewContent ao carregar/trocar plano
+  useEffect(() => {
+    if (!selected) return;
+    trackMetaEvent("ViewContent", {
+      value: selected.price_cents / 100,
+      currency: "BRL",
+      custom: {
+        content_ids: [selected.code],
+        content_name: selected.name,
+        content_category: "subscription_plan",
+        content_type: "product",
+      },
+    });
+  }, [selected?.id]);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const parsed = Schema.safeParse(form);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     if (!selected) return toast.error("Selecione um plano");
     setBusy(true);
+    // Conversão Meta: InitiateCheckout
+    trackMetaEvent("InitiateCheckout", {
+      value: finalCents / 100,
+      currency: "BRL",
+      email: parsed.data.customer_email,
+      phone: parsed.data.customer_phone,
+      custom: {
+        content_ids: [selected.code],
+        content_name: selected.name,
+        content_category: "subscription_plan",
+        payment_method: method,
+        installments: method === "CREDIT_CARD" ? installments : 1,
+        coupon: couponInfo?.valid ? coupon.trim().toUpperCase() : undefined,
+      },
+    });
     const { data, error } = await supabase.functions.invoke("asaas-create-charge", {
       body: {
         ...parsed.data,

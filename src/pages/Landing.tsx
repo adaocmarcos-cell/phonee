@@ -5,6 +5,7 @@ import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
 import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
 import { trackPageVisit } from "@/lib/trackVisit";
+import { trackMetaEvent } from "@/lib/metaPixel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -157,7 +158,20 @@ export default function Landing() {
     }
     if (p.get("indique") === "1" || p.get("indicacao") === "1") setRefOpen(true);
     trackPageVisit("/");
+    // Conversão Meta: visualização da página de vendas
+    trackMetaEvent("ViewContent", {
+      custom: { content_name: "Landing Phonee", content_category: "sales_page" },
+    });
   }, []);
+
+  // Helper: registra InitiateCheckout antes de mandar para /comprar
+  const trackCheckoutClick = (plan: "annual" | "lifetime", source: string) => {
+    trackMetaEvent("InitiateCheckout", {
+      value: plan === "lifetime" ? 197 : undefined,
+      currency: "BRL",
+      custom: { content_name: plan === "lifetime" ? "Plano Vitalício" : "Plano Anual", content_category: "subscription", source },
+    });
+  };
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DemoLeadModal
@@ -206,7 +220,7 @@ export default function Landing() {
                 Fazer login
               </Button>
             </Link>
-            <Link to="/comprar?plano=annual">
+            <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "header")}>
               <Button className="bg-gradient-primary hidden sm:inline-flex animate-neon-pulse rounded-md">Comprar agora</Button>
             </Link>
           </div>
@@ -452,6 +466,7 @@ export default function Landing() {
             <div className="flex justify-center -mt-4">
               <Link
                 to="/comprar?plano=annual"
+                onClick={() => trackCheckoutClick("annual", "midpage_cta")}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-base md:text-lg font-extrabold text-primary-foreground shadow-glow hover:bg-primary/90 transition"
               >
                 Quero mais lucro e menos perdas
@@ -709,7 +724,7 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <Link to="/comprar?plano=annual" className="block mt-7">
+                <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "pricing_card")} className="block mt-7">
                   <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
                     Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
@@ -756,7 +771,7 @@ export default function Landing() {
                   sem cobranças de mensalidade ou renovação.
                 </p>
 
-                <Link to="/comprar?plano=lifetime" className="block mt-7">
+                <Link to="/comprar?plano=lifetime" onClick={() => trackCheckoutClick("lifetime", "pricing_card")} className="block mt-7">
                   <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
                     Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
@@ -784,7 +799,7 @@ export default function Landing() {
             e tenha mais liberdade para crescer.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link to="/comprar?plano=annual">
+            <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "final_cta")}>
               <Button size="lg" className="bg-gradient-primary h-12 px-7 text-base animate-neon-pulse rounded-md">
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>

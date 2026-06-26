@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import logoAsset from "@/assets/phonee-logo.png.asset.json";
+import { trackMetaEvent } from "@/lib/metaPixel";
 
 export default function ComprarSucesso() {
   const { id } = useParams();
   const [sub, setSub] = useState<any>(null);
+  const purchaseFiredRef = useRef(false);
 
   useEffect(() => {
     if (!id) return;
@@ -29,6 +31,26 @@ export default function ComprarSucesso() {
 
   const active = sub.status === "active";
   const isPix = sub.payment_method === "PIX";
+
+  // Conversão Meta: Purchase (uma única vez)
+  if (active && !purchaseFiredRef.current) {
+    purchaseFiredRef.current = true;
+    const cents = Number(sub.amount_cents ?? sub.price_cents ?? 0);
+    trackMetaEvent("Purchase", {
+      value: cents ? cents / 100 : undefined,
+      currency: "BRL",
+      email: sub.customer_email,
+      phone: sub.customer_phone,
+      custom: {
+        content_ids: [sub.plan_code ?? sub.plan ?? "subscription"],
+        content_name: sub.plan_name ?? sub.plan_code ?? "Phonee Subscription",
+        content_category: "subscription_plan",
+        content_type: "product",
+        order_id: id,
+        payment_method: sub.payment_method,
+      },
+    });
+  }
 
   return (
     <div className="min-h-screen bg-[hsl(226_50%_15%)] text-white">
