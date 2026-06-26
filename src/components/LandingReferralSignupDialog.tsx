@@ -15,6 +15,7 @@ import {
   MessageCircle, ArrowRight, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { trackMetaEvent } from "@/lib/metaPixel";
 
 const BASE_URL =
   typeof window !== "undefined" ? window.location.origin : "https://phonee.com.br";
@@ -144,6 +145,13 @@ export function LandingReferralSignupDialog({ open, onOpenChange }: Props) {
         return;
       }
       toast.success("Tudo pronto! Seu link de indicação está abaixo.");
+      // Conversão Meta: cadastro de indicador
+      trackMetaEvent("CompleteRegistration", {
+        custom: { content_name: "Referral Signup", content_category: "referral", referral_code: c },
+      });
+      trackMetaEvent("Lead", {
+        custom: { content_name: "Referral Lead", content_category: "referral" },
+      });
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao criar conta.");
     } finally {
