@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Check, Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users, Gift, Play } from "lucide-react";
+import { Check, Clock, Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users, Gift, Play } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -38,15 +38,13 @@ function whatsappLink(v: string) {
 }
 
 const DEMO_URL = "https://phonee.com.br";
-const PITCH_MESSAGE = `Olá, tudo bem?
+const PITCH_MESSAGE = `Olá, Vi que você criou sua conta no Phonee mas ainda não começou. 👀
 
-Vi que você conheceu a Phonee. Ela foi criada especialmente para lojas de smartphones e assistências técnicas que precisam de mais controle e menos retrabalho.
+Dá pra organizar sua primeira venda e seu estoque em menos de 5 minutos — sem complicação.
 
-Com a Phonee você acompanha estoque, vendas, financeiro e indicadores em tempo real, evita falta de produtos, faz compras mais assertivas e reduz perdas por falta de controle.
+A ideia é simples: parar de perder venda, enxergar o que tá saindo e acompanhar o financeiro de qualquer lugar.
 
-Tudo em um único sistema, pensado para ajudar sua loja a vender mais e operar com mais eficiência.
-
-Posso te mostrar rapidamente como funciona?`;
+Finalize seu cadastro hoje mesmo em https://phonee.com.br`;
 
 function whatsappPitchLink(v: string) {
   return `${whatsappLink(v)}?text=${encodeURIComponent(PITCH_MESSAGE)}`;
@@ -65,6 +63,7 @@ export default function PhoneeLeads() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | "demo" | "indicacao">("all");
+  const [contactedFilter, setContactedFilter] = useState<"all" | "contacted" | "pending">("all");
 
   const load = async () => {
     setLoading(true);
@@ -81,29 +80,36 @@ export default function PhoneeLeads() {
     const q = query.trim().toLowerCase();
     let base = leads;
     if (kindFilter !== "all") base = base.filter((l) => (l.kind ?? "demo") === kindFilter);
+    if (contactedFilter === "contacted") base = base.filter((l) => !!l.contacted);
+    if (contactedFilter === "pending") base = base.filter((l) => !l.contacted);
     if (!q) return base;
     return base.filter((l) =>
       l.name.toLowerCase().includes(q) ||
       l.instagram.toLowerCase().includes(q) ||
       digitsOnly(l.whatsapp).includes(digitsOnly(q)),
     );
-  }, [leads, query, kindFilter]);
+  }, [leads, query, kindFilter, contactedFilter]);
 
   const counts = useMemo(() => {
     const demo = leads.filter((l) => (l.kind ?? "demo") === "demo").length;
     const indic = leads.filter((l) => l.kind === "indicacao").length;
-    return { demo, indic, all: leads.length };
+    const contacted = leads.filter((l) => !!l.contacted).length;
+    const pending = leads.length - contacted;
+    return { demo, indic, all: leads.length, contacted, pending };
   }, [leads]);
 
   const exportCsv = () => {
     if (filtered.length === 0) { toast.error("Sem leads para exportar"); return; }
     const rows = [
-      ["Data", "Nome", "Instagram", "WhatsApp", "Link Instagram", "Link WhatsApp"],
+      ["Data", "CPF", "Nome", "Instagram", "WhatsApp", "Contatado em", "Status", "Link Instagram", "Link WhatsApp"],
       ...filtered.map((l) => [
         formatDate(l.created_at),
+        "",
         l.name,
         `@${l.instagram.replace(/^@+/, "")}`,
         formatWhats(l.whatsapp),
+        l.contacted_at ? formatDate(l.contacted_at) : "",
+        l.contacted ? "Contatado" : "Pendente",
         instagramLink(l.instagram),
         whatsappLink(l.whatsapp),
       ]),
@@ -269,6 +275,30 @@ export default function PhoneeLeads() {
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
               kindFilter === t.id
                 ? "bg-[#00abfb] text-slate-900 border-[#00abfb] font-semibold"
+                : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {([
+          { id: "all", label: `Todos (${counts.all})`, icon: <Users className="h-3.5 w-3.5" /> },
+          { id: "contacted", label: `Contatados (${counts.contacted})`, icon: <Check className="h-3.5 w-3.5" /> },
+          { id: "pending", label: `Pendentes (${counts.pending})`, icon: <Clock className="h-3.5 w-3.5" /> },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setContactedFilter(t.id as any)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
+              contactedFilter === t.id
+                ? t.id === "contacted"
+                  ? "bg-emerald-500 text-slate-900 border-emerald-500 font-semibold"
+                  : t.id === "pending"
+                    ? "bg-amber-400 text-slate-900 border-amber-400 font-semibold"
+                    : "bg-[#00abfb] text-slate-900 border-[#00abfb] font-semibold"
                 : "bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800"
             }`}
           >
