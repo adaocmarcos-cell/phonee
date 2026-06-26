@@ -444,8 +444,10 @@ export default function PhoneeParceiros() {
                     <a
                       href={`https://instagram.com/${r.instagram.replace(/^@+/, "")}`}
                       target="_blank" rel="noreferrer"
-                      className="text-pink-400 hover:text-pink-300 inline-flex items-center gap-1 mt-0.5"
+                      title="Abrir Instagram"
+                      className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-pink-500/30 bg-pink-500/10 text-pink-300 hover:bg-pink-500/20 text-[11px]"
                     >
+                      <Instagram className="h-3 w-3" />
                       {r.instagram.startsWith("@") ? r.instagram : `@${r.instagram}`}
                     </a>
                   )}
