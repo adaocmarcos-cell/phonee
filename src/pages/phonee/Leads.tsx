@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users, Gift, Play } from "lucide-react";
+import { Check, Download, ExternalLink, FileText, Instagram, MessageCircle, Search, Trash2, Users, Gift, Play } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -18,6 +18,8 @@ interface Lead {
   created_at: string;
   kind?: "demo" | "indicacao" | null;
   referral_code?: string | null;
+  contacted?: boolean | null;
+  contacted_at?: string | null;
 }
 
 function digitsOnly(v: string) { return (v || "").replace(/\D/g, ""); }
@@ -212,6 +214,16 @@ export default function PhoneeLeads() {
     toast.success("Lead removido");
   };
 
+  const toggleContacted = async (l: Lead) => {
+    const next = !l.contacted;
+    const { error } = await (supabase.from("demo_leads") as any)
+      .update({ contacted: next, contacted_at: next ? new Date().toISOString() : null })
+      .eq("id", l.id);
+    if (error) return toast.error(error.message);
+    setLeads((ls) => ls.map((x) => x.id === l.id ? { ...x, contacted: next, contacted_at: next ? new Date().toISOString() : null } : x));
+    toast.success(next ? "Marcado como contatado" : "Marcado como não contatado");
+  };
+
   return (
     <div className="space-y-5">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
@@ -320,10 +332,23 @@ export default function PhoneeLeads() {
                   </a>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button size="sm" variant="ghost" onClick={() => remove(l.id)}
-                    className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 h-8">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="inline-flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggleContacted(l)}
+                      title={l.contacted ? "Contato feito — clique para desmarcar" : "Marcar contato como feito"}
+                      className={`h-8 w-8 p-0 ${l.contacted
+                        ? "text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25"
+                        : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10"}`}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => remove(l.id)}
+                      className="text-slate-400 hover:text-red-400 hover:bg-red-500/10 h-8 w-8 p-0">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -362,6 +387,17 @@ export default function PhoneeLeads() {
               <Button size="sm" variant="ghost" onClick={() => remove(l.id)}
                 className="text-slate-400 hover:text-red-400 h-8 px-2 shrink-0">
                 <Trash2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => toggleContacted(l)}
+                title={l.contacted ? "Contato feito — desmarcar" : "Marcar contato"}
+                className={`h-8 w-8 p-0 shrink-0 ${l.contacted
+                  ? "text-emerald-300 bg-emerald-500/15"
+                  : "text-slate-400 hover:text-emerald-300"}`}
+              >
+                <Check className="h-4 w-4" />
               </Button>
             </div>
             <a href={instagramLink(l.instagram)} target="_blank" rel="noreferrer"

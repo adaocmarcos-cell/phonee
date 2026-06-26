@@ -344,6 +344,8 @@ export type Database = {
       }
       demo_leads: {
         Row: {
+          contacted: boolean
+          contacted_at: string | null
           created_at: string
           id: string
           instagram: string
@@ -355,6 +357,8 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          contacted?: boolean
+          contacted_at?: string | null
           created_at?: string
           id?: string
           instagram: string
@@ -366,6 +370,8 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          contacted?: boolean
+          contacted_at?: string | null
           created_at?: string
           id?: string
           instagram?: string
