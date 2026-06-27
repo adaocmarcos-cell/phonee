@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, Handshake, Copy, Link2, Lock } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, Handshake, Copy, Link2, Lock, HardDrive, Package, ShoppingCart, DollarSign } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -34,6 +34,10 @@ export default function PhoneeUsuarios() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
 
+  type Metric = { products: number; storage_bytes: number; sales_30: number; sales_90: number; sales_180: number; sales_365: number; revenue: number };
+  const [metrics, setMetrics] = useState<Record<string, Metric>>({});
+  const [salesWindow, setSalesWindow] = useState<30 | 90 | 180 | 365>(30);
+
   const [editing, setEditing] = useState<Row | null>(null);
   const [editForm, setEditForm] = useState({ full_name: "", email: "", new_password: "", expires_at: "" });
   const [saving, setSaving] = useState(false);
@@ -59,12 +63,17 @@ export default function PhoneeUsuarios() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("phonee_users");
-    if (error) toast.error(error.message);
-    setRows(((data ?? []) as unknown as Row[]).map((r) => ({
+    const [usersRes, metricsRes] = await Promise.all([
+      supabase.rpc("phonee_users"),
+      supabase.rpc("phonee_user_metrics"),
+    ]);
+    if (usersRes.error) toast.error(usersRes.error.message);
+    if (metricsRes.error) toast.error(metricsRes.error.message);
+    setRows(((usersRes.data ?? []) as unknown as Row[]).map((r) => ({
       ...r,
       stores: Array.isArray(r.stores) ? r.stores : [],
     })));
+    setMetrics((metricsRes.data as Record<string, Metric>) ?? {});
     setLoading(false);
   };
 
