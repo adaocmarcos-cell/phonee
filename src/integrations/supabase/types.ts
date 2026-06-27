@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_master_profile: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          is_super: boolean
+          notes: string | null
+          permissions: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          is_super?: boolean
+          notes?: string | null
+          permissions?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          is_super?: boolean
+          notes?: string | null
+          permissions?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alerts: {
         Row: {
           created_at: string
@@ -2903,6 +2933,42 @@ export type Database = {
           _reason?: string
           _subscription_id: string
         }
+        Returns: Json
+      }
+      admin_grant_master: {
+        Args: {
+          _email: string
+          _notes?: string
+          _permissions: string[]
+          _reason?: string
+        }
+        Returns: Json
+      }
+      admin_has_permission: {
+        Args: { _perm: string; _user_id: string }
+        Returns: boolean
+      }
+      admin_list_masters: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          granted_at: string
+          granted_by: string
+          granted_by_email: string
+          is_super: boolean
+          notes: string
+          permissions: string[]
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      admin_revoke_master: {
+        Args: { _reason: string; _user_id: string }
+        Returns: Json
+      }
+      admin_update_master_permissions: {
+        Args: { _permissions: string[]; _reason: string; _user_id: string }
         Returns: Json
       }
       apply_coupon: {
