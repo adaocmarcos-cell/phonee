@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus, Target, Ticket, Gift, Handshake, ShieldAlert, ShieldCheck,
+  LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus, Target, Ticket, Gift, Handshake, ShieldAlert, ShieldCheck, Crown,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
@@ -21,6 +21,7 @@ const nav = [
   { to: "/phonee/crescimento", label: "Crescimento",  icon: TrendingUp },
   { to: "/phonee/suporte",     label: "Suporte",      icon: Inbox },
   { to: "/phonee/auditoria",   label: "Auditoria",    icon: ShieldAlert },
+  { to: "/phonee/admins",      label: "Admins Master", icon: Crown },
 ];
 
 export default function PhoneeLayout() {
