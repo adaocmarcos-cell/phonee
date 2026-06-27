@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, Handshake, Copy, Link2, Lock, HardDrive, Package, ShoppingCart, DollarSign } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, Handshake, Copy, Link2, Lock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -60,6 +60,64 @@ export default function PhoneeUsuarios() {
     | { email: string; temp_password: string; access_url: string; expires_at: string }
     | null
   >(null);
+
+  // ---- Plan change (admin master) ----
+  type PlanOpt = { id: string; name: string; price_cents: number };
+  type SubRow = {
+    subscription_id: string; store_id: string | null; store_name: string | null;
+    plan_id: string | null; plan_name: string | null; status: string | null;
+    billing_cycle: string | null; amount_cents: number | null; expires_at: string | null;
+  };
+  const [planTarget, setPlanTarget] = useState<Row | null>(null);
+  const [planList, setPlanList] = useState<PlanOpt[]>([]);
+  const [userSubs, setUserSubs] = useState<SubRow[]>([]);
+  const [planForm, setPlanForm] = useState({ subscription_id: "", plan_id: "", expires_at: "", status: "", reason: "" });
+  const [savingPlan, setSavingPlan] = useState(false);
+
+  const openPlan = async (r: Row) => {
+    setPlanTarget(r);
+    setPlanForm({ subscription_id: "", plan_id: "", expires_at: "", status: "", reason: "" });
+    const [plansRes, subsRes] = await Promise.all([
+      supabase.rpc("phonee_plans_list"),
+      supabase.rpc("phonee_user_subscriptions", { _user_id: r.user_id }),
+    ]);
+    if (plansRes.error) toast.error(plansRes.error.message);
+    if (subsRes.error) toast.error(subsRes.error.message);
+    const subs = (subsRes.data ?? []) as SubRow[];
+    setPlanList((plansRes.data ?? []) as PlanOpt[]);
+    setUserSubs(subs);
+    if (subs.length === 1) {
+      setPlanForm((f) => ({
+        ...f,
+        subscription_id: subs[0].subscription_id,
+        plan_id: subs[0].plan_id ?? "",
+        status: subs[0].status ?? "",
+        expires_at: subs[0].expires_at ? subs[0].expires_at.slice(0, 10) : "",
+      }));
+    }
+  };
+
+  const savePlan = async () => {
+    if (!planForm.subscription_id || !planForm.plan_id) {
+      return toast.error("Selecione a assinatura e o novo plano.");
+    }
+    if (!planForm.reason.trim()) {
+      return toast.error("Informe o motivo da alteração (fica no log de auditoria).");
+    }
+    setSavingPlan(true);
+    const { error } = await supabase.rpc("admin_change_user_plan", {
+      _subscription_id: planForm.subscription_id,
+      _new_plan_id: planForm.plan_id,
+      _new_expires_at: planForm.expires_at ? new Date(planForm.expires_at).toISOString() : null,
+      _new_status: planForm.status || null,
+      _reason: planForm.reason,
+    });
+    setSavingPlan(false);
+    if (error) return toast.error(error.message);
+    toast.success("Plano atualizado e registrado no log de auditoria.");
+    setPlanTarget(null);
+    load();
+  };
 
   const load = async () => {
     setLoading(true);
@@ -417,6 +475,13 @@ export default function PhoneeUsuarios() {
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
+                        onClick={() => openPlan(r)}
+                        title="Alterar plano (com registro em auditoria)"
+                        className="p-1.5 rounded-md hover:bg-indigo-500/10 text-indigo-300"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => setConfirm({ row: r, action: "block" })}
                         title="Bloquear / inativar usuário"
                         className="p-1.5 rounded-md hover:bg-amber-500/10 text-amber-400"
@@ -629,6 +694,120 @@ export default function PhoneeUsuarios() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change plan dialog (admin master) */}
+      <Dialog open={!!planTarget} onOpenChange={(o) => !o && setPlanTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-indigo-300" /> Alterar plano
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-100/90">
+              Usuário: <b>{planTarget?.full_name || planTarget?.email}</b>
+              <br />
+              Toda alteração é registrada em <b>auditoria</b> (admin, data/hora e valores antes/depois).
+            </div>
+
+            {userSubs.length === 0 ? (
+              <p className="text-sm text-slate-400">Este usuário ainda não possui assinatura ativa.</p>
+            ) : (
+              <>
+                <div>
+                  <Label>Assinatura (loja)</Label>
+                  <select
+                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-sm text-slate-100"
+                    value={planForm.subscription_id}
+                    onChange={(e) => {
+                      const s = userSubs.find((x) => x.subscription_id === e.target.value);
+                      setPlanForm((f) => ({
+                        ...f,
+                        subscription_id: e.target.value,
+                        plan_id: s?.plan_id ?? "",
+                        status: s?.status ?? "",
+                        expires_at: s?.expires_at ? s.expires_at.slice(0, 10) : "",
+                      }));
+                    }}
+                  >
+                    <option value="">— selecionar —</option>
+                    {userSubs.map((s) => (
+                      <option key={s.subscription_id} value={s.subscription_id}>
+                        {s.store_name ?? "Sem loja"} · {s.plan_name ?? "Sem plano"} · {s.status ?? "—"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Novo plano</Label>
+                  <select
+                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-sm text-slate-100"
+                    value={planForm.plan_id}
+                    onChange={(e) => setPlanForm((f) => ({ ...f, plan_id: e.target.value }))}
+                  >
+                    <option value="">— selecionar —</option>
+                    {planList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {(p.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Status</Label>
+                    <select
+                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-sm text-slate-100"
+                      value={planForm.status}
+                      onChange={(e) => setPlanForm((f) => ({ ...f, status: e.target.value }))}
+                    >
+                      <option value="">— manter —</option>
+                      <option value="active">active</option>
+                      <option value="ativa">ativa</option>
+                      <option value="vitalicio">vitalicio</option>
+                      <option value="pendente">pendente</option>
+                      <option value="cancelada">cancelada</option>
+                      <option value="expirada">expirada</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Expira em</Label>
+                    <Input
+                      type="date"
+                      value={planForm.expires_at}
+                      onChange={(e) => setPlanForm((f) => ({ ...f, expires_at: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Motivo da alteração *</Label>
+                  <Input
+                    placeholder="Ex.: upgrade contratado por telefone / ajuste comercial"
+                    value={planForm.reason}
+                    onChange={(e) => setPlanForm((f) => ({ ...f, reason: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Esse texto fica salvo no log de auditoria junto com seu usuário e a data/hora.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPlanTarget(null)} disabled={savingPlan}>Cancelar</Button>
+            <Button
+              onClick={savePlan}
+              disabled={savingPlan || userSubs.length === 0}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {savingPlan ? "Salvando…" : "Aplicar e registrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
