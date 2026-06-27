@@ -3102,6 +3102,7 @@ export type Database = {
           visits: number
         }[]
       }
+      phonee_user_metrics: { Args: never; Returns: Json }
       phonee_users: {
         Args: never
         Returns: {
