@@ -312,7 +312,7 @@ export default function PhoneeUsuarios() {
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
-        <table className="w-full text-sm min-w-[1100px]">
+        <table className="w-full text-sm min-w-[1400px]">
           <thead className="text-left text-[11px] uppercase tracking-widest text-slate-500 border-b border-slate-800">
             <tr>
               <th className="px-4 py-3">Usuário</th>
@@ -320,16 +320,38 @@ export default function PhoneeUsuarios() {
               <th className="px-4 py-3">Loja(s)</th>
               <th className="px-4 py-3">Papéis</th>
               <th className="px-4 py-3">Plano</th>
+              <th className="px-4 py-3 text-right"><span className="inline-flex items-center gap-1"><HardDrive className="h-3 w-3" /> Armaz.</span></th>
+              <th className="px-4 py-3 text-right"><span className="inline-flex items-center gap-1"><Package className="h-3 w-3" /> Produtos</span></th>
+              <th className="px-4 py-3 text-right">
+                <div className="flex items-center justify-end gap-1.5">
+                  <ShoppingCart className="h-3 w-3" />
+                  <span>Vendas</span>
+                  <select
+                    value={salesWindow}
+                    onChange={(e) => setSalesWindow(Number(e.target.value) as 30|90|180|365)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="ml-1 bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[10px] font-mono text-slate-200"
+                    title="Janela das vendas"
+                  >
+                    <option value={30}>30d</option>
+                    <option value={90}>90d</option>
+                    <option value={180}>6m</option>
+                    <option value={365}>12m</option>
+                  </select>
+                </div>
+              </th>
+              <th className="px-4 py-3 text-right"><span className="inline-flex items-center gap-1"><DollarSign className="h-3 w-3" /> Receita</span></th>
               <th className="px-4 py-3">Cadastrado</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-500">Carregando…</td></tr>
             )}
             {!loading && filtered.map((r) => {
               const blocked = (r.roles ?? []).length === 0 ? false : false; // placeholder, banned flag not in RPC
+              const m = metrics[r.user_id];
               return (
                 <tr key={r.user_id} className="border-b border-slate-800/60 hover:bg-slate-800/40 align-top">
                   <td className="px-4 py-3">
@@ -378,6 +400,10 @@ export default function PhoneeUsuarios() {
                       <span className="text-slate-500">—</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-right text-slate-200 font-mono text-xs">{fmtBytes(m?.storage_bytes ?? 0)}</td>
+                  <td className="px-4 py-3 text-right text-slate-200 font-mono text-xs">{(m?.products ?? 0).toLocaleString("pt-BR")}</td>
+                  <td className="px-4 py-3 text-right text-slate-200 font-mono text-xs">{salesFor(m).toLocaleString("pt-BR")}</td>
+                  <td className="px-4 py-3 text-right text-emerald-300 font-mono text-xs">{fmtBRL(Number(m?.revenue ?? 0))}</td>
                   <td className="px-4 py-3 text-slate-400">
                     {new Date(r.created_at).toLocaleDateString("pt-BR")}
                   </td>
@@ -412,7 +438,7 @@ export default function PhoneeUsuarios() {
               );
             })}
             {!loading && filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Nenhum usuário encontrado.</td></tr>
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-500">Nenhum usuário encontrado.</td></tr>
             )}
           </tbody>
         </table>
