@@ -39,6 +39,7 @@ type Product = {
   cost_price: number; sale_price: number;
   stock_current: number; stock_min: number;
   last_sold_at: string | null;
+  supplier?: string | null;
 };
 
 type PartLite = {
@@ -73,13 +74,26 @@ export default function Estoque() {
   const [marcasOpen, setMarcasOpen] = useState(false);
   const fileInputId = "estoque-csv-import";
 
+  // Selection + pagination + advanced filters
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<20 | 50 | 100>(20);
+  const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  // Bulk action dialogs
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkOp, setBulkOp] = useState<null | "brand" | "category" | "supplier" | "price" | "stock_min">(null);
+  const [bulkValue, setBulkValue] = useState<string>("");
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   const load = async () => {
     if (!store) return;
     setLoading(true);
     const [{ data: pData }, { data: ptData }] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at")
+        .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at, supplier")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false })
         .range(0, 49999),
@@ -97,6 +111,18 @@ export default function Estoque() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store]);
 
+  // Realtime sync
+  useEffect(() => {
+    if (!store) return;
+    const ch = supabase
+      .channel(`estoque-list-${store.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `store_id=eq.${store.id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "parts_inventory", filter: `store_id=eq.${store.id}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line
+  }, [store?.id]);
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       if (q && !`${p.name} ${p.sku ?? ""} ${p.brand ?? ""}`.toLowerCase().includes(q.toLowerCase())) return false;
@@ -105,9 +131,56 @@ export default function Estoque() {
         const d = daysAgo(p.last_sold_at);
         if (d !== null && d <= 30) return false;
       }
+      if (brandFilter !== "all" && (p.brand ?? "—") !== brandFilter) return false;
+      if (categoryFilter !== "all" && (p.category ?? "—") !== categoryFilter) return false;
       return true;
     });
-  }, [products, q, filter]);
+  }, [products, q, filter, brandFilter, categoryFilter]);
+
+  // Reset page when filter changes
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, filter, brandFilter, categoryFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(() => filtered.slice((safePage - 1) * pageSize, safePage * pageSize), [filtered, safePage, pageSize]);
+
+  const distinctBrands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))).sort() as string[], [products]);
+  const distinctCategories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort() as string[], [products]);
+
+  const togglePageSelection = (checked: boolean) => {
+    const next = new Set(selectedIds);
+    paged.forEach((p) => { if (checked) next.add(p.id); else next.delete(p.id); });
+    setSelectedIds(next);
+  };
+  const toggleOne = (id: string, checked: boolean) => {
+    const next = new Set(selectedIds);
+    if (checked) next.add(id); else next.delete(id);
+    setSelectedIds(next);
+  };
+  const pageAllChecked = paged.length > 0 && paged.every((p) => selectedIds.has(p.id));
+
+  const totals = useMemo(() => {
+    const units = products.reduce((s, p) => s + (p.stock_current || 0), 0);
+    const partsUnits = parts.reduce((s, p) => s + (p.stock_current || 0), 0);
+    const partsLow = parts.filter((p) => p.stock_current <= p.stock_min).length;
+    const saleValue = filtered.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0);
+    const costValue = filtered.reduce((s, p) => s + Number(p.cost_price) * p.stock_current, 0);
+    const totalUnits = filtered.reduce((s, p) => s + (p.stock_current || 0), 0);
+    return {
+      count: products.length,
+      filtered: filtered.length,
+      selected: selectedIds.size,
+      units,
+      low: products.filter((p) => p.stock_current <= p.stock_min).length + partsLow,
+      value: saleValue + parts.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
+      costValue,
+      saleValue,
+      profitValue: saleValue - costValue,
+      avgCost: totalUnits > 0 ? costValue / totalUnits : 0,
+      partsCount: parts.length,
+      partsUnits,
+    };
+  }, [products, parts, filtered, selectedIds]);
 
   const totals = useMemo(() => {
     const units = products.reduce((s, p) => s + (p.stock_current || 0), 0);
