@@ -14,6 +14,7 @@ import Estoque from "./pages/app/Estoque";
 import ProductForm from "./pages/app/ProductForm";
 import EstoqueRelatorio from "./pages/app/EstoqueRelatorio";
 import EstoqueRelatoriosCentral from "./pages/app/EstoqueRelatoriosCentral";
+import EstoqueAuditoriaPDF from "./pages/app/EstoqueAuditoriaPDF";
 import Vendas from "./pages/app/Vendas";
 import VendaNova from "./pages/app/VendaNova";
 import Alertas from "./pages/app/Alertas";
@@ -103,6 +104,7 @@ const App = () => (
               <Route path="estoque/novo" element={<ProductForm />} />
               <Route path="estoque/relatorio" element={<EstoqueRelatorio />} />
               <Route path="estoque/relatorios" element={<EstoqueRelatoriosCentral />} />
+              <Route path="estoque/auditoria-pdf" element={<EstoqueAuditoriaPDF />} />
               <Route path="estoque/:id" element={<ProductForm />} />
               <Route path="curva-abc" element={<CurvaABC />} />
               <Route path="troca" element={<TradeIn />} />

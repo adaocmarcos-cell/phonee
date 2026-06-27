@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import {
   ArrowLeft, RefreshCw, FileDown, ChevronDown, FileText, FileSpreadsheet, Printer,
   Calendar as CalendarIcon, ArrowDownUp, Repeat, Boxes, TrendingUp, MoonStar, AlertTriangle,
-  DollarSign, Search, Wifi,
+  DollarSign, Search, Wifi, ShieldCheck,
 } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
@@ -362,7 +362,7 @@ export default function EstoqueRelatoriosCentral() {
   return (
     <div>
       <PageHeader
-        title="Relatórios de Estoque"
+        title="Relatório de Estoque"
         description="Atualização em tempo real · filtros avançados · exportação"
         actions={
           <div className="flex gap-2 items-center">
@@ -370,6 +370,9 @@ export default function EstoqueRelatoriosCentral() {
               <Wifi className="h-3 w-3" /> {liveDot ? "atualizando" : "ao vivo"}
             </span>
             <Button variant="outline" onClick={() => navigate("/painel/estoque")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>
+            <Button variant="outline" onClick={() => navigate("/painel/estoque/auditoria-pdf")} className="border-primary/40 text-primary hover:bg-primary/10">
+              <ShieldCheck className="h-4 w-4 mr-1" /> Auditoria PDF
+            </Button>
             <Button variant="outline" onClick={load} title="Recarregar"><RefreshCw className="h-4 w-4" /></Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
