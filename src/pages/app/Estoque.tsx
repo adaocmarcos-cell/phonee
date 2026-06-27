@@ -30,7 +30,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronLeft, ChevronRight, FilesIcon, FileBarChart2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, FileBarChart2 } from "lucide-react";
 
 type Product = {
   id: string;
