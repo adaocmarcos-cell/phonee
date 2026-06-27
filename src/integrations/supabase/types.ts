@@ -2192,6 +2192,62 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_change_requests: {
+        Row: {
+          applied_at: string | null
+          changes: Json
+          created_at: string
+          decided_at: string | null
+          id: string
+          reason: string
+          requested_at: string
+          requested_by: string
+          review_notes: string | null
+          reviewed_by: string | null
+          status: string
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          changes: Json
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          reason: string
+          requested_at?: string
+          requested_by: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          changes?: Json
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          reason?: string
+          requested_at?: string
+          requested_by?: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_change_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           amount_cents: number
@@ -2772,6 +2828,10 @@ export type Database = {
         Args: { _amount_cents: number; _code: string }
         Returns: Json
       }
+      approve_subscription_change: {
+        Args: { _request_id: string; _review_notes?: string }
+        Returns: Json
+      }
       create_purchase_with_stock: {
         Args: {
           _create_expense: boolean
@@ -3016,6 +3076,14 @@ export type Database = {
           _referred_store_id?: string
           _referred_subscription_id?: string
         }
+        Returns: string
+      }
+      reject_subscription_change: {
+        Args: { _request_id: string; _review_notes: string }
+        Returns: Json
+      }
+      request_subscription_change: {
+        Args: { _changes: Json; _reason: string; _subscription_id: string }
         Returns: string
       }
       trial_eligibility: {
