@@ -79,6 +79,18 @@ export default function PhoneeUsuarios() {
 
   useEffect(() => { load(); }, []);
 
+  const fmtBytes = (b: number) => {
+    if (!b) return "0 B";
+    const u = ["B","KB","MB","GB","TB"]; let i = 0; let v = b;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v < 10 && i > 0 ? 2 : 1)} ${u[i]}`;
+  };
+  const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const salesFor = (m: Metric | undefined): number => {
+    if (!m) return 0;
+    return salesWindow === 30 ? m.sales_30 : salesWindow === 90 ? m.sales_90 : salesWindow === 180 ? m.sales_180 : m.sales_365;
+  };
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return rows;
