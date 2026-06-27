@@ -358,6 +358,9 @@ export default function Estoque() {
         actions={
           canManageProducts(role) && (
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/painel/estoque/relatorios")} className="border-primary/40 text-primary hover:bg-primary/10">
+                <FileBarChart2 className="h-4 w-4 mr-1" /> Relatórios de Estoque
+              </Button>
               <Button variant="outline" onClick={() => navigate("/painel/estoque/relatorio")}>
                 <FileBarChart className="h-4 w-4 mr-1" /> Relatório
               </Button>
