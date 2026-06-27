@@ -759,6 +759,56 @@ export default function Estoque() {
 
       <MarcasModal open={marcasOpen} onOpenChange={setMarcasOpen} />
 
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {bulkIds.length} produto(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Os produtos selecionados serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={runBulkDelete} className="bg-danger hover:bg-danger/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk update dialog */}
+      <Dialog open={!!bulkOp} onOpenChange={(o) => { if (!o) { setBulkOp(null); setBulkValue(""); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{bulkOp ? bulkOpLabel[bulkOp] : ""}</DialogTitle>
+            <DialogDescription>
+              Aplicar a {bulkIds.length} produto(s) selecionado(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label className="text-xs text-muted-foreground">
+              {bulkOp === "price" ? "Novo preço de venda (R$)" :
+               bulkOp === "stock_min" ? "Novo estoque mínimo" :
+               "Novo valor"}
+            </Label>
+            <Input
+              autoFocus
+              type={bulkOp === "price" || bulkOp === "stock_min" ? "number" : "text"}
+              value={bulkValue}
+              onChange={(e) => setBulkValue(e.target.value)}
+              placeholder={bulkOp === "category" ? "Ex: acessorio, aparelho_novo…" : ""}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOp(null)} disabled={bulkSaving}>Cancelar</Button>
+            <Button onClick={runBulkUpdate} disabled={bulkSaving} className="bg-gradient-primary">
+              {bulkSaving ? "Salvando…" : "Aplicar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!minTarget} onOpenChange={(o) => !o && setMinTarget(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
