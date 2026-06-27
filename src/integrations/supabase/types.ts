@@ -349,6 +349,7 @@ export type Database = {
           contacted: boolean
           contacted_at: string | null
           created_at: string
+          created_by: string | null
           fbclid: string | null
           id: string
           instagram: string
@@ -371,6 +372,7 @@ export type Database = {
           contacted?: boolean
           contacted_at?: string | null
           created_at?: string
+          created_by?: string | null
           fbclid?: string | null
           id?: string
           instagram: string
@@ -393,6 +395,7 @@ export type Database = {
           contacted?: boolean
           contacted_at?: string | null
           created_at?: string
+          created_by?: string | null
           fbclid?: string | null
           id?: string
           instagram?: string
