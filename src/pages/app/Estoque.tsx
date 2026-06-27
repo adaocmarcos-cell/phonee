@@ -488,6 +488,24 @@ export default function Estoque() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, SKU ou marca…" className="pl-9 h-10 bg-card border-border" />
         </div>
+        <Select value={brandFilter} onValueChange={setBrandFilter}>
+          <SelectTrigger className="w-full md:w-44 h-10 bg-card border-border">
+            <SelectValue placeholder="Marca" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as marcas</SelectItem>
+            {distinctBrands.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-full md:w-44 h-10 bg-card border-border">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas categorias</SelectItem>
+            {distinctCategories.map((c) => <SelectItem key={c} value={c}>{categoryLabel[c] ?? c}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <div className="flex gap-1 p-1 bg-card border border-border rounded-md">
           {(["all", "low", "stalled"] as const).map((f) => (
             <Button key={f} size="sm" variant={filter === f ? "default" : "ghost"} onClick={() => setFilter(f)} className={filter === f ? "bg-primary text-primary-foreground" : ""}>
@@ -495,6 +513,47 @@ export default function Estoque() {
             </Button>
           ))}
         </div>
+      </div>
+
+      {/* Totalizadores + ações em lote */}
+      <div className="flex flex-col lg:flex-row gap-3 mb-3">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground bg-card border border-border rounded-md px-3 py-2 flex-1">
+          <span><b className="text-foreground">{num(totals.count)}</b> cadastrados</span>
+          <span><b className="text-foreground">{num(totals.filtered)}</b> filtrados</span>
+          <span><b className="text-primary">{num(totals.selected)}</b> selecionados</span>
+          <span>Valor venda: <b className="text-foreground">{brl(totals.saleValue)}</b></span>
+          {canSeeCost(role) && <span>Custo: <b className="text-foreground">{brl(totals.costValue)}</b></span>}
+          {canSeeCost(role) && <span>Custo médio/un: <b className="text-foreground">{brl(totals.avgCost)}</b></span>}
+          {canSeeCost(role) && <span>Lucro potencial: <b className="text-success">{brl(totals.profitValue)}</b></span>}
+        </div>
+        {canManageProducts(role) && selectedIds.size > 0 && (
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-9">
+                  Ações em lote ({selectedIds.size}) <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Aplicar a {selectedIds.size} produto(s)</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openBulk("category")}>Alterar categoria</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("brand")}>Alterar marca</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("supplier")}>Alterar fornecedor</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("price")}>Atualizar preço de venda</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("stock_min")}>Atualizar estoque mínimo</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportCSV}>
+                  <Download className="h-4 w-4 mr-2" /> Exportar selecionados
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setBulkDeleteOpen(true)} className="text-danger focus:text-danger">
+                  <Trash2 className="h-4 w-4 mr-2" /> Excluir selecionados
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Limpar</Button>
+          </div>
+        )}
       </div>
 
       <Card className="bg-card border-border shadow-card overflow-hidden">
