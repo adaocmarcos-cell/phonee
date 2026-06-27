@@ -220,6 +220,51 @@ export default function Estoque() {
     setMinTarget(null);
   };
 
+  // === Bulk actions ===========================================================
+  const bulkIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const runBulkDelete = async () => {
+    if (bulkIds.length === 0) return;
+    const { error } = await supabase.from("products").delete().in("id", bulkIds);
+    if (error) return toast.error(error.message);
+    toast.success(`${bulkIds.length} produto(s) removido(s)`);
+    setBulkDeleteOpen(false);
+    setSelectedIds(new Set());
+    load();
+  };
+  const runBulkUpdate = async () => {
+    if (!bulkOp || bulkIds.length === 0) return;
+    const v = bulkValue.trim();
+    let payload: Record<string, any> = {};
+    if (bulkOp === "brand") payload = { brand: v || null };
+    else if (bulkOp === "category") payload = { category: v };
+    else if (bulkOp === "supplier") payload = { supplier: v || null };
+    else if (bulkOp === "price") {
+      const n = Number(v.replace(",", "."));
+      if (!isFinite(n) || n < 0) return toast.error("Preço inválido");
+      payload = { sale_price: n };
+    }
+    else if (bulkOp === "stock_min") {
+      const n = parseInt(v, 10);
+      if (!isFinite(n) || n < 0) return toast.error("Quantidade inválida");
+      payload = { stock_min: n };
+    }
+    setBulkSaving(true);
+    const { error } = await supabase.from("products").update(payload).in("id", bulkIds);
+    setBulkSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${bulkIds.length} produto(s) atualizado(s)`);
+    setBulkOp(null);
+    setBulkValue("");
+    setSelectedIds(new Set());
+    load();
+  };
+
+  const openBulk = (op: NonNullable<typeof bulkOp>) => { setBulkOp(op); setBulkValue(""); };
+  const bulkOpLabel: Record<string, string> = {
+    brand: "Alterar marca", category: "Alterar categoria", supplier: "Alterar fornecedor",
+    price: "Atualizar preço de venda", stock_min: "Atualizar estoque mínimo",
+  };
+
   const CSV_HEADERS = [
     "name","sku","brand","category","condition","cost_price","sale_price","stock_current","stock_min","status",
   ];
