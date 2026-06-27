@@ -694,6 +694,120 @@ export default function PhoneeUsuarios() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change plan dialog (admin master) */}
+      <Dialog open={!!planTarget} onOpenChange={(o) => !o && setPlanTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-indigo-300" /> Alterar plano
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-100/90">
+              Usuário: <b>{planTarget?.full_name || planTarget?.email}</b>
+              <br />
+              Toda alteração é registrada em <b>auditoria</b> (admin, data/hora e valores antes/depois).
+            </div>
+
+            {userSubs.length === 0 ? (
+              <p className="text-sm text-slate-400">Este usuário ainda não possui assinatura ativa.</p>
+            ) : (
+              <>
+                <div>
+                  <Label>Assinatura (loja)</Label>
+                  <select
+                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-sm text-slate-100"
+                    value={planForm.subscription_id}
+                    onChange={(e) => {
+                      const s = userSubs.find((x) => x.subscription_id === e.target.value);
+                      setPlanForm((f) => ({
+                        ...f,
+                        subscription_id: e.target.value,
+                        plan_id: s?.plan_id ?? "",
+                        status: s?.status ?? "",
+                        expires_at: s?.expires_at ? s.expires_at.slice(0, 10) : "",
+                      }));
+                    }}
+                  >
+                    <option value="">— selecionar —</option>
+                    {userSubs.map((s) => (
+                      <option key={s.subscription_id} value={s.subscription_id}>
+                        {s.store_name ?? "Sem loja"} · {s.plan_name ?? "Sem plano"} · {s.status ?? "—"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Novo plano</Label>
+                  <select
+                    className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-sm text-slate-100"
+                    value={planForm.plan_id}
+                    onChange={(e) => setPlanForm((f) => ({ ...f, plan_id: e.target.value }))}
+                  >
+                    <option value="">— selecionar —</option>
+                    {planList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {(p.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Status</Label>
+                    <select
+                      className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-2 text-sm text-slate-100"
+                      value={planForm.status}
+                      onChange={(e) => setPlanForm((f) => ({ ...f, status: e.target.value }))}
+                    >
+                      <option value="">— manter —</option>
+                      <option value="active">active</option>
+                      <option value="ativa">ativa</option>
+                      <option value="vitalicio">vitalicio</option>
+                      <option value="pendente">pendente</option>
+                      <option value="cancelada">cancelada</option>
+                      <option value="expirada">expirada</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Expira em</Label>
+                    <Input
+                      type="date"
+                      value={planForm.expires_at}
+                      onChange={(e) => setPlanForm((f) => ({ ...f, expires_at: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Motivo da alteração *</Label>
+                  <Input
+                    placeholder="Ex.: upgrade contratado por telefone / ajuste comercial"
+                    value={planForm.reason}
+                    onChange={(e) => setPlanForm((f) => ({ ...f, reason: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Esse texto fica salvo no log de auditoria junto com seu usuário e a data/hora.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPlanTarget(null)} disabled={savingPlan}>Cancelar</Button>
+            <Button
+              onClick={savePlan}
+              disabled={savingPlan || userSubs.length === 0}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              {savingPlan ? "Salvando…" : "Aplicar e registrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
