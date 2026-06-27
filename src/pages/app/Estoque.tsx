@@ -249,7 +249,7 @@ export default function Estoque() {
       payload = { stock_min: n };
     }
     setBulkSaving(true);
-    const { error } = await supabase.from("products").update(payload).in("id", bulkIds);
+    const { error } = await supabase.from("products").update(payload as any).in("id", bulkIds);
     setBulkSaving(false);
     if (error) return toast.error(error.message);
     toast.success(`${bulkIds.length} produto(s) atualizado(s)`);
