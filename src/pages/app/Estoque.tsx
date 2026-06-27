@@ -73,12 +73,14 @@ export default function Estoque() {
         .from("products")
         .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at")
         .eq("store_id", store.id)
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .range(0, 49999),
       supabase
         .from("parts_inventory")
         .select("id, name, sku, brand, stock_current, stock_min, sale_price, cost_price")
         .eq("store_id", store.id)
-        .order("name", { ascending: true }),
+        .order("name", { ascending: true })
+        .range(0, 49999),
     ]);
     setProducts((pData ?? []) as Product[]);
     setParts((ptData ?? []) as PartLite[]);
@@ -388,6 +390,7 @@ export default function Estoque() {
                 <th className="text-left px-4 py-3 font-medium">Produto</th>
                 <th className="text-left px-4 py-3 font-medium">Categoria</th>
                 <th className="text-right px-4 py-3 font-medium">Estoque</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground/70">Mín</th>
                 {canSeeCost(role) && <th className="text-right px-4 py-3 font-medium">Custo</th>}
                 <th className="text-right px-4 py-3 font-medium">Venda</th>
                 {canSeeCost(role) && <th className="text-right px-4 py-3 font-medium">Margem</th>}
@@ -400,7 +403,7 @@ export default function Estoque() {
               {loading ? (
                 <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-16 text-center">
+                <tr><td colSpan={10} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
                   <div className="flex flex-col items-center gap-2">
@@ -435,16 +438,18 @@ export default function Estoque() {
                       <div className="text-[11px] text-muted-foreground mt-1 capitalize">{p.condition}</div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className={`metric font-semibold ${low ? "text-warning" : ""}`}>{p.stock_current}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono inline-flex items-center gap-1 justify-end">
-                        <span>min {p.stock_min}</span>
+                      <div className={`metric font-bold text-lg leading-none ${low ? "text-warning" : ""}`}>{p.stock_current}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1 justify-end text-slate-400">
+                        <span className="metric text-xs font-mono">{p.stock_min}</span>
                         {canManageProducts(role) && (
                           <button
                             type="button"
                             onClick={() => openMinEdit(p)}
                             title="Editar estoque mínimo"
                             aria-label="Editar estoque mínimo"
-                            className="p-0.5 rounded text-muted-foreground/70 hover:text-primary hover:bg-primary/10 transition-colors"
+                            className="p-0.5 rounded text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
                           >
                             <Pencil className="h-3 w-3" />
                           </button>
