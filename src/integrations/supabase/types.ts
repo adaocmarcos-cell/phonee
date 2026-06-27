@@ -1051,6 +1051,74 @@ export type Database = {
           },
         ]
       }
+      pdf_sync_audits: {
+        Row: {
+          created_at: string
+          csv_data: string | null
+          divergences: Json
+          divergences_count: number
+          filename: string
+          id: string
+          inserted_count: number
+          notes: string | null
+          ok_count: number
+          store_id: string
+          total_db_items: number
+          total_pdf_items: number
+          total_units_db: number
+          total_units_pdf: number
+          updated_count: number
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          csv_data?: string | null
+          divergences?: Json
+          divergences_count?: number
+          filename: string
+          id?: string
+          inserted_count?: number
+          notes?: string | null
+          ok_count?: number
+          store_id: string
+          total_db_items?: number
+          total_pdf_items?: number
+          total_units_db?: number
+          total_units_pdf?: number
+          updated_count?: number
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          csv_data?: string | null
+          divergences?: Json
+          divergences_count?: number
+          filename?: string
+          id?: string
+          inserted_count?: number
+          notes?: string | null
+          ok_count?: number
+          store_id?: string
+          total_db_items?: number
+          total_pdf_items?: number
+          total_units_db?: number
+          total_units_pdf?: number
+          updated_count?: number
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_sync_audits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           active: boolean
