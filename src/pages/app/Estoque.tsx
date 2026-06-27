@@ -23,6 +23,14 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Pencil } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { ChevronDown, ChevronLeft, ChevronRight, FileBarChart2 } from "lucide-react";
 
 type Product = {
   id: string;
@@ -31,6 +39,7 @@ type Product = {
   cost_price: number; sale_price: number;
   stock_current: number; stock_min: number;
   last_sold_at: string | null;
+  supplier?: string | null;
 };
 
 type PartLite = {
@@ -65,13 +74,26 @@ export default function Estoque() {
   const [marcasOpen, setMarcasOpen] = useState(false);
   const fileInputId = "estoque-csv-import";
 
+  // Selection + pagination + advanced filters
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<20 | 50 | 100>(20);
+  const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  // Bulk action dialogs
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkOp, setBulkOp] = useState<null | "brand" | "category" | "supplier" | "price" | "stock_min">(null);
+  const [bulkValue, setBulkValue] = useState<string>("");
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   const load = async () => {
     if (!store) return;
     setLoading(true);
     const [{ data: pData }, { data: ptData }] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at")
+        .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at, supplier")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false })
         .range(0, 49999),
@@ -89,6 +111,18 @@ export default function Estoque() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store]);
 
+  // Realtime sync
+  useEffect(() => {
+    if (!store) return;
+    const ch = supabase
+      .channel(`estoque-list-${store.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `store_id=eq.${store.id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "parts_inventory", filter: `store_id=eq.${store.id}` }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line
+  }, [store?.id]);
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       if (q && !`${p.name} ${p.sku ?? ""} ${p.brand ?? ""}`.toLowerCase().includes(q.toLowerCase())) return false;
@@ -97,24 +131,56 @@ export default function Estoque() {
         const d = daysAgo(p.last_sold_at);
         if (d !== null && d <= 30) return false;
       }
+      if (brandFilter !== "all" && (p.brand ?? "—") !== brandFilter) return false;
+      if (categoryFilter !== "all" && (p.category ?? "—") !== categoryFilter) return false;
       return true;
     });
-  }, [products, q, filter]);
+  }, [products, q, filter, brandFilter, categoryFilter]);
+
+  // Reset page when filter changes
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, filter, brandFilter, categoryFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(() => filtered.slice((safePage - 1) * pageSize, safePage * pageSize), [filtered, safePage, pageSize]);
+
+  const distinctBrands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))).sort() as string[], [products]);
+  const distinctCategories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort() as string[], [products]);
+
+  const togglePageSelection = (checked: boolean) => {
+    const next = new Set(selectedIds);
+    paged.forEach((p) => { if (checked) next.add(p.id); else next.delete(p.id); });
+    setSelectedIds(next);
+  };
+  const toggleOne = (id: string, checked: boolean) => {
+    const next = new Set(selectedIds);
+    if (checked) next.add(id); else next.delete(id);
+    setSelectedIds(next);
+  };
+  const pageAllChecked = paged.length > 0 && paged.every((p) => selectedIds.has(p.id));
 
   const totals = useMemo(() => {
     const units = products.reduce((s, p) => s + (p.stock_current || 0), 0);
     const partsUnits = parts.reduce((s, p) => s + (p.stock_current || 0), 0);
     const partsLow = parts.filter((p) => p.stock_current <= p.stock_min).length;
+    const saleValue = filtered.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0);
+    const costValue = filtered.reduce((s, p) => s + Number(p.cost_price) * p.stock_current, 0);
+    const totalUnits = filtered.reduce((s, p) => s + (p.stock_current || 0), 0);
     return {
       count: products.length,
+      filtered: filtered.length,
+      selected: selectedIds.size,
       units,
       low: products.filter((p) => p.stock_current <= p.stock_min).length + partsLow,
-      value: products.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0)
-           + parts.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
+      value: saleValue + parts.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
+      costValue,
+      saleValue,
+      profitValue: saleValue - costValue,
+      avgCost: totalUnits > 0 ? costValue / totalUnits : 0,
       partsCount: parts.length,
       partsUnits,
     };
-  }, [products, parts]);
+  }, [products, parts, filtered, selectedIds]);
 
   const handleDelete = async () => {
     if (!delTarget) return;
@@ -154,6 +220,51 @@ export default function Estoque() {
     setMinTarget(null);
   };
 
+  // === Bulk actions ===========================================================
+  const bulkIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const runBulkDelete = async () => {
+    if (bulkIds.length === 0) return;
+    const { error } = await supabase.from("products").delete().in("id", bulkIds);
+    if (error) return toast.error(error.message);
+    toast.success(`${bulkIds.length} produto(s) removido(s)`);
+    setBulkDeleteOpen(false);
+    setSelectedIds(new Set());
+    load();
+  };
+  const runBulkUpdate = async () => {
+    if (!bulkOp || bulkIds.length === 0) return;
+    const v = bulkValue.trim();
+    let payload: Record<string, any> = {};
+    if (bulkOp === "brand") payload = { brand: v || null };
+    else if (bulkOp === "category") payload = { category: v };
+    else if (bulkOp === "supplier") payload = { supplier: v || null };
+    else if (bulkOp === "price") {
+      const n = Number(v.replace(",", "."));
+      if (!isFinite(n) || n < 0) return toast.error("Preço inválido");
+      payload = { sale_price: n };
+    }
+    else if (bulkOp === "stock_min") {
+      const n = parseInt(v, 10);
+      if (!isFinite(n) || n < 0) return toast.error("Quantidade inválida");
+      payload = { stock_min: n };
+    }
+    setBulkSaving(true);
+    const { error } = await supabase.from("products").update(payload as any).in("id", bulkIds);
+    setBulkSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${bulkIds.length} produto(s) atualizado(s)`);
+    setBulkOp(null);
+    setBulkValue("");
+    setSelectedIds(new Set());
+    load();
+  };
+
+  const openBulk = (op: NonNullable<typeof bulkOp>) => { setBulkOp(op); setBulkValue(""); };
+  const bulkOpLabel: Record<string, string> = {
+    brand: "Alterar marca", category: "Alterar categoria", supplier: "Alterar fornecedor",
+    price: "Atualizar preço de venda", stock_min: "Atualizar estoque mínimo",
+  };
+
   const CSV_HEADERS = [
     "name","sku","brand","category","condition","cost_price","sale_price","stock_current","stock_min","status",
   ];
@@ -164,7 +275,8 @@ export default function Estoque() {
   };
 
   const exportCSV = () => {
-    const rows = products.map((p) =>
+    const source = selectedIds.size > 0 ? products.filter((p) => selectedIds.has(p.id)) : products;
+    const rows = source.map((p) =>
       [p.name, p.sku, p.brand, p.category, p.condition, p.cost_price, p.sale_price, p.stock_current, p.stock_min, p.status]
         .map(csvEscape).join(",")
     );
@@ -176,7 +288,7 @@ export default function Estoque() {
     a.download = `estoque-${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`${products.length} produtos exportados`);
+    toast.success(`${source.length} produto(s) exportado(s)`);
   };
 
   const parseCSV = (text: string): Record<string, string>[] => {
@@ -246,6 +358,9 @@ export default function Estoque() {
         actions={
           canManageProducts(role) && (
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/painel/estoque/relatorios")} className="border-primary/40 text-primary hover:bg-primary/10">
+                <FileBarChart2 className="h-4 w-4 mr-1" /> Relatórios de Estoque
+              </Button>
               <Button variant="outline" onClick={() => navigate("/painel/estoque/relatorio")}>
                 <FileBarChart className="h-4 w-4 mr-1" /> Relatório
               </Button>
@@ -373,6 +488,24 @@ export default function Estoque() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, SKU ou marca…" className="pl-9 h-10 bg-card border-border" />
         </div>
+        <Select value={brandFilter} onValueChange={setBrandFilter}>
+          <SelectTrigger className="w-full md:w-44 h-10 bg-card border-border">
+            <SelectValue placeholder="Marca" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as marcas</SelectItem>
+            {distinctBrands.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-full md:w-44 h-10 bg-card border-border">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas categorias</SelectItem>
+            {distinctCategories.map((c) => <SelectItem key={c} value={c}>{categoryLabel[c] ?? c}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <div className="flex gap-1 p-1 bg-card border border-border rounded-md">
           {(["all", "low", "stalled"] as const).map((f) => (
             <Button key={f} size="sm" variant={filter === f ? "default" : "ghost"} onClick={() => setFilter(f)} className={filter === f ? "bg-primary text-primary-foreground" : ""}>
@@ -382,11 +515,59 @@ export default function Estoque() {
         </div>
       </div>
 
+      {/* Totalizadores + ações em lote */}
+      <div className="flex flex-col lg:flex-row gap-3 mb-3">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-foreground bg-card border border-border rounded-md px-3 py-2 flex-1">
+          <span><b className="text-foreground">{num(totals.count)}</b> cadastrados</span>
+          <span><b className="text-foreground">{num(totals.filtered)}</b> filtrados</span>
+          <span><b className="text-primary">{num(totals.selected)}</b> selecionados</span>
+          <span>Valor venda: <b className="text-foreground">{brl(totals.saleValue)}</b></span>
+          {canSeeCost(role) && <span>Custo: <b className="text-foreground">{brl(totals.costValue)}</b></span>}
+          {canSeeCost(role) && <span>Custo médio/un: <b className="text-foreground">{brl(totals.avgCost)}</b></span>}
+          {canSeeCost(role) && <span>Lucro potencial: <b className="text-success">{brl(totals.profitValue)}</b></span>}
+        </div>
+        {canManageProducts(role) && selectedIds.size > 0 && (
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-9">
+                  Ações em lote ({selectedIds.size}) <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Aplicar a {selectedIds.size} produto(s)</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openBulk("category")}>Alterar categoria</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("brand")}>Alterar marca</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("supplier")}>Alterar fornecedor</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("price")}>Atualizar preço de venda</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openBulk("stock_min")}>Atualizar estoque mínimo</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportCSV}>
+                  <Download className="h-4 w-4 mr-2" /> Exportar selecionados
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setBulkDeleteOpen(true)} className="text-danger focus:text-danger">
+                  <Trash2 className="h-4 w-4 mr-2" /> Excluir selecionados
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Limpar</Button>
+          </div>
+        )}
+      </div>
+
       <Card className="bg-card border-border shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
               <tr>
+                <th className="px-3 py-3 w-8">
+                  <Checkbox
+                    checked={pageAllChecked}
+                    onCheckedChange={(v) => togglePageSelection(!!v)}
+                    aria-label="Selecionar todos da página"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium">Produto</th>
                 <th className="text-left px-4 py-3 font-medium">Categoria</th>
                 <th className="text-right px-4 py-3 font-medium">Estoque</th>
@@ -401,9 +582,9 @@ export default function Estoque() {
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
+                <tr><td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-16 text-center">
+                <tr><td colSpan={11} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
                   <div className="flex flex-col items-center gap-2">
@@ -424,11 +605,18 @@ export default function Estoque() {
                     )}
                   </div>
                 </td></tr>
-              ) : filtered.map((p) => {
+              ) : paged.map((p) => {
                 const margin = p.sale_price > 0 ? ((p.sale_price - p.cost_price) / p.sale_price) * 100 : 0;
                 const low = p.stock_current <= p.stock_min;
                 return (
                   <tr key={p.id} className="hover:bg-surface-elevated/40 transition-colors">
+                    <td className="px-3 py-3 align-middle">
+                      <Checkbox
+                        checked={selectedIds.has(p.id)}
+                        onCheckedChange={(v) => toggleOne(p.id, !!v)}
+                        aria-label={`Selecionar ${p.name}`}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="font-medium">{p.name}</div>
                       <div className="text-[11px] text-muted-foreground font-mono">{p.sku || "—"}{p.brand ? ` · ${p.brand}` : ""}</div>
@@ -515,6 +703,36 @@ export default function Estoque() {
             </tbody>
           </table>
         </div>
+        {/* Paginação */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-border bg-surface-elevated/40">
+            <div className="text-xs text-muted-foreground">
+              Mostrando <b className="text-foreground">{(safePage - 1) * pageSize + 1}</b>–
+              <b className="text-foreground">{Math.min(safePage * pageSize, filtered.length)}</b> de{" "}
+              <b className="text-foreground">{num(filtered.length)}</b>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">por página</span>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v) as 20 | 50 | 100)}>
+                <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                <b className="text-foreground">{safePage}</b> / {totalPages}
+              </div>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <AlertDialog open={!!delTarget} onOpenChange={(o) => !o && setDelTarget(null)}>
@@ -540,6 +758,56 @@ export default function Estoque() {
       />
 
       <MarcasModal open={marcasOpen} onOpenChange={setMarcasOpen} />
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {bulkIds.length} produto(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Os produtos selecionados serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={runBulkDelete} className="bg-danger hover:bg-danger/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk update dialog */}
+      <Dialog open={!!bulkOp} onOpenChange={(o) => { if (!o) { setBulkOp(null); setBulkValue(""); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{bulkOp ? bulkOpLabel[bulkOp] : ""}</DialogTitle>
+            <DialogDescription>
+              Aplicar a {bulkIds.length} produto(s) selecionado(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label className="text-xs text-muted-foreground">
+              {bulkOp === "price" ? "Novo preço de venda (R$)" :
+               bulkOp === "stock_min" ? "Novo estoque mínimo" :
+               "Novo valor"}
+            </Label>
+            <Input
+              autoFocus
+              type={bulkOp === "price" || bulkOp === "stock_min" ? "number" : "text"}
+              value={bulkValue}
+              onChange={(e) => setBulkValue(e.target.value)}
+              placeholder={bulkOp === "category" ? "Ex: acessorio, aparelho_novo…" : ""}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOp(null)} disabled={bulkSaving}>Cancelar</Button>
+            <Button onClick={runBulkUpdate} disabled={bulkSaving} className="bg-gradient-primary">
+              {bulkSaving ? "Salvando…" : "Aplicar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!minTarget} onOpenChange={(o) => !o && setMinTarget(null)}>
         <DialogContent className="sm:max-w-sm">
