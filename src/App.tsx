@@ -102,6 +102,7 @@ const App = () => (
               <Route path="estoque" element={<Estoque />} />
               <Route path="estoque/novo" element={<ProductForm />} />
               <Route path="estoque/relatorio" element={<EstoqueRelatorio />} />
+              <Route path="estoque/relatorios" element={<EstoqueRelatoriosCentral />} />
               <Route path="estoque/:id" element={<ProductForm />} />
               <Route path="curva-abc" element={<CurvaABC />} />
               <Route path="troca" element={<TradeIn />} />
