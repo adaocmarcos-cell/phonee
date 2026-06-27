@@ -230,7 +230,8 @@ export default function Estoque() {
   };
 
   const exportCSV = () => {
-    const rows = products.map((p) =>
+    const source = selectedIds.size > 0 ? products.filter((p) => selectedIds.has(p.id)) : products;
+    const rows = source.map((p) =>
       [p.name, p.sku, p.brand, p.category, p.condition, p.cost_price, p.sale_price, p.stock_current, p.stock_min, p.status]
         .map(csvEscape).join(",")
     );
@@ -242,7 +243,7 @@ export default function Estoque() {
     a.download = `estoque-${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`${products.length} produtos exportados`);
+    toast.success(`${source.length} produto(s) exportado(s)`);
   };
 
   const parseCSV = (text: string): Record<string, string>[] => {
