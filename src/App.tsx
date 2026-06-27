@@ -73,6 +73,7 @@ import PhoneeParceiros from "./pages/phonee/Parceiros";
 import ParceirosSignup from "./pages/ParceirosSignup";
 import PhoneeAuditoria from "./pages/phonee/Auditoria";
 import PhoneeAssinaturaSolicitacoes from "./pages/phonee/AssinaturaSolicitacoes";
+import PhoneeAdminMasters from "./pages/phonee/AdminMasters";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
@@ -174,6 +175,7 @@ const App = () => (
               <Route path="suporte" element={<SuporteAdmin />} />
               <Route path="auditoria" element={<PhoneeAuditoria />} />
               <Route path="assinaturas/solicitacoes" element={<PhoneeAssinaturaSolicitacoes />} />
+              <Route path="admins" element={<PhoneeAdminMasters />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
