@@ -13,6 +13,7 @@ import Dashboard from "./pages/app/Dashboard";
 import Estoque from "./pages/app/Estoque";
 import ProductForm from "./pages/app/ProductForm";
 import EstoqueRelatorio from "./pages/app/EstoqueRelatorio";
+import EstoqueRelatoriosCentral from "./pages/app/EstoqueRelatoriosCentral";
 import Vendas from "./pages/app/Vendas";
 import VendaNova from "./pages/app/VendaNova";
 import Alertas from "./pages/app/Alertas";
