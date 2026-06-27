@@ -561,6 +561,13 @@ export default function Estoque() {
           <table className="w-full text-sm">
             <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
               <tr>
+                <th className="px-3 py-3 w-8">
+                  <Checkbox
+                    checked={pageAllChecked}
+                    onCheckedChange={(v) => togglePageSelection(!!v)}
+                    aria-label="Selecionar todos da página"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium">Produto</th>
                 <th className="text-left px-4 py-3 font-medium">Categoria</th>
                 <th className="text-right px-4 py-3 font-medium">Estoque</th>
@@ -575,9 +582,9 @@ export default function Estoque() {
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
+                <tr><td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-16 text-center">
+                <tr><td colSpan={11} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
                   <div className="flex flex-col items-center gap-2">
@@ -598,11 +605,18 @@ export default function Estoque() {
                     )}
                   </div>
                 </td></tr>
-              ) : filtered.map((p) => {
+              ) : paged.map((p) => {
                 const margin = p.sale_price > 0 ? ((p.sale_price - p.cost_price) / p.sale_price) * 100 : 0;
                 const low = p.stock_current <= p.stock_min;
                 return (
                   <tr key={p.id} className="hover:bg-surface-elevated/40 transition-colors">
+                    <td className="px-3 py-3 align-middle">
+                      <Checkbox
+                        checked={selectedIds.has(p.id)}
+                        onCheckedChange={(v) => toggleOne(p.id, !!v)}
+                        aria-label={`Selecionar ${p.name}`}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="font-medium">{p.name}</div>
                       <div className="text-[11px] text-muted-foreground font-mono">{p.sku || "—"}{p.brand ? ` · ${p.brand}` : ""}</div>
@@ -689,6 +703,36 @@ export default function Estoque() {
             </tbody>
           </table>
         </div>
+        {/* Paginação */}
+        {!loading && filtered.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-border bg-surface-elevated/40">
+            <div className="text-xs text-muted-foreground">
+              Mostrando <b className="text-foreground">{(safePage - 1) * pageSize + 1}</b>–
+              <b className="text-foreground">{Math.min(safePage * pageSize, filtered.length)}</b> de{" "}
+              <b className="text-foreground">{num(filtered.length)}</b>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">por página</span>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v) as 20 | 50 | 100)}>
+                <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                <b className="text-foreground">{safePage}</b> / {totalPages}
+              </div>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <AlertDialog open={!!delTarget} onOpenChange={(o) => !o && setDelTarget(null)}>
