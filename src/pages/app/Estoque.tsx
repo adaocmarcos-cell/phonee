@@ -182,21 +182,6 @@ export default function Estoque() {
     };
   }, [products, parts, filtered, selectedIds]);
 
-  const totals = useMemo(() => {
-    const units = products.reduce((s, p) => s + (p.stock_current || 0), 0);
-    const partsUnits = parts.reduce((s, p) => s + (p.stock_current || 0), 0);
-    const partsLow = parts.filter((p) => p.stock_current <= p.stock_min).length;
-    return {
-      count: products.length,
-      units,
-      low: products.filter((p) => p.stock_current <= p.stock_min).length + partsLow,
-      value: products.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0)
-           + parts.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
-      partsCount: parts.length,
-      partsUnits,
-    };
-  }, [products, parts]);
-
   const handleDelete = async () => {
     if (!delTarget) return;
     const { error } = await supabase.from("products").delete().eq("id", delTarget.id);
