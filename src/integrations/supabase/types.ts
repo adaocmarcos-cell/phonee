@@ -2895,6 +2895,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_change_user_plan: {
+        Args: {
+          _new_expires_at?: string
+          _new_plan_id: string
+          _new_status?: string
+          _reason?: string
+          _subscription_id: string
+        }
+        Returns: Json
+      }
       apply_coupon: {
         Args: { _amount_cents: number; _code: string }
         Returns: Json
@@ -3066,6 +3076,14 @@ export type Database = {
         }[]
       }
       phonee_pixel_events_overview: { Args: { _days?: number }; Returns: Json }
+      phonee_plans_list: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          price_cents: number
+        }[]
+      }
       phonee_referrals_overview: { Args: never; Returns: Json }
       phonee_sales_traffic: {
         Args: {
@@ -3103,6 +3121,21 @@ export type Database = {
         }[]
       }
       phonee_user_metrics: { Args: never; Returns: Json }
+      phonee_user_subscriptions: {
+        Args: { _user_id: string }
+        Returns: {
+          amount_cents: number
+          billing_cycle: string
+          created_at: string
+          expires_at: string
+          plan_id: string
+          plan_name: string
+          status: string
+          store_id: string
+          store_name: string
+          subscription_id: string
+        }[]
+      }
       phonee_users: {
         Args: never
         Returns: {
