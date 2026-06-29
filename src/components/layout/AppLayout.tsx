@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { DemoBanner } from "./DemoBanner";
 import { isDemoMode, isDemoUserEmail, clearDemoMode } from "@/lib/demoMode";
+import { MobileBottomNav } from "./MobileBottomNav";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -98,10 +99,13 @@ export default function AppLayout() {
           </header>
           <StoreSubscriptionBanner />
           <TrialExpiryBanner />
-          <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto overflow-x-hidden" key={store?.id ?? "no-store"}>
+          <main
+            className="flex-1 p-3 sm:p-4 md:p-6 pb-28 md:pb-6 overflow-auto overflow-x-hidden"
+            key={store?.id ?? "no-store"}
+          >
             <Outlet />
           </main>
-          <footer className="border-t border-border bg-surface/40 px-4 py-2.5">
+          <footer className="border-t border-border bg-surface/40 px-4 py-2.5 pb-24 md:pb-2.5">
             <div className="max-w-5xl mx-auto rounded-xl border border-border bg-background/40 px-4 py-2 text-[11px] md:text-xs text-muted-foreground text-center leading-snug">
               <span className="font-semibold text-foreground">Use como app:</span>{" "}
               <span className="md:hidden">
@@ -114,6 +118,7 @@ export default function AppLayout() {
             </div>
           </footer>
         </div>
+        <MobileBottomNav />
       </div>
     </SidebarProvider>
   );
