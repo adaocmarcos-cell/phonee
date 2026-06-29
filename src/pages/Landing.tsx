@@ -297,21 +297,12 @@ export default function Landing() {
                     Ver vantagens <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </a>
-                <Button
-                  size="lg"
-                  onClick={handleDemo}
-                  className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white text-[hsl(226_50%_15%)] hover:bg-white/90 shadow-lg animate-neon-soft"
-                >
-                  <Play className="h-4 w-4 mr-1.5" />
-                  Experimente grátis
-                </Button>
+                <a href="#preco" className="contents">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
+                    Ver planos
+                  </Button>
+                </a>
               </div>
-              {/* "Ver planos" — mobile ocupa a largura total (= linha acima) */}
-              <a href="#preco" className="block sm:inline-block w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-base h-12 sm:px-7 bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
-                  Ver planos
-                </Button>
-              </a>
             </div>
             <div className="mt-8 flex items-center gap-2 text-base text-white/90 font-semibold">
               <ShieldCheck className="h-5 w-5 text-success" />
