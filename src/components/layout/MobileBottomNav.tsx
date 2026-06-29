@@ -68,20 +68,12 @@ export function MobileBottomNav() {
           const iconCls = cn(
             "h-[1.55rem] w-[1.55rem] transition-transform duration-200 ease-out",
             active ? "scale-[1.08]" : "scale-100",
-            active
-              ? "text-[#0EA5E9]"
-              : isDark
-              ? "text-[#8A8A8A]"
-              : "text-neutral-500"
+            active ? "text-[#0EA5E9]" : "text-neutral-400"
           );
 
           const labelCls = cn(
             "text-[10px] leading-none font-medium tracking-tight transition-opacity duration-200",
-            active
-              ? "text-[#0EA5E9] opacity-100"
-              : isDark
-              ? "text-[#8A8A8A] opacity-80"
-              : "text-neutral-500 opacity-80"
+            active ? "text-[#0EA5E9] opacity-100" : "text-neutral-400 opacity-90"
           );
 
           if (it.action === "openMenu") {
