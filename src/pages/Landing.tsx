@@ -748,7 +748,7 @@ export default function Landing() {
                     variant="outline"
                     onClick={() => goToPlan("annual", "pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white"
+                    className="mt-7 w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white whitespace-nowrap"
                   >
                     {pendingPlan === "annual" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
@@ -807,7 +807,7 @@ export default function Landing() {
                     type="button"
                     onClick={() => goToPlan("lifetime", "pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full bg-gradient-primary shadow-glow h-12 text-base"
+                    className="mt-7 w-full bg-gradient-primary shadow-glow h-12 text-base whitespace-nowrap"
                   >
                     {pendingPlan === "lifetime" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
