@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
 import {
   LifeBuoy, Search, Send, MessageCircle, BookOpen, HelpCircle, CheckCircle2, Clock, AlertCircle,
-  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock, Sparkles, Paperclip, X, FileText, Image as ImageIcon,
+  Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock, Paperclip, X, FileText, Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 

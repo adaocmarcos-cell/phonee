@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, Clock, Crown, Rocket, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Crown, Rocket, ShieldCheck } from "lucide-react";
 
 type Extras = { expires_at: string | null; status: string | null };
 type Trial = {
@@ -51,7 +51,7 @@ export default function MeuTeste() {
     <div className="max-w-3xl space-y-5">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" /> Meu teste grátis
+          <Rocket className="h-6 w-6 text-primary" /> Meu teste grátis
         </h1>
         <p className="text-sm text-muted-foreground">
           Acompanhe o status do seu acesso ao Phonee e o que fazer para continuar usando.
@@ -119,7 +119,7 @@ export default function MeuTeste() {
       {!expired && (
         <Card className="p-5">
           <div className="font-semibold flex items-center gap-2 mb-2">
-            <Sparkles className="h-5 w-5 text-primary" /> Aproveite ao máximo seu teste
+            <Rocket className="h-5 w-5 text-primary" /> Aproveite ao máximo seu teste
           </div>
           <p className="text-sm text-muted-foreground">
             Cadastre seus produtos, lance vendas reais e teste a operação no dia a dia.

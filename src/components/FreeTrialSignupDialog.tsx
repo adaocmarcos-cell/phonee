@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, ShieldCheck, Clock, ArrowRight, Check, Store, MapPin, Instagram, MessageCircle } from "lucide-react";
+import { ShieldCheck, Clock, ArrowRight, Check, Store, MapPin, Instagram, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { trackMetaEvent } from "@/lib/metaPixel";
@@ -81,7 +81,6 @@ export function FreeTrialSignupDialog({ open, onOpenChange }: Props) {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-primary" />
             Experimente grátis por 7 dias
           </DialogTitle>
           <DialogDescription>

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Copy, Share2, MessageCircle, Instagram, Facebook, Link as LinkIcon,
-  DollarSign, Gift, ArrowRight, Check, Sparkles,
+  DollarSign, Gift, ArrowRight, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -119,7 +119,7 @@ export function IndiqueGanheQuickDialog({ open, onOpenChange }: Props) {
 
         <div className="space-y-4 mt-2">
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-emerald-500 shrink-0" />
+            <Gift className="h-4 w-4 text-emerald-500 shrink-0" />
             <div className="text-xs text-foreground/80">
               Seu código é único e rastreável — toda conversão é vinculada a você
               automaticamente.
