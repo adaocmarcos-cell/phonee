@@ -712,23 +712,15 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "pricing_card")} className="block mt-7">
-                  <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
-                    Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                </Link>
-                <Button
-                  size="lg"
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setFreeTrialOpen(true)}
-                  className="mt-3 w-full h-12 text-base text-info hover:bg-info/10 hover:text-info"
-                >
-                  <Gift className="mr-1.5 h-4 w-4" />
-                  Experimentar grátis primeiro
-                </Button>
-                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
-                  <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
+                <div className="mt-auto">
+                  <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "pricing_card")} className="block mt-7">
+                    <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
+                      Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
+                    <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
+                  </div>
                 </div>
               </Card>
             </Reveal>
@@ -736,7 +728,7 @@ export default function Landing() {
             {/* Vitalício — destaque máximo */}
             <Reveal direction="right" duration={1000} delay={120} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/50 to-info/30 blur-2xl rounded-3xl" />
-              <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full shadow-glow">
+              <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full shadow-glow flex flex-col">
                 <Badge className="bg-primary/15 text-primary border-primary/40 text-sm">
                   <Star className="h-3.5 w-3.5 mr-1" /> RECOMENDADO · MELHOR CUSTO-BENEFÍCIO
                 </Badge>
@@ -771,23 +763,15 @@ export default function Landing() {
                   sem cobranças de mensalidade ou renovação.
                 </p>
 
-                <Link to="/comprar?plano=lifetime" onClick={() => trackCheckoutClick("lifetime", "pricing_card")} className="block mt-7">
-                  <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
-                    Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
-                  </Button>
-                </Link>
-                <Button
-                  size="lg"
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setFreeTrialOpen(true)}
-                  className="mt-3 w-full h-12 text-base text-info hover:bg-info/10 hover:text-info"
-                >
-                  <Gift className="mr-1.5 h-4 w-4" />
-                  Experimentar grátis primeiro
-                </Button>
-                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
-                  <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
+                <div className="mt-auto">
+                  <Link to="/comprar?plano=lifetime" onClick={() => trackCheckoutClick("lifetime", "pricing_card")} className="block mt-7">
+                    <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
+                      Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
+                    <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
+                  </div>
                 </div>
               </Card>
             </Reveal>
