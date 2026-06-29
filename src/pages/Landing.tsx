@@ -730,6 +730,16 @@ export default function Landing() {
                     Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </Link>
+                <Button
+                  size="lg"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setFreeTrialOpen(true)}
+                  className="mt-3 w-full h-12 text-base text-info hover:bg-info/10 hover:text-info"
+                >
+                  <Gift className="mr-1.5 h-4 w-4" />
+                  Experimentar grátis primeiro
+                </Button>
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
@@ -779,6 +789,16 @@ export default function Landing() {
                     Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </Link>
+                <Button
+                  size="lg"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setFreeTrialOpen(true)}
+                  className="mt-3 w-full h-12 text-base text-info hover:bg-info/10 hover:text-info"
+                >
+                  <Gift className="mr-1.5 h-4 w-4" />
+                  Experimentar grátis primeiro
+                </Button>
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
