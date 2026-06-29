@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import {
   Gift, DollarSign, Copy, Check, Link as LinkIcon, Clock, ShieldCheck,
-  MessageCircle, ArrowRight, Sparkles,
+  MessageCircle, ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trackMetaEvent } from "@/lib/metaPixel";
@@ -218,7 +218,7 @@ export function LandingReferralSignupDialog({ open, onOpenChange }: Props) {
         ) : !done ? (
           <form onSubmit={submit} className="space-y-3 mt-1">
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+              <Gift className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
               <div className="text-xs text-foreground/80 leading-relaxed">
                 <b>Como funciona:</b> compartilhe seu link. A cada novo assinante,
                 R$ 10 são creditados e <b>liberados 7 dias após a compra</b> do indicado,
