@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { DemoBanner } from "./DemoBanner";
 import { isDemoMode, isDemoUserEmail, clearDemoMode } from "@/lib/demoMode";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
