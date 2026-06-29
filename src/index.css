@@ -69,7 +69,7 @@
   }
 
   .dark {
-    --background: 224 38% 14%;        /* #161D31 */
+    --background: 0 0% 17.3%;         /* #2C2C2C */
     --foreground: 220 7% 83%;         /* #D0D2D6 */
     --surface: 224 25% 22%;
     --surface-elevated: 224 25% 26%;
