@@ -671,17 +671,17 @@ export default function Landing() {
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-info/60 bg-card h-full flex flex-col">
                 <Badge className="bg-info/15 text-info border-info/40 text-sm">
-                  🎁 GRÁTIS · SEM CARTÃO
+                  🎁 TRIAL · SEM CARTÃO
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
-                  Experimente grátis
+                  Plano Trial · 7 dias grátis
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-6xl md:text-7xl text-info">7 dias</span>
+                  <span className="metric text-6xl md:text-7xl text-info">R$ 0</span>
                 </div>
-                <div className="mt-1 text-xl font-extrabold">Acesso completo · sem cobrança</div>
+                <div className="mt-1 text-xl font-extrabold">/7 dias</div>
                 <div className="mt-1 text-lg font-semibold text-foreground/80">
-                  Teste o Phonee na sua loja antes de contratar. Cancelamento automático.
+                  Sem cartão · Cancelamento automático ao final.
                 </div>
 
                 <ul className="mt-6 space-y-3">
@@ -700,16 +700,16 @@ export default function Landing() {
                     type="button"
                     onClick={() => openTrialFlow("pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white"
+                    className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white whitespace-nowrap"
                   >
                     {pendingPlan === "trial" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Abrindo cadastro…</>
                     ) : (
-                      <>Experimente grátis por 7 dias <ArrowRight className="ml-1.5 h-4 w-4" /></>
+                      <>Começar 7 dias grátis <ArrowRight className="ml-1.5 h-4 w-4" /></>
                     )}
                   </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
-                    Após 7 dias: <b>Anual</b> ou <b>Vitalício</b>.
+                    <Lock className="h-3 w-3" /> Sem cartão · Bloqueio automático ao final
                   </div>
                 </div>
               </Card>
