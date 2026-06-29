@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Receipt, Boxes, Users, Menu } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 type Item = {
   to?: string;
@@ -22,13 +23,20 @@ const items: Item[] = [
 export function MobileBottomNav() {
   const { setOpenMobile, isMobile } = useSidebar();
   const { pathname } = useLocation();
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const compute = () => {
+      const cl = document.documentElement.classList;
+      setIsDark(cl.contains("dark") || cl.contains("theme-ocean"));
+    };
+    compute();
+    const obs = new MutationObserver(compute);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
 
   if (!isMobile) return null;
-
-  const isDark =
-    typeof document !== "undefined" &&
-    (document.documentElement.classList.contains("dark") ||
-      document.documentElement.classList.contains("theme-ocean"));
 
   return (
     <nav
