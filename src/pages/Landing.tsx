@@ -698,7 +698,7 @@ export default function Landing() {
                   <Button
                     size="lg"
                     type="button"
-                    onClick={openTrialFlow}
+                    onClick={() => openTrialFlow("pricing_card")}
                     disabled={pendingPlan !== null}
                     className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white"
                   >
