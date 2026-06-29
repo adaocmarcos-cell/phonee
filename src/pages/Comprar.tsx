@@ -209,7 +209,9 @@ export default function Comprar() {
                         </div>
                         <div className="text-right shrink-0">
                           <div className="text-[10px] uppercase text-white/50 tracking-wider">pagamento único</div>
+                          <div className="text-xs text-white/50 line-through">{formatBRL(49700)}</div>
                           <div className="text-2xl md:text-3xl font-extrabold text-amber-400">{formatBRL(p.price_cents)}</div>
+                          <div className="text-[10px] text-amber-300/90 font-medium">De 497,00 por 297,00</div>
                           <div className="text-[10px] text-white/60">até 12x no cartão</div>
                         </div>
                       </div>
