@@ -844,14 +844,13 @@ export default function Landing() {
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
-            <Button
-              size="lg"
-              type="button"
+            <a
+              role="button"
               onClick={() => setFreeTrialOpen(true)}
-              className="h-12 px-7 text-base bg-info hover:bg-info/90 text-white rounded-md"
+              className="h-12 px-7 text-base bg-info hover:bg-info/90 text-white rounded-md inline-flex items-center justify-center cursor-pointer"
             >
-              Experimente grátis por 7 dias
-            </Button>
+              {"\n"}
+            </a>
             <Link to="/entrar">
               <Button size="lg" variant="outline" className="h-12 px-7 text-base bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                 Fazer login
