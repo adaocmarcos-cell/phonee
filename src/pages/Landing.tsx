@@ -166,8 +166,9 @@ export default function Landing() {
 
   // Helper: registra InitiateCheckout antes de mandar para /comprar
   const trackCheckoutClick = (plan: "annual" | "lifetime", source: string) => {
+    const planValues: Record<string, number> = { annual: 127, lifetime: 297 };
     trackMetaEvent("InitiateCheckout", {
-      value: plan === "lifetime" ? 197 : undefined,
+      value: planValues[plan],
       currency: "BRL",
       custom: { content_name: plan === "lifetime" ? "Plano Vitalício" : "Plano Anual", content_category: "subscription", source },
     });
@@ -729,6 +730,16 @@ export default function Landing() {
                     Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </Link>
+                <Button
+                  size="lg"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setFreeTrialOpen(true)}
+                  className="mt-3 w-full h-12 text-base text-info hover:bg-info/10 hover:text-info"
+                >
+                  <Gift className="mr-1.5 h-4 w-4" />
+                  Experimentar grátis primeiro
+                </Button>
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
@@ -746,8 +757,10 @@ export default function Landing() {
                   Plano Vitalício · Pagamento único
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-6xl md:text-7xl text-primary">R$ 197</span>
+                  <span className="metric text-5xl md:text-6xl text-foreground/50 line-through">R$ 497</span>
+                  <span className="metric text-6xl md:text-7xl text-primary">R$ 297</span>
                 </div>
+                <div className="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">Condição especial de lançamento, por tempo limitado.</div>
                 <div className="mt-1 text-xl font-extrabold">Pague uma vez, use para sempre</div>
                 <div className="mt-1 text-lg font-semibold text-foreground/80">
                   Em menos de 2 anos já se paga frente ao anual — depois disso, é 100% economia.
@@ -776,6 +789,16 @@ export default function Landing() {
                     Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 </Link>
+                <Button
+                  size="lg"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setFreeTrialOpen(true)}
+                  className="mt-3 w-full h-12 text-base text-info hover:bg-info/10 hover:text-info"
+                >
+                  <Gift className="mr-1.5 h-4 w-4" />
+                  Experimentar grátis primeiro
+                </Button>
                 <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                   <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                 </div>
