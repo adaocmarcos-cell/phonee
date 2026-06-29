@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
 import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
@@ -149,6 +149,10 @@ export default function Landing() {
   const [refOpen, setRefOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<null | "trial" | "annual" | "lifetime">(null);
+  // Garante que o estado de loading do botão Trial é resetado quando o dialog fecha.
+  useEffect(() => {
+    if (!freeTrialOpen && pendingPlan === "trial") setPendingPlan(null);
+  }, [freeTrialOpen, pendingPlan]);
   // "Ver demonstração" foi temporariamente desativado — agora abre "Experimente grátis".
   const handleDemo = () => setFreeTrialOpen(true);
   useEffect(() => {
@@ -165,13 +169,25 @@ export default function Landing() {
     });
   }, []);
 
-  // Helper: registra InitiateCheckout antes de mandar para /comprar
-  const trackCheckoutClick = (plan: "annual" | "lifetime", source: string) => {
-    const planValues: Record<string, number> = { annual: 127, lifetime: 297 };
-    trackMetaEvent("InitiateCheckout", {
-      value: planValues[plan],
+  // Helper: registra InitiateCheckout / Lead em qualquer CTA de plano (hero, cards ou final).
+  // Garante consistência de evento, valor, moeda e fonte para todos os botões.
+  const PLAN_META: Record<"trial" | "annual" | "lifetime", { value: number; name: string; event: "InitiateCheckout" | "Lead" }> = {
+    trial:    { value: 0,   name: "Trial 7 dias",   event: "Lead" },
+    annual:   { value: 127, name: "Plano Anual",    event: "InitiateCheckout" },
+    lifetime: { value: 297, name: "Plano Vitalício", event: "InitiateCheckout" },
+  };
+  // Deduplicação simples (mesmo plano+source disparado em < 800ms = ignorado)
+  const lastTrackRef = useRef<{ key: string; ts: number } | null>(null);
+  const trackCheckoutClick = (plan: "trial" | "annual" | "lifetime", source: string) => {
+    const key = `${plan}:${source}`;
+    const now = Date.now();
+    if (lastTrackRef.current && lastTrackRef.current.key === key && now - lastTrackRef.current.ts < 800) return;
+    lastTrackRef.current = { key, ts: now };
+    const meta = PLAN_META[plan];
+    trackMetaEvent(meta.event, {
+      value: meta.value,
       currency: "BRL",
-      custom: { content_name: plan === "lifetime" ? "Plano Vitalício" : "Plano Anual", content_category: "subscription", source },
+      custom: { content_name: meta.name, content_category: "subscription", plan, source },
     });
   };
 
@@ -184,12 +200,11 @@ export default function Landing() {
     setTimeout(() => navigate(`/comprar?plano=${plan}`), 120);
   };
 
-  const openTrialFlow = () => {
+  const openTrialFlow = (source: string = "pricing_card") => {
     if (pendingPlan) return;
     setPendingPlan("trial");
+    trackCheckoutClick("trial", source);
     setFreeTrialOpen(true);
-    // libera o botão se o usuário fechar o dialog sem concluir
-    setTimeout(() => setPendingPlan(null), 600);
   };
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -656,17 +671,17 @@ export default function Landing() {
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-info/60 bg-card h-full flex flex-col">
                 <Badge className="bg-info/15 text-info border-info/40 text-sm">
-                  🎁 GRÁTIS · SEM CARTÃO
+                  🎁 TRIAL · SEM CARTÃO
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
-                  Experimente grátis
+                  Plano Trial · 7 dias grátis
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-6xl md:text-7xl text-info">7 dias</span>
+                  <span className="metric text-6xl md:text-7xl text-info">R$ 0</span>
                 </div>
-                <div className="mt-1 text-xl font-extrabold">Acesso completo · sem cobrança</div>
+                <div className="mt-1 text-xl font-extrabold">/7 dias</div>
                 <div className="mt-1 text-lg font-semibold text-foreground/80">
-                  Teste o Phonee na sua loja antes de contratar. Cancelamento automático.
+                  Sem cartão · Cancelamento automático ao final.
                 </div>
 
                 <ul className="mt-6 space-y-3">
@@ -683,18 +698,18 @@ export default function Landing() {
                   <Button
                     size="lg"
                     type="button"
-                    onClick={openTrialFlow}
+                    onClick={() => openTrialFlow("pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white"
+                    className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white whitespace-nowrap"
                   >
                     {pendingPlan === "trial" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Abrindo cadastro…</>
                     ) : (
-                      <>Experimente grátis por 7 dias <ArrowRight className="ml-1.5 h-4 w-4" /></>
+                      <>Começar 7 dias grátis <ArrowRight className="ml-1.5 h-4 w-4" /></>
                     )}
                   </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
-                    Após 7 dias: <b>Anual</b> ou <b>Vitalício</b>.
+                    <Lock className="h-3 w-3" /> Sem cartão · Bloqueio automático ao final
                   </div>
                 </div>
               </Card>
@@ -733,7 +748,7 @@ export default function Landing() {
                     variant="outline"
                     onClick={() => goToPlan("annual", "pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white"
+                    className="mt-7 w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white whitespace-nowrap"
                   >
                     {pendingPlan === "annual" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
@@ -792,7 +807,7 @@ export default function Landing() {
                     type="button"
                     onClick={() => goToPlan("lifetime", "pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full bg-gradient-primary shadow-glow h-12 text-base"
+                    className="mt-7 w-full bg-gradient-primary shadow-glow h-12 text-base whitespace-nowrap"
                   >
                     {pendingPlan === "lifetime" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
