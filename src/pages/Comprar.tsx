@@ -232,7 +232,7 @@ export default function Comprar() {
                       <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2 text-[11px] leading-relaxed text-amber-100/90">
                         <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                         <span>
-                          Valor promocional disponível apenas durante o lançamento da Phonee. Após o encerramento desta fase, o Plano Vitalício poderá ser reajustado sem aviso prévio para novos assinantes.
+                          Condição especial de lançamento, por tempo limitado. Valor promocional disponível apenas durante o lançamento da Phonee. Após o encerramento desta fase, o Plano Vitalício poderá ser reajustado sem aviso prévio para novos assinantes.
                         </span>
                       </div>
                     </div>
