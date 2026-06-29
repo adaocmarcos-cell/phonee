@@ -77,7 +77,8 @@ describe("MobileBottomNav — theme & a11y", () => {
   it("respects iOS safe-area via env(safe-area-inset-bottom)", () => {
     renderNav();
     const nav = screen.getByRole("navigation");
-    expect(nav.getAttribute("style") ?? "").toMatch(/safe-area-inset-bottom/);
+    // jsdom drops unknown css funcs from style.cssText, so check raw HTML.
+    expect(nav.outerHTML).toMatch(/safe-area-inset-bottom/);
   });
 
   it("marks the active route with aria-current=page", () => {
