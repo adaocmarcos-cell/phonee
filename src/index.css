@@ -237,6 +237,79 @@
   }
 }
 
+/* ============================================================
+   Padronização de bordas/outlines (cards, inputs, tabelas, modais)
+   ============================================================ */
+@layer base {
+  /* Garante que tabelas, dialogs, sheets, popovers e inputs usem
+     sempre o token --border, evitando outlines fora do padrão. */
+  .dark table,
+  .dark thead,
+  .dark tbody,
+  .dark tr,
+  .dark th,
+  .dark td {
+    border-color: hsl(var(--border)) !important;
+  }
+  .dark [role="dialog"],
+  .dark [data-radix-popper-content-wrapper] > * {
+    border-color: hsl(var(--border)) !important;
+  }
+  .dark input,
+  .dark textarea,
+  .dark select,
+  .dark [data-slot="input"],
+  .dark [data-slot="textarea"] {
+    border-color: hsl(var(--input)) !important;
+  }
+  /* Anel de foco coerente com o tema */
+  .dark *:focus-visible {
+    outline-color: hsl(var(--ring));
+  }
+}
+
+/* ============================================================
+   Recharts — grids, eixos, labels, tooltips e legendas
+   alinhados aos tokens do tema (claro e escuro)
+   ============================================================ */
+.recharts-cartesian-grid line,
+.recharts-polar-grid line,
+.recharts-cartesian-axis-line {
+  stroke: hsl(var(--border)) !important;
+}
+.recharts-cartesian-axis-tick-line,
+.recharts-reference-line line {
+  stroke: hsl(var(--border)) !important;
+}
+.recharts-cartesian-axis-tick text,
+.recharts-text,
+.recharts-label,
+.recharts-legend-item-text {
+  fill: hsl(var(--muted-foreground)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip,
+.recharts-tooltip-wrapper > div {
+  background: hsl(var(--popover)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 8px !important;
+  color: hsl(var(--popover-foreground)) !important;
+  box-shadow: 0 6px 20px -8px hsl(0 0% 0% / 0.35) !important;
+}
+.recharts-tooltip-wrapper .recharts-tooltip-label,
+.recharts-tooltip-wrapper .recharts-tooltip-item,
+.recharts-tooltip-wrapper .recharts-tooltip-item-name,
+.recharts-tooltip-wrapper .recharts-tooltip-item-value {
+  color: hsl(var(--popover-foreground)) !important;
+}
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: hsl(var(--muted) / 0.4) !important;
+}
+.recharts-curve.recharts-tooltip-cursor {
+  stroke: hsl(var(--border)) !important;
+}
+
 @layer components {
   .metric {
     font-family: 'Inter', ui-monospace, monospace;
