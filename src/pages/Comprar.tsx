@@ -209,7 +209,9 @@ export default function Comprar() {
                         </div>
                         <div className="text-right shrink-0">
                           <div className="text-[10px] uppercase text-white/50 tracking-wider">pagamento único</div>
+                          <div className="text-xs text-white/50 line-through">{formatBRL(49700)}</div>
                           <div className="text-2xl md:text-3xl font-extrabold text-amber-400">{formatBRL(p.price_cents)}</div>
+                          <div className="text-[10px] text-amber-300/90 font-medium">De 497,00 por 297,00</div>
                           <div className="text-[10px] text-white/60">até 12x no cartão</div>
                         </div>
                       </div>
@@ -230,7 +232,7 @@ export default function Comprar() {
                       <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2 text-[11px] leading-relaxed text-amber-100/90">
                         <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                         <span>
-                          Valor promocional disponível apenas durante o lançamento da Phonee. Após o encerramento desta fase, o Plano Vitalício poderá ser reajustado sem aviso prévio para novos assinantes.
+                          Condição especial de lançamento, por tempo limitado. Valor promocional disponível apenas durante o lançamento da Phonee. Após o encerramento desta fase, o Plano Vitalício poderá ser reajustado sem aviso prévio para novos assinantes.
                         </span>
                       </div>
                     </div>
