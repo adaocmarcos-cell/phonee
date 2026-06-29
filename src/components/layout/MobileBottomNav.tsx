@@ -53,10 +53,8 @@ function MobileBottomNavBase() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="md:hidden fixed left-1/2 -translate-x-1/2 z-50 w-[90vw] max-w-[440px] animate-fade-in-up will-change-transform"
-      style={{
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
-      }}
+      data-safe-area="bottom"
+      className="md:hidden fixed left-1/2 -translate-x-1/2 z-50 w-[90vw] max-w-[440px] animate-fade-in-up will-change-transform bottom-[calc(env(safe-area-inset-bottom,0px)+14px)]"
     >
       <ul
         className={cn(
