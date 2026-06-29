@@ -148,6 +148,7 @@ export default function Landing() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [refOpen, setRefOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<null | "trial" | "annual" | "lifetime">(null);
   // "Ver demonstração" foi temporariamente desativado — agora abre "Experimente grátis".
   const handleDemo = () => setFreeTrialOpen(true);
   useEffect(() => {
@@ -172,6 +173,23 @@ export default function Landing() {
       currency: "BRL",
       custom: { content_name: plan === "lifetime" ? "Plano Vitalício" : "Plano Anual", content_category: "subscription", source },
     });
+  };
+
+  // Inicia o fluxo de compra/ativação a partir dos cards — mesma rota usada em /comprar.
+  const goToPlan = (plan: "annual" | "lifetime", source: string) => {
+    if (pendingPlan) return;
+    setPendingPlan(plan);
+    trackCheckoutClick(plan, source);
+    // pequeno atraso para o feedback visual antes da navegação
+    setTimeout(() => navigate(`/comprar?plano=${plan}`), 120);
+  };
+
+  const openTrialFlow = () => {
+    if (pendingPlan) return;
+    setPendingPlan("trial");
+    setFreeTrialOpen(true);
+    // libera o botão se o usuário fechar o dialog sem concluir
+    setTimeout(() => setPendingPlan(null), 600);
   };
   return (
     <div className="min-h-screen bg-background text-foreground">
