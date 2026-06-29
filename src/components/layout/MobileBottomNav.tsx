@@ -61,7 +61,7 @@ function MobileBottomNavBase() {
           "flex items-center justify-around h-[70px] rounded-[34px] px-2",
           "shadow-[0_8px_30px_rgba(0,0,0,0.18),0_2px_8px_rgba(0,0,0,0.08)]",
           "backdrop-blur-xl transition-colors duration-200 ease-out",
-          isDark ? "bg-black" : "bg-white"
+          isDark ? "bg-[#2c2c2c]" : "bg-white"
         )}
       >
         {items.map((it) => {
