@@ -555,7 +555,7 @@ export default function Estoque() {
 
       <Card className="bg-card border-border shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs md:text-sm table-auto [&_th]:whitespace-nowrap [&_td]:whitespace-nowrap [&_th]:[word-break:keep-all] [&_td]:[word-break:keep-all] [&_th]:[overflow-wrap:normal] [&_td]:[overflow-wrap:normal] [&_th]:[hyphens:none] [&_td]:[hyphens:none]">
             <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
               <tr>
                 <th className="px-3 py-3 w-8">
@@ -565,16 +565,16 @@ export default function Estoque() {
                     aria-label="Selecionar todos da página"
                   />
                 </th>
-                <th className="text-left px-4 py-3 font-medium">Produto</th>
-                <th className="text-left px-4 py-3 font-medium">Categoria</th>
-                <th className="text-right px-4 py-3 font-medium">Estoque</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground/70">Mín</th>
-                {canSeeCost(role) && <th className="text-right px-4 py-3 font-medium">Custo</th>}
-                <th className="text-right px-4 py-3 font-medium">Venda</th>
-                {canSeeCost(role) && <th className="text-right px-4 py-3 font-medium">Margem</th>}
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-center px-4 py-3 font-medium">Ativo</th>
-                <th className="px-4 py-3"></th>
+                <th className="text-left px-4 py-3 font-medium min-w-[180px]">Produto</th>
+                <th className="text-left px-4 py-3 font-medium min-w-[110px]">Categoria</th>
+                <th className="text-right px-4 py-3 font-medium min-w-[80px]">Estoque</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground/70 min-w-[70px]">Mín</th>
+                {canSeeCost(role) && <th className="text-right px-4 py-3 font-medium min-w-[110px]">Custo</th>}
+                <th className="text-right px-4 py-3 font-medium min-w-[110px]">Venda</th>
+                {canSeeCost(role) && <th className="text-right px-4 py-3 font-medium min-w-[90px]">Margem</th>}
+                <th className="text-left px-4 py-3 font-medium min-w-[110px]">Status</th>
+                <th className="text-center px-4 py-3 font-medium min-w-[70px]">Ativo</th>
+                <th className="px-4 py-3 min-w-[80px]"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -614,9 +614,9 @@ export default function Estoque() {
                         aria-label={`Selecionar ${p.name}`}
                       />
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono">{p.sku || "—"}{p.brand ? ` · ${p.brand}` : ""}</div>
+                    <td className="px-4 py-3 min-w-[180px] max-w-[280px]">
+                      <div className="font-medium truncate" title={p.name}>{p.name}</div>
+                      <div className="text-[11px] text-muted-foreground font-mono truncate">{p.sku || "—"}{p.brand ? ` · ${p.brand}` : ""}</div>
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="outline" className="border-border text-xs">{categoryLabel[p.category] ?? p.category}</Badge>
