@@ -76,6 +76,7 @@ import PhoneeAssinaturaSolicitacoes from "./pages/phonee/AssinaturaSolicitacoes"
 import PhoneeAdminMasters from "./pages/phonee/AdminMasters";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
+import { SplashScreen } from "./components/SplashScreen";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
 
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <SplashScreen />
           <MetaPixel />
           <CookieConsentBanner />
           <Routes>
