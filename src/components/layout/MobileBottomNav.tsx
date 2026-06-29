@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Receipt, Boxes, Users, Menu } from "lucide-react";
+import { LayoutDashboard, Receipt, Boxes, Users, Menu, RefreshCw } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { memo, useEffect, useState } from "react";
@@ -56,6 +56,24 @@ function MobileBottomNavBase() {
       data-safe-area="bottom"
       className="md:hidden fixed left-1/2 -translate-x-1/2 z-50 w-[90vw] max-w-[440px] animate-fade-in-up will-change-transform bottom-[calc(env(safe-area-inset-bottom,0px)+14px)]"
     >
+      <button
+        type="button"
+        aria-label="Atualizar"
+        onClick={() => window.location.reload()}
+        className={cn(
+          "absolute -top-11 right-3 z-10 h-9 w-9 rounded-full",
+          "flex items-center justify-center",
+          "shadow-[0_6px_18px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.1)]",
+          "backdrop-blur-xl transition-all duration-200 ease-out",
+          "hover:scale-105 active:scale-95",
+          "outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2",
+          isDark
+            ? "bg-[#2c2c2c] text-neutral-300 focus-visible:ring-offset-black"
+            : "bg-white text-neutral-600 focus-visible:ring-offset-white"
+        )}
+      >
+        <RefreshCw className="h-4 w-4" />
+      </button>
       <ul
         className={cn(
           "flex items-center justify-around h-[70px] rounded-[34px] px-2",
