@@ -641,26 +641,11 @@ export default function Landing() {
             subtitle="Experimente grátis por 7 dias. Depois, escolha Plano Anual ou Vitalício."
           />
 
-          <div className="flex justify-center -mt-4 mb-10">
-            <Button
-              size="lg"
-              type="button"
-              asChild
-              className="h-12 px-6 text-base bg-info hover:bg-info/90 text-white shadow-glow"
-            >
-              <a href="/testegratis">
-                <Gift className="mr-1.5 h-4 w-4" />
-                Experimente grátis por 7 dias
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </a>
-            </Button>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="mt-10 grid lg:grid-cols-3 gap-6 items-stretch">
             {/* Teste grátis — 7 dias */}
             <Reveal direction="left" duration={1000} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
-              <Card className="relative p-6 md:p-7 border-2 border-info/60 bg-card h-full">
+              <Card className="relative p-8 md:p-10 border-2 border-info/60 bg-card h-full flex flex-col">
                 <Badge className="bg-info/15 text-info border-info/40 text-sm">
                   🎁 GRÁTIS · SEM CARTÃO
                 </Badge>
@@ -668,33 +653,35 @@ export default function Landing() {
                   Experimente grátis
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-5xl md:text-6xl text-info">7 dias</span>
+                  <span className="metric text-6xl md:text-7xl text-info">7 dias</span>
                 </div>
-                <div className="mt-1 text-lg font-extrabold">Acesso completo · sem cobrança</div>
-                <div className="mt-1 text-sm font-semibold text-foreground/80">
+                <div className="mt-1 text-xl font-extrabold">Acesso completo · sem cobrança</div>
+                <div className="mt-1 text-lg font-semibold text-foreground/80">
                   Teste o Phonee na sua loja antes de contratar. Cancelamento automático.
                 </div>
 
-                <ul className="mt-5 space-y-2.5">
+                <ul className="mt-6 space-y-3">
                   {[
                     "Acesso total por 7 dias",
                     "Todos os módulos liberados",
                     "Sem cartão de crédito",
                     "Suporte humano por WhatsApp",
                     "Bloqueio automático ao final",
-                  ].map((i) => <CheckItem key={i}>{i}</CheckItem>)}
+                  ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <Button
-                  size="lg"
-                  type="button"
-                  onClick={() => setFreeTrialOpen(true)}
-                  className="mt-6 w-full h-12 text-base bg-info hover:bg-info/90 text-white"
-                >
-                  Experimente grátis por 7 dias <ArrowRight className="ml-1.5 h-4 w-4" />
-                </Button>
-                <div className="mt-3 text-[11px] text-foreground/70 leading-relaxed text-center">
-                  Após 7 dias, contratação apenas nas modalidades <b>Anual</b> ou <b>Vitalício</b>.
+                <div className="mt-auto">
+                  <Button
+                    size="lg"
+                    type="button"
+                    onClick={() => setFreeTrialOpen(true)}
+                    className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white"
+                  >
+                    Experimente grátis por 7 dias <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
+                    Após 7 dias: <b>Anual</b> ou <b>Vitalício</b>.
+                  </div>
                 </div>
               </Card>
             </Reveal>
@@ -702,7 +689,7 @@ export default function Landing() {
             {/* Anual — destaque */}
             <Reveal direction="left" duration={1000} delay={60} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/40 to-info/25 blur-2xl rounded-3xl" />
-              <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full">
+              <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full flex flex-col">
                 <Badge className="bg-success/15 text-success border-success/40 text-sm">
                   PLANO ANUAL
                 </Badge>
