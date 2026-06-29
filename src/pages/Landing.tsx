@@ -149,6 +149,10 @@ export default function Landing() {
   const [refOpen, setRefOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<null | "trial" | "annual" | "lifetime">(null);
+  // Garante que o estado de loading do botão Trial é resetado quando o dialog fecha.
+  useEffect(() => {
+    if (!freeTrialOpen && pendingPlan === "trial") setPendingPlan(null);
+  }, [freeTrialOpen, pendingPlan]);
   // "Ver demonstração" foi temporariamente desativado — agora abre "Experimente grátis".
   const handleDemo = () => setFreeTrialOpen(true);
   useEffect(() => {
@@ -165,13 +169,25 @@ export default function Landing() {
     });
   }, []);
 
-  // Helper: registra InitiateCheckout antes de mandar para /comprar
-  const trackCheckoutClick = (plan: "annual" | "lifetime", source: string) => {
-    const planValues: Record<string, number> = { annual: 127, lifetime: 297 };
-    trackMetaEvent("InitiateCheckout", {
-      value: planValues[plan],
+  // Helper: registra InitiateCheckout / Lead em qualquer CTA de plano (hero, cards ou final).
+  // Garante consistência de evento, valor, moeda e fonte para todos os botões.
+  const PLAN_META: Record<"trial" | "annual" | "lifetime", { value: number; name: string; event: "InitiateCheckout" | "Lead" }> = {
+    trial:    { value: 0,   name: "Trial 7 dias",   event: "Lead" },
+    annual:   { value: 127, name: "Plano Anual",    event: "InitiateCheckout" },
+    lifetime: { value: 297, name: "Plano Vitalício", event: "InitiateCheckout" },
+  };
+  // Deduplicação simples (mesmo plano+source disparado em < 800ms = ignorado)
+  const lastTrackRef = useRef<{ key: string; ts: number } | null>(null);
+  const trackCheckoutClick = (plan: "trial" | "annual" | "lifetime", source: string) => {
+    const key = `${plan}:${source}`;
+    const now = Date.now();
+    if (lastTrackRef.current && lastTrackRef.current.key === key && now - lastTrackRef.current.ts < 800) return;
+    lastTrackRef.current = { key, ts: now };
+    const meta = PLAN_META[plan];
+    trackMetaEvent(meta.event, {
+      value: meta.value,
       currency: "BRL",
-      custom: { content_name: plan === "lifetime" ? "Plano Vitalício" : "Plano Anual", content_category: "subscription", source },
+      custom: { content_name: meta.name, content_category: "subscription", plan, source },
     });
   };
 
@@ -184,12 +200,11 @@ export default function Landing() {
     setTimeout(() => navigate(`/comprar?plano=${plan}`), 120);
   };
 
-  const openTrialFlow = () => {
+  const openTrialFlow = (source: string = "pricing_card") => {
     if (pendingPlan) return;
     setPendingPlan("trial");
+    trackCheckoutClick("trial", source);
     setFreeTrialOpen(true);
-    // libera o botão se o usuário fechar o dialog sem concluir
-    setTimeout(() => setPendingPlan(null), 600);
   };
   return (
     <div className="min-h-screen bg-background text-foreground">
