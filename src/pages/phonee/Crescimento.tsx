@@ -131,12 +131,12 @@ export default function PhoneeCrescimento() {
                         <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                    <XAxis dataKey="day" stroke="#64748b" fontSize={10}
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={10}
                       tickFormatter={(v) => new Date(v).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} />
-                    <YAxis stroke="#64748b" fontSize={10} tickFormatter={(v) => `R$${v}`} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `R$${v}`} />
                     <Tooltip
-                      contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12, color: "hsl(var(--popover-foreground))" }}
                       labelFormatter={(v) => new Date(v as string).toLocaleDateString("pt-BR")}
                       formatter={(v: number, n) => [brl(v), n === "receita" ? "Receita" : "Desconto"]}
                     />
@@ -151,11 +151,11 @@ export default function PhoneeCrescimento() {
               <div style={{ width: "100%", height: 220 }}>
                 <ResponsiveContainer>
                   <BarChart data={(cup?.by_coupon ?? []).slice(0, 8)} layout="vertical" margin={{ left: 12 }}>
-                    <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                    <XAxis type="number" stroke="#64748b" fontSize={10} tickFormatter={(v) => `R$${v}`} />
-                    <YAxis type="category" dataKey="code" stroke="#94a3b8" fontSize={11} width={110} />
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `R$${v}`} />
+                    <YAxis type="category" dataKey="code" stroke="hsl(var(--muted-foreground))" fontSize={11} width={110} />
                     <Tooltip
-                      contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12, color: "hsl(var(--popover-foreground))" }}
                       formatter={(v: number, n) => [brl(v), n === "receita" ? "Receita" : n === "desconto" ? "Desconto" : "Usos"]}
                     />
                     <Bar dataKey="receita" fill="#10b981" radius={[0, 4, 4, 0]} />
