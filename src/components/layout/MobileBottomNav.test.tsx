@@ -29,12 +29,12 @@ describe("MobileBottomNav — theme & a11y", () => {
     setTheme("light");
   });
 
-  it("uses white background in light theme and black in dark theme, swapping fast", async () => {
+  it("uses white background in light theme and #2c2c2c in dark theme, swapping fast", async () => {
     renderNav();
     const list = screen.getByRole("navigation").querySelector("ul")!;
 
     expect(list.className).toMatch(/bg-white/);
-    expect(list.className).not.toMatch(/bg-black/);
+    expect(list.className).not.toMatch(/bg-\[#2c2c2c\]/);
 
     // Rapid theme toggling — must remain consistent (no leftover classes).
     for (const t of ["dark", "light", "ocean", "clean", "dark", "light"] as const) {
@@ -44,8 +44,8 @@ describe("MobileBottomNav — theme & a11y", () => {
         await new Promise((r) => setTimeout(r, 20));
       });
       const dark = t === "dark" || t === "ocean";
-      expect(list.className).toMatch(dark ? /bg-black/ : /bg-white/);
-      expect(list.className).not.toMatch(dark ? /bg-white/ : /bg-black/);
+      expect(list.className).toMatch(dark ? /bg-\[#2c2c2c\]/ : /bg-white/);
+      expect(list.className).not.toMatch(dark ? /bg-white/ : /bg-\[#2c2c2c\]/);
     }
   });
 
