@@ -130,12 +130,17 @@ export default {
               "0 0 0 1.5px hsl(var(--primary) / 0.55), 0 0 16px 2px hsl(var(--primary) / 0.45)",
           },
         },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translate(-50%, 12px)" },
+          "100%": { opacity: "1", transform: "translate(-50%, 0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "neon-pulse": "neon-pulse 2.6s ease-in-out infinite",
         "neon-soft": "neon-soft 2.8s ease-in-out infinite",
+        "fade-in-up": "fade-in-up 320ms cubic-bezier(0.22, 1, 0.36, 1)",
       },
     },
   },

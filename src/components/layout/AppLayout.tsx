@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { DemoBanner } from "./DemoBanner";
 import { isDemoMode, isDemoUserEmail, clearDemoMode } from "@/lib/demoMode";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -100,12 +101,20 @@ export default function AppLayout() {
           <StoreSubscriptionBanner />
           <TrialExpiryBanner />
           <main
-            className="flex-1 p-3 sm:p-4 md:p-6 pb-28 md:pb-6 overflow-auto overflow-x-hidden"
+            className={cn(
+              "flex-1 p-3 sm:p-4 md:p-6 overflow-auto overflow-x-hidden",
+              "pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] md:pb-6"
+            )}
             key={store?.id ?? "no-store"}
           >
             <Outlet />
           </main>
-          <footer className="border-t border-border bg-surface/40 px-4 py-2.5 pb-24 md:pb-2.5">
+          <footer
+            className={cn(
+              "border-t border-border bg-surface/40 px-4 py-2.5",
+              "pb-[calc(env(safe-area-inset-bottom,0px)+6.5rem)] md:pb-2.5"
+            )}
+          >
             <div className="max-w-5xl mx-auto rounded-xl border border-border bg-background/40 px-4 py-2 text-[11px] md:text-xs text-muted-foreground text-center leading-snug">
               <span className="font-semibold text-foreground">Use como app:</span>{" "}
               <span className="md:hidden">
