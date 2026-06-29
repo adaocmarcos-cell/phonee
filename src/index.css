@@ -71,28 +71,39 @@
   .dark {
     --background: 0 0% 17.3%;         /* #2C2C2C */
     --foreground: 220 7% 83%;         /* #D0D2D6 */
-    --surface: 224 25% 22%;
-    --surface-elevated: 224 25% 26%;
+    --surface: 0 0% 24%;              /* #3D3D3D */
+    --surface-elevated: 0 0% 28%;     /* #474747 */
 
-    --card: 224 25% 22%;              /* #283046 */
+    --card: 0 0% 24%;                 /* #3D3D3D — cinza médio */
     --card-foreground: 220 7% 83%;
-    --popover: 224 25% 22%;
+    --popover: 0 0% 24%;
     --popover-foreground: 220 7% 83%;
 
-    --secondary: 224 25% 22%;
+    --secondary: 0 0% 24%;
     --secondary-foreground: 220 7% 83%;
-    --muted: 224 20% 26%;
-    --muted-foreground: 220 5% 72%;
+    --muted: 0 0% 26%;
+    --muted-foreground: 0 0% 72%;
     --accent: 28 100% 20%;
     --accent-foreground: 28 100% 70%;
 
-    --border: 222 16% 28%;            /* #3B4253 */
-    --input: 222 16% 28%;
+    --border: 0 0% 62%;               /* #9E9E9E — cinza claro */
+    --input: 0 0% 62%;
 
     --sidebar-background: 226 50% 15%;
     --sidebar-foreground: 218 21% 80%;
     --sidebar-accent: 226 50% 12%;
     --sidebar-border: 226 40% 22%;
+  }
+
+  /* Translucidez sutil em cards/popovers no modo escuro */
+  .dark .bg-card,
+  .dark [data-slot="card"] {
+    background-color: hsl(0 0% 24% / 0.82) !important;
+    backdrop-filter: blur(6px);
+  }
+  .dark .bg-popover {
+    background-color: hsl(0 0% 24% / 0.92) !important;
+    backdrop-filter: blur(8px);
   }
 
   /* ============================================================
