@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
 import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
 import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
