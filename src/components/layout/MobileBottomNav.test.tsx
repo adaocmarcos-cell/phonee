@@ -78,7 +78,8 @@ describe("MobileBottomNav — theme & a11y", () => {
     renderNav();
     const nav = screen.getByRole("navigation");
     // jsdom drops unknown css funcs from style.cssText, so check raw HTML.
-    expect(nav.outerHTML).toMatch(/safe-area-inset-bottom/);
+    expect(nav.className).toMatch(/safe-area-inset-bottom/);
+    expect(nav.getAttribute("data-safe-area")).toBe("bottom");
   });
 
   it("marks the active route with aria-current=page", () => {
