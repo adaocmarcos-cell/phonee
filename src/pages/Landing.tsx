@@ -14,7 +14,7 @@ import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
   ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play,
-  DollarSign, Percent, Package, Gift, type LucideIcon,
+  DollarSign, Percent, Package, Gift, Loader2, type LucideIcon,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 const logo = logoAsset.url;
@@ -148,6 +148,7 @@ export default function Landing() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [refOpen, setRefOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<null | "trial" | "annual" | "lifetime">(null);
   // "Ver demonstração" foi temporariamente desativado — agora abre "Experimente grátis".
   const handleDemo = () => setFreeTrialOpen(true);
   useEffect(() => {
@@ -172,6 +173,23 @@ export default function Landing() {
       currency: "BRL",
       custom: { content_name: plan === "lifetime" ? "Plano Vitalício" : "Plano Anual", content_category: "subscription", source },
     });
+  };
+
+  // Inicia o fluxo de compra/ativação a partir dos cards — mesma rota usada em /comprar.
+  const goToPlan = (plan: "annual" | "lifetime", source: string) => {
+    if (pendingPlan) return;
+    setPendingPlan(plan);
+    trackCheckoutClick(plan, source);
+    // pequeno atraso para o feedback visual antes da navegação
+    setTimeout(() => navigate(`/comprar?plano=${plan}`), 120);
+  };
+
+  const openTrialFlow = () => {
+    if (pendingPlan) return;
+    setPendingPlan("trial");
+    setFreeTrialOpen(true);
+    // libera o botão se o usuário fechar o dialog sem concluir
+    setTimeout(() => setPendingPlan(null), 600);
   };
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -641,7 +659,7 @@ export default function Landing() {
             subtitle="Experimente grátis por 7 dias. Depois, escolha Plano Anual ou Vitalício."
           />
 
-          <div className="mt-10 grid lg:grid-cols-3 gap-6 items-stretch">
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {/* Teste grátis — 7 dias */}
             <Reveal direction="left" duration={1000} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
@@ -674,10 +692,15 @@ export default function Landing() {
                   <Button
                     size="lg"
                     type="button"
-                    onClick={() => setFreeTrialOpen(true)}
+                    onClick={openTrialFlow}
+                    disabled={pendingPlan !== null}
                     className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white"
                   >
-                    Experimente grátis por 7 dias <ArrowRight className="ml-1.5 h-4 w-4" />
+                    {pendingPlan === "trial" ? (
+                      <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Abrindo cadastro…</>
+                    ) : (
+                      <>Experimente grátis por 7 dias <ArrowRight className="ml-1.5 h-4 w-4" /></>
+                    )}
                   </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
                     Após 7 dias: <b>Anual</b> ou <b>Vitalício</b>.
@@ -713,11 +736,20 @@ export default function Landing() {
                 </ul>
 
                 <div className="mt-auto">
-                  <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "pricing_card")} className="block mt-7">
-                    <Button size="lg" variant="outline" className="w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white">
-                      Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <Button
+                    size="lg"
+                    type="button"
+                    variant="outline"
+                    onClick={() => goToPlan("annual", "pricing_card")}
+                    disabled={pendingPlan !== null}
+                    className="mt-7 w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white"
+                  >
+                    {pendingPlan === "annual" ? (
+                      <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
+                    ) : (
+                      <>Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" /></>
+                    )}
+                  </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                     <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                   </div>
@@ -764,11 +796,19 @@ export default function Landing() {
                 </p>
 
                 <div className="mt-auto">
-                  <Link to="/comprar?plano=lifetime" onClick={() => trackCheckoutClick("lifetime", "pricing_card")} className="block mt-7">
-                    <Button size="lg" className="w-full bg-gradient-primary shadow-glow h-12 text-base">
-                      Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <Button
+                    size="lg"
+                    type="button"
+                    onClick={() => goToPlan("lifetime", "pricing_card")}
+                    disabled={pendingPlan !== null}
+                    className="mt-7 w-full bg-gradient-primary shadow-glow h-12 text-base"
+                  >
+                    {pendingPlan === "lifetime" ? (
+                      <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
+                    ) : (
+                      <>Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" /></>
+                    )}
+                  </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
                     <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
                   </div>
