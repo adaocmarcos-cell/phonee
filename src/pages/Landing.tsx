@@ -695,13 +695,18 @@ export default function Landing() {
                 </ul>
 
                 <div className="mt-auto">
-                  <Link to="/testegratis" className="block">
+                  <Link
+                    to="/testegratis"
+                    aria-label="Experimente grátis por 7 dias"
+                    onClick={() => trackCheckoutClick("trial", "pricing_card")}
+                    className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
                     <Button
                       size="lg"
-                      type="button"
-                      className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white whitespace-nowrap"
+                      asChild
+                      className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 hover:shadow-lg active:scale-[0.99] text-white whitespace-nowrap transition-all"
                     >
-                      Experimente grátis <ArrowRight className="ml-1.5 h-4 w-4" />
+                      <span>Experimente grátis <ArrowRight className="ml-1.5 h-4 w-4" /></span>
                     </Button>
                   </Link>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
@@ -834,14 +839,21 @@ export default function Landing() {
             Automatize processos, reduza erros, acompanhe seus números diariamente
             e tenha mais liberdade para crescer.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "final_cta")}>
-              <Button size="lg" className="bg-gradient-primary h-12 px-7 text-base animate-neon-pulse rounded-md">
+          <div className="mt-8 flex flex-col sm:flex-row flex-wrap justify-center items-stretch sm:items-center gap-3">
+            <Link
+              to="/comprar?plano=annual"
+              onClick={() => trackCheckoutClick("annual", "final_cta")}
+              className="w-full sm:w-auto rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(226_50%_15%)]"
+            >
+              <Button size="lg" className="w-full sm:w-auto bg-gradient-primary h-12 px-7 text-base animate-neon-pulse rounded-md hover:shadow-glow active:scale-[0.99] transition-all">
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/entrar">
-              <Button size="lg" variant="outline" className="h-12 px-7 text-base bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
+            <Link
+              to="/entrar"
+              className="w-full sm:w-auto rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(226_50%_15%)]"
+            >
+              <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 px-7 text-base bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white active:scale-[0.99] transition-all">
                 Fazer login
               </Button>
             </Link>
