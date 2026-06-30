@@ -9,9 +9,12 @@ export type ProductCategoryInput = {
   subcategory?: string;
 };
 
-export type ProductCategoryValidation =
-  | { ok: true; category: string; subcategory: string | null }
-  | { ok: false; message: string };
+export type ProductCategoryValidation = {
+  ok: boolean;
+  category: string;
+  subcategory: string | null;
+  message?: string;
+};
 
 /**
  * Valida os campos de categoria/subcategoria antes do envio ao banco.
@@ -21,11 +24,13 @@ export type ProductCategoryValidation =
 export function validateProductCategory(input: ProductCategoryInput): ProductCategoryValidation {
   const category = (input.category ?? "").trim();
   if (!category) {
-    return { ok: false, message: "Selecione uma categoria principal." };
+    return { ok: false, category: "", subcategory: null, message: "Selecione uma categoria principal." };
   }
   if (!VALID_MAIN_CATEGORIES.includes(category)) {
     return {
       ok: false,
+      category,
+      subcategory: null,
       message: `Categoria inválida ("${category}"). Selecione uma das opções da lista.`,
     };
   }
