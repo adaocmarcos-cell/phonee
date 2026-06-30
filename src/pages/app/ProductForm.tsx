@@ -21,6 +21,8 @@ import {
   friendlyCategoryError,
   subcategoriesFor,
   NONE_SUBCATEGORY,
+  prefillSubcategoryFromDb,
+  reconcileSubcategoryOnCategoryChange,
 } from "@/lib/productCategory";
 import { brl } from "@/lib/format";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -104,8 +106,8 @@ export default function ProductForm() {
         setForm({
           ...empty,
           ...raw,
-          // Garante que "Sem subcategoria" seja respeitado quando o banco não tem valor salvo.
-          subcategory: raw.subcategory ?? "",
+          // Garante que "— Sem subcategoria —" seja respeitado quando o banco não tem valor salvo.
+          subcategory: prefillSubcategoryFromDb(raw.subcategory),
           cost_price: Number(data.cost_price),
           sale_price: Number(data.sale_price),
           data_entrada: raw.data_entrada || empty.data_entrada,
@@ -223,9 +225,12 @@ export default function ProductForm() {
               <Select
                 value={form.category}
                 onValueChange={(v) => {
-                  set("category", v);
-                  // limpa subcategoria ao trocar de categoria principal
-                  set("subcategory", "");
+                  setForm((f) => ({
+                    ...f,
+                    category: v,
+                    // Só limpa a subcategoria se ela deixar de ser válida na nova categoria.
+                    subcategory: reconcileSubcategoryOnCategoryChange(v, f.subcategory),
+                  }));
                 }}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
