@@ -14,7 +14,7 @@ import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
   ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play,
-  DollarSign, Percent, Package, Gift, Loader2, type LucideIcon,
+  DollarSign, Percent, Package, Gift, Loader2, BadgeCheck, type LucideIcon,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 const logo = logoAsset.url;
@@ -670,7 +670,8 @@ export default function Landing() {
             <Reveal direction="left" duration={1000} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-info/60 bg-card h-full flex flex-col">
-                <Badge className="bg-info/15 text-info border-info/40 text-sm">
+                <Badge className="bg-info/15 text-info border-info/40 text-sm inline-flex items-center gap-1.5">
+                  <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
                   TRIAL · SEM CARTÃO
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
