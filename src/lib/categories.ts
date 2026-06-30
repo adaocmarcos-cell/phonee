@@ -3,7 +3,57 @@ export type ProductCategory = {
   label: string;
 };
 
+// Categorias PRINCIPAIS — devem corresponder ao enum `product_category` no banco.
+// Valores válidos: acessorio | peca | aparelho_novo | aparelho_seminovo
+export const MAIN_CATEGORIES: ProductCategory[] = [
+  { value: "acessorio", label: "Acessório" },
+  { value: "peca", label: "Peça" },
+  { value: "aparelho_novo", label: "Aparelho novo" },
+  { value: "aparelho_seminovo", label: "Aparelho seminovo" },
+];
+
+// Subcategorias sugeridas por categoria principal (opcionais).
+export const SUBCATEGORIES_BY_MAIN: Record<string, ProductCategory[]> = {
+  acessorio: [
+    { value: "fones", label: "Fones de ouvido" },
+    { value: "caixas_som", label: "Caixas de som" },
+    { value: "carregadores", label: "Carregadores" },
+    { value: "cabos", label: "Cabos" },
+    { value: "capas", label: "Capas" },
+    { value: "peliculas", label: "Películas" },
+    { value: "powerbanks", label: "Powerbanks" },
+    { value: "smartwatches", label: "Smartwatches" },
+    { value: "memoria", label: "Memória" },
+    { value: "outros", label: "Outros" },
+  ],
+  peca: [
+    { value: "tela", label: "Tela / Display" },
+    { value: "bateria", label: "Bateria" },
+    { value: "conector_carga", label: "Conector de carga" },
+    { value: "alto_falante", label: "Alto-falante" },
+    { value: "camera", label: "Câmera" },
+    { value: "tampa", label: "Tampa traseira" },
+    { value: "placa", label: "Placa / Componente" },
+    { value: "outros", label: "Outros" },
+  ],
+  aparelho_novo: [
+    { value: "smartphones", label: "Smartphones" },
+    { value: "smartwatches", label: "Smartwatches" },
+    { value: "tablets", label: "Tablets" },
+    { value: "outros", label: "Outros" },
+  ],
+  aparelho_seminovo: [
+    { value: "smartphones", label: "Smartphones" },
+    { value: "smartwatches", label: "Smartwatches" },
+    { value: "tablets", label: "Tablets" },
+    { value: "outros", label: "Outros" },
+  ],
+};
+
+// Mantido para compatibilidade com telas existentes (Estoque, TabelasPreco)
+// que usam o conjunto antigo como rótulos de exibição.
 export const DEFAULT_CATEGORIES: ProductCategory[] = [
+  ...MAIN_CATEGORIES,
   { value: "smartphones", label: "Smartphones" },
   { value: "smartwatches", label: "Smartwatches" },
   { value: "powerbanks", label: "Powerbanks" },
