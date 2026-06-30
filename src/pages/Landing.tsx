@@ -671,7 +671,7 @@ export default function Landing() {
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-info/60 bg-card h-full flex flex-col">
                 <Badge className="bg-info/15 text-info border-info/40 text-sm">
-                  🎁 TRIAL · SEM CARTÃO
+                  TRIAL · SEM CARTÃO
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
                   Plano Trial · 7 dias grátis
@@ -695,19 +695,15 @@ export default function Landing() {
                 </ul>
 
                 <div className="mt-auto">
-                  <Button
-                    size="lg"
-                    type="button"
-                    onClick={() => openTrialFlow("pricing_card")}
-                    disabled={pendingPlan !== null}
-                    className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white whitespace-nowrap"
-                  >
-                    {pendingPlan === "trial" ? (
-                      <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Abrindo cadastro…</>
-                    ) : (
-                      <>Começar 7 dias grátis <ArrowRight className="ml-1.5 h-4 w-4" /></>
-                    )}
-                  </Button>
+                  <Link to="/testegratis" className="block">
+                    <Button
+                      size="lg"
+                      type="button"
+                      className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 text-white whitespace-nowrap"
+                    >
+                      Experimente grátis <ArrowRight className="ml-1.5 h-4 w-4" />
+                    </Button>
+                  </Link>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
                     <Lock className="h-3 w-3" /> Sem cartão · Bloqueio automático ao final
                   </div>
@@ -844,13 +840,6 @@ export default function Landing() {
                 Comprar agora <ArrowRight className="ml-1.5 h-4 w-4" />
               </Button>
             </Link>
-            <a
-              role="button"
-              onClick={() => setFreeTrialOpen(true)}
-              className="h-12 px-7 text-base bg-info hover:bg-info/90 text-white rounded-md inline-flex items-center justify-center cursor-pointer"
-            >
-              {"\n"}
-            </a>
             <Link to="/entrar">
               <Button size="lg" variant="outline" className="h-12 px-7 text-base bg-white/5 text-white border-white/30 hover:bg-white/10 hover:text-white">
                 Fazer login
