@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save, RefreshCw } from "lucide-react";
 import { z } from "zod";
-import { DEFAULT_CATEGORIES, getCustomCategories, addCustomCategory } from "@/lib/categories";
+import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
 import { brl } from "@/lib/format";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
@@ -87,9 +87,6 @@ export default function ProductForm() {
   const { store, role } = useAuth();
   const [form, setForm] = useState<FormState>(empty);
   const [busy, setBusy] = useState(false);
-  const [customCats, setCustomCats] = useState(() => getCustomCategories());
-  const [showOtherInput, setShowOtherInput] = useState(false);
-  const [otherName, setOtherName] = useState("");
   const [entryOpen, setEntryOpen] = useState(true);
 
   useEffect(() => {
@@ -207,54 +204,45 @@ export default function ProductForm() {
         <Card className="p-6 bg-card border-border shadow-card">
           <h3 className="font-semibold mb-4">Classificação</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Categoria">
+            <Field label="Categoria *">
               <Select
                 value={form.category}
                 onValueChange={(v) => {
-                  if (v === "__add_other__") {
-                    setShowOtherInput(true);
-                    return;
-                  }
                   set("category", v);
-                  setShowOtherInput(false);
+                  // limpa subcategoria ao trocar de categoria principal
+                  set("subcategory", "");
                 }}
               >
                 <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
                 <SelectContent>
-                  {DEFAULT_CATEGORIES.map((c) => (
+                  {MAIN_CATEGORIES.map((c) => (
                     <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                   ))}
-                  {customCats.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                  <SelectItem value="__add_other__">+ Adicionar nova categoria…</SelectItem>
                 </SelectContent>
               </Select>
-              {showOtherInput && (
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    placeholder="Nome da nova categoria"
-                    value={otherName}
-                    onChange={(e) => setOtherName(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      if (!otherName.trim()) return;
-                      const created = addCustomCategory(otherName);
-                      setCustomCats(getCustomCategories());
-                      set("category", created.value);
-                      setOtherName("");
-                      setShowOtherInput(false);
-                      toast.success("Categoria adicionada");
-                    }}
-                  >
-                    Salvar
-                  </Button>
-                </div>
-              )}
             </Field>
-            <Field label="Subcategoria"><Input value={form.subcategory} onChange={(e) => set("subcategory", e.target.value)} placeholder="Capa, Película, Cabo…" /></Field>
+            <Field label="Subcategoria (opcional)">
+              {(() => {
+                const subs = SUBCATEGORIES_BY_MAIN[form.category] ?? [{ value: "outros", label: "Outros" }];
+                return (
+                  <Select
+                    value={form.subcategory || "__none__"}
+                    onValueChange={(v) => set("subcategory", v === "__none__" ? "" : v)}
+                    disabled={!form.category}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={form.category ? "Selecione (opcional)" : "Escolha a categoria primeiro"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Sem subcategoria —</SelectItem>
+                      {subs.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
+            </Field>
             <Field label="Condição">
               <Select value={form.condition} onValueChange={(v) => set("condition", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
