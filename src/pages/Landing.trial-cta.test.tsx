@@ -3,6 +3,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import Landing from "./Landing";
 
+// jsdom polyfill
+class IO { observe(){} unobserve(){} disconnect(){} takeRecords(){return []} }
+// @ts-ignore
+globalThis.IntersectionObserver = globalThis.IntersectionObserver || IO;
+
 vi.mock("@/lib/trackVisit", () => ({ trackPageVisit: vi.fn() }));
 const trackMetaEvent = vi.fn();
 vi.mock("@/lib/metaPixel", () => ({ trackMetaEvent: (...a: any[]) => trackMetaEvent(...a) }));
