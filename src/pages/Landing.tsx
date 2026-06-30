@@ -694,24 +694,17 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <div className="mt-auto pt-7">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="mx-auto flex w-[90%] h-12 text-base font-semibold bg-gradient-primary text-white shadow-glow hover:brightness-110 active:scale-[0.99] whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    <Link
-                      to="/testegratis"
-                      aria-label="Experimentar grátis por 7 dias"
-                      onClick={() => trackCheckoutClick("trial", "pricing_card")}
-                    >
-                      Experimentar Grátis <ArrowRight className="ml-1.5 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
-                    <Lock className="h-3 w-3" /> Sem cartão · Veja na prática como funciona
-                  </div>
-                </div>
+                <PlanCardActions
+                  ctas={[{
+                    id: "trial",
+                    to: "/testegratis",
+                    ariaLabel: "Experimentar grátis por 7 dias",
+                    label: "Experimentar Grátis",
+                    trailingIcon: ArrowRight,
+                    onClick: () => trackCheckoutClick("trial", "pricing_card"),
+                  }]}
+                  helper="Sem cartão · Veja na prática como funciona"
+                />
               </Card>
             </Reveal>
 
@@ -741,24 +734,19 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <div className="mt-auto pt-7">
-                  <Button
-                    size="lg"
-                    type="button"
-                    onClick={() => goToPlan("annual", "pricing_card")}
-                    disabled={pendingPlan !== null}
-                    className="mx-auto flex w-[90%] h-12 text-base font-semibold bg-gradient-primary text-white shadow-glow hover:brightness-110 active:scale-[0.99] whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    {pendingPlan === "annual" ? (
-                      <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
-                    ) : (
-                      <>Assinar Anual <ArrowRight className="ml-1.5 h-4 w-4" /></>
-                    )}
-                  </Button>
-                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
-                    <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
-                  </div>
-                </div>
+                <PlanCardActions
+                  ctas={[{
+                    id: "annual",
+                    ariaLabel: "Assinar Anual",
+                    label: <>Assinar Anual</>,
+                    trailingIcon: ArrowRight,
+                    onClick: () => goToPlan("annual", "pricing_card"),
+                    disabled: pendingPlan !== null,
+                    loading: pendingPlan === "annual",
+                    loadingLabel: <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>,
+                  }]}
+                  helper="Pagamento 100% seguro · Acesso imediato"
+                />
               </Card>
             </Reveal>
 
@@ -800,24 +788,19 @@ export default function Landing() {
                   sem cobranças de mensalidade ou renovação.
                 </p>
 
-                <div className="mt-auto pt-7">
-                  <Button
-                    size="lg"
-                    type="button"
-                    onClick={() => goToPlan("lifetime", "pricing_card")}
-                    disabled={pendingPlan !== null}
-                    className="mx-auto flex w-[90%] h-12 text-base font-semibold bg-gradient-primary text-white shadow-glow hover:brightness-110 active:scale-[0.99] whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    {pendingPlan === "lifetime" ? (
-                      <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
-                    ) : (
-                      <>Quero Vitalício <ArrowRight className="ml-1.5 h-4 w-4" /></>
-                    )}
-                  </Button>
-                  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
-                    <Lock className="h-3 w-3" /> Pagamento 100% seguro · Acesso imediato
-                  </div>
-                </div>
+                <PlanCardActions
+                  ctas={[{
+                    id: "lifetime",
+                    ariaLabel: "Quero Vitalício",
+                    label: <>Quero Vitalício</>,
+                    trailingIcon: ArrowRight,
+                    onClick: () => goToPlan("lifetime", "pricing_card"),
+                    disabled: pendingPlan !== null,
+                    loading: pendingPlan === "lifetime",
+                    loadingLabel: <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>,
+                  }]}
+                  helper="Pagamento 100% seguro · Acesso imediato"
+                />
               </Card>
             </Reveal>
           </div>
