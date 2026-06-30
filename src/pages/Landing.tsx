@@ -699,14 +699,14 @@ export default function Landing() {
                   <Button
                     asChild
                     size="lg"
-                    className="mx-auto flex w-[90%] h-12 text-base bg-primary hover:bg-primary/90 hover:brightness-110 hover:shadow-glow active:scale-[0.99] text-white whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="mx-auto flex w-[90%] h-12 text-base font-semibold bg-gradient-primary text-white shadow-glow hover:brightness-110 active:scale-[0.99] whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     <Link
                       to="/testegratis"
-                      aria-label="Experimente grátis por 7 dias"
+                      aria-label="Experimentar grátis por 7 dias"
                       onClick={() => trackCheckoutClick("trial", "pricing_card")}
                     >
-                      Experimente Grátis <ArrowRight className="ml-1.5 h-4 w-4" />
+                      Experimentar Grátis <ArrowRight className="ml-1.5 h-4 w-4" />
                     </Link>
                   </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
