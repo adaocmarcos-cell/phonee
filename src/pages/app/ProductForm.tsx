@@ -16,6 +16,12 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, RefreshCw } from "lucide-react";
 import { z } from "zod";
 import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
+import {
+  validateProductCategory,
+  friendlyCategoryError,
+  subcategoriesFor,
+  NONE_SUBCATEGORY,
+} from "@/lib/productCategory";
 import { brl } from "@/lib/format";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
@@ -93,13 +99,18 @@ export default function ProductForm() {
     if (isNew || !store) return;
     (async () => {
       const { data } = await supabase.from("products").select("*").eq("id", id!).single();
-      if (data) setForm({
-        ...empty,
-        ...(data as any),
-        cost_price: Number(data.cost_price),
-        sale_price: Number(data.sale_price),
-        data_entrada: (data as any).data_entrada || empty.data_entrada,
-      });
+      if (data) {
+        const raw = data as any;
+        setForm({
+          ...empty,
+          ...raw,
+          // Garante que "Sem subcategoria" seja respeitado quando o banco não tem valor salvo.
+          subcategory: raw.subcategory ?? "",
+          cost_price: Number(data.cost_price),
+          sale_price: Number(data.sale_price),
+          data_entrada: raw.data_entrada || empty.data_entrada,
+        });
+      }
     })();
   }, [id, isNew, store]);
 
@@ -111,9 +122,11 @@ export default function ProductForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!store) return;
-    if (!form.category) {
-      return toast.error("Selecione uma categoria");
-    }
+    const catCheck = validateProductCategory({
+      category: form.category,
+      subcategory: form.subcategory,
+    });
+    if (!catCheck.ok) return toast.error(catCheck.message);
     const parsed = schema.safeParse({
       name: form.name, sku: form.sku, brand: form.brand, compatible_model: form.compatible_model,
       cost_price: Number(form.cost_price), sale_price: Number(form.sale_price),
@@ -130,8 +143,9 @@ export default function ProductForm() {
       ean: form.ean || null,
       brand: form.brand || null,
       compatible_model: form.compatible_model || null,
-      category: form.category,
-      subcategory: form.subcategory || null,
+      category: catCheck.category,
+      // Só envia subcategoria quando o usuário selecionou algo diferente de "— Sem subcategoria —".
+      subcategory: catCheck.subcategory,
       condition: form.condition,
       supplier: form.supplier || null,
       cost_price: Number(form.cost_price),
@@ -152,7 +166,8 @@ export default function ProductForm() {
     setBusy(false);
     if (error) {
       if ((error as any).code === "23505") return toast.error("Este SKU já está em uso. Use outro ou gere automaticamente.");
-      return toast.error(error.message);
+      const friendly = friendlyCategoryError(error as any);
+      return toast.error(friendly ?? error.message);
     }
     toast.success(isNew ? "Produto cadastrado" : "Produto atualizado");
     navigate("/painel/estoque");
@@ -223,18 +238,18 @@ export default function ProductForm() {
             </Field>
             <Field label="Subcategoria (opcional)">
               {(() => {
-                const subs = SUBCATEGORIES_BY_MAIN[form.category] ?? [{ value: "outros", label: "Outros" }];
+                const subs = subcategoriesFor(form.category);
                 return (
                   <Select
-                    value={form.subcategory || "__none__"}
-                    onValueChange={(v) => set("subcategory", v === "__none__" ? "" : v)}
+                    value={form.subcategory || NONE_SUBCATEGORY}
+                    onValueChange={(v) => set("subcategory", v === NONE_SUBCATEGORY ? "" : v)}
                     disabled={!form.category}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={form.category ? "Selecione (opcional)" : "Escolha a categoria primeiro"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— Sem subcategoria —</SelectItem>
+                      <SelectItem value={NONE_SUBCATEGORY}>— Sem subcategoria —</SelectItem>
                       {subs.map((s) => (
                         <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                       ))}
