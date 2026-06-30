@@ -10,13 +10,13 @@ describe("validateProductCategory", () => {
   it("exige categoria principal", () => {
     const r = validateProductCategory({ category: "" });
     expect(r.ok).toBe(false);
-    if (r.ok === false) expect(r.message).toMatch(/categoria/i);
+    expect(r.message).toMatch(/categoria/i);
   });
 
   it("rejeita categoria fora do enum", () => {
     const r = validateProductCategory({ category: "capas" });
     expect(r.ok).toBe(false);
-    if (r.ok === false) expect(r.message).toMatch(/inválida/i);
+    expect(r.message).toMatch(/inválida/i);
   });
 
   it("aceita categoria válida sem subcategoria", () => {
