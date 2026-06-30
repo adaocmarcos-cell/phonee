@@ -695,21 +695,20 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <div className="mt-auto">
-                  <Link
-                    to="/testegratis"
-                    aria-label="Experimente grátis por 7 dias"
-                    onClick={() => trackCheckoutClick("trial", "pricing_card")}
-                    className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                <div className="mt-auto pt-7">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="mx-auto flex w-[90%] h-12 text-base bg-primary hover:bg-primary/90 hover:brightness-110 hover:shadow-glow active:scale-[0.99] text-white whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
-                    <Button
-                      size="lg"
-                      asChild
-                      className="mt-7 w-full h-12 text-base bg-info hover:bg-info/90 hover:shadow-lg active:scale-[0.99] text-white whitespace-nowrap transition-all"
+                    <Link
+                      to="/testegratis"
+                      aria-label="Experimente grátis por 7 dias"
+                      onClick={() => trackCheckoutClick("trial", "pricing_card")}
                     >
-                      <span>Experimente grátis <ArrowRight className="ml-1.5 h-4 w-4" /></span>
-                    </Button>
-                  </Link>
+                      Experimente Grátis <ArrowRight className="ml-1.5 h-4 w-4" />
+                    </Link>
+                  </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
                     <Lock className="h-3 w-3" /> Sem cartão · Veja na prática como funciona
                   </div>
