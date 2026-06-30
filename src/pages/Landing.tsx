@@ -6,6 +6,8 @@ import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupD
 import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
 import { trackPageVisit } from "@/lib/trackVisit";
 import { trackMetaEvent } from "@/lib/metaPixel";
+import { createDedupTracker, planSourceKey } from "@/lib/trackDedup";
+import { PlanCardActions } from "@/components/landing/PlanCardActions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -177,12 +179,9 @@ export default function Landing() {
     lifetime: { value: 297, name: "Plano Vitalício", event: "InitiateCheckout" },
   };
   // Deduplicação simples (mesmo plano+source disparado em < 800ms = ignorado)
-  const lastTrackRef = useRef<{ key: string; ts: number } | null>(null);
+  const dedupRef = useRef(createDedupTracker(800));
   const trackCheckoutClick = (plan: "trial" | "annual" | "lifetime", source: string) => {
-    const key = `${plan}:${source}`;
-    const now = Date.now();
-    if (lastTrackRef.current && lastTrackRef.current.key === key && now - lastTrackRef.current.ts < 800) return;
-    lastTrackRef.current = { key, ts: now };
+    if (!dedupRef.current.track(planSourceKey(plan, source))) return;
     const meta = PLAN_META[plan];
     trackMetaEvent(meta.event, {
       value: meta.value,
