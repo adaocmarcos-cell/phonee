@@ -699,14 +699,14 @@ export default function Landing() {
                   <Button
                     asChild
                     size="lg"
-                    className="mx-auto flex w-[90%] h-12 text-base bg-primary hover:bg-primary/90 hover:brightness-110 hover:shadow-glow active:scale-[0.99] text-white whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="mx-auto flex w-[90%] h-12 text-base font-semibold bg-gradient-primary text-white shadow-glow hover:brightness-110 active:scale-[0.99] whitespace-nowrap transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     <Link
                       to="/testegratis"
-                      aria-label="Experimente grátis por 7 dias"
+                      aria-label="Experimentar grátis por 7 dias"
                       onClick={() => trackCheckoutClick("trial", "pricing_card")}
                     >
-                      Experimente Grátis <ArrowRight className="ml-1.5 h-4 w-4" />
+                      Experimentar Grátis <ArrowRight className="ml-1.5 h-4 w-4" />
                     </Link>
                   </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
@@ -742,19 +742,18 @@ export default function Landing() {
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
-                <div className="mt-auto">
+                <div className="mt-auto pt-7">
                   <Button
                     size="lg"
                     type="button"
-                    variant="outline"
                     onClick={() => goToPlan("annual", "pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full h-12 text-base border-2 border-primary text-primary hover:bg-primary hover:text-white whitespace-nowrap"
+                    className="mx-auto flex w-[90%] h-12 text-base font-semibold bg-gradient-primary text-white shadow-glow hover:brightness-110 active:scale-[0.99] whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     {pendingPlan === "annual" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
                     ) : (
-                      <>Assinar Plano Anual <ArrowRight className="ml-1.5 h-4 w-4" /></>
+                      <>Assinar Anual <ArrowRight className="ml-1.5 h-4 w-4" /></>
                     )}
                   </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
@@ -802,18 +801,18 @@ export default function Landing() {
                   sem cobranças de mensalidade ou renovação.
                 </p>
 
-                <div className="mt-auto">
+                <div className="mt-auto pt-7">
                   <Button
                     size="lg"
                     type="button"
                     onClick={() => goToPlan("lifetime", "pricing_card")}
                     disabled={pendingPlan !== null}
-                    className="mt-7 w-full bg-gradient-primary shadow-glow h-12 text-base whitespace-nowrap"
+                    className="mx-auto flex w-[90%] h-12 text-base font-semibold bg-gradient-primary text-white shadow-glow hover:brightness-110 active:scale-[0.99] whitespace-nowrap transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     {pendingPlan === "lifetime" ? (
                       <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Indo para o checkout…</>
                     ) : (
-                      <>Quero o Plano Vitalício <ArrowRight className="ml-1.5 h-4 w-4" /></>
+                      <>Quero Vitalício <ArrowRight className="ml-1.5 h-4 w-4" /></>
                     )}
                   </Button>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70">
