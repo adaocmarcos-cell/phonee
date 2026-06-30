@@ -4,6 +4,8 @@ import {
   friendlyCategoryError,
   subcategoriesFor,
   NONE_SUBCATEGORY,
+  prefillSubcategoryFromDb,
+  reconcileSubcategoryOnCategoryChange,
 } from "./productCategory";
 
 describe("validateProductCategory", () => {
@@ -91,5 +93,42 @@ describe("friendlyCategoryError", () => {
     expect(friendlyCategoryError({ code: "23505", message: "duplicate key" })).toBeNull();
     expect(friendlyCategoryError(null)).toBeNull();
     expect(friendlyCategoryError(undefined)).toBeNull();
+  });
+});
+
+describe("prefillSubcategoryFromDb", () => {
+  it("retorna '' para null/undefined (mostra '— Sem subcategoria —' no form)", () => {
+    expect(prefillSubcategoryFromDb(null)).toBe("");
+    expect(prefillSubcategoryFromDb(undefined)).toBe("");
+    expect(prefillSubcategoryFromDb("")).toBe("");
+    expect(prefillSubcategoryFromDb("   ")).toBe("");
+  });
+
+  it("retorna o valor para subcategoria salva", () => {
+    expect(prefillSubcategoryFromDb("capas")).toBe("capas");
+    expect(prefillSubcategoryFromDb(" outros ")).toBe("outros");
+  });
+});
+
+describe("reconcileSubcategoryOnCategoryChange", () => {
+  it("mantém subcategoria quando ainda é válida na nova categoria", () => {
+    expect(reconcileSubcategoryOnCategoryChange("aparelho_novo", "smartphones")).toBe("smartphones");
+  });
+
+  it("limpa subcategoria quando ela não pertence à nova categoria", () => {
+    expect(reconcileSubcategoryOnCategoryChange("acessorio", "tela")).toBe("");
+  });
+
+  it("limpa quando categoria é removida", () => {
+    expect(reconcileSubcategoryOnCategoryChange("", "capas")).toBe("");
+  });
+
+  it("retorna '' quando não há subcategoria atual", () => {
+    expect(reconcileSubcategoryOnCategoryChange("peca", "")).toBe("");
+  });
+
+  it("'outros' é válido em qualquer categoria mapeada", () => {
+    expect(reconcileSubcategoryOnCategoryChange("peca", "outros")).toBe("outros");
+    expect(reconcileSubcategoryOnCategoryChange("acessorio", "outros")).toBe("outros");
   });
 });
