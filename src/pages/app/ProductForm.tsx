@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Save, RefreshCw } from "lucide-react";
 import { z } from "zod";
-import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
+import { MAIN_CATEGORIES } from "@/lib/categories";
 import {
   validateProductCategory,
   friendlyCategoryError,
