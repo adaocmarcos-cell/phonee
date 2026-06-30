@@ -672,26 +672,26 @@ export default function Landing() {
               <Card className="relative p-8 md:p-10 border-2 border-info/60 bg-card h-full flex flex-col">
                 <Badge className="bg-info/15 text-info border-info/40 text-sm inline-flex items-center gap-1.5">
                   <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                  TRIAL · SEM CARTÃO
+                  EXPERIMENTE&nbsp;
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
-                  Plano Trial · 7 dias grátis
+                  TESTE · 7 DIAS GRÁTIS
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="metric text-6xl md:text-7xl text-info">R$ 0</span>
                 </div>
                 <div className="mt-1 text-xl font-extrabold">/7 dias</div>
                 <div className="mt-1 text-lg font-semibold text-foreground/80">
-                  Sem cartão · Cancelamento automático ao final.
+                  Veja o Phonee ajudando você a gerir o seu negócio
                 </div>
 
                 <ul className="mt-6 space-y-3">
                   {[
-                    "Acesso total por 7 dias",
+                    "Acesso grátuito por 7 dias",
                     "Todos os módulos liberados",
-                    "Sem cartão de crédito",
+                    "Teste, sem cartão de crédito.",
                     "Suporte humano por WhatsApp",
-                    "Bloqueio automático ao final",
+                    "Sua operação sincronizada em tempo real",
                   ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
                 </ul>
 
@@ -711,7 +711,7 @@ export default function Landing() {
                     </Button>
                   </Link>
                   <div className="mt-3 flex items-center justify-center gap-2 text-xs text-foreground/70 text-center">
-                    <Lock className="h-3 w-3" /> Sem cartão · Bloqueio automático ao final
+                    <Lock className="h-3 w-3" /> Sem cartão · Veja na prática como funciona
                   </div>
                 </div>
               </Card>
@@ -770,7 +770,7 @@ export default function Landing() {
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/50 to-info/30 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full shadow-glow flex flex-col">
                 <Badge className="bg-primary/15 text-primary border-primary/40 text-sm">
-                  <Star className="h-3.5 w-3.5 mr-1" /> RECOMENDADO · MELHOR CUSTO-BENEFÍCIO
+                  <Star className="h-3.5 w-3.5 mr-1" /> RECOMENDADO
                 </Badge>
                 <div className="mt-4 text-base font-bold uppercase tracking-wide text-primary">
                   Plano Vitalício · Pagamento único
