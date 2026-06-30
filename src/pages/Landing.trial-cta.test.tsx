@@ -104,7 +104,7 @@ describe("Landing — Trial CTA & footer CTAs", () => {
     renderLanding();
     fireEvent.click(screen.getByRole("button", { name: /assinar anual/i }));
     const anualCalls = trackMetaEvent.mock.calls.filter(
-      (c) => c[0] === "InitiateCheckout" && c[1]?.content_name?.match(/anual/i),
+      (c) => c[0] === "InitiateCheckout" && c[1]?.custom?.plan === "annual",
     );
     expect(anualCalls.length).toBe(1);
   });
