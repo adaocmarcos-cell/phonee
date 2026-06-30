@@ -77,3 +77,28 @@ export function subcategoriesFor(category: string) {
   if (!category) return [];
   return SUBCATEGORIES_BY_MAIN[category] ?? [{ value: "outros", label: "Outros" }];
 }
+
+/**
+ * Converte um valor de subcategoria vindo do banco em um valor de campo de formulário.
+ * Devolve string vazia quando não há valor, para que o `<Select>` mostre
+ * "— Sem subcategoria —" via sentinel.
+ */
+export function prefillSubcategoryFromDb(value: string | null | undefined): string {
+  if (value == null) return "";
+  const trimmed = String(value).trim();
+  return trimmed.length === 0 ? "" : trimmed;
+}
+
+/**
+ * Reage à troca de categoria principal: se a subcategoria atual não pertencer
+ * à nova categoria, ela é limpa. Caso contrário, mantém a seleção.
+ */
+export function reconcileSubcategoryOnCategoryChange(
+  newCategory: string,
+  currentSubcategory: string,
+): string {
+  if (!newCategory) return "";
+  if (!currentSubcategory) return "";
+  const allowed = subcategoriesFor(newCategory).map((s) => s.value);
+  return allowed.includes(currentSubcategory) ? currentSubcategory : "";
+}
