@@ -266,6 +266,7 @@ export default function Compras() {
       sku: it?.sku ?? "",
       brand: "",
       category: "",
+      subcategory: NONE_SUBCATEGORY,
       cost_price: Number(it?.unit_cost ?? 0),
       sale_price: 0,
     });
@@ -284,6 +285,7 @@ export default function Compras() {
       sku: newProd.sku.trim() || null,
       brand: newProd.brand.trim() || null,
       category: newProd.category,
+      subcategory: newProd.subcategory && newProd.subcategory !== NONE_SUBCATEGORY ? newProd.subcategory : null,
       cost_price: Number(newProd.cost_price) || 0,
       sale_price: Number(newProd.sale_price) || 0,
       stock_current: 0,
