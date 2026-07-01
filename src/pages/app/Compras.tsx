@@ -14,10 +14,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
-import { MAIN_CATEGORIES } from "@/lib/categories";
+import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
+import { generateUniqueSku } from "@/lib/sku";
+import { NONE_SUBCATEGORY } from "@/lib/productCategory";
 
 type Supplier = { id: string; company_name: string; brands: string[]; avg_delivery_days: number | null };
 type Item = { id?: string; product_id?: string | null; product_name: string; sku?: string | null; quantity: number; unit_cost: number; notes?: string | null };
@@ -91,10 +93,11 @@ export default function Compras() {
   const [openSuggestFor, setOpenSuggestFor] = useState<number | null>(null);
   const [newProdOpen, setNewProdOpen] = useState(false);
   const [newProdTargetIdx, setNewProdTargetIdx] = useState<number | null>(null);
-  const [newProd, setNewProd] = useState<{ name: string; sku: string; brand: string; category: string; cost_price: number; sale_price: number }>({
-    name: "", sku: "", brand: "", category: "", cost_price: 0, sale_price: 0,
+  const [newProd, setNewProd] = useState<{ name: string; sku: string; brand: string; category: string; subcategory: string; cost_price: number; sale_price: number }>({
+    name: "", sku: "", brand: "", category: "", subcategory: NONE_SUBCATEGORY, cost_price: 0, sale_price: 0,
   });
   const [newProdBusy, setNewProdBusy] = useState(false);
+  const [newSkuBusy, setNewSkuBusy] = useState(false);
 
   // Refs dos inputs de produto/qtd por linha (para restaurar foco após popup)
   const productInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
