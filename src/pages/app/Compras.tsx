@@ -580,10 +580,22 @@ export default function Compras() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Fornecedor</Label>
-              <Select value={form.supplier_id ?? ""} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.company_name}</SelectItem>)}</SelectContent>
-              </Select>
+              <Input
+                list="compras-fornecedores"
+                placeholder="Digite ou selecione (pode não estar cadastrado)"
+                value={(form as any).supplier ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  const match = suppliers.find((s) => s.company_name.toLowerCase() === v.trim().toLowerCase());
+                  setForm({ ...form, supplier: v, supplier_id: match?.id ?? null } as any);
+                }}
+              />
+              <datalist id="compras-fornecedores">
+                {suppliers.map((s) => <option key={s.id} value={s.company_name} />)}
+              </datalist>
+              {((form as any).supplier ?? "").trim() && !form.supplier_id && (
+                <p className="text-[11px] text-warning mt-1">Fornecedor não cadastrado — será salvo apenas como nome nesta compra.</p>
+              )}
             </div>
             <div>
               <Label>Forma de pagamento</Label>
@@ -623,6 +635,15 @@ export default function Compras() {
             <div>
               <Label>Previsão de entrega</Label>
               <Input type="date" value={form.expected_delivery_at ?? ""} onChange={(e) => setForm({ ...form, expected_delivery_at: e.target.value })} />
+            </div>
+            <div>
+              <Label>Data de entrada da mercadoria</Label>
+              <Input
+                type="date"
+                value={(form as any).received_at ?? ""}
+                onChange={(e) => setForm({ ...form, received_at: e.target.value } as any)}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Data em que os itens efetivamente entraram no estoque.</p>
             </div>
             <div>
               <Label>Status</Label>
