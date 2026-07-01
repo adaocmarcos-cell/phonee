@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canManageProducts } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -96,6 +96,45 @@ export default function Compras() {
   });
   const [newProdBusy, setNewProdBusy] = useState(false);
 
+  // Refs dos inputs de produto/qtd por linha (para restaurar foco após popup)
+  const productInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
+  const qtyInputsRef = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // Debounce da busca do autocomplete + índice ativo para navegação por teclado
+  const [debouncedTerm, setDebouncedTerm] = useState("");
+  const [activeSuggestIdx, setActiveSuggestIdx] = useState(0);
+  useEffect(() => {
+    if (openSuggestFor == null) { setDebouncedTerm(""); return; }
+    const term = items[openSuggestFor]?.product_name ?? "";
+    const t = setTimeout(() => setDebouncedTerm(term), 160);
+    return () => clearTimeout(t);
+  }, [openSuggestFor, items]);
+  useEffect(() => { setActiveSuggestIdx(0); }, [debouncedTerm, openSuggestFor]);
+
+  const focusRow = (idx: number, field: "product" | "qty" = "product") => {
+    // aguarda o próximo tick para o Radix devolver o foco após fechar o Dialog
+    setTimeout(() => {
+      const el = field === "qty" ? qtyInputsRef.current[idx] : productInputsRef.current[idx];
+      el?.focus();
+      if (field === "qty" && el) (el as HTMLInputElement).select?.();
+    }, 60);
+  };
+
+  // Destaca a parte casada do termo (case-insensitive)
+  const highlight = (text: string, term: string) => {
+    const t = term.trim();
+    if (!t) return text;
+    const i = text.toLowerCase().indexOf(t.toLowerCase());
+    if (i < 0) return text;
+    return (
+      <>
+        {text.slice(0, i)}
+        <mark className="bg-primary/20 text-primary px-0.5 rounded-sm">{text.slice(i, i + t.length)}</mark>
+        {text.slice(i + t.length)}
+      </>
+    );
+  };
+
   // financial summary (mês atual)
   const [monthSales, setMonthSales] = useState(0);
   const [monthPurchases, setMonthPurchases] = useState(0);
@@ -185,12 +224,24 @@ export default function Compras() {
   const suggestFor = (term: string): CatalogProduct[] => {
     const t = term.trim().toLowerCase();
     if (t.length < 2) return [];
-    return catalog
-      .filter((p) =>
-        (p.name ?? "").toLowerCase().includes(t) ||
-        (p.sku ?? "").toLowerCase().includes(t),
-      )
-      .slice(0, 8);
+    // Prioriza matches por SKU exato e por prefixo de nome
+    const scored = catalog
+      .map((p) => {
+        const name = (p.name ?? "").toLowerCase();
+        const sku = (p.sku ?? "").toLowerCase();
+        let score = -1;
+        if (sku === t) score = 100;
+        else if (sku.startsWith(t)) score = 80;
+        else if (name.startsWith(t)) score = 60;
+        else if (name.includes(t)) score = 40;
+        else if (sku.includes(t)) score = 30;
+        return { p, score };
+      })
+      .filter((x) => x.score >= 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map((x) => x.p);
+    return scored;
   };
 
   const pickSuggestion = (idx: number, p: CatalogProduct) => {
@@ -248,8 +299,9 @@ export default function Compras() {
     const created = data as CatalogProduct;
     setCatalog((c) => [created, ...c]);
     // Vincula ao item da compra
-    if (newProdTargetIdx != null) {
-      setItems((a) => a.map((x, i) => i === newProdTargetIdx ? {
+    const targetIdx = newProdTargetIdx;
+    if (targetIdx != null) {
+      setItems((a) => a.map((x, i) => i === targetIdx ? {
         ...x,
         product_id: created.id,
         product_name: created.name,
@@ -258,14 +310,14 @@ export default function Compras() {
       } : x));
     }
     toast.success("Produto cadastrado");
-    if (keepOpen) {
-      // "Salvar e continuar": adiciona uma nova linha em branco e reabre para próximo cadastro
-      setItems((a) => [...a, { product_name: "", quantity: 1, unit_cost: 0 }]);
-      setNewProdTargetIdx(items.length); // nova linha
-      setNewProd({ name: "", sku: "", brand: "", category: newProd.category, cost_price: 0, sale_price: 0 });
-    } else {
-      setNewProdOpen(false);
-      setNewProdTargetIdx(null);
+    // Em ambos os casos, fecha o popup, mantém o formulário de Compras aberto
+    // e devolve o foco à mesma linha (Compras nunca é fechado).
+    setNewProdOpen(false);
+    setNewProdTargetIdx(null);
+    if (targetIdx != null) {
+      // "Salvar e continuar" → foco no campo do produto da mesma linha
+      // "Salvar e vincular" → avança para a quantidade da mesma linha
+      focusRow(targetIdx, keepOpen ? "product" : "qty");
     }
   };
 
