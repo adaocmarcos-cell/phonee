@@ -677,37 +677,32 @@ export default function Compras() {
               </Button>
             </div>
 
-            <div className="mb-3 flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={skuQuery}
-                  onChange={(e) => setSkuQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBySku(); } }}
-                  placeholder="Adicionar via SKU (busca produto existente)"
-                  className="pl-9 h-9"
-                />
-              </div>
-              <Button type="button" size="sm" variant="outline" onClick={addBySku}>
-                <Plus className="h-3 w-3 mr-1" /> Adicionar por SKU
-              </Button>
-            </div>
-
             <div className="space-y-2">
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
-                  <div className="col-span-5 relative">
+                  <div className="col-span-7 relative">
                     <Input
-                      placeholder="Produto (nome ou SKU)"
+                      placeholder="Buscar produto por nome ou SKU…"
                       value={it.product_name}
                       onFocus={() => setOpenSuggestFor(idx)}
                       onBlur={() => setTimeout(() => setOpenSuggestFor((v) => v === idx ? null : v), 150)}
                       onChange={(e) => {
                         const v = e.target.value;
-                        setItems((a) => a.map((x, i) => i === idx ? { ...x, product_name: v, product_id: null } : x));
+                        // Busca única: se o texto casar exatamente com um SKU do catálogo, vincula automaticamente.
+                        const skuHit = catalog.find((p) => (p.sku ?? "").toLowerCase() === v.trim().toLowerCase());
+                        if (skuHit) {
+                          pickSuggestion(idx, skuHit);
+                          return;
+                        }
+                        setItems((a) => a.map((x, i) => i === idx ? { ...x, product_name: v, sku: "", product_id: null } : x));
                         setOpenSuggestFor(idx);
                       }}
                     />
+                    {it.product_id && it.sku && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1.5 py-0.5 rounded bg-success/15 text-success border border-success/30">
+                        SKU {it.sku}
+                      </div>
+                    )}
                     {openSuggestFor === idx && it.product_name.trim().length >= 2 && (() => {
                       const sugg = suggestFor(it.product_name);
                       return (
@@ -749,19 +744,6 @@ export default function Compras() {
                       );
                     })()}
                   </div>
-                  <Input
-                    className="col-span-2"
-                    placeholder="SKU"
-                    value={it.sku ?? ""}
-                    onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, sku: e.target.value, product_id: null } : x))}
-                    onBlur={async (e) => {
-                      const v = e.target.value.trim();
-                      if (!v || !store) return;
-                      // Se digitou SKU exato, tenta casar com um produto e preencher nome
-                      const match = catalog.find((p) => (p.sku ?? "").toLowerCase() === v.toLowerCase());
-                      if (match) pickSuggestion(idx, match);
-                    }}
-                  />
                   <Input className="col-span-2" type="number" min={1} placeholder="Qtd" value={it.quantity} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
                   <Input className="col-span-2" type="number" step="0.01" placeholder="Custo unit." value={it.unit_cost} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: Number(e.target.value) } : x))} />
                   <Button size="icon" variant="ghost" className="col-span-1 text-danger" onClick={() => setItems((a) => a.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button>
