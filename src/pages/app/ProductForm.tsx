@@ -190,10 +190,16 @@ export default function ProductForm() {
             <Field label="Nome *"><Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Capa silicone iPhone 15 Pro" /></Field>
             <Field label="SKU">
               <div className="flex gap-2">
-                <Input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="SKU-001" />
+                <Input
+                  value={form.sku}
+                  onChange={(e) => set("sku", e.target.value)}
+                  placeholder="Digite seu SKU ou clique em gerar"
+                />
                 <Button
                   type="button"
                   variant="outline"
+                  size="icon"
+                  aria-label="Gerar SKU automaticamente"
                   title="Gerar SKU automaticamente"
                   onClick={async () => {
                     if (!store) return;
@@ -207,9 +213,10 @@ export default function ProductForm() {
                     }
                   }}
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" />Gerar
+                  <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">Opcional. Se deixar em branco, o produto ficará sem SKU (nenhum código é gerado automaticamente ao salvar).</p>
             </Field>
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
             <Field label="Marca"><Input value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
