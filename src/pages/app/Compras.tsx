@@ -114,6 +114,45 @@ export default function Compras() {
   }, [openSuggestFor, items]);
   useEffect(() => { setActiveSuggestIdx(0); }, [debouncedTerm, openSuggestFor]);
 
+  // Fallback: se o autocomplete local não achar nada (ex.: catálogo com muitos
+  // produtos ou item sem estoque que não veio no lote inicial), busca ao vivo
+  // no banco por nome/SKU e mescla no catálogo. Assim, produtos existentes em
+  // Estoque — mesmo com estoque zero — aparecem como sugestão em Compras.
+  useEffect(() => {
+    if (!store) return;
+    const term = debouncedTerm.trim();
+    if (term.length < 2) return;
+    const local = suggestFor(term);
+    if (local.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      const like = `%${term.replace(/[%_]/g, (m) => `\\${m}`)}%`;
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, cost_price, category, brand")
+        .eq("store_id", store.id)
+        .or(`name.ilike.${like},sku.ilike.${like}`)
+        .limit(20);
+      if (cancelled || !data || data.length === 0) return;
+      setCatalog((prev) => {
+        const map = new Map(prev.map((p) => [p.id, p] as const));
+        for (const row of data as any[]) {
+          map.set(row.id, {
+            id: row.id,
+            name: row.name,
+            sku: row.sku ?? null,
+            cost_price: row.cost_price ?? null,
+            category: row.category ?? null,
+            brand: row.brand ?? null,
+          });
+        }
+        return Array.from(map.values());
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedTerm, store]);
+
   const focusRow = (idx: number, field: "product" | "qty" = "product") => {
     // aguarda o próximo tick para o Radix devolver o foco após fechar o Dialog
     setTimeout(() => {
