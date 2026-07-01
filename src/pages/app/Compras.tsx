@@ -984,29 +984,95 @@ export default function Compras() {
             </div>
             <div>
               <Label>SKU (opcional)</Label>
-              <Input value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder="Gera automaticamente se vazio" />
+              <div className="flex gap-2">
+                <Input
+                  value={newProd.sku}
+                  onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })}
+                  placeholder="Digite ou clique em gerar"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Gerar SKU automaticamente"
+                  title="Gerar SKU automaticamente"
+                  disabled={newSkuBusy}
+                  onClick={async () => {
+                    if (!store) return;
+                    if (!newProd.name.trim()) return toast.error("Preencha o nome do produto primeiro");
+                    try {
+                      setNewSkuBusy(true);
+                      const sku = await generateUniqueSku(store.id, newProd.name);
+                      setNewProd((p) => ({ ...p, sku }));
+                      toast.success(`SKU gerado: ${sku}`);
+                    } catch (e: any) {
+                      toast.error(e?.message || "Erro ao gerar SKU");
+                    } finally {
+                      setNewSkuBusy(false);
+                    }
+                  }}
+                >
+                  <RefreshCw className={`h-4 w-4 ${newSkuBusy ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
             </div>
             <div>
               <Label>Marca (opcional)</Label>
               <Input value={newProd.brand} onChange={(e) => setNewProd({ ...newProd, brand: e.target.value })} />
             </div>
-            <div className="md:col-span-2">
+            <div>
               <Label>Categoria *</Label>
-              <Select value={newProd.category} onValueChange={(v) => setNewProd({ ...newProd, category: v })}>
+              <Select
+                value={newProd.category}
+                onValueChange={(v) => setNewProd((p) => ({ ...p, category: v, subcategory: NONE_SUBCATEGORY }))}
+              >
                 <SelectTrigger><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
                 <SelectContent>
                   {MAIN_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-muted-foreground mt-1">Subcategoria é opcional e pode ser definida depois em Estoque.</p>
+            </div>
+            <div>
+              <Label>Subcategoria (opcional)</Label>
+              <Select
+                value={newProd.subcategory}
+                onValueChange={(v) => setNewProd((p) => ({ ...p, subcategory: v }))}
+                disabled={!newProd.category}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={newProd.category ? "Selecione (opcional)" : "Escolha a categoria primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE_SUBCATEGORY}>— Sem subcategoria —</SelectItem>
+                  {(SUBCATEGORIES_BY_MAIN[newProd.category] ?? []).map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Custo unitário</Label>
-              <Input type="number" step="0.01" value={newProd.cost_price} onChange={(e) => setNewProd({ ...newProd, cost_price: Number(e.target.value) })} />
+              <Input
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={newProd.cost_price === 0 ? "" : newProd.cost_price}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setNewProd({ ...newProd, cost_price: e.target.value === "" ? 0 : Number(e.target.value) })}
+              />
             </div>
             <div>
               <Label>Preço de venda (opcional)</Label>
-              <Input type="number" step="0.01" value={newProd.sale_price} onChange={(e) => setNewProd({ ...newProd, sale_price: Number(e.target.value) })} />
+              <Input
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={newProd.sale_price === 0 ? "" : newProd.sale_price}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setNewProd({ ...newProd, sale_price: e.target.value === "" ? 0 : Number(e.target.value) })}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2">
