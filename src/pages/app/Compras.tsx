@@ -255,7 +255,12 @@ export default function Compras() {
   }, [filtered]);
 
   const startNew = () => {
-    setForm({ status: "rascunho", payment_method: "", expected_delivery_at: "", notes: "", supplier_id: null, payment_status: "a_pagar", due_date: "", tags: [] });
+    setForm({
+      status: "rascunho", payment_method: "", expected_delivery_at: "", notes: "",
+      supplier_id: null, supplier: "",
+      payment_status: "a_pagar", due_date: "", tags: [],
+      received_at: new Date().toISOString().slice(0, 10),
+    } as any);
     setItems([{ product_name: "", quantity: 1, unit_cost: 0 }]);
     setBulk("");
     setSkuQuery("");
@@ -346,7 +351,15 @@ export default function Compras() {
     const validItems = items.filter((i) => i.product_name.trim() && i.quantity > 0);
     if (validItems.length === 0) { toast.error("Adicione ao menos um item"); return; }
     setSaving(true);
-    const supplierObj = suppliers.find((s) => s.id === form.supplier_id);
+    // Fornecedor: aceita cadastrado (id) OU digitado livre (nome).
+    const typedName = ((form as any).supplier ?? "").toString().trim();
+    const matched = suppliers.find(
+      (s) => s.company_name.toLowerCase() === typedName.toLowerCase(),
+    );
+    const supplierId = form.supplier_id || matched?.id || null;
+    const supplierName = matched?.company_name
+      ?? (typedName || suppliers.find((s) => s.id === form.supplier_id)?.company_name)
+      ?? null;
     const tagList = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
     const itemsPayload = validItems.map((it) => ({
       product_id: it.product_id || null,
@@ -361,8 +374,8 @@ export default function Compras() {
     // Gravação atômica: compra + itens + estoque (+ despesa) em uma única transação.
     const { data, error } = await supabase.rpc("create_purchase_with_stock" as any, {
       _store_id: store.id,
-      _supplier_id: form.supplier_id || null,
-      _supplier_name: supplierObj?.company_name ?? null,
+      _supplier_id: supplierId,
+      _supplier_name: supplierName,
       _payment_method: form.payment_method || null,
       _payment_status: form.payment_status || "a_pagar",
       _due_date: form.due_date || null,
@@ -378,6 +391,13 @@ export default function Compras() {
       return;
     }
     const res = (data ?? {}) as { total_units?: number; created?: number; updated?: number };
+    // Se o usuário informou a data de entrada, sobrescreve o received_at gerado pela RPC.
+    const receivedAt = (form as any).received_at as string | undefined;
+    const orderId = (data as any)?.order_id as string | undefined;
+    if (receivedAt && orderId) {
+      const iso = new Date(`${receivedAt}T12:00:00`).toISOString();
+      await supabase.from("purchase_orders").update({ received_at: iso }).eq("id", orderId);
+    }
     toast.success(`Entrada concluída · ${res.total_units ?? 0} un. no estoque`);
     if ((res.created ?? 0) > 0) toast.message(`${res.created} produto(s) novo(s) cadastrado(s)`);
     if ((res.updated ?? 0) > 0) toast.message(`${res.updated} produto(s) tiveram saldo atualizado`);
@@ -560,10 +580,22 @@ export default function Compras() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Fornecedor</Label>
-              <Select value={form.supplier_id ?? ""} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.company_name}</SelectItem>)}</SelectContent>
-              </Select>
+              <Input
+                list="compras-fornecedores"
+                placeholder="Digite ou selecione (pode não estar cadastrado)"
+                value={(form as any).supplier ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  const match = suppliers.find((s) => s.company_name.toLowerCase() === v.trim().toLowerCase());
+                  setForm({ ...form, supplier: v, supplier_id: match?.id ?? null } as any);
+                }}
+              />
+              <datalist id="compras-fornecedores">
+                {suppliers.map((s) => <option key={s.id} value={s.company_name} />)}
+              </datalist>
+              {((form as any).supplier ?? "").trim() && !form.supplier_id && (
+                <p className="text-[11px] text-warning mt-1">Fornecedor não cadastrado — será salvo apenas como nome nesta compra.</p>
+              )}
             </div>
             <div>
               <Label>Forma de pagamento</Label>
@@ -603,6 +635,15 @@ export default function Compras() {
             <div>
               <Label>Previsão de entrega</Label>
               <Input type="date" value={form.expected_delivery_at ?? ""} onChange={(e) => setForm({ ...form, expected_delivery_at: e.target.value })} />
+            </div>
+            <div>
+              <Label>Data de entrada da mercadoria</Label>
+              <Input
+                type="date"
+                value={(form as any).received_at ?? ""}
+                onChange={(e) => setForm({ ...form, received_at: e.target.value } as any)}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Data em que os itens efetivamente entraram no estoque.</p>
             </div>
             <div>
               <Label>Status</Label>
