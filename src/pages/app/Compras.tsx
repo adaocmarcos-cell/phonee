@@ -144,6 +144,44 @@ export default function Compras() {
     })();
   }, [open, store]);
 
+  // Sincronização em tempo real: qualquer produto criado/editado/removido em
+  // Estoque aparece imediatamente no autocomplete de Compras (mesma base).
+  useEffect(() => {
+    if (!store) return;
+    const channel = supabase
+      .channel(`products-sync-${store.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products", filter: `store_id=eq.${store.id}` },
+        (payload) => {
+          setCatalog((prev) => {
+            if (payload.eventType === "DELETE") {
+              const oldId = (payload.old as any)?.id;
+              return prev.filter((p) => p.id !== oldId);
+            }
+            const row = payload.new as any;
+            const next: CatalogProduct = {
+              id: row.id,
+              name: row.name,
+              sku: row.sku ?? null,
+              cost_price: row.cost_price ?? null,
+              category: row.category ?? null,
+              brand: row.brand ?? null,
+            };
+            const idx = prev.findIndex((p) => p.id === next.id);
+            if (idx === -1) return [next, ...prev];
+            const copy = prev.slice();
+            copy[idx] = next;
+            return copy;
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [store]);
+
   const suggestFor = (term: string): CatalogProduct[] => {
     const t = term.trim().toLowerCase();
     if (t.length < 2) return [];
