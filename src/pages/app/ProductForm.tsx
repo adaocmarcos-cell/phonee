@@ -280,9 +280,29 @@ export default function ProductForm() {
           <h3 className="font-semibold mb-4">Preço & Estoque</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {canSeeCost(role) && (
-              <Field label="Preço de custo (R$)"><Input type="number" step="0.01" value={form.cost_price} onChange={(e) => set("cost_price", e.target.value)} /></Field>
+              <Field label="Preço de custo (R$)">
+                <Input
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={form.cost_price === 0 ? "" : form.cost_price}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => set("cost_price", e.target.value === "" ? 0 : Number(e.target.value))}
+                />
+              </Field>
             )}
-            <Field label="Preço de venda (R$)"><Input type="number" step="0.01" value={form.sale_price} onChange={(e) => set("sale_price", e.target.value)} /></Field>
+            <Field label="Preço de venda (R$)">
+              <Input
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={form.sale_price === 0 ? "" : form.sale_price}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => set("sale_price", e.target.value === "" ? 0 : Number(e.target.value))}
+              />
+            </Field>
             {canSeeCost(role) && (
               <Field label="Margem">
                 <div className={`metric h-10 px-3 flex items-center rounded-md border border-border bg-muted/30 ${margin >= 30 ? "text-success" : margin >= 15 ? "text-warning" : "text-danger"}`}>
@@ -311,7 +331,15 @@ export default function ProductForm() {
                 <div className="px-6 pb-6 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Field label="Custo de aquisição (R$)">
-                      <Input type="number" step="0.01" value={form.cost_price} onChange={(e) => set("cost_price", e.target.value)} placeholder="Quanto você pagou?" />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
+                        placeholder="Quanto você pagou?"
+                        value={form.cost_price === 0 ? "" : form.cost_price}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => set("cost_price", e.target.value === "" ? 0 : Number(e.target.value))}
+                      />
                     </Field>
                     <Field label="Fornecedor / Origem">
                       <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Nome ou telefone" />
