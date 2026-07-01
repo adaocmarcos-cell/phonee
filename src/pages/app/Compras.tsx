@@ -742,21 +742,6 @@ export default function Compras() {
                 <SelectContent>{(Object.keys(STATUS_LABEL) as Order["status"][]).map((s) => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-2">
-              <Label>Tags (separadas por vírgula)</Label>
-              <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="ex.: capa, iPhone 15, importado" />
-              {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).map((t, i) => (
-                    <Badge key={i} variant="outline" className="border-border text-[11px]">{t}</Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="md:col-span-2">
-              <Label>Observações</Label>
-              <Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
           </div>
 
           <div className="mt-4">
@@ -772,10 +757,34 @@ export default function Compras() {
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
                   <div className="col-span-7 relative">
                     <Input
+                      ref={(el) => { productInputsRef.current[idx] = el; }}
                       placeholder="Buscar produto por nome ou SKU…"
                       value={it.product_name}
                       onFocus={() => setOpenSuggestFor(idx)}
                       onBlur={() => setTimeout(() => setOpenSuggestFor((v) => v === idx ? null : v), 150)}
+                      onKeyDown={(e) => {
+                        if (openSuggestFor !== idx) return;
+                        const sugg = suggestFor(debouncedTerm || it.product_name);
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          setActiveSuggestIdx((i) => Math.min(i + 1, Math.max(sugg.length - 1, 0)));
+                        } else if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          setActiveSuggestIdx((i) => Math.max(i - 1, 0));
+                        } else if (e.key === "Enter") {
+                          if (sugg.length > 0) {
+                            e.preventDefault();
+                            const chosen = sugg[Math.min(activeSuggestIdx, sugg.length - 1)];
+                            pickSuggestion(idx, chosen);
+                            focusRow(idx, "qty");
+                          } else if (it.product_name.trim().length >= 2) {
+                            e.preventDefault();
+                            openNewProductFor(idx);
+                          }
+                        } else if (e.key === "Escape") {
+                          setOpenSuggestFor(null);
+                        }
+                      }}
                       onChange={(e) => {
                         const v = e.target.value;
                         // Busca única: se o texto casar exatamente com um SKU do catálogo, vincula automaticamente.
@@ -793,8 +802,9 @@ export default function Compras() {
                         SKU {it.sku}
                       </div>
                     )}
-                    {openSuggestFor === idx && it.product_name.trim().length >= 2 && (() => {
-                      const sugg = suggestFor(it.product_name);
+                    {openSuggestFor === idx && (debouncedTerm || it.product_name).trim().length >= 2 && (() => {
+                      const term = (debouncedTerm || it.product_name).trim();
+                      const sugg = suggestFor(debouncedTerm || it.product_name);
                       return (
                         <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
                           {sugg.length === 0 ? (
@@ -804,20 +814,21 @@ export default function Compras() {
                               onMouseDown={(e) => { e.preventDefault(); openNewProductFor(idx); }}
                             >
                               <Plus className="h-3.5 w-3.5 text-primary" />
-                              <span>Cadastrar <span className="font-medium">"{it.product_name.trim()}"</span> como novo produto</span>
+                              <span>Cadastrar <span className="font-medium">"{term}"</span> como novo produto</span>
                             </button>
                           ) : (
                             <>
-                              {sugg.map((p) => (
+                              {sugg.map((p, si) => (
                                 <button
                                   key={p.id}
                                   type="button"
-                                  className="w-full text-left px-3 py-2 text-[13px] hover:bg-accent"
+                                  className={`w-full text-left px-3 py-2 text-[13px] ${si === activeSuggestIdx ? "bg-accent" : "hover:bg-accent"}`}
+                                  onMouseEnter={() => setActiveSuggestIdx(si)}
                                   onMouseDown={(e) => { e.preventDefault(); pickSuggestion(idx, p); }}
                                 >
-                                  <div className="font-medium truncate">{p.name}</div>
+                                  <div className="font-medium truncate">{highlight(p.name, term)}</div>
                                   <div className="text-[11px] text-muted-foreground font-mono">
-                                    {p.sku ? `SKU ${p.sku}` : "sem SKU"}{p.cost_price ? ` · ${brl(Number(p.cost_price))}` : ""}
+                                    {p.sku ? <>SKU {highlight(p.sku, term)}</> : "sem SKU"}{p.cost_price ? ` · ${brl(Number(p.cost_price))}` : ""}
                                   </div>
                                 </button>
                               ))}
@@ -830,11 +841,18 @@ export default function Compras() {
                               </button>
                             </>
                           )}
+                          <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-t border-border bg-surface-elevated/40 font-mono uppercase tracking-widest">
+                            ↑ ↓ navegar · Enter selecionar · Esc fechar
+                          </div>
                         </div>
                       );
                     })()}
                   </div>
-                  <Input className="col-span-2" type="number" min={1} placeholder="Qtd" value={it.quantity} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
+                  <Input
+                    ref={(el) => { qtyInputsRef.current[idx] = el; }}
+                    className="col-span-2" type="number" min={1} placeholder="Qtd" value={it.quantity}
+                    onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))}
+                  />
                   <Input className="col-span-2" type="number" step="0.01" placeholder="Custo unit." value={it.unit_cost} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: Number(e.target.value) } : x))} />
                   <Button size="icon" variant="ghost" className="col-span-1 text-danger" onClick={() => setItems((a) => a.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
@@ -848,6 +866,25 @@ export default function Compras() {
             </div>
 
             <div className="mt-3 text-right text-sm">Total: <span className="font-semibold metric">{brl(orderTotal)}</span></div>
+          </div>
+
+          {/* Tags e Observações — abaixo dos itens da compra */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label>Tags (separadas por vírgula)</Label>
+              <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="ex.: capa, iPhone 15, importado" />
+              {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {tagsInput.split(",").map((t) => t.trim()).filter(Boolean).map((t, i) => (
+                    <Badge key={i} variant="outline" className="border-border text-[11px]">{t}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea rows={2} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
           </div>
 
           <div className="mt-3 flex items-start gap-2 text-[12px] text-muted-foreground bg-success/5 border border-success/20 rounded-md p-2">
