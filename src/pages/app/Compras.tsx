@@ -17,9 +17,11 @@ import {
 import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
+import { MAIN_CATEGORIES } from "@/lib/categories";
 
 type Supplier = { id: string; company_name: string; brands: string[]; avg_delivery_days: number | null };
 type Item = { id?: string; product_id?: string | null; product_name: string; sku?: string | null; quantity: number; unit_cost: number; notes?: string | null };
+type CatalogProduct = { id: string; name: string; sku: string | null; cost_price: number | null; category: string | null; brand: string | null };
 type Preview = {
   name: string;
   quantity: number;
@@ -84,6 +86,16 @@ export default function Compras() {
   const [skuQuery, setSkuQuery] = useState("");
   const [tagsInput, setTagsInput] = useState("");
 
+  // Catálogo (autocomplete) + criação inline de produto
+  const [catalog, setCatalog] = useState<CatalogProduct[]>([]);
+  const [openSuggestFor, setOpenSuggestFor] = useState<number | null>(null);
+  const [newProdOpen, setNewProdOpen] = useState(false);
+  const [newProdTargetIdx, setNewProdTargetIdx] = useState<number | null>(null);
+  const [newProd, setNewProd] = useState<{ name: string; sku: string; brand: string; category: string; cost_price: number; sale_price: number }>({
+    name: "", sku: "", brand: "", category: "", cost_price: 0, sale_price: 0,
+  });
+  const [newProdBusy, setNewProdBusy] = useState(false);
+
   // financial summary (mês atual)
   const [monthSales, setMonthSales] = useState(0);
   const [monthPurchases, setMonthPurchases] = useState(0);
@@ -117,6 +129,107 @@ export default function Compras() {
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store]);
+
+  // Carrega catálogo leve quando abre o diálogo (para autocomplete por nome/SKU)
+  useEffect(() => {
+    if (!open || !store) return;
+    (async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, cost_price, category, brand")
+        .eq("store_id", store.id)
+        .order("name")
+        .limit(2000);
+      setCatalog((data ?? []) as CatalogProduct[]);
+    })();
+  }, [open, store]);
+
+  const suggestFor = (term: string): CatalogProduct[] => {
+    const t = term.trim().toLowerCase();
+    if (t.length < 2) return [];
+    return catalog
+      .filter((p) =>
+        (p.name ?? "").toLowerCase().includes(t) ||
+        (p.sku ?? "").toLowerCase().includes(t),
+      )
+      .slice(0, 8);
+  };
+
+  const pickSuggestion = (idx: number, p: CatalogProduct) => {
+    setItems((a) => a.map((x, i) => i === idx ? {
+      ...x,
+      product_id: p.id,
+      product_name: p.name,
+      sku: p.sku ?? "",
+      unit_cost: x.unit_cost > 0 ? x.unit_cost : Number(p.cost_price ?? 0),
+    } : x));
+    setOpenSuggestFor(null);
+  };
+
+  const openNewProductFor = (idx: number) => {
+    const it = items[idx];
+    setNewProdTargetIdx(idx);
+    setNewProd({
+      name: it?.product_name?.trim() ?? "",
+      sku: it?.sku ?? "",
+      brand: "",
+      category: "",
+      cost_price: Number(it?.unit_cost ?? 0),
+      sale_price: 0,
+    });
+    setNewProdOpen(true);
+  };
+
+  const saveNewProduct = async (keepOpen: boolean) => {
+    if (!store) return;
+    const name = newProd.name.trim();
+    if (!name) { toast.error("Informe o nome do produto"); return; }
+    if (!newProd.category) { toast.error("Selecione uma categoria"); return; }
+    setNewProdBusy(true);
+    const payload: any = {
+      store_id: store.id,
+      name,
+      sku: newProd.sku.trim() || null,
+      brand: newProd.brand.trim() || null,
+      category: newProd.category,
+      cost_price: Number(newProd.cost_price) || 0,
+      sale_price: Number(newProd.sale_price) || 0,
+      stock_current: 0,
+      stock_min: 3,
+      stock_max: 0,
+      condition: "novo",
+      status: "ativo",
+      visible_in_catalog: false,
+    };
+    const { data, error } = await supabase.from("products").insert(payload).select("id, name, sku, cost_price, category, brand").single();
+    setNewProdBusy(false);
+    if (error) {
+      if ((error as any).code === "23505") return toast.error("Este SKU já está em uso.");
+      return toast.error(error.message);
+    }
+    const created = data as CatalogProduct;
+    setCatalog((c) => [created, ...c]);
+    // Vincula ao item da compra
+    if (newProdTargetIdx != null) {
+      setItems((a) => a.map((x, i) => i === newProdTargetIdx ? {
+        ...x,
+        product_id: created.id,
+        product_name: created.name,
+        sku: created.sku ?? "",
+        unit_cost: x.unit_cost > 0 ? x.unit_cost : Number(created.cost_price ?? 0),
+      } : x));
+    }
+    toast.success("Produto cadastrado");
+    if (keepOpen) {
+      // "Salvar e continuar": adiciona uma nova linha em branco e reabre para próximo cadastro
+      setItems((a) => [...a, { product_name: "", quantity: 1, unit_cost: 0 }]);
+      setNewProdTargetIdx(items.length); // nova linha
+      setNewProd({ name: "", sku: "", brand: "", category: newProd.category, cost_price: 0, sale_price: 0 });
+    } else {
+      setNewProdOpen(false);
+      setNewProdTargetIdx(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -542,9 +655,74 @@ export default function Compras() {
             <div className="space-y-2">
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
-                  <Input className="col-span-6" placeholder="Produto" value={it.product_name} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, product_name: e.target.value } : x))} />
+                  <div className="col-span-5 relative">
+                    <Input
+                      placeholder="Produto (nome ou SKU)"
+                      value={it.product_name}
+                      onFocus={() => setOpenSuggestFor(idx)}
+                      onBlur={() => setTimeout(() => setOpenSuggestFor((v) => v === idx ? null : v), 150)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setItems((a) => a.map((x, i) => i === idx ? { ...x, product_name: v, product_id: null } : x));
+                        setOpenSuggestFor(idx);
+                      }}
+                    />
+                    {openSuggestFor === idx && it.product_name.trim().length >= 2 && (() => {
+                      const sugg = suggestFor(it.product_name);
+                      return (
+                        <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+                          {sugg.length === 0 ? (
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-[13px] hover:bg-accent flex items-center gap-2"
+                              onMouseDown={(e) => { e.preventDefault(); openNewProductFor(idx); }}
+                            >
+                              <Plus className="h-3.5 w-3.5 text-primary" />
+                              <span>Cadastrar <span className="font-medium">"{it.product_name.trim()}"</span> como novo produto</span>
+                            </button>
+                          ) : (
+                            <>
+                              {sugg.map((p) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  className="w-full text-left px-3 py-2 text-[13px] hover:bg-accent"
+                                  onMouseDown={(e) => { e.preventDefault(); pickSuggestion(idx, p); }}
+                                >
+                                  <div className="font-medium truncate">{p.name}</div>
+                                  <div className="text-[11px] text-muted-foreground font-mono">
+                                    {p.sku ? `SKU ${p.sku}` : "sem SKU"}{p.cost_price ? ` · ${brl(Number(p.cost_price))}` : ""}
+                                  </div>
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                className="w-full text-left px-3 py-2 text-[12px] border-t border-border hover:bg-accent flex items-center gap-2 text-primary"
+                                onMouseDown={(e) => { e.preventDefault(); openNewProductFor(idx); }}
+                              >
+                                <Plus className="h-3.5 w-3.5" /> Cadastrar novo produto
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <Input
+                    className="col-span-2"
+                    placeholder="SKU"
+                    value={it.sku ?? ""}
+                    onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, sku: e.target.value, product_id: null } : x))}
+                    onBlur={async (e) => {
+                      const v = e.target.value.trim();
+                      if (!v || !store) return;
+                      // Se digitou SKU exato, tenta casar com um produto e preencher nome
+                      const match = catalog.find((p) => (p.sku ?? "").toLowerCase() === v.toLowerCase());
+                      if (match) pickSuggestion(idx, match);
+                    }}
+                  />
                   <Input className="col-span-2" type="number" min={1} placeholder="Qtd" value={it.quantity} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
-                  <Input className="col-span-3" type="number" step="0.01" placeholder="Custo unit." value={it.unit_cost} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: Number(e.target.value) } : x))} />
+                  <Input className="col-span-2" type="number" step="0.01" placeholder="Custo unit." value={it.unit_cost} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: Number(e.target.value) } : x))} />
                   <Button size="icon" variant="ghost" className="col-span-1 text-danger" onClick={() => setItems((a) => a.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               ))}
@@ -637,6 +815,56 @@ export default function Compras() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Cadastro rápido de produto sem sair do lançamento de compra */}
+      <Dialog open={newProdOpen} onOpenChange={(o) => !newProdBusy && setNewProdOpen(o)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Cadastrar novo produto</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2">
+              <Label>Nome do produto *</Label>
+              <Input value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} />
+            </div>
+            <div>
+              <Label>SKU (opcional)</Label>
+              <Input value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder="Gera automaticamente se vazio" />
+            </div>
+            <div>
+              <Label>Marca (opcional)</Label>
+              <Input value={newProd.brand} onChange={(e) => setNewProd({ ...newProd, brand: e.target.value })} />
+            </div>
+            <div className="md:col-span-2">
+              <Label>Categoria *</Label>
+              <Select value={newProd.category} onValueChange={(v) => setNewProd({ ...newProd, category: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
+                <SelectContent>
+                  {MAIN_CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">Subcategoria é opcional e pode ser definida depois em Estoque.</p>
+            </div>
+            <div>
+              <Label>Custo unitário</Label>
+              <Input type="number" step="0.01" value={newProd.cost_price} onChange={(e) => setNewProd({ ...newProd, cost_price: Number(e.target.value) })} />
+            </div>
+            <div>
+              <Label>Preço de venda (opcional)</Label>
+              <Input type="number" step="0.01" value={newProd.sale_price} onChange={(e) => setNewProd({ ...newProd, sale_price: Number(e.target.value) })} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" disabled={newProdBusy} onClick={() => setNewProdOpen(false)}>Cancelar</Button>
+            <Button variant="outline" disabled={newProdBusy} onClick={() => saveNewProduct(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Salvar e continuar
+            </Button>
+            <Button disabled={newProdBusy} onClick={() => saveNewProduct(false)} className="bg-gradient-primary">
+              <CheckCircle2 className="h-4 w-4 mr-1" /> Salvar e vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
