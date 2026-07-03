@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AutocompleteInput from "@/components/AutocompleteInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -1057,7 +1058,15 @@ export default function Compras() {
             </div>
             <div>
               <Label>Marca (opcional)</Label>
-              <Input value={newProd.brand} onChange={(e) => setNewProd({ ...newProd, brand: e.target.value })} />
+              <AutocompleteInput
+                options={Array.from(new Set([
+                  ...catalog.map((p) => p.brand ?? ""),
+                  ...suppliers.flatMap((s) => s.brands ?? []),
+                ]))}
+                value={newProd.brand}
+                onChange={(e) => setNewProd({ ...newProd, brand: e.target.value })}
+                placeholder="Apple, Samsung…"
+              />
             </div>
             <div>
               <Label>Categoria *</Label>
