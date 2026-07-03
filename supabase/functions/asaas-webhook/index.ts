@@ -47,7 +47,16 @@ Deno.serve(async (req) => {
     }
 
     if (Object.keys(updates).length) {
-      await admin.from("subscriptions").update(updates).eq("id", sub.id);
+      // Idempotent write keyed by the natural unique key (asaas_charge_id).
+      // If the same webhook event arrives twice, the partial unique index
+      // guarantees this cannot create a second row — it always updates the
+      // existing one.
+      await admin
+        .from("subscriptions")
+        .upsert(
+          { id: sub.id, asaas_charge_id: payment.id, ...updates },
+          { onConflict: "asaas_charge_id" }
+        );
     }
 
     // Create user + send password reset on approval
@@ -71,7 +80,12 @@ Deno.serve(async (req) => {
       }
 
       if (userId) {
-        await admin.from("subscriptions").update({ user_id: userId }).eq("id", sub.id);
+        await admin
+          .from("subscriptions")
+          .upsert(
+            { id: sub.id, asaas_charge_id: payment.id, user_id: userId },
+            { onConflict: "asaas_charge_id" }
+          );
         // Send "set password" email via recovery link
         try {
           await admin.auth.admin.generateLink({
