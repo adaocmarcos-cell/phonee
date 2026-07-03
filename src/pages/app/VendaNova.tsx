@@ -26,6 +26,7 @@ import AutocompleteInput from "@/components/AutocompleteInput";
 import { onlyDigits, validateDoc } from "@/lib/docValidation";
 import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
 import { UserCheck } from "lucide-react";
+import { buildLineItemFromProduct, getSearchState } from "@/lib/vendaSearch";
 
 type CustomerLite = {
   id: string;
@@ -129,6 +130,7 @@ export default function VendaNova() {
   const [productQuery, setProductQuery] = useState("");
   const [productQueryDebounced, setProductQueryDebounced] = useState("");
   const [showProductList, setShowProductList] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
 
@@ -495,44 +497,69 @@ export default function VendaNova() {
     return () => clearTimeout(t);
   }, [productQuery]);
 
-  const searching = productQuery.trim() !== productQueryDebounced.trim();
+  const searchState = useMemo(
+    () => getSearchState(products as any, productQuery, productQueryDebounced),
+    [products, productQuery, productQueryDebounced]
+  );
+  const visibleProducts = useMemo<any[]>(() => {
+    if (searchState.kind === "results" || searchState.kind === "initial") return searchState.items as any[];
+    return [];
+  }, [searchState]);
 
-  const filteredProducts = useMemo(() => {
-    const q = productQueryDebounced.trim().toLowerCase();
-    if (!q) return products.slice(0, 8);
-    // Busca case-insensitive e parcial em nome, SKU, código de barras (ean),
-    // categoria, marca e modelo compatível.
-    return products.filter((p: any) =>
-      [p.name, p.sku, p.ean, p.category, p.brand, p.compatible_model]
-        .filter(Boolean)
-        .some((v: string) => String(v).toLowerCase().includes(q))
-    ).slice(0, 20);
-  }, [products, productQueryDebounced]);
+  // Zera o índice ativo sempre que a lista visível muda.
+  useEffect(() => { setActiveIdx(0); }, [productQueryDebounced, products.length]);
 
   const addItem = (p: any) => {
+    // Bloqueio duro apenas quando a loja NÃO permite estoque negativo.
     if (!allowNegativeStock && Number(p.stock_current) <= 0) {
       toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
       return;
     }
+    // Vinculação validada de product_id, nome, preço e estoque.
+    const built = buildLineItemFromProduct(p);
+    if (built.ok === false) { toast.error(built.error); return; }
+    const draft = built.item;
+    built.warnings.forEach((w) => toast.warning(w));
+
     setItems((arr) => {
-      const existing = arr.find((i) => i.product_id === p.id);
-      if (existing) return arr.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
+      const existing = arr.find((i) => i.product_id === draft.product_id);
+      if (existing) return arr.map((i) => i.product_id === draft.product_id ? { ...i, quantity: i.quantity + 1 } : i);
       return [...arr, {
-        product_id: p.id,
-        name: p.name,
-        code: p.sku,
-        category: p.category,
-        color: p.color,
-        storage: p.storage,
+        product_id: draft.product_id,
+        name: draft.name,
+        code: draft.code ?? undefined,
+        category: draft.category ?? undefined,
+        color: draft.color ?? undefined,
+        storage: draft.storage ?? undefined,
         quantity: 1,
-        list_price: Number(p.sale_price),
+        list_price: draft.list_price,
         discount_pct: 0,
         discount_brl: 0,
-        unit_price: Number(p.sale_price),
+        unit_price: draft.unit_price,
       }];
     });
     setProductQuery("");
     setShowProductList(false);
+  };
+
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showProductList || visibleProducts.length === 0) {
+      if (e.key === "ArrowDown") { setShowProductList(true); }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(visibleProducts.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(0, i - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const p = visibleProducts[activeIdx];
+      if (p) addItem(p);
+    } else if (e.key === "Escape") {
+      setShowProductList(false);
+    }
   };
 
   const updateItem = (id: string, patch: Partial<LineItem>) => {
@@ -961,10 +988,16 @@ Obrigado pela preferência.`;
                 onChange={(e) => setProductQuery(e.target.value)}
                 onFocus={() => setShowProductList(true)}
                 onBlur={() => setTimeout(() => setShowProductList(false), 150)}
-                placeholder="Buscar por nome, SKU, código, categoria, GTIN ou modelo…"
+                onKeyDown={onSearchKeyDown}
+                placeholder="Buscar por nome, SKU, EAN, categoria, marca ou modelo…"
                 className="pl-9"
+                role="combobox"
+                aria-expanded={showProductList}
+                aria-controls="produtos-listbox"
+                aria-activedescendant={visibleProducts[activeIdx] ? `produto-opt-${visibleProducts[activeIdx].id}` : undefined}
+                autoComplete="off"
               />
-              {showProductList && products.length === 0 && (
+              {showProductList && searchState.kind === "empty-table" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
                   Nenhum produto cadastrado.{" "}
                   <button
@@ -976,27 +1009,37 @@ Obrigado pela preferência.`;
                   </button>
                 </div>
               )}
-              {showProductList && products.length > 0 && searching && (
+              {showProductList && searchState.kind === "searching" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
                   Buscando…
                 </div>
               )}
-              {showProductList && products.length > 0 && !searching && filteredProducts.length === 0 && productQueryDebounced.trim() && (
+              {showProductList && searchState.kind === "no-results" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
-                  Nenhum resultado para "{productQueryDebounced.trim()}".
+                  Nenhum resultado para "{searchState.term}". Verifique o termo ou cadastre o produto no Estoque.
                 </div>
               )}
-              {showProductList && products.length > 0 && !searching && filteredProducts.length > 0 && (
-                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto">
-                  {filteredProducts.map((p: any) => {
+              {showProductList && visibleProducts.length > 0 && (
+                <div
+                  id="produtos-listbox"
+                  role="listbox"
+                  className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto"
+                >
+                  {visibleProducts.map((p: any, idx: number) => {
                     const noStock = Number(p.stock_current) <= 0;
                     const blocked = noStock && !allowNegativeStock;
+                    const active = idx === activeIdx;
                     return (
                       <button
-                        key={p.id} type="button"
-                        onClick={() => addItem(p)}
+                        key={p.id}
+                        id={`produto-opt-${p.id}`}
+                        role="option"
+                        aria-selected={active}
+                        type="button"
+                        onMouseEnter={() => setActiveIdx(idx)}
+                        onMouseDown={(e) => { e.preventDefault(); addItem(p); }}
                         disabled={blocked}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3 ${blocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                        className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-3 ${active ? "bg-accent" : "hover:bg-accent"} ${blocked ? "opacity-60 cursor-not-allowed" : ""}`}
                       >
                         <div className="min-w-0">
                           <div className="font-medium truncate flex items-center gap-2">
