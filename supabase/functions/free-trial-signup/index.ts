@@ -25,6 +25,22 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Rate limit por IP: máx 3 tentativas por hora
+    const xff = req.headers.get("x-forwarded-for") ?? "";
+    const ip = xff.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentAttempts } = await admin
+      .from("trial_signup_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("ip", ip)
+      .gte("created_at", oneHourAgo);
+    if ((recentAttempts ?? 0) >= 3) {
+      await admin.from("trial_signup_attempts").insert({ ip });
+      return json({ error: "Muitas tentativas. Tente novamente mais tarde." }, 429);
+    }
+    // Registra a tentativa (sucesso ou falha)
+    await admin.from("trial_signup_attempts").insert({ ip });
+
     const body = await req.json().catch(() => ({} as any));
     const email = String(body?.email ?? "").trim().toLowerCase();
     const full_name = String(body?.full_name ?? "").trim();
