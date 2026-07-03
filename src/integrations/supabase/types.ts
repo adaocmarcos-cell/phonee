@@ -3018,6 +3018,7 @@ export type Database = {
         Args: { _request_id: string; _review_notes?: string }
         Returns: Json
       }
+      assert_sale_has_items: { Args: { _sale_id: string }; Returns: boolean }
       create_purchase_with_stock: {
         Args: {
           _create_expense: boolean
