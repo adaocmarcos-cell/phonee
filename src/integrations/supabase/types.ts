@@ -3256,6 +3256,7 @@ export type Database = {
           total_sales: number
         }[]
       }
+      phonee_test_negative_stock_sale: { Args: never; Returns: Json }
       phonee_traffic_paths: {
         Args: never
         Returns: {
