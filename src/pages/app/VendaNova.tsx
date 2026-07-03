@@ -988,10 +988,16 @@ Obrigado pela preferência.`;
                 onChange={(e) => setProductQuery(e.target.value)}
                 onFocus={() => setShowProductList(true)}
                 onBlur={() => setTimeout(() => setShowProductList(false), 150)}
-                placeholder="Buscar por nome, SKU, código, categoria, GTIN ou modelo…"
+                onKeyDown={onSearchKeyDown}
+                placeholder="Buscar por nome, SKU, EAN, categoria, marca ou modelo…"
                 className="pl-9"
+                role="combobox"
+                aria-expanded={showProductList}
+                aria-controls="produtos-listbox"
+                aria-activedescendant={visibleProducts[activeIdx] ? `produto-opt-${visibleProducts[activeIdx].id}` : undefined}
+                autoComplete="off"
               />
-              {showProductList && products.length === 0 && (
+              {showProductList && searchState.kind === "empty-table" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
                   Nenhum produto cadastrado.{" "}
                   <button
@@ -1003,27 +1009,37 @@ Obrigado pela preferência.`;
                   </button>
                 </div>
               )}
-              {showProductList && products.length > 0 && searching && (
+              {showProductList && searchState.kind === "searching" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
                   Buscando…
                 </div>
               )}
-              {showProductList && products.length > 0 && !searching && filteredProducts.length === 0 && productQueryDebounced.trim() && (
+              {showProductList && searchState.kind === "no-results" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
-                  Nenhum resultado para "{productQueryDebounced.trim()}".
+                  Nenhum resultado para "{searchState.term}". Verifique o termo ou cadastre o produto no Estoque.
                 </div>
               )}
-              {showProductList && products.length > 0 && !searching && filteredProducts.length > 0 && (
-                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto">
-                  {filteredProducts.map((p: any) => {
+              {showProductList && visibleProducts.length > 0 && (
+                <div
+                  id="produtos-listbox"
+                  role="listbox"
+                  className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto"
+                >
+                  {visibleProducts.map((p: any, idx: number) => {
                     const noStock = Number(p.stock_current) <= 0;
                     const blocked = noStock && !allowNegativeStock;
+                    const active = idx === activeIdx;
                     return (
                       <button
-                        key={p.id} type="button"
-                        onClick={() => addItem(p)}
+                        key={p.id}
+                        id={`produto-opt-${p.id}`}
+                        role="option"
+                        aria-selected={active}
+                        type="button"
+                        onMouseEnter={() => setActiveIdx(idx)}
+                        onMouseDown={(e) => { e.preventDefault(); addItem(p); }}
                         disabled={blocked}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3 ${blocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                        className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between gap-3 ${active ? "bg-accent" : "hover:bg-accent"} ${blocked ? "opacity-60 cursor-not-allowed" : ""}`}
                       >
                         <div className="min-w-0">
                           <div className="font-medium truncate flex items-center gap-2">
