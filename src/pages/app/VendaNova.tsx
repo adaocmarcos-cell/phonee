@@ -646,13 +646,19 @@ export default function VendaNova() {
 
     const { error: e2 } = await supabase.from("sale_items").insert(
       items.map((i) => ({
-        sale_id: sale.id, product_id: i.product_id,
-        quantity: i.quantity, unit_price: i.unit_price, total: i.quantity * i.unit_price,
+        sale_id: sale.id,
+        product_id: i.is_service ? null : i.product_id,
+        is_service: !!i.is_service,
+        description: i.is_service ? (i.description || i.name) : null,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.quantity * i.unit_price,
       }))
     );
     if (e2) { setBusy(false); return toast.error(e2.message); }
 
     for (const i of items) {
+      if (i.is_service) continue;
       const cur = products.find((p) => p.id === i.product_id);
       if (cur) {
         await supabase.from("products").update({
