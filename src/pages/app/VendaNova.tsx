@@ -22,6 +22,23 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
+import AutocompleteInput from "@/components/AutocompleteInput";
+
+type CustomerLite = {
+  id: string;
+  name: string;
+  document: string | null;
+  doc_type: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  address_city: string | null;
+  email: string | null;
+};
+
+const EMPTY_QUICK: any = {
+  name: "", doc_type: "cpf", document: "", email: "",
+  phone: "", whatsapp: "", address_city: "", address_uf: "", notes: "",
+};
 
 type LineItem = {
   product_id: string;
@@ -81,6 +98,10 @@ export default function VendaNova() {
 
   // Cliente
   const [customer, setCustomer] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<CustomerLite[]>([]);
+  const [quickCustomer, setQuickCustomer] = useState<any | null>(null);
+  const [quickSaving, setQuickSaving] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
   const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
@@ -176,6 +197,90 @@ export default function VendaNova() {
       setProducts(data ?? []);
     })();
   }, [store]);
+
+  // Carrega clientes cadastrados da loja (autocomplete + sincronização)
+  const loadCustomers = async () => {
+    if (!store) return;
+    const { data } = await (supabase.from("customers") as any)
+      .select("id, name, document, doc_type, phone, whatsapp, address_city, email")
+      .eq("store_id", store.id)
+      .order("name");
+    setCustomers((data as CustomerLite[]) ?? []);
+  };
+  useEffect(() => { loadCustomers(); /* eslint-disable-next-line */ }, [store?.id]);
+
+  const applyCustomer = (c: CustomerLite) => {
+    setCustomerId(c.id);
+    setCustomer(c.name);
+    if (c.whatsapp) setWhatsapp(c.whatsapp);
+    if (c.phone) setPhone(c.phone);
+    if (c.document) setDoc(c.document);
+    if (c.doc_type === "cpf" || c.doc_type === "cnpj") setDocType(c.doc_type);
+    if (c.address_city) setCity(c.address_city);
+  };
+
+  const onCustomerNameChange = (v: string) => {
+    setCustomer(v);
+    const match = customers.find((c) => c.name.toLowerCase() === v.trim().toLowerCase());
+    if (match) applyCustomer(match);
+    else setCustomerId(null);
+  };
+
+  const openQuickCustomer = () => {
+    setQuickCustomer({ ...EMPTY_QUICK, name: customer.trim(), whatsapp, phone, document: doc, doc_type: docType, address_city: city });
+  };
+
+  const saveQuickCustomer = async () => {
+    if (!store || !quickCustomer) return;
+    if (!quickCustomer.name || quickCustomer.name.trim().length < 2) {
+      toast.error("Informe o nome do cliente");
+      return;
+    }
+    setQuickSaving(true);
+    const payload: any = {
+      store_id: store.id,
+      name: quickCustomer.name.trim(),
+      doc_type: quickCustomer.doc_type || null,
+      document: quickCustomer.document?.trim() || null,
+      email: quickCustomer.email?.trim() || null,
+      phone: quickCustomer.phone?.trim() || null,
+      whatsapp: quickCustomer.whatsapp?.trim() || null,
+      address_city: quickCustomer.address_city?.trim() || null,
+      address_uf: quickCustomer.address_uf?.trim() || null,
+      notes: quickCustomer.notes?.trim() || null,
+    };
+    const { data, error } = await (supabase.from("customers") as any).insert(payload).select("*").single();
+    setQuickSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cliente cadastrado");
+    setQuickCustomer(null);
+    await loadCustomers();
+    if (data) applyCustomer(data as CustomerLite);
+  };
+
+  // Garante que o cliente exista na base — cria automaticamente se digitado e não encontrado.
+  const ensureCustomerRecord = async () => {
+    if (!store) return;
+    const name = customer.trim();
+    if (!name) return;
+    if (customerId) return;
+    const match = customers.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (match) { setCustomerId(match.id); return; }
+    const payload: any = {
+      store_id: store.id,
+      name,
+      doc_type: docType || null,
+      document: doc?.trim() || null,
+      phone: phone?.trim() || null,
+      whatsapp: whatsapp?.trim() || null,
+      address_city: city?.trim() || null,
+    };
+    const { data } = await (supabase.from("customers") as any).insert(payload).select("id").single();
+    if (data?.id) {
+      setCustomerId(data.id);
+      loadCustomers();
+    }
+  };
 
   // Carrega vendedores/gestores da loja (via função SECURITY DEFINER)
   useEffect(() => {
@@ -342,6 +447,8 @@ export default function VendaNova() {
     setBusy(true);
 
     const payload = buildPayload();
+    // Sincroniza cliente com o CRM antes de gravar a venda
+    await ensureCustomerRecord();
     const dbMethod = isMulti
       ? "misto"
       : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
