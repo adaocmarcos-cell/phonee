@@ -95,6 +95,7 @@ export default function Configuracoes() {
     address_neighborhood: "", address_city: "", address_uf: "",
     show_tax_id_on_docs: true, show_legal_name_on_docs: true,
     show_non_fiscal_notice: true,
+    allow_negative_stock: false,
     pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B",
     pdf_logo_url: "", pdf_footer_text: "",
   });
@@ -128,6 +129,7 @@ export default function Configuracoes() {
       show_tax_id_on_docs: s.show_tax_id_on_docs ?? true,
       show_legal_name_on_docs: s.show_legal_name_on_docs ?? true,
       show_non_fiscal_notice: s.show_non_fiscal_notice ?? true,
+      allow_negative_stock: s.allow_negative_stock ?? false,
       pdf_primary_color: s.pdf_primary_color ?? "#0EA5E9",
       pdf_accent_color: s.pdf_accent_color ?? "#1E293B",
       pdf_logo_url: s.pdf_logo_url ?? "",
@@ -186,6 +188,7 @@ export default function Configuracoes() {
       show_tax_id_on_docs: storeForm.show_tax_id_on_docs,
       show_legal_name_on_docs: storeForm.show_legal_name_on_docs,
       show_non_fiscal_notice: storeForm.show_non_fiscal_notice,
+      allow_negative_stock: storeForm.allow_negative_stock,
       pdf_primary_color: storeForm.pdf_primary_color || null,
       pdf_accent_color: storeForm.pdf_accent_color || null,
       pdf_logo_url: storeForm.pdf_logo_url || null,
@@ -362,6 +365,24 @@ export default function Configuracoes() {
                 <Switch
                   checked={storeForm.show_non_fiscal_notice}
                   onCheckedChange={(v) => setSF("show_non_fiscal_notice", v)}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
+
+            {/* Estoque */}
+            <div className="md:col-span-2 space-y-2 rounded-md border p-3 bg-muted/20">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Estoque</Label>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-sm">Permitir venda com estoque negativo</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Quando ativo, é possível vender produtos sem saldo em estoque. O estoque ficará negativo até ser regularizado.
+                  </div>
+                </div>
+                <Switch
+                  checked={storeForm.allow_negative_stock}
+                  onCheckedChange={(v) => setSF("allow_negative_stock", v)}
                   disabled={!canEdit}
                 />
               </div>
