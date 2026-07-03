@@ -72,6 +72,35 @@ Deno.serve(async (req) => {
         action: "check_status",
       });
       Object.assign(sub, updates);
+
+      // Se o polling confirmou o pagamento e ainda não há user_id vinculado,
+      // cria (ou localiza) o usuário no Auth e vincula a assinatura + envia
+      // link de definição de senha — mesmo comportamento do webhook.
+      if (mapped === "active" && !sub.user_id && sub.customer_email) {
+        const email = String(sub.customer_email);
+        const siteUrl = Deno.env.get("SITE_URL") ?? "";
+        const redirectTo = siteUrl ? `${siteUrl}/reset-password` : undefined;
+        let userId: string | null = null;
+        const { data: created, error: createErr } = await admin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: { full_name: sub.customer_name, source: "asaas_poll" },
+        });
+        if (created?.user) userId = created.user.id;
+        else if (createErr && /already/i.test(createErr.message ?? "")) {
+          const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+          userId = list?.users?.find((u: any) => (u.email ?? "").toLowerCase() === email.toLowerCase())?.id ?? null;
+        }
+        if (userId) {
+          await admin.rpc("link_orphan_subscription", { _user_id: userId, _email: email });
+          try {
+            await admin.auth.admin.generateLink({
+              type: "recovery", email,
+              options: redirectTo ? { redirectTo } : undefined,
+            });
+          } catch (_) { /* ignore */ }
+        }
+      }
     }
     return jsonResponse(sanitize(sub));
   } catch (e) {
