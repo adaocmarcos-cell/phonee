@@ -171,11 +171,18 @@ export default function Vendas() {
   const onPrintReceipt = async (sale: any) => {
     const { data: items } = await supabase
       .from("sale_items")
-      .select("quantity, unit_price, total, products(name, sku)")
+      .select("quantity, unit_price, total, description, is_service, name, sku, category, brand, model, unit, discount_amount, imei_serial, public_notes, products(name, sku)")
       .eq("sale_id", sale.id);
     const list = (items ?? []).map((it: any) => ({
-      name: it.products?.name ?? "Produto",
-      sku: it.products?.sku ?? null,
+      name: it.name || it.products?.name || it.description || (it.is_service ? "Serviço" : "Produto"),
+      sku: it.sku || it.products?.sku || (it.is_service ? "SERVIÇO" : null),
+      category: it.category ?? null,
+      brand: it.brand ?? null,
+      model: it.model ?? null,
+      unit: it.unit ?? null,
+      imei_serial: it.imei_serial ?? null,
+      public_notes: it.public_notes ?? null,
+      discount_amount: Number(it.discount_amount || 0),
       quantity: it.quantity,
       unit_price: Number(it.unit_price),
       total: Number(it.total),
