@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown } from "lucide-react";
 import { brl, num, daysAgo } from "@/lib/format";
@@ -146,6 +147,16 @@ export default function Estoque() {
 
   const distinctBrands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))).sort() as string[], [products]);
   const distinctCategories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort() as string[], [products]);
+  const distinctSuppliers = useMemo(
+    () => Array.from(new Set(products.map((p: any) => p.supplier).filter(Boolean))).sort() as string[],
+    [products]
+  );
+  const bulkOptions = useMemo(() => {
+    if (bulkOp === "brand") return distinctBrands;
+    if (bulkOp === "supplier") return distinctSuppliers;
+    if (bulkOp === "category") return distinctCategories;
+    return [] as string[];
+  }, [bulkOp, distinctBrands, distinctSuppliers, distinctCategories]);
 
   const togglePageSelection = (checked: boolean) => {
     const next = new Set(selectedIds);
@@ -789,13 +800,26 @@ export default function Estoque() {
                bulkOp === "stock_min" ? "Novo estoque mínimo" :
                "Novo valor"}
             </Label>
-            <Input
-              autoFocus
-              type={bulkOp === "price" || bulkOp === "stock_min" ? "number" : "text"}
-              value={bulkValue}
-              onChange={(e) => setBulkValue(e.target.value)}
-              placeholder={bulkOp === "category" ? "Ex: acessorio, aparelho_novo…" : ""}
-            />
+            {bulkOp === "price" || bulkOp === "stock_min" ? (
+              <Input
+                autoFocus
+                type="number"
+                value={bulkValue}
+                onChange={(e) => setBulkValue(e.target.value)}
+              />
+            ) : (
+              <AutocompleteInput
+                autoFocus
+                options={bulkOptions}
+                value={bulkValue}
+                onChange={(e) => setBulkValue(e.target.value)}
+                placeholder={
+                  bulkOp === "brand" ? "Digite ou selecione uma marca existente" :
+                  bulkOp === "supplier" ? "Digite ou selecione um fornecedor existente" :
+                  bulkOp === "category" ? "Ex: acessorio, aparelho_novo…" : ""
+                }
+              />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkOp(null)} disabled={bulkSaving}>Cancelar</Button>
