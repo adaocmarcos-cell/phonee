@@ -242,7 +242,11 @@ export default function VendaNova() {
         .from("products")
         .select("id, name, sku, sale_price, cost_price, stock_current, category, subcategory, ean, brand, compatible_model")
         .eq("store_id", store.id)
-        .order("name");
+        .order("name")
+        // Mesmo comportamento de Estoque > Produtos: carrega a base completa da loja.
+        // Sem range explícito, o backend retorna só o primeiro lote e produtos no fim
+        // da ordenação (ex.: smartphones/iPhones) não entram no autocomplete.
+        .range(0, 49999);
       if (error) {
         console.error("[VendaNova] falha ao carregar produtos:", error);
         toast.error("Não foi possível carregar os produtos da loja.");
