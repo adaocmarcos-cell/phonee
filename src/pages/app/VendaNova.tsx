@@ -22,6 +22,23 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
+import AutocompleteInput from "@/components/AutocompleteInput";
+
+type CustomerLite = {
+  id: string;
+  name: string;
+  document: string | null;
+  doc_type: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  address_city: string | null;
+  email: string | null;
+};
+
+const EMPTY_QUICK: any = {
+  name: "", doc_type: "cpf", document: "", email: "",
+  phone: "", whatsapp: "", address_city: "", address_uf: "", notes: "",
+};
 
 type LineItem = {
   product_id: string;
@@ -81,6 +98,10 @@ export default function VendaNova() {
 
   // Cliente
   const [customer, setCustomer] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<CustomerLite[]>([]);
+  const [quickCustomer, setQuickCustomer] = useState<any | null>(null);
+  const [quickSaving, setQuickSaving] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
   const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
@@ -176,6 +197,90 @@ export default function VendaNova() {
       setProducts(data ?? []);
     })();
   }, [store]);
+
+  // Carrega clientes cadastrados da loja (autocomplete + sincronização)
+  const loadCustomers = async () => {
+    if (!store) return;
+    const { data } = await (supabase.from("customers") as any)
+      .select("id, name, document, doc_type, phone, whatsapp, address_city, email")
+      .eq("store_id", store.id)
+      .order("name");
+    setCustomers((data as CustomerLite[]) ?? []);
+  };
+  useEffect(() => { loadCustomers(); /* eslint-disable-next-line */ }, [store?.id]);
+
+  const applyCustomer = (c: CustomerLite) => {
+    setCustomerId(c.id);
+    setCustomer(c.name);
+    if (c.whatsapp) setWhatsapp(c.whatsapp);
+    if (c.phone) setPhone(c.phone);
+    if (c.document) setDoc(c.document);
+    if (c.doc_type === "cpf" || c.doc_type === "cnpj") setDocType(c.doc_type);
+    if (c.address_city) setCity(c.address_city);
+  };
+
+  const onCustomerNameChange = (v: string) => {
+    setCustomer(v);
+    const match = customers.find((c) => c.name.toLowerCase() === v.trim().toLowerCase());
+    if (match) applyCustomer(match);
+    else setCustomerId(null);
+  };
+
+  const openQuickCustomer = () => {
+    setQuickCustomer({ ...EMPTY_QUICK, name: customer.trim(), whatsapp, phone, document: doc, doc_type: docType, address_city: city });
+  };
+
+  const saveQuickCustomer = async () => {
+    if (!store || !quickCustomer) return;
+    if (!quickCustomer.name || quickCustomer.name.trim().length < 2) {
+      toast.error("Informe o nome do cliente");
+      return;
+    }
+    setQuickSaving(true);
+    const payload: any = {
+      store_id: store.id,
+      name: quickCustomer.name.trim(),
+      doc_type: quickCustomer.doc_type || null,
+      document: quickCustomer.document?.trim() || null,
+      email: quickCustomer.email?.trim() || null,
+      phone: quickCustomer.phone?.trim() || null,
+      whatsapp: quickCustomer.whatsapp?.trim() || null,
+      address_city: quickCustomer.address_city?.trim() || null,
+      address_uf: quickCustomer.address_uf?.trim() || null,
+      notes: quickCustomer.notes?.trim() || null,
+    };
+    const { data, error } = await (supabase.from("customers") as any).insert(payload).select("*").single();
+    setQuickSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Cliente cadastrado");
+    setQuickCustomer(null);
+    await loadCustomers();
+    if (data) applyCustomer(data as CustomerLite);
+  };
+
+  // Garante que o cliente exista na base — cria automaticamente se digitado e não encontrado.
+  const ensureCustomerRecord = async () => {
+    if (!store) return;
+    const name = customer.trim();
+    if (!name) return;
+    if (customerId) return;
+    const match = customers.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (match) { setCustomerId(match.id); return; }
+    const payload: any = {
+      store_id: store.id,
+      name,
+      doc_type: docType || null,
+      document: doc?.trim() || null,
+      phone: phone?.trim() || null,
+      whatsapp: whatsapp?.trim() || null,
+      address_city: city?.trim() || null,
+    };
+    const { data } = await (supabase.from("customers") as any).insert(payload).select("id").single();
+    if (data?.id) {
+      setCustomerId(data.id);
+      loadCustomers();
+    }
+  };
 
   // Carrega vendedores/gestores da loja (via função SECURITY DEFINER)
   useEffect(() => {
@@ -342,6 +447,8 @@ export default function VendaNova() {
     setBusy(true);
 
     const payload = buildPayload();
+    // Sincroniza cliente com o CRM antes de gravar a venda
+    await ensureCustomerRecord();
     const dbMethod = isMulti
       ? "misto"
       : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
@@ -479,12 +586,32 @@ Obrigado pela preferência.`;
             <h3 className="font-semibold mb-4 flex items-center justify-between">
               Dados do Cliente
               <div className="flex gap-2">
-                <Button type="button" size="sm" variant="outline"><Search className="h-3.5 w-3.5 mr-1" />Buscar</Button>
-                <Button type="button" size="sm" variant="outline"><UserPlus className="h-3.5 w-3.5 mr-1" />Novo</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => {
+                  const el = document.getElementById("venda-cliente-input") as HTMLInputElement | null;
+                  el?.focus();
+                }}><Search className="h-3.5 w-3.5 mr-1" />Buscar</Button>
+                <Button type="button" size="sm" variant="outline" onClick={openQuickCustomer}><UserPlus className="h-3.5 w-3.5 mr-1" />Novo</Button>
               </div>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Cliente"><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></Field>
+              <Field label="Cliente">
+                <AutocompleteInput
+                  id="venda-cliente-input"
+                  value={customer}
+                  onChange={(e) => onCustomerNameChange((e.target as HTMLInputElement).value)}
+                  options={customers.map((c) => c.name)}
+                  placeholder="Digite ou selecione…"
+                />
+                {customer.trim() && !customerId && (
+                  <button type="button" onClick={openQuickCustomer}
+                    className="mt-1 text-[11px] text-primary hover:underline">
+                    + Cadastrar “{customer.trim()}” como novo cliente
+                  </button>
+                )}
+                {customerId && (
+                  <div className="mt-1 text-[11px] text-success">✓ Cliente vinculado ao CRM</div>
+                )}
+              </Field>
               <Field label="WhatsApp (opcional)"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
               <Field label="Telefone (opcional)"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3000-0000" /></Field>
               <Field label="Tipo de documento">
@@ -1044,6 +1171,80 @@ Obrigado pela preferência.`;
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
             <Button onClick={() => submit()} disabled={busy} className="bg-primary text-primary-foreground">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cadastro rápido de cliente (sem sair da venda) */}
+      <Dialog open={!!quickCustomer} onOpenChange={(o) => !o && setQuickCustomer(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Cadastro rápido de cliente</DialogTitle>
+            <DialogDescription>Salve os dados essenciais — você pode completar o cadastro depois em Clientes.</DialogDescription>
+          </DialogHeader>
+          {quickCustomer && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <Label>Nome completo *</Label>
+                <Input value={quickCustomer.name ?? ""} maxLength={120}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Tipo de documento</Label>
+                <Select value={quickCustomer.doc_type ?? "cpf"} onValueChange={(v) => setQuickCustomer({ ...quickCustomer, doc_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cpf">CPF</SelectItem>
+                    <SelectItem value="cnpj">CNPJ</SelectItem>
+                    <SelectItem value="rg">RG</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Documento</Label>
+                <Input value={quickCustomer.document ?? ""} maxLength={32}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, document: e.target.value })} />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input value={quickCustomer.whatsapp ?? ""} maxLength={20}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, whatsapp: e.target.value })} placeholder="(11) 90000-0000" />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input value={quickCustomer.phone ?? ""} maxLength={20}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, phone: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>E-mail</Label>
+                <Input type="email" value={quickCustomer.email ?? ""} maxLength={120}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, email: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2 grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Label>Cidade</Label>
+                  <Input value={quickCustomer.address_city ?? ""} maxLength={80}
+                    onChange={(e) => setQuickCustomer({ ...quickCustomer, address_city: e.target.value })} />
+                </div>
+                <div>
+                  <Label>UF</Label>
+                  <Input value={quickCustomer.address_uf ?? ""} maxLength={2}
+                    onChange={(e) => setQuickCustomer({ ...quickCustomer, address_uf: e.target.value.toUpperCase() })} />
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Observações</Label>
+                <Textarea rows={2} value={quickCustomer.notes ?? ""} maxLength={2000}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickCustomer(null)}>Cancelar</Button>
+            <Button onClick={saveQuickCustomer} disabled={quickSaving} className="bg-gradient-primary">
+              {quickSaving ? "Salvando…" : "Cadastrar e vincular"}
             </Button>
           </DialogFooter>
         </DialogContent>
