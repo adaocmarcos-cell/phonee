@@ -40,8 +40,10 @@ describe("phonee_* RPC contract (used by admin master screens)", () => {
     expectTypeOf<Fns["phonee_referrals_overview"]["Args"]>().toBeNever();
   });
 
-  it("phonee_marketing_dashboard — no args", () => {
-    expectTypeOf<Fns["phonee_marketing_dashboard"]["Args"]>().toBeNever();
+  it("phonee_marketing_dashboard — optional _from/_to", () => {
+    type A = Fns["phonee_marketing_dashboard"]["Args"];
+    expectTypeOf<A["_from"]>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<A["_to"]>().toEqualTypeOf<string | undefined>();
   });
 
   it("phonee_user_metrics — no args", () => {
