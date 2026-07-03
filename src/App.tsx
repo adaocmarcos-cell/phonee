@@ -16,6 +16,7 @@ import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { SplashScreen } from "./components/SplashScreen";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
+import ChunkErrorBoundary from "@/components/ChunkErrorBoundary";
 
 // Lazy-loaded: layout + páginas do painel ERP e do painel Phonee.
 // Landing e telas de auth ficam eager para não atrasar o primeiro paint.
@@ -101,6 +102,7 @@ const App = () => (
           <SplashScreen />
           <MetaPixel />
           <CookieConsentBanner />
+          <ChunkErrorBoundary>
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Landing />} />
@@ -193,6 +195,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </ChunkErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
