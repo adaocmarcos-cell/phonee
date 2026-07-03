@@ -120,7 +120,30 @@ export default function Clientes() {
       ({ error } = await (supabase.from("customers") as any).insert(payload));
     }
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      const isUnique =
+        (error as any).code === "23505" ||
+        /customers_store_document_uidx|duplicate key|unique/i.test(error.message ?? "");
+      if (isUnique && payload.document && store) {
+        const { data: existente } = await (supabase.from("customers") as any)
+          .select("id, name")
+          .eq("store_id", store.id)
+          .eq("document", payload.document)
+          .maybeSingle();
+        toast.error("Já existe um cliente com este documento nesta loja", {
+          description: existente?.name ? `Cliente: ${existente.name}` : undefined,
+          action: existente
+            ? {
+                label: "Abrir cadastro",
+                onClick: () => setEditing(existente as any),
+              }
+            : undefined,
+        });
+        return;
+      }
+      toast.error(error.message);
+      return;
+    }
     toast.success(editing.id ? "Cliente atualizado" : "Cliente cadastrado");
     setEditing(null);
     load();
