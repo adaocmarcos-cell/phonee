@@ -65,18 +65,37 @@ Deno.serve(async (req) => {
       const siteUrl = Deno.env.get("SITE_URL") ?? "";
       const redirectTo = siteUrl ? `${siteUrl}/reset-password` : undefined;
 
-      // Try to create user; if already exists, fetch
+      // Look up the user directly and indexed via profiles.email — avoids
+      // paginating auth.users (previous `listUsers({ perPage: 200 })` silently
+      // failed once we crossed a few hundred accounts, leaving paid
+      // subscriptions orphaned). Only create the auth user when the profile
+      // truly doesn't exist yet.
       let userId: string | null = null;
-      const { data: created, error: createErr } = await admin.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: { full_name: sub.customer_name, source: "asaas_checkout" },
-      });
-      if (created?.user) {
-        userId = created.user.id;
-      } else if (createErr && /already/i.test(createErr.message ?? "")) {
-        const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-        userId = list?.users?.find((u: any) => (u.email ?? "").toLowerCase() === email.toLowerCase())?.id ?? null;
+      const { data: existingProfile } = await admin
+        .from("profiles")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
+      if (existingProfile?.id) {
+        userId = existingProfile.id as string;
+      } else {
+        const { data: created, error: createErr } = await admin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: { full_name: sub.customer_name, source: "asaas_checkout" },
+        });
+        if (created?.user) {
+          userId = created.user.id;
+        } else if (createErr && /already/i.test(createErr.message ?? "")) {
+          // Race: profile row may not exist yet even though the auth user does.
+          // Re-check profiles once (the DB trigger creates it on user insert).
+          const { data: retry } = await admin
+            .from("profiles")
+            .select("id")
+            .ilike("email", email)
+            .maybeSingle();
+          userId = (retry?.id as string | undefined) ?? null;
+        }
       }
 
       if (userId) {
