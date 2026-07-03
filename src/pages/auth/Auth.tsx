@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import { anyGrantsAccess } from "@/lib/subscriptionAccess";
+import { evaluateLoginAccess } from "@/lib/trialAccess";
 import logoAsset from "@/assets/phonee-logo.png.asset.json";
 const logo = logoAsset.url;
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -81,22 +81,14 @@ export default function Auth() {
           .eq("user_id", userId)
           .maybeSingle(),
       ]);
-      isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
-      const storeAccess = anyGrantsAccess(
-        (myStores ?? []).map((s: any) => ({
-          status: s.subscription_status,
-          expires_at: s.expires_at,
-          billing_cycle: s.billing_cycle,
-        }))
-      );
-      const subAccess = anyGrantsAccess(mySubs ?? []);
-      const hasActive = !!storeAccess?.hasAccess;
-      const hasActiveSub = !!subAccess?.hasAccess;
-      // Trial gratuito ativo (7 dias): libera acesso mesmo sem subscription paga.
-      const trialEnds = trialRow?.trial_ends_at ? new Date(trialRow.trial_ends_at).getTime() : 0;
-      const hasActiveTrial =
-        !!trialRow && trialRow.status === "em_teste" && trialEnds > Date.now();
-      allowed = isAdminMaster || hasActive || hasActiveSub || hasActiveTrial;
+      const access = evaluateLoginAccess({
+        roles: (roles ?? []) as Array<{ role: string }>,
+        myStores: myStores ?? [],
+        mySubs: (mySubs ?? []) as any[],
+        trial: trialRow ?? null,
+      });
+      isAdminMaster = access.isAdminMaster;
+      allowed = access.allowed;
       const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
       const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
       initialPath = isAdminMaster
