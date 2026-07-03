@@ -976,7 +976,17 @@ Obrigado pela preferência.`;
                   </button>
                 </div>
               )}
-              {showProductList && products.length > 0 && filteredProducts.length > 0 && (
+              {showProductList && products.length > 0 && searching && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
+                  Buscando…
+                </div>
+              )}
+              {showProductList && products.length > 0 && !searching && filteredProducts.length === 0 && productQueryDebounced.trim() && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
+                  Nenhum resultado para "{productQueryDebounced.trim()}".
+                </div>
+              )}
+              {showProductList && products.length > 0 && !searching && filteredProducts.length > 0 && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto">
                   {filteredProducts.map((p: any) => {
                     const noStock = Number(p.stock_current) <= 0;
