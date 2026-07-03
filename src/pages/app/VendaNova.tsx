@@ -633,6 +633,7 @@ export default function VendaNova() {
       store_id: store.id, seller_id: user.id,
       customer_name: customer || null, customer_doc: doc || null,
       customer_whatsapp: whatsapp || null,
+      customer_id: linkedCustomerId,
       payment_method: dbMethod as any,
       installments: headInstallments,
       discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
