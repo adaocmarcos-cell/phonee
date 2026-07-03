@@ -337,25 +337,128 @@ export default function Estoque() {
       const text = await file.text();
       const rows = parseCSV(text);
       if (rows.length === 0) { toast.error("CSV vazio ou inválido"); return; }
-      const payload = rows
-        .filter((r) => (r.name || r.nome || "").trim())
+
+      // Normaliza linhas
+      const parsed = rows
         .map((r) => ({
-          store_id: store.id,
           name: (r.name || r.nome || "").trim().slice(0, 200),
-          sku: (r.sku || "").trim() || null,
+          sku: (r.sku || r.codigo || "").trim().toUpperCase(),
+          gtin: (r.gtin || r.ean || r.barcode || r.codigo_barras || "").trim(),
           brand: (r.brand || r.marca || "").trim() || null,
           category: (r.category || r.categoria || "acessorio").trim(),
           condition: (r.condition || r.condicao || "novo").trim(),
-          cost_price: Number((r.cost_price || r.custo || "0").replace(",", ".")) || 0,
-          sale_price: Number((r.sale_price || r.venda || "0").replace(",", ".")) || 0,
+          cost_price: Number(String(r.cost_price || r.custo || "0").replace(",", ".")) || 0,
+          sale_price: Number(String(r.sale_price || r.venda || "0").replace(",", ".")) || 0,
           stock_current: parseInt(r.stock_current || r.estoque || "0", 10) || 0,
           stock_min: parseInt(r.stock_min || r.minimo || "0", 10) || 0,
           status: (r.status || "ativo").trim(),
-        }));
-      if (payload.length === 0) { toast.error("Nenhuma linha válida (coluna 'name' é obrigatória)"); return; }
-      const { error } = await supabase.from("products").insert(payload as any);
-      if (error) { toast.error(`Erro: ${error.message}`); return; }
-      toast.success(`${payload.length} produto(s) importado(s)`);
+        }))
+        .filter((r) => r.name);
+
+      if (parsed.length === 0) { toast.error("Nenhuma linha válida (coluna 'name' é obrigatória)"); return; }
+
+      // Carrega base existente para dedupe
+      const { data: existing, error: exErr } = await supabase
+        .from("products")
+        .select("id, name, sku, gtin, brand, stock_current")
+        .eq("store_id", store.id);
+      if (exErr) { toast.error(`Erro ao ler base: ${exErr.message}`); return; }
+
+      const byId = new Map<string, any>();
+      const bySku = new Map<string, any>();
+      const byGtin = new Map<string, any>();
+      const byNameBrand = new Map<string, any>();
+      const usedSkus = new Set<string>();
+      (existing ?? []).forEach((p: any) => {
+        byId.set(p.id, p);
+        if (p.sku) { bySku.set(String(p.sku).toUpperCase(), p); usedSkus.add(String(p.sku).toUpperCase()); }
+        if (p.gtin) byGtin.set(String(p.gtin), p);
+        const key = `${(p.name || "").toLowerCase().trim()}|${(p.brand || "").toLowerCase().trim()}`;
+        if (key.trim() !== "|") byNameBrand.set(key, p);
+      });
+
+      const toInsert: any[] = [];
+      const toUpdate: { id: string; patch: any }[] = [];
+      const errors: string[] = [];
+      const seenSkuInBatch = new Set<string>();
+
+      for (const r of parsed) {
+        // 1) Match por SKU, GTIN ou nome+marca (nessa ordem)
+        let match: any = null;
+        if (r.sku && bySku.has(r.sku)) match = bySku.get(r.sku);
+        if (!match && r.gtin && byGtin.has(r.gtin)) match = byGtin.get(r.gtin);
+        if (!match) {
+          const k = `${r.name.toLowerCase().trim()}|${(r.brand || "").toLowerCase().trim()}`;
+          if (byNameBrand.has(k)) match = byNameBrand.get(k);
+        }
+
+        if (match) {
+          // Atualiza sem apagar histórico (preserva id, estoque só se informado)
+          const patch: any = {
+            name: r.name,
+            brand: r.brand ?? match.brand,
+            category: r.category,
+            condition: r.condition,
+            cost_price: r.cost_price,
+            sale_price: r.sale_price,
+            stock_min: r.stock_min,
+            status: r.status,
+          };
+          if (r.stock_current > 0) patch.stock_current = r.stock_current;
+          if (r.gtin) patch.gtin = r.gtin;
+          // Corrige SKU se estava vazio ou inválido
+          if (!match.sku && r.sku && !usedSkus.has(r.sku)) {
+            patch.sku = r.sku; usedSkus.add(r.sku);
+          }
+          toUpdate.push({ id: match.id, patch });
+        } else {
+          // Novo produto — gera SKU se ausente/duplicado
+          let sku = r.sku;
+          if (!sku || usedSkus.has(sku) || seenSkuInBatch.has(sku)) {
+            try { sku = await generateUniqueSku(store.id, r.name); }
+            catch { sku = `SKU-${Date.now().toString().slice(-6)}`; }
+          }
+          usedSkus.add(sku);
+          seenSkuInBatch.add(sku);
+          toInsert.push({
+            store_id: store.id,
+            name: r.name,
+            sku,
+            gtin: r.gtin || null,
+            brand: r.brand,
+            category: r.category,
+            condition: r.condition,
+            cost_price: r.cost_price,
+            sale_price: r.sale_price,
+            stock_current: r.stock_current,
+            stock_min: r.stock_min,
+            status: r.status,
+          });
+        }
+      }
+
+      // Executa em lote
+      let created = 0, updated = 0;
+      if (toInsert.length > 0) {
+        const { error, count } = await supabase
+          .from("products")
+          .insert(toInsert as any, { count: "exact" });
+        if (error) errors.push(`Inserção: ${error.message}`);
+        else created = count ?? toInsert.length;
+      }
+      for (const u of toUpdate) {
+        const { error } = await supabase.from("products").update(u.patch).eq("id", u.id);
+        if (error) errors.push(`Atualização (${u.id.slice(0, 8)}): ${error.message}`);
+        else updated++;
+      }
+
+      if (errors.length) {
+        toast.error(`${errors.length} erro(s) na importação — ${errors[0]}`);
+      }
+      toast.success(
+        `Importação concluída: ${created} novo(s), ${updated} atualizado(s), ${parsed.length - created - updated - errors.length} ignorado(s).`,
+        { duration: 6000 }
+      );
       load();
     } catch (e: any) {
       toast.error(`Falha ao processar CSV: ${e?.message ?? "erro"}`);
