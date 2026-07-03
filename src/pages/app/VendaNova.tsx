@@ -408,6 +408,10 @@ export default function VendaNova() {
   }, [products, productQuery]);
 
   const addItem = (p: any) => {
+    if (Number(p.stock_current) <= 0) {
+      toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
+      return;
+    }
     setItems((arr) => {
       const existing = arr.find((i) => i.product_id === p.id);
       if (existing) return arr.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
