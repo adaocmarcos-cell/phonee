@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { VendaRapidaModal } from "@/components/VendaRapidaModal";
 import { MarcasModal } from "@/components/MarcasModal";
 import { canRegisterSale } from "@/contexts/AuthContext";
+import { generateUniqueSku } from "@/lib/sku";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
