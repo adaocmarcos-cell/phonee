@@ -26,6 +26,7 @@ import AutocompleteInput from "@/components/AutocompleteInput";
 import { onlyDigits, validateDoc } from "@/lib/docValidation";
 import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
 import { UserCheck } from "lucide-react";
+import { buildLineItemFromProduct, getSearchState } from "@/lib/vendaSearch";
 
 type CustomerLite = {
   id: string;
