@@ -949,7 +949,7 @@ Obrigado pela preferência.`;
                   Nenhum produto cadastrado.{" "}
                   <button
                     type="button"
-                    onMouseDown={(e) => { e.preventDefault(); navigate("/painel/estoque/produtos/novo"); }}
+                    onMouseDown={(e) => { e.preventDefault(); navigate("/painel/estoque/novo"); }}
                     className="text-primary hover:underline"
                   >
                     Cadastre em Estoque &gt; Produtos.
