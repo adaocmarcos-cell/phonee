@@ -232,11 +232,18 @@ export default function VendaNova() {
   useEffect(() => {
     if (!store) return;
     (async () => {
-      const { data } = await supabase
+      // Mesma tabela usada em Estoque > Produtos, mesmo escopo (store_id).
+      // IMPORTANTE: a coluna de código de barras chama-se `ean` (não `gtin`).
+      // Pedir `gtin` fazia a query falhar e a lista ficar vazia.
+      const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, gtin")
+        .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, ean, brand, compatible_model")
         .eq("store_id", store.id)
         .order("name");
+      if (error) {
+        console.error("[VendaNova] falha ao carregar produtos:", error);
+        toast.error("Não foi possível carregar os produtos da loja.");
+      }
       setProducts(data ?? []);
     })();
   }, [store]);
