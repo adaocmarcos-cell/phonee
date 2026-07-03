@@ -67,8 +67,6 @@ import PhoneeCrescimento from "./pages/phonee/Crescimento";
 import PhoneeLeads from "./pages/phonee/Leads";
 import PhoneeMarketing from "./pages/phonee/Marketing";
 import PhoneeCupons from "./pages/phonee/Cupons";
-import PhoneeParceiros from "./pages/phonee/Parceiros";
-import ParceirosSignup from "./pages/ParceirosSignup";
 import PhoneeAuditoria from "./pages/phonee/Auditoria";
 import PhoneeAssinaturaSolicitacoes from "./pages/phonee/AssinaturaSolicitacoes";
 import PhoneeAdminMasters from "./pages/phonee/AdminMasters";
@@ -97,7 +95,7 @@ const App = () => (
             <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/comprar" element={<Comprar />} />
             <Route path="/comprar/sucesso/:id" element={<ComprarSucesso />} />
-            <Route path="/parceiros" element={<ParceirosSignup />} />
+            <Route path="/parceiros" element={<Navigate to="/" replace />} />
             <Route path="/testegratis" element={<Navigate to="/?trial=1" replace />} />
             <Route path="/teste-gratis" element={<Navigate to="/?trial=1" replace />} />
             <Route path="/painel" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -165,7 +163,7 @@ const App = () => (
               <Route path="contas" element={<PhoneeContas />} />
               <Route path="lojas" element={<PhoneeLojas />} />
               <Route path="usuarios" element={<PhoneeUsuarios />} />
-              <Route path="parceiros" element={<PhoneeParceiros />} />
+              <Route path="parceiros" element={<Navigate to="/phonee/contas" replace />} />
               <Route path="assinaturas" element={<PhoneeAssinaturas />} />
               <Route path="financeiro" element={<PhoneeFinanceiro />} />
               <Route path="crescimento" element={<PhoneeCrescimento />} />
