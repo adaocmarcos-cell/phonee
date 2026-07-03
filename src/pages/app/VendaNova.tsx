@@ -517,25 +517,25 @@ export default function VendaNova() {
     }
     // Vinculação validada de product_id, nome, preço e estoque.
     const built = buildLineItemFromProduct(p);
-    if (!built.ok) { toast.error(built.error); return; }
-    const { warnings } = built;
-    warnings.forEach((w) => toast.warning(w));
+    if (built.ok === false) { toast.error(built.error); return; }
+    const draft = built.item;
+    built.warnings.forEach((w) => toast.warning(w));
 
     setItems((arr) => {
-      const existing = arr.find((i) => i.product_id === built.item.product_id);
-      if (existing) return arr.map((i) => i.product_id === built.item.product_id ? { ...i, quantity: i.quantity + 1 } : i);
+      const existing = arr.find((i) => i.product_id === draft.product_id);
+      if (existing) return arr.map((i) => i.product_id === draft.product_id ? { ...i, quantity: i.quantity + 1 } : i);
       return [...arr, {
-        product_id: built.item.product_id,
-        name: built.item.name,
-        code: built.item.code ?? undefined,
-        category: built.item.category ?? undefined,
-        color: built.item.color ?? undefined,
-        storage: built.item.storage ?? undefined,
+        product_id: draft.product_id,
+        name: draft.name,
+        code: draft.code ?? undefined,
+        category: draft.category ?? undefined,
+        color: draft.color ?? undefined,
+        storage: draft.storage ?? undefined,
         quantity: 1,
-        list_price: built.item.list_price,
+        list_price: draft.list_price,
         discount_pct: 0,
         discount_brl: 0,
-        unit_price: built.item.unit_price,
+        unit_price: draft.unit_price,
       }];
     });
     setProductQuery("");
