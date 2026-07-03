@@ -653,6 +653,16 @@ export default function VendaNova() {
         quantity: i.quantity,
         unit_price: i.unit_price,
         total: i.quantity * i.unit_price,
+        // Snapshot dos dados exibidos ao cliente — preserva o pedido mesmo
+        // que o produto seja renomeado, corrigido ou excluído depois.
+        name: i.name || null,
+        sku: i.is_service ? "SERVIÇO" : (i.code || null),
+        category: i.category || null,
+        brand: (i as any).brand || null,
+        model: (i as any).model || null,
+        unit: unit || null,
+        discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
+        warranty_days: warrantyEnabled ? warrantyDays : null,
       }))
     );
     if (e2) { setBusy(false); return toast.error(e2.message); }
