@@ -249,6 +249,29 @@ export default function PhoneeUsuarios() {
     catch { toast.error("Não foi possível copiar."); }
   };
 
+  // WhatsApp: strip everything except digits; if no country code (10-11 digits
+  // typical of BR numbers) prepend 55. Returns null when the input has too few
+  // digits to be a real phone.
+  const buildWhatsappUrl = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const digits = raw.replace(/\D+/g, "");
+    if (digits.length < 8) return null;
+    const normalized = digits.length <= 11 ? `55${digits}` : digits;
+    return `https://wa.me/${normalized}`;
+  };
+
+  // Instagram: accept @handle, plain handle, or full URL. Returns null when
+  // there's nothing usable.
+  const buildInstagramUrl = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const v = raw.trim();
+    if (!v) return null;
+    if (/^https?:\/\//i.test(v)) return v;
+    const handle = v.replace(/^@+/, "").replace(/^instagram\.com\//i, "").replace(/\/+$/, "");
+    if (!handle) return null;
+    return `https://instagram.com/${handle}`;
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
