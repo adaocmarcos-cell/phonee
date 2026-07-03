@@ -16,6 +16,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Users, Edit3, Trash2, Phone, Mail, MapPin } from "lucide-react";
+import { Copy, MessageCircle, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 type Customer = {
@@ -46,6 +48,75 @@ const EMPTY: Partial<Customer> = {
   address_complement: "", address_neighborhood: "", address_city: "", address_uf: "",
   notes: "",
 };
+
+function WhatsAppCell({ whatsapp }: { whatsapp: string | null }) {
+  const digits = (whatsapp ?? "").replace(/\D/g, "");
+  const hasNumber = digits.length >= 8;
+
+  if (!whatsapp || !hasNumber) {
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              aria-disabled="true"
+              className="flex items-center gap-1 text-muted-foreground mt-0.5 opacity-60 cursor-not-allowed"
+            >
+              <AlertTriangle className="h-3 w-3" />WhatsApp não informado
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Cadastre um número para habilitar o envio de mensagem</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  const copy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(digits);
+      toast.success("Número copiado", { description: digits });
+    } catch {
+      toast.error("Não foi possível copiar o número");
+    }
+  };
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="flex items-center gap-1.5 text-success mt-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <a
+              href={`https://wa.me/${digits}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 hover:underline"
+              aria-label={`Enviar mensagem no WhatsApp para ${whatsapp}`}
+            >
+              <MessageCircle className="h-3 w-3" />WhatsApp: {whatsapp}
+            </a>
+          </TooltipTrigger>
+          <TooltipContent>Enviar mensagem</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={copy}
+              aria-label="Copiar número do WhatsApp"
+              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Copiar número</TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  );
+}
 
 export default function Clientes() {
   const { store } = useAuth();
@@ -214,17 +285,7 @@ export default function Clientes() {
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {c.phone && <div className="flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" />{c.phone}</div>}
-                    {c.whatsapp && (
-                      <a
-                        href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-success mt-0.5 hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Phone className="h-3 w-3" />WhatsApp: {c.whatsapp}
-                      </a>
-                    )}
+                    <WhatsAppCell whatsapp={c.whatsapp} />
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {c.address_city ? (
