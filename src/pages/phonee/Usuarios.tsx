@@ -247,41 +247,8 @@ export default function PhoneeUsuarios() {
     catch { toast.error("Não foi possível copiar."); }
   };
 
-  const createPartner = async () => {
-    if (!partnerForm.email.trim() || !partnerForm.full_name.trim()) {
-      return toast.error("Nome e e-mail são obrigatórios.");
-    }
-    setCreatingPartner(true);
-    const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
-      body: {
-        action: "create_partner_user",
-        full_name: partnerForm.full_name,
-        email: partnerForm.email,
-        whatsapp: partnerForm.whatsapp || undefined,
-        access_origin: typeof window !== "undefined" ? window.location.origin : undefined,
-      },
-    });
-    setCreatingPartner(false);
-    if (error || (data as any)?.error) {
-      return toast.error(((data as any)?.error) || error?.message || "Falha ao criar parceiro.");
-    }
-    const d = data as any;
-    setPartnerResult({
-      email: d.email,
-      temp_password: d.temp_password,
-      access_url: d.access_url,
-      expires_at: d.expires_at,
-    });
-    setOpenPartner(false);
-    setPartnerForm({ full_name: "", email: "", whatsapp: "" });
-    toast.success("Parceiro criado. Link de acesso disponível no topo da página.");
-    load();
-  };
-
   return (
     <div>
-      {partnerResult && (
-        <div className="mb-5 rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-amber-600/5 p-4">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-amber-400" />
