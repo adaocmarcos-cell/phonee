@@ -343,7 +343,7 @@ export default function Vendas() {
           <button
             type="button"
             onClick={() => navigate("/painel/vendas/nova")}
-            className="sm:col-span-2 lg:col-span-2 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-5 flex items-center justify-center gap-2 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
+            className="sm:col-span-2 lg:col-span-4 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground shadow-glow hover:brightness-110 transition-all border border-primary/60 px-6 py-5 flex items-center justify-center gap-2 font-semibold text-base focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <Plus className="h-5 w-5" />
             Nova venda
