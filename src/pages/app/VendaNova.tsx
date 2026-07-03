@@ -993,9 +993,14 @@ Obrigado pela preferência.`;
               ))}
             </div>
 
-            <Button type="button" variant="outline" className="mt-3" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder*="Buscar por nome"]')?.focus()}>
-              <Plus className="h-4 w-4 mr-1" />Adicionar outro item
-            </Button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder*="Buscar por nome"]')?.focus()}>
+                <Plus className="h-4 w-4 mr-1" />Adicionar outro item
+              </Button>
+              <Button type="button" variant="outline" onClick={openNewService}>
+                <Plus className="h-4 w-4 mr-1" />Adicionar serviço
+              </Button>
+            </div>
           </Card>
 
           {/* TABS: Comissões / Pagamento / Entrega / Adicionais */}
