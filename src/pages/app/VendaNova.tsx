@@ -939,29 +939,56 @@ Obrigado pela preferência.`;
               <Input
                 value={productQuery}
                 onChange={(e) => setProductQuery(e.target.value)}
-                placeholder="Buscar por nome, código, categoria, GTIN ou modelo…"
+                onFocus={() => setShowProductList(true)}
+                onBlur={() => setTimeout(() => setShowProductList(false), 150)}
+                placeholder="Buscar por nome, SKU, código, categoria, GTIN ou modelo…"
                 className="pl-9"
               />
-              {productQuery && filteredProducts.length > 0 && (
+              {showProductList && products.length === 0 && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
+                  Nenhum produto cadastrado.{" "}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); navigate("/painel/estoque/produtos/novo"); }}
+                    className="text-primary hover:underline"
+                  >
+                    Cadastre em Estoque &gt; Produtos.
+                  </button>
+                </div>
+              )}
+              {showProductList && products.length > 0 && filteredProducts.length > 0 && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto">
-                  {filteredProducts.map((p: any) => (
-                    <button
-                      key={p.id} type="button"
-                      onClick={() => addItem(p)}
-                      disabled={Number(p.stock_current) <= 0}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3 ${Number(p.stock_current) <= 0 ? "opacity-60 cursor-not-allowed" : ""}`}
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{p.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {p.sku} · {p.category} · {Number(p.stock_current) > 0
-                            ? `est. ${p.stock_current}`
-                            : <span className="text-danger">SEM ESTOQUE</span>}
+                  {filteredProducts.map((p: any) => {
+                    const noStock = Number(p.stock_current) <= 0;
+                    const blocked = noStock && !allowNegativeStock;
+                    return (
+                      <button
+                        key={p.id} type="button"
+                        onClick={() => addItem(p)}
+                        disabled={blocked}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3 ${blocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                      >
+                        <div className="min-w-0">
+                          <div className="font-medium truncate flex items-center gap-2">
+                            <span className="truncate">{p.name}</span>
+                            {noStock && allowNegativeStock && (
+                              <span className="shrink-0 inline-flex items-center rounded-md bg-amber-500/15 text-amber-700 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider">
+                                estoque negativo
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            {p.sku} · {p.category} · {noStock
+                              ? (blocked
+                                  ? <span className="text-danger">SEM ESTOQUE</span>
+                                  : <span className="text-amber-600">est. {p.stock_current}</span>)
+                              : `est. ${p.stock_current}`}
+                          </div>
                         </div>
-                      </div>
-                      <div className="font-mono text-sm">{brl(Number(p.sale_price))}</div>
-                    </button>
-                  ))}
+                        <div className="font-mono text-sm">{brl(Number(p.sale_price))}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
