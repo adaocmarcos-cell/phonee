@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard, MessageCircle, Instagram } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -18,6 +18,8 @@ type Row = {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  phone: string | null;
+  instagram: string | null;
   created_at: string;
   stores_count: number;
   roles: string[];
@@ -247,6 +249,29 @@ export default function PhoneeUsuarios() {
     catch { toast.error("Não foi possível copiar."); }
   };
 
+  // WhatsApp: strip everything except digits; if no country code (10-11 digits
+  // typical of BR numbers) prepend 55. Returns null when the input has too few
+  // digits to be a real phone.
+  const buildWhatsappUrl = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const digits = raw.replace(/\D+/g, "");
+    if (digits.length < 8) return null;
+    const normalized = digits.length <= 11 ? `55${digits}` : digits;
+    return `https://wa.me/${normalized}`;
+  };
+
+  // Instagram: accept @handle, plain handle, or full URL. Returns null when
+  // there's nothing usable.
+  const buildInstagramUrl = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const v = raw.trim();
+    if (!v) return null;
+    if (/^https?:\/\//i.test(v)) return v;
+    const handle = v.replace(/^@+/, "").replace(/^instagram\.com\//i, "").replace(/\/+$/, "");
+    if (!handle) return null;
+    return `https://instagram.com/${handle}`;
+  };
+
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
@@ -366,6 +391,42 @@ export default function PhoneeUsuarios() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      {(() => {
+                        const wa = buildWhatsappUrl(r.phone);
+                        return (
+                          <a
+                            href={wa ?? undefined}
+                            target={wa ? "_blank" : undefined}
+                            rel={wa ? "noopener noreferrer" : undefined}
+                            title={wa ? `WhatsApp: ${r.phone}` : "Telefone não cadastrado"}
+                            aria-disabled={!wa}
+                            onClick={(e) => { if (!wa) e.preventDefault(); }}
+                            className={`p-1.5 rounded-md ${wa
+                              ? "hover:bg-emerald-500/10 text-emerald-400 cursor-pointer"
+                              : "text-slate-600 cursor-not-allowed opacity-50"}`}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </a>
+                        );
+                      })()}
+                      {(() => {
+                        const ig = buildInstagramUrl(r.instagram);
+                        return (
+                          <a
+                            href={ig ?? undefined}
+                            target={ig ? "_blank" : undefined}
+                            rel={ig ? "noopener noreferrer" : undefined}
+                            title={ig ? `Instagram: ${r.instagram}` : "Instagram não cadastrado"}
+                            aria-disabled={!ig}
+                            onClick={(e) => { if (!ig) e.preventDefault(); }}
+                            className={`p-1.5 rounded-md ${ig
+                              ? "hover:bg-pink-500/10 text-pink-400 cursor-pointer"
+                              : "text-slate-600 cursor-not-allowed opacity-50"}`}
+                          >
+                            <Instagram className="h-4 w-4" />
+                          </a>
+                        );
+                      })()}
                       <button
                         onClick={() => openEdit(r)}
                         title="Editar dados / redefinir senha"

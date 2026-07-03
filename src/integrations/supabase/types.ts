@@ -3282,7 +3282,9 @@ export type Database = {
           created_at: string
           email: string
           full_name: string
+          instagram: string
           is_admin_master: boolean
+          phone: string
           plan_name: string
           roles: string[]
           stores: Json
