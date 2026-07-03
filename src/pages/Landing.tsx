@@ -15,7 +15,7 @@ import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
   ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play,
-  DollarSign, Percent, Package, Gift, Loader2, BadgeCheck, type LucideIcon,
+  DollarSign, Percent, Package, Loader2, BadgeCheck, type LucideIcon,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 const logo = logoAsset.url;
