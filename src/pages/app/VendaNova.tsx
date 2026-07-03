@@ -518,7 +518,8 @@ export default function VendaNova() {
     // Vinculação validada de product_id, nome, preço e estoque.
     const built = buildLineItemFromProduct(p);
     if (!built.ok) { toast.error(built.error); return; }
-    built.warnings.forEach((w) => toast.warning(w));
+    const { warnings } = built;
+    warnings.forEach((w) => toast.warning(w));
 
     setItems((arr) => {
       const existing = arr.find((i) => i.product_id === built.item.product_id);
