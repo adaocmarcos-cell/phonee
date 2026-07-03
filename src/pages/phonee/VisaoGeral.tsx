@@ -15,6 +15,7 @@ type VisitsStats = {
   last_7d: number;
   last_30d: number;
   today: number;
+  today_unique: number;
 };
 
 const brl = (n: number) =>
@@ -50,16 +51,19 @@ export default function PhoneeVisaoGeral() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayIso = todayStart.toISOString();
-      const [total, last30, last7, last24, today, unique30] = await Promise.all([
+      const [total, last30, last7, last24, today, unique30, todayUniqRows] = await Promise.all([
         (supabase as any).from("page_visits").select("id", { count: "exact", head: true }),
         (supabase as any).from("page_visits").select("id", { count: "exact", head: true }).gte("created_at", since30),
         (supabase as any).from("page_visits").select("id", { count: "exact", head: true }).gte("created_at", since7),
         (supabase as any).from("page_visits").select("id", { count: "exact", head: true }).gte("created_at", since24h),
         (supabase as any).from("page_visits").select("id", { count: "exact", head: true }).gte("created_at", todayIso),
         (supabase as any).from("page_visits").select("session_id").gte("created_at", since30).limit(10000),
+        (supabase as any).from("page_visits").select("session_id").gte("created_at", todayIso).limit(10000),
       ]);
       const uniq = new Set<string>();
       ((unique30.data as any[]) ?? []).forEach((r) => { if (r?.session_id) uniq.add(r.session_id); });
+      const uniqToday = new Set<string>();
+      ((todayUniqRows.data as any[]) ?? []).forEach((r) => { if (r?.session_id) uniqToday.add(r.session_id); });
       setV({
         total: total.count ?? 0,
         last_30d: last30.count ?? 0,
@@ -67,6 +71,7 @@ export default function PhoneeVisaoGeral() {
         last_24h: last24.count ?? 0,
         today: today.count ?? 0,
         unique_sessions: uniq.size,
+        today_unique: uniqToday.size,
       });
     })();
   }, []);
@@ -79,6 +84,11 @@ export default function PhoneeVisaoGeral() {
       <h1 className="text-2xl font-bold mb-1">Visão geral da plataforma</h1>
       <p className="text-sm text-slate-400 mb-6">Indicadores consolidados do Phonee.</p>
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <Card
+          label="Visitantes hoje"
+          value={v?.today ?? "…"}
+          hint={v ? `${v.today_unique} sessões únicas` : undefined}
+        />
         <Card label="Lojas totais" value={d.total_stores} />
         <Card label="Assinaturas ativas" value={d.active_subscriptions}
               hint={`${d.trialing} em trial`} />
@@ -94,7 +104,7 @@ export default function PhoneeVisaoGeral() {
 
       <h2 className="text-lg font-semibold mt-8 mb-3">Visitantes do site</h2>
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-        <Card label="Hoje" value={v?.today ?? "…"} />
+        <Card label="Hoje" value={v?.today ?? "…"} hint={v ? `${v.today_unique} únicas` : undefined} />
         <Card label="Últimas 24h" value={v?.last_24h ?? "…"} />
         <Card label="Últimos 7 dias" value={v?.last_7d ?? "…"} />
         <Card label="Últimos 30 dias" value={v?.last_30d ?? "…"} />
