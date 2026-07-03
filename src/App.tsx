@@ -74,6 +74,7 @@ import ParceirosSignup from "./pages/ParceirosSignup";
 import PhoneeAuditoria from "./pages/phonee/Auditoria";
 import PhoneeAssinaturaSolicitacoes from "./pages/phonee/AssinaturaSolicitacoes";
 import PhoneeAdminMasters from "./pages/phonee/AdminMasters";
+import PhoneeContas from "./pages/phonee/Contas";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { SplashScreen } from "./components/SplashScreen";
@@ -164,6 +165,7 @@ const App = () => (
             <Route path="/phonee" element={<PhoneeLogin />} />
             <Route path="/phonee" element={<AdminMasterRoute><PhoneeLayout /></AdminMasterRoute>}>
               <Route path="visao-geral" element={<PhoneeVisaoGeral />} />
+              <Route path="contas" element={<PhoneeContas />} />
               <Route path="lojas" element={<PhoneeLojas />} />
               <Route path="usuarios" element={<PhoneeUsuarios />} />
               <Route path="parceiros" element={<PhoneeParceiros />} />
