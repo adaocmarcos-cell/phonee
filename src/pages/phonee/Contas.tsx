@@ -31,7 +31,7 @@ type Overview = {
   total_users: number; mrr_estimate: number; gmv_30d: number;
 };
 
-type TabKey = "todos" | "ativos" | "teste" | "sem_plano" | "parceiros";
+type TabKey = "todos" | "ativos" | "teste" | "sem_plano";
 
 const brl = (n: number) =>
   (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -112,7 +112,6 @@ export default function PhoneeContas() {
       if (tab === "ativos" && !isActive(s.subscription_status)) return false;
       if (tab === "teste" && !isTrial(s.subscription_status) && !trialsByEmail.has((s.owner_email ?? "").toLowerCase())) return false;
       if (tab === "sem_plano" && (isActive(s.subscription_status) || isTrial(s.subscription_status))) return false;
-      if (tab === "parceiros" && !trialsByEmail.has((s.owner_email ?? "").toLowerCase())) return false;
       if (!term) return true;
       return (
         s.store_name?.toLowerCase().includes(term) ||
@@ -137,7 +136,6 @@ export default function PhoneeContas() {
     ativos: stores.filter((s) => isActive(s.subscription_status)).length,
     teste: stores.filter((s) => isTrial(s.subscription_status) || trialsByEmail.has((s.owner_email ?? "").toLowerCase())).length,
     sem_plano: stores.filter((s) => !isActive(s.subscription_status) && !isTrial(s.subscription_status)).length,
-    parceiros: trials.length,
   }), [stores, trials, trialsByEmail]);
 
   return (
@@ -145,7 +143,7 @@ export default function PhoneeContas() {
       <div>
         <h1 className="text-2xl font-bold">Contas da plataforma</h1>
         <p className="text-sm text-slate-400">
-          Visão unificada — cada loja aparece com seus usuários dentro. Use os filtros para separar assinantes, testes e parceiros.
+          Visão unificada — cada loja aparece com seus usuários dentro. Use os filtros para separar assinantes, testes e contas sem plano.
         </p>
       </div>
 
@@ -166,7 +164,6 @@ export default function PhoneeContas() {
           <TabBtn active={tab === "ativos"} onClick={() => setTab("ativos")} label="Assinantes ativos" count={counts.ativos} tone="emerald" />
           <TabBtn active={tab === "teste"} onClick={() => setTab("teste")} label="Em teste" count={counts.teste} tone="sky" />
           <TabBtn active={tab === "sem_plano"} onClick={() => setTab("sem_plano")} label="Sem plano" count={counts.sem_plano} tone="amber" />
-          <TabBtn active={tab === "parceiros"} onClick={() => setTab("parceiros")} label="Parceiros" count={counts.parceiros} tone="amber" />
         </div>
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -298,11 +295,6 @@ export default function PhoneeContas() {
                       <Link to="/phonee/assinaturas" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-200 hover:bg-slate-800">
                         <CreditCard className="h-3 w-3" /> Assinatura
                       </Link>
-                      {trial && (
-                        <Link to="/phonee/parceiros" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-amber-500/30 text-amber-300 hover:bg-amber-500/10">
-                          <Handshake className="h-3 w-3" /> Gerir parceiro
-                        </Link>
-                      )}
                     </div>
                   </div>
                 )}
