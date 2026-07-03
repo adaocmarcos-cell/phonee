@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, Handshake, Copy, Link2, Lock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -51,15 +51,6 @@ export default function PhoneeUsuarios() {
     has_expiration: false, expires_at: "", send_recovery: true,
   });
   const [creating, setCreating] = useState(false);
-
-  // ---- Partner user (7 days, password 1234567890, first-login change) ----
-  const [openPartner, setOpenPartner] = useState(false);
-  const [partnerForm, setPartnerForm] = useState({ full_name: "", email: "", whatsapp: "" });
-  const [creatingPartner, setCreatingPartner] = useState(false);
-  const [partnerResult, setPartnerResult] = useState<
-    | { email: string; temp_password: string; access_url: string; expires_at: string }
-    | null
-  >(null);
 
   // ---- Plan change (admin master) ----
   type PlanOpt = { id: string; name: string; price_cents: number };
