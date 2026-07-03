@@ -127,6 +127,7 @@ export default function VendaNova() {
   // Itens
   const [products, setProducts] = useState<any[]>([]);
   const [productQuery, setProductQuery] = useState("");
+  const [productQueryDebounced, setProductQueryDebounced] = useState("");
   const [showProductList, setShowProductList] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
@@ -232,11 +233,18 @@ export default function VendaNova() {
   useEffect(() => {
     if (!store) return;
     (async () => {
-      const { data } = await supabase
+      // Mesma tabela usada em Estoque > Produtos, mesmo escopo (store_id).
+      // IMPORTANTE: a coluna de código de barras chama-se `ean` (não `gtin`).
+      // Pedir `gtin` fazia a query falhar e a lista ficar vazia.
+      const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, gtin")
+        .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, ean, brand, compatible_model")
         .eq("store_id", store.id)
         .order("name");
+      if (error) {
+        console.error("[VendaNova] falha ao carregar produtos:", error);
+        toast.error("Não foi possível carregar os produtos da loja.");
+      }
       setProducts(data ?? []);
     })();
   }, [store]);
@@ -481,13 +489,25 @@ export default function VendaNova() {
     setSeller(s?.full_name ?? "");
   };
 
+  // Debounce de 300ms para o termo de busca.
+  useEffect(() => {
+    const t = setTimeout(() => setProductQueryDebounced(productQuery), 300);
+    return () => clearTimeout(t);
+  }, [productQuery]);
+
+  const searching = productQuery.trim() !== productQueryDebounced.trim();
+
   const filteredProducts = useMemo(() => {
-    const q = productQuery.trim().toLowerCase();
+    const q = productQueryDebounced.trim().toLowerCase();
     if (!q) return products.slice(0, 8);
+    // Busca case-insensitive e parcial em nome, SKU, código de barras (ean),
+    // categoria, marca e modelo compatível.
     return products.filter((p: any) =>
-      [p.name, p.sku, p.category, p.gtin].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q))
-    ).slice(0, 12);
-  }, [products, productQuery]);
+      [p.name, p.sku, p.ean, p.category, p.brand, p.compatible_model]
+        .filter(Boolean)
+        .some((v: string) => String(v).toLowerCase().includes(q))
+    ).slice(0, 20);
+  }, [products, productQueryDebounced]);
 
   const addItem = (p: any) => {
     if (!allowNegativeStock && Number(p.stock_current) <= 0) {
@@ -956,7 +976,17 @@ Obrigado pela preferência.`;
                   </button>
                 </div>
               )}
-              {showProductList && products.length > 0 && filteredProducts.length > 0 && (
+              {showProductList && products.length > 0 && searching && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
+                  Buscando…
+                </div>
+              )}
+              {showProductList && products.length > 0 && !searching && filteredProducts.length === 0 && productQueryDebounced.trim() && (
+                <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
+                  Nenhum resultado para "{productQueryDebounced.trim()}".
+                </div>
+              )}
+              {showProductList && products.length > 0 && !searching && filteredProducts.length > 0 && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-64 overflow-auto">
                   {filteredProducts.map((p: any) => {
                     const noStock = Number(p.stock_current) <= 0;
