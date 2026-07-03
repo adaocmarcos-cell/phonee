@@ -68,13 +68,18 @@ export default function Auth() {
     let initialPath = "/painel";
     let isAdminMaster = false;
     if (userId) {
-      const [{ data: roles }, { data: myStores }, { data: mySubs }] = await Promise.all([
+      const [{ data: roles }, { data: myStores }, { data: mySubs }, { data: trialRow }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.rpc("my_stores", { _user_id: userId }),
         supabase
           .from("subscriptions")
           .select("status, billing_cycle, expires_at, cancel_at_period_end")
           .eq("user_id", userId),
+        supabase
+          .from("partner_trials")
+          .select("status, trial_ends_at")
+          .eq("user_id", userId)
+          .maybeSingle(),
       ]);
       isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
       const storeAccess = anyGrantsAccess(
@@ -87,7 +92,11 @@ export default function Auth() {
       const subAccess = anyGrantsAccess(mySubs ?? []);
       const hasActive = !!storeAccess?.hasAccess;
       const hasActiveSub = !!subAccess?.hasAccess;
-      allowed = isAdminMaster || hasActive || hasActiveSub;
+      // Trial gratuito ativo (7 dias): libera acesso mesmo sem subscription paga.
+      const trialEnds = trialRow?.trial_ends_at ? new Date(trialRow.trial_ends_at).getTime() : 0;
+      const hasActiveTrial =
+        !!trialRow && trialRow.status === "em_teste" && trialEnds > Date.now();
+      allowed = isAdminMaster || hasActive || hasActiveSub || hasActiveTrial;
       const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
       const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
       initialPath = isAdminMaster
@@ -97,7 +106,9 @@ export default function Auth() {
     if (!allowed) {
       await supabase.auth.signOut();
       setBusy(false);
-      return toast.error("Nenhum plano ativo encontrado. Adquira um plano para acessar o Phonee.");
+      return toast.error(
+        "Nenhum plano ativo ou teste gratuito válido encontrado. Adquira um plano ou solicite um novo teste."
+      );
     }
     setBusy(false);
     if (remember) localStorage.setItem("phonee.rememberedEmail", eRes.data);
