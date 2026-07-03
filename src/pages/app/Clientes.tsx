@@ -49,6 +49,75 @@ const EMPTY: Partial<Customer> = {
   notes: "",
 };
 
+function WhatsAppCell({ whatsapp }: { whatsapp: string | null }) {
+  const digits = (whatsapp ?? "").replace(/\D/g, "");
+  const hasNumber = digits.length >= 8;
+
+  if (!whatsapp || !hasNumber) {
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              aria-disabled="true"
+              className="flex items-center gap-1 text-muted-foreground mt-0.5 opacity-60 cursor-not-allowed"
+            >
+              <AlertTriangle className="h-3 w-3" />WhatsApp não informado
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Cadastre um número para habilitar o envio de mensagem</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  const copy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(digits);
+      toast.success("Número copiado", { description: digits });
+    } catch {
+      toast.error("Não foi possível copiar o número");
+    }
+  };
+
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="flex items-center gap-1.5 text-success mt-0.5">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <a
+              href={`https://wa.me/${digits}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 hover:underline"
+              aria-label={`Enviar mensagem no WhatsApp para ${whatsapp}`}
+            >
+              <MessageCircle className="h-3 w-3" />WhatsApp: {whatsapp}
+            </a>
+          </TooltipTrigger>
+          <TooltipContent>Enviar mensagem</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={copy}
+              aria-label="Copiar número do WhatsApp"
+              className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Copiar número</TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  );
+}
+
 export default function Clientes() {
   const { store } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
