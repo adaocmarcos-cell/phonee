@@ -377,19 +377,37 @@ export default function Estoque() {
         if (key.trim() !== "|") byNameBrand.set(key, p);
       });
 
+      // Pré-verificação: detecta SKUs duplicados dentro do próprio CSV
+      const csvSkuCount = new Map<string, number>();
+      parsed.forEach((r) => {
+        if (r.sku) csvSkuCount.set(r.sku, (csvSkuCount.get(r.sku) || 0) + 1);
+      });
+      const dupSkus = [...csvSkuCount.entries()].filter(([, c]) => c > 1).map(([s]) => s);
+      if (dupSkus.length > 0) {
+        const ok = confirm(
+          `Detectados ${dupSkus.length} SKU(s) duplicados no CSV: ${dupSkus.slice(0, 5).join(", ")}${dupSkus.length > 5 ? "…" : ""}\n\nO sistema irá gerar novos SKUs únicos automaticamente para as duplicatas. Deseja continuar?`,
+        );
+        if (!ok) { toast.info("Importação cancelada — corrija os SKUs duplicados no CSV."); return; }
+      }
+
       const toInsert: any[] = [];
       const toUpdate: { id: string; patch: any }[] = [];
       const errors: string[] = [];
       const seenSkuInBatch = new Set<string>();
+      const report: {
+        name: string; sku: string; gtin: string; status: string;
+        match_by: string; message: string;
+      }[] = [];
 
       for (const r of parsed) {
         // 1) Match por SKU, GTIN ou nome+marca (nessa ordem)
         let match: any = null;
-        if (r.sku && bySku.has(r.sku)) match = bySku.get(r.sku);
-        if (!match && r.gtin && byGtin.has(r.gtin)) match = byGtin.get(r.gtin);
+        let matchBy = "";
+        if (r.sku && bySku.has(r.sku)) { match = bySku.get(r.sku); matchBy = "sku"; }
+        if (!match && r.gtin && byGtin.has(r.gtin)) { match = byGtin.get(r.gtin); matchBy = "gtin"; }
         if (!match) {
           const k = `${r.name.toLowerCase().trim()}|${(r.brand || "").toLowerCase().trim()}`;
-          if (byNameBrand.has(k)) match = byNameBrand.get(k);
+          if (byNameBrand.has(k)) { match = byNameBrand.get(k); matchBy = "nome+marca"; }
         }
 
         if (match) {
@@ -411,10 +429,13 @@ export default function Estoque() {
             patch.sku = r.sku; usedSkus.add(r.sku);
           }
           toUpdate.push({ id: match.id, patch });
+          report.push({ name: r.name, sku: r.sku || match.sku || "", gtin: r.gtin || "", status: "atualizado", match_by: matchBy, message: "" });
         } else {
           // Novo produto — gera SKU se ausente/duplicado
           let sku = r.sku;
+          let genMsg = "";
           if (!sku || usedSkus.has(sku) || seenSkuInBatch.has(sku)) {
+            genMsg = sku ? `SKU "${sku}" duplicado — gerado novo` : "SKU ausente — gerado";
             try { sku = await generateUniqueSku(store.id, r.name); }
             catch { sku = `SKU-${Date.now().toString().slice(-6)}`; }
           }
@@ -434,6 +455,7 @@ export default function Estoque() {
             stock_min: r.stock_min,
             status: r.status,
           });
+          report.push({ name: r.name, sku, gtin: r.gtin || "", status: "criado", match_by: "novo", message: genMsg });
         }
       }
 
@@ -443,20 +465,34 @@ export default function Estoque() {
         const { error, count } = await supabase
           .from("products")
           .insert(toInsert as any, { count: "exact" });
-        if (error) errors.push(`Inserção: ${error.message}`);
+        if (error) { errors.push(`Inserção: ${error.message}`); report.push({ name: "-", sku: "-", gtin: "-", status: "erro", match_by: "-", message: `Inserção em lote: ${error.message}` }); }
         else created = count ?? toInsert.length;
       }
       for (const u of toUpdate) {
         const { error } = await supabase.from("products").update(u.patch).eq("id", u.id);
-        if (error) errors.push(`Atualização (${u.id.slice(0, 8)}): ${error.message}`);
+        if (error) { errors.push(`Atualização (${u.id.slice(0, 8)}): ${error.message}`); report.push({ name: "-", sku: u.id.slice(0, 8), gtin: "-", status: "erro", match_by: "-", message: error.message }); }
         else updated++;
       }
+
+      // Gera CSV do relatório e dispara download
+      try {
+        const header = "status,critério_dedupe,nome,sku,gtin,observação\n";
+        const body = report.map((r) => [r.status, r.match_by, r.name, r.sku, r.gtin, r.message]
+          .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob(["\ufeff" + header + body], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `import-report-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) { console.warn("import report generation failed", e); }
 
       if (errors.length) {
         toast.error(`${errors.length} erro(s) na importação — ${errors[0]}`);
       }
       toast.success(
-        `Importação concluída: ${created} novo(s), ${updated} atualizado(s), ${parsed.length - created - updated - errors.length} ignorado(s).`,
+        `Importação concluída: ${created} novo(s), ${updated} atualizado(s), ${errors.length} erro(s). Relatório baixado.`,
         { duration: 6000 }
       );
       load();
