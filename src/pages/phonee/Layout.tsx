@@ -11,7 +11,6 @@ const nav = [
   { to: "/phonee/contas",      label: "Contas",       icon: Layers },
   { to: "/phonee/lojas",       label: "Lojas",        icon: Building2 },
   { to: "/phonee/usuarios",    label: "Usuários",     icon: Users },
-  { to: "/phonee/parceiros",   label: "Parceiros",    icon: Handshake },
   { to: "/phonee/leads",       label: "Leads",        icon: UserPlus },
   { to: "/phonee/cupons",      label: "Cupons",       icon: Ticket },
   { to: "/phonee/marketing",   label: "Marketing",    icon: Target },
