@@ -83,13 +83,34 @@ Deno.serve(async (req) => {
       return json({ error: "Colaborador não pertence a esta loja." }, 404);
     }
 
-    // Update auth (email/password) when provided
+    // Confirm the target auth user still exists (avoid opaque errors)
+    const { data: targetUser, error: getUserErr } = await admin.auth.admin.getUserById(user_id);
+    if (getUserErr || !targetUser?.user) {
+      console.error("[admin-update-user] target not found", getUserErr);
+      return json({ error: "Usuário não encontrado no sistema de autenticação." }, 404);
+    }
+    const currentEmail = (targetUser.user.email ?? "").toLowerCase();
+
+    // Update auth (email/password) when provided.
+    // Only send email when it actually changed to avoid "email already registered".
     const authUpdate: Record<string, unknown> = {};
-    if (typeof email === "string" && email.trim()) authUpdate.email = email.trim().toLowerCase();
-    if (typeof new_password === "string" && new_password) authUpdate.password = new_password;
+    if (typeof email === "string" && email.trim()) {
+      const nextEmail = email.trim().toLowerCase();
+      if (nextEmail !== currentEmail) {
+        authUpdate.email = nextEmail;
+        // Confirma automaticamente para evitar bloqueio de acesso
+        authUpdate.email_confirm = true;
+      }
+    }
+    if (typeof new_password === "string" && new_password) {
+      authUpdate.password = new_password;
+    }
     if (Object.keys(authUpdate).length > 0) {
       const { error: authErr } = await admin.auth.admin.updateUserById(user_id, authUpdate);
-      if (authErr) return json({ error: authErr.message }, 400);
+      if (authErr) {
+        console.error("[admin-update-user] auth update failed", authErr);
+        return json({ error: `Falha ao atualizar credenciais: ${authErr.message}` }, 400);
+      }
     }
 
     // Upsert profile
@@ -126,11 +147,15 @@ Deno.serve(async (req) => {
       const { error: extraErr } = await admin
         .from("user_profile_extras")
         .upsert(extrasPatch, { onConflict: "user_id" });
-      if (extraErr) return json({ error: extraErr.message }, 500);
+      if (extraErr) {
+        console.error("[admin-update-user] extras upsert failed", extraErr);
+        return json({ error: `Falha ao salvar dados adicionais: ${extraErr.message}` }, 500);
+      }
     }
 
     return json({ ok: true });
   } catch (e: any) {
+    console.error("[admin-update-user] unexpected", e);
     return json({ error: e?.message ?? "Erro inesperado" }, 500);
   }
 });
