@@ -1149,6 +1149,39 @@ export type Database = {
           },
         ]
       }
+      phonee_smoke_test_runs: {
+        Row: {
+          checks: Json
+          created_at: string
+          failed_checks: Json | null
+          id: string
+          pass: boolean
+          ran_at: string
+          run_by: string | null
+          source: string
+        }
+        Insert: {
+          checks: Json
+          created_at?: string
+          failed_checks?: Json | null
+          id?: string
+          pass: boolean
+          ran_at?: string
+          run_by?: string | null
+          source?: string
+        }
+        Update: {
+          checks?: Json
+          created_at?: string
+          failed_checks?: Json | null
+          id?: string
+          pass?: boolean
+          ran_at?: string
+          run_by?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           active: boolean
@@ -3187,7 +3220,12 @@ export type Database = {
         }
         Returns: Json
       }
+      phonee_security_test: { Args: never; Returns: Json }
       phonee_smoke_test: { Args: { _as_admin?: string }; Returns: Json }
+      phonee_smoke_test_run_and_log: {
+        Args: { _source?: string }
+        Returns: string
+      }
       phonee_stores: {
         Args: never
         Returns: {
