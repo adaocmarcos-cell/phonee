@@ -1533,10 +1533,16 @@ Obrigado pela preferência.`;
               <CheckCircle2 className="h-5 w-5 text-success" />Venda registrada!
             </DialogTitle>
             <DialogDescription>
-              Cliente <strong>{postSave?.customerName}</strong>{postSave?.customerId ? " sincronizado ao CRM" : " sem vínculo no CRM"}.
+              Pedido <strong className="font-mono text-foreground">
+                {postSave?.saleNumber != null ? `PED-${String(postSave.saleNumber).padStart(6, "0")}` : "—"}
+              </strong> · Cliente <strong>{postSave?.customerName}</strong>
+              {postSave?.customerId ? " sincronizado ao CRM" : " sem vínculo no CRM"}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 pt-2">
+            <Button variant="outline" onClick={exportPDF} className="justify-start">
+              <FileDown className="h-4 w-4 mr-2" />Imprimir / Gerar PDF
+            </Button>
             {postSave?.customerId && (
               <Button
                 variant="outline"
