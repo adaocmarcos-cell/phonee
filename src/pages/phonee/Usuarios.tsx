@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, Handshake, Copy, Link2, Lock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -51,15 +51,6 @@ export default function PhoneeUsuarios() {
     has_expiration: false, expires_at: "", send_recovery: true,
   });
   const [creating, setCreating] = useState(false);
-
-  // ---- Partner user (7 days, password 1234567890, first-login change) ----
-  const [openPartner, setOpenPartner] = useState(false);
-  const [partnerForm, setPartnerForm] = useState({ full_name: "", email: "", whatsapp: "" });
-  const [creatingPartner, setCreatingPartner] = useState(false);
-  const [partnerResult, setPartnerResult] = useState<
-    | { email: string; temp_password: string; access_url: string; expires_at: string }
-    | null
-  >(null);
 
   // ---- Plan change (admin master) ----
   type PlanOpt = { id: string; name: string; price_cents: number };
@@ -256,96 +247,8 @@ export default function PhoneeUsuarios() {
     catch { toast.error("Não foi possível copiar."); }
   };
 
-  const createPartner = async () => {
-    if (!partnerForm.email.trim() || !partnerForm.full_name.trim()) {
-      return toast.error("Nome e e-mail são obrigatórios.");
-    }
-    setCreatingPartner(true);
-    const { data, error } = await supabase.functions.invoke("phonee-admin-user", {
-      body: {
-        action: "create_partner_user",
-        full_name: partnerForm.full_name,
-        email: partnerForm.email,
-        whatsapp: partnerForm.whatsapp || undefined,
-        access_origin: typeof window !== "undefined" ? window.location.origin : undefined,
-      },
-    });
-    setCreatingPartner(false);
-    if (error || (data as any)?.error) {
-      return toast.error(((data as any)?.error) || error?.message || "Falha ao criar parceiro.");
-    }
-    const d = data as any;
-    setPartnerResult({
-      email: d.email,
-      temp_password: d.temp_password,
-      access_url: d.access_url,
-      expires_at: d.expires_at,
-    });
-    setOpenPartner(false);
-    setPartnerForm({ full_name: "", email: "", whatsapp: "" });
-    toast.success("Parceiro criado. Link de acesso disponível no topo da página.");
-    load();
-  };
-
   return (
     <div>
-      {partnerResult && (
-        <div className="mb-5 rounded-xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-amber-600/5 p-4">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-amber-400" />
-              <div>
-                <div className="text-sm font-semibold text-amber-200">
-                  Link de acesso privado do parceiro
-                </div>
-                <div className="text-xs text-amber-200/70">
-                  Compartilhe somente com o parceiro aprovado. Senha padrão; troca obrigatória no primeiro login. Expira em {new Date(partnerResult.expires_at).toLocaleDateString("pt-BR")}.
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setPartnerResult(null)}
-              className="text-xs text-amber-200/70 hover:text-amber-100"
-            >
-              fechar
-            </button>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div className="sm:col-span-3 flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <Link2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <input readOnly value={partnerResult.access_url}
-                className="flex-1 bg-transparent text-xs text-slate-200 outline-none" />
-              <button onClick={() => copyText(partnerResult.access_url, "Link")}
-                className="p-1.5 rounded hover:bg-slate-800 text-slate-300">
-                <Copy className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <span className="text-[10px] uppercase text-slate-500">E-mail</span>
-              <span className="text-xs text-slate-200 truncate flex-1">{partnerResult.email}</span>
-              <button onClick={() => copyText(partnerResult.email, "E-mail")}
-                className="p-1 rounded hover:bg-slate-800 text-slate-300">
-                <Copy className="h-3 w-3" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <span className="text-[10px] uppercase text-slate-500">Senha</span>
-              <span className="text-xs font-mono text-slate-200 flex-1">{partnerResult.temp_password}</span>
-              <button onClick={() => copyText(partnerResult.temp_password, "Senha")}
-                className="p-1 rounded hover:bg-slate-800 text-slate-300">
-                <Copy className="h-3 w-3" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <span className="text-[10px] uppercase text-slate-500">Expira</span>
-              <span className="text-xs text-slate-200 flex-1">
-                {new Date(partnerResult.expires_at).toLocaleString("pt-BR")}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
         <div>
           <h1 className="text-2xl font-bold">Usuários da plataforma</h1>
@@ -359,10 +262,6 @@ export default function PhoneeUsuarios() {
             value={q} onChange={(e) => setQ(e.target.value)}
             className="w-full sm:w-80 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm text-slate-100"
           />
-          <Button onClick={() => setOpenPartner(true)} variant="outline"
-            className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 hover:text-amber-200">
-            <Handshake className="h-4 w-4 mr-1.5" /> Adicionar Usuário Parceiro
-          </Button>
           <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
             <UserPlus className="h-4 w-4 mr-1.5" /> Novo usuário
           </Button>
@@ -616,46 +515,6 @@ export default function PhoneeUsuarios() {
             <Button variant="ghost" onClick={() => setOpenNew(false)} disabled={creating}>Cancelar</Button>
             <Button onClick={createUser} disabled={creating} className="bg-sky-600 hover:bg-sky-700">
               {creating ? "Criando…" : "Criar usuário"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Partner user dialog */}
-      <Dialog open={openPartner} onOpenChange={setOpenPartner}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Handshake className="h-4 w-4 text-amber-400" /> Adicionar Usuário Parceiro
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200/90">
-              Acesso de avaliação por <b>7 dias</b>. Senha padrão <b className="font-mono">1234567890</b>.
-              No primeiro login o parceiro será obrigado a criar sua própria senha.
-              O link de acesso será exibido somente para você nesta tela (não é público).
-            </div>
-            <div>
-              <Label>Nome completo *</Label>
-              <Input value={partnerForm.full_name}
-                onChange={(e) => setPartnerForm(f => ({...f, full_name: e.target.value}))}/>
-            </div>
-            <div>
-              <Label>E-mail *</Label>
-              <Input type="email" value={partnerForm.email}
-                onChange={(e) => setPartnerForm(f => ({...f, email: e.target.value}))}/>
-            </div>
-            <div>
-              <Label>WhatsApp (opcional)</Label>
-              <Input value={partnerForm.whatsapp}
-                onChange={(e) => setPartnerForm(f => ({...f, whatsapp: e.target.value}))}/>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpenPartner(false)} disabled={creatingPartner}>Cancelar</Button>
-            <Button onClick={createPartner} disabled={creatingPartner}
-              className="bg-amber-600 hover:bg-amber-700 text-white">
-              {creatingPartner ? "Criando…" : "Criar parceiro (7 dias)"}
             </Button>
           </DialogFooter>
         </DialogContent>

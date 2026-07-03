@@ -606,6 +606,19 @@ export default function VendaNova() {
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
+    // Validação final antes de gravar — impede vendas sem itens ou itens inválidos
+    if (items.length === 0) {
+      return toast.error("Adicione ao menos um item antes de salvar.");
+    }
+    const invalid = items.find((i) =>
+      Number(i.quantity || 0) <= 0 ||
+      (!i.is_service && !i.product_id) ||
+      (i.is_service && !((i.description || i.name || "").trim())) ||
+      !((i.name || i.description || "").trim())
+    );
+    if (invalid) {
+      return toast.error("Há itens sem descrição ou quantidade válida. Revise antes de salvar.");
+    }
     setBusy(true);
 
     const payload = buildPayload();
