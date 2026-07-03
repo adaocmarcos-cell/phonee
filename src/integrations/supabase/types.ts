@@ -3073,6 +3073,10 @@ export type Database = {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
+      link_orphan_subscription: {
+        Args: { _email: string; _user_id: string }
+        Returns: undefined
+      }
       mobileplus_coupons_revenue: { Args: { _days?: number }; Returns: Json }
       mobileplus_growth: {
         Args: never
