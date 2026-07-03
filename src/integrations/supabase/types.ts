@@ -2814,6 +2814,24 @@ export type Database = {
           },
         ]
       }
+      trial_signup_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+        }
+        Relationships: []
+      }
       user_profile_extras: {
         Row: {
           allowed_hours: Json | null
