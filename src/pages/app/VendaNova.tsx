@@ -629,68 +629,70 @@ export default function VendaNova() {
       : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
     const headInstallments = payments[0]?.installments ?? 1;
 
-    const { data: sale, error } = await (supabase.from("sales") as any).insert({
-      store_id: store.id, seller_id: user.id,
-      customer_name: customer || null, customer_doc: doc || null,
-      customer_whatsapp: whatsapp || null,
-      customer_id: linkedCustomerId,
-      payment_method: dbMethod as any,
-      installments: headInstallments,
-      discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
-      notes: JSON.stringify(payload),
-    }).select("id, sale_number").single();
-
-    if (error || !sale) { setBusy(false); return toast.error(error?.message ?? "Erro"); }
-
-    // Múltiplas formas de pagamento (sincroniza com financeiro)
-    const splitsRows = payments
+    // Atomic sale: cabeçalho + itens + pagamentos + baixa de estoque numa única
+    // transação no banco. O total é recalculado no servidor e o estoque é
+    // debitado com trava (WHERE stock_current >= qty), evitando venda com
+    // estoque negativo em cenários concorrentes.
+    const rpcItems = items.map((i) => ({
+      product_id: i.is_service ? null : i.product_id,
+      is_service: !!i.is_service,
+      description: i.is_service ? (i.description || i.name) : null,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      name: i.name || null,
+      sku: i.is_service ? "SERVIÇO" : (i.code || null),
+      category: i.category || null,
+      brand: (i as any).brand || null,
+      model: (i as any).model || null,
+      unit: unit || null,
+      discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
+      warranty_days: warrantyEnabled ? warrantyDays : null,
+    }));
+    const rpcPayments = payments
       .filter((p) => Number(p.amount) > 0)
       .map((p) => ({
-        sale_id: sale.id,
-        store_id: store.id,
         method: p.method,
         amount: Number(p.amount),
         installments: p.installments ?? null,
         notes: p.notes || null,
       }));
-    if (splitsRows.length > 0) {
-      const { error: ePay } = await (supabase as any).from("sale_payments").insert(splitsRows);
-      if (ePay) console.warn("sale_payments insert error", ePay);
-    }
 
-    const { error: e2 } = await (supabase.from("sale_items") as any).insert(
-      items.map((i) => ({
-        sale_id: sale.id,
-        product_id: i.is_service ? null : i.product_id,
-        is_service: !!i.is_service,
-        description: i.is_service ? (i.description || i.name) : null,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-        total: i.quantity * i.unit_price,
-        // Snapshot dos dados exibidos ao cliente — preserva o pedido mesmo
-        // que o produto seja renomeado, corrigido ou excluído depois.
-        name: i.name || null,
-        sku: i.is_service ? "SERVIÇO" : (i.code || null),
-        category: i.category || null,
-        brand: (i as any).brand || null,
-        model: (i as any).model || null,
-        unit: unit || null,
-        discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
-        warranty_days: warrantyEnabled ? warrantyDays : null,
-      }))
-    );
-    if (e2) { setBusy(false); return toast.error(e2.message); }
+    const { data: rpcData, error } = await (supabase as any).rpc("create_sale", {
+      _store_id: store.id,
+      _customer_id: linkedCustomerId,
+      _customer_name: customer || null,
+      _customer_doc: doc || null,
+      _customer_whatsapp: whatsapp || null,
+      _payment_method: dbMethod,
+      _installments: headInstallments,
+      _discount: totalDiscount,
+      _notes: JSON.stringify(payload),
+      _items: rpcItems,
+      _payments: rpcPayments,
+    });
 
-    for (const i of items) {
-      if (i.is_service) continue;
-      const cur = products.find((p) => p.id === i.product_id);
-      if (cur) {
-        await supabase.from("products").update({
-          stock_current: Math.max(0, cur.stock_current - i.quantity),
-          last_sold_at: new Date().toISOString(),
-        }).eq("id", i.product_id);
+    if (error || !rpcData) {
+      setBusy(false);
+      const raw = error?.message ?? "";
+      let msg = raw || "Erro ao registrar a venda.";
+      if (/estoque insuficiente/i.test(raw)) {
+        msg = "Estoque insuficiente para um dos itens. Atualize a lista e tente novamente.";
+      } else if (/sem acesso a esta loja/i.test(raw)) {
+        msg = "Você não tem permissão para registrar vendas nesta loja.";
+      } else if (/soma dos pagamentos/i.test(raw)) {
+        msg = "A soma das formas de pagamento não fecha com o total. Revise antes de salvar.";
+      } else if (/venda precisa de ao menos um item/i.test(raw)) {
+        msg = "Adicione ao menos um item antes de salvar.";
+      } else if (/desconto maior que o subtotal/i.test(raw)) {
+        msg = "O desconto é maior que o subtotal dos itens.";
       }
+      return toast.error(msg);
     }
+
+    const sale = {
+      id: (rpcData as any).sale_id as string,
+      sale_number: (rpcData as any).sale_number as number | null,
+    };
 
     setBusy(false);
     setConfirmOpen(false);
