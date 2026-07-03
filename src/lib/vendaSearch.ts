@@ -8,6 +8,7 @@ export type ProductLite = {
   sku?: string | null;
   ean?: string | null;
   category?: string | null;
+  subcategory?: string | null;
   brand?: string | null;
   compatible_model?: string | null;
   color?: string | null;
@@ -18,7 +19,7 @@ export type ProductLite = {
 };
 
 const SEARCHABLE_FIELDS: (keyof ProductLite)[] = [
-  "name", "sku", "ean", "category", "brand", "compatible_model",
+  "name", "sku", "ean", "category", "subcategory", "brand", "compatible_model",
 ];
 
 /**
