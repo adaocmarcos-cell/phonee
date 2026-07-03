@@ -81,6 +81,7 @@ const PhoneeAuditoria = lazy(() => import("./pages/phonee/Auditoria"));
 const PhoneeAssinaturaSolicitacoes = lazy(() => import("./pages/phonee/AssinaturaSolicitacoes"));
 const PhoneeAdminMasters = lazy(() => import("./pages/phonee/AdminMasters"));
 const PhoneeContas = lazy(() => import("./pages/phonee/Contas"));
+const PhoneeDiagnostico = lazy(() => import("./pages/phonee/Diagnostico"));
 
 const RouteFallback = () => (
   <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
