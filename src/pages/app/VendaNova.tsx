@@ -129,6 +129,37 @@ export default function VendaNova() {
   const [productQuery, setProductQuery] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
 
+  // Serviços
+  const [serviceDialog, setServiceDialog] = useState<{ open: boolean; description: string; quantity: number; unit_price: number; editing?: string | null }>({
+    open: false, description: "", quantity: 1, unit_price: 0, editing: null,
+  });
+  const openNewService = () =>
+    setServiceDialog({ open: true, description: "", quantity: 1, unit_price: 0, editing: null });
+  const openEditService = (i: LineItem) =>
+    setServiceDialog({ open: true, description: i.description || i.name, quantity: i.quantity, unit_price: i.unit_price, editing: i.product_id });
+  const saveService = () => {
+    const desc = serviceDialog.description.trim();
+    const qty = Math.max(1, Number(serviceDialog.quantity) || 1);
+    const price = Number(serviceDialog.unit_price) || 0;
+    if (!desc) return toast.error("Descreva o serviço");
+    if (price <= 0) return toast.error("Informe um valor maior que zero");
+    setItems((arr) => {
+      if (serviceDialog.editing) {
+        return arr.map((i) => i.product_id === serviceDialog.editing ? {
+          ...i, name: desc, description: desc, quantity: qty,
+          list_price: price, unit_price: price, discount_pct: 0, discount_brl: 0,
+        } : i);
+      }
+      const id = `svc-${(crypto as any).randomUUID?.() ?? Date.now()}`;
+      return [...arr, {
+        product_id: id, is_service: true, description: desc,
+        name: desc, code: "SERVIÇO", category: "Serviço",
+        quantity: qty, list_price: price, discount_pct: 0, discount_brl: 0, unit_price: price,
+      }];
+    });
+    setServiceDialog({ open: false, description: "", quantity: 1, unit_price: 0, editing: null });
+  };
+
   // Comissões
   const [commissionPct, setCommissionPct] = useState(0);
   const [commissionStatus, setCommissionStatus] = useState("pendente");
