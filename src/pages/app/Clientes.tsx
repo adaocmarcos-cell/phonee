@@ -16,6 +16,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Users, Edit3, Trash2, Phone, Mail, MapPin } from "lucide-react";
+import { Copy, MessageCircle, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 type Customer = {
@@ -214,17 +216,7 @@ export default function Clientes() {
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {c.phone && <div className="flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" />{c.phone}</div>}
-                    {c.whatsapp && (
-                      <a
-                        href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-success mt-0.5 hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Phone className="h-3 w-3" />WhatsApp: {c.whatsapp}
-                      </a>
-                    )}
+                    <WhatsAppCell whatsapp={c.whatsapp} />
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {c.address_city ? (
