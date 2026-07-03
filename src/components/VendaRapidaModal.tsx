@@ -67,33 +67,47 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
     if (!product || !store || !user) return;
     if (received <= 0) return toast.error("Valor recebido inválido");
     setBusy(true);
-    const { data: sale, error } = await supabase.from("sales").insert({
-      store_id: store.id,
-      seller_id: user.id,
-      customer_name: customer || null,
-      customer_whatsapp: whatsapp || null,
-      payment_method: method as any,
-      installments: method === "crediario" ? installments : 1,
-      discount: Number(discount) || 0,
-      subtotal: Number(price) || 0,
-      total: received,
-      notes: notes || null,
-    }).select("id").single();
-    if (error || !sale) { setBusy(false); return toast.error(error?.message ?? "Erro ao registrar venda"); }
-
-    const { error: e2 } = await supabase.from("sale_items").insert({
-      sale_id: sale.id,
-      product_id: product.id,
-      quantity: 1,
-      unit_price: received,
-      total: received,
+    // Venda atômica: cabeçalho + item + pagamento + baixa de estoque
+    // acontecem numa única transação no banco (RPC create_sale).
+    const headInstallments = method === "crediario" ? installments : 1;
+    const discountNumber = Number(discount) || 0;
+    const { error } = await (supabase as any).rpc("create_sale", {
+      _store_id: store.id,
+      _customer_id: null,
+      _customer_name: customer || null,
+      _customer_doc: null,
+      _customer_whatsapp: whatsapp || null,
+      _payment_method: method,
+      _installments: headInstallments,
+      _discount: discountNumber,
+      _notes: notes || null,
+      _items: [{
+        product_id: product.id,
+        is_service: false,
+        quantity: 1,
+        unit_price: Number(price) || 0,
+        name: product.name,
+      }],
+      _payments: [{
+        method,
+        amount: received,
+        installments: headInstallments,
+      }],
     });
-    if (e2) { setBusy(false); return toast.error(e2.message); }
-
-    await supabase.from("products").update({
-      stock_current: Math.max(0, Number(product.stock_current) - 1),
-      last_sold_at: new Date().toISOString(),
-    }).eq("id", product.id);
+    if (error) {
+      setBusy(false);
+      const raw = error.message || "";
+      if (/estoque insuficiente/i.test(raw)) {
+        return toast.error("Estoque insuficiente para este produto. Recarregue a lista.");
+      }
+      if (/soma dos pagamentos/i.test(raw)) {
+        return toast.error("Valor recebido não fecha com o total da venda.");
+      }
+      if (/sem acesso a esta loja/i.test(raw)) {
+        return toast.error("Você não tem permissão para registrar vendas nesta loja.");
+      }
+      return toast.error(raw || "Erro ao registrar venda");
+    }
 
     setBusy(false);
     toast.success(`Venda registrada! Lucro: ${brl(profit)}`);
