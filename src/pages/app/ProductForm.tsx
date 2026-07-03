@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AutocompleteInput from "@/components/AutocompleteInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -70,6 +71,52 @@ export default function ProductForm() {
   const [form, setForm] = useState<FormState>(empty);
   const [busy, setBusy] = useState(false);
   const [entryOpen, setEntryOpen] = useState(true);
+  const [suggest, setSuggest] = useState<{
+    brands: string[]; models: string[]; suppliers: string[]; locations: string[];
+  }>({ brands: [], models: [], suppliers: [], locations: [] });
+
+  // Carrega sugestões (marcas, modelos, fornecedores e locais) da loja
+  useEffect(() => {
+    if (!store) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: prods }, { data: sups }] = await Promise.all([
+        supabase
+          .from("products")
+          .select("brand, compatible_model, supplier, location")
+          .eq("store_id", store.id)
+          .limit(2000),
+        supabase
+          .from("suppliers")
+          .select("company_name, brands")
+          .eq("store_id", store.id)
+          .eq("active", true)
+          .limit(500),
+      ]);
+      if (cancelled) return;
+      const brandSet = new Set<string>();
+      const modelSet = new Set<string>();
+      const supplierSet = new Set<string>();
+      const locationSet = new Set<string>();
+      (prods ?? []).forEach((p: any) => {
+        if (p.brand) brandSet.add(String(p.brand).trim());
+        if (p.compatible_model) modelSet.add(String(p.compatible_model).trim());
+        if (p.supplier) supplierSet.add(String(p.supplier).trim());
+        if (p.location) locationSet.add(String(p.location).trim());
+      });
+      (sups ?? []).forEach((s: any) => {
+        if (s.company_name) supplierSet.add(String(s.company_name).trim());
+        (s.brands ?? []).forEach((b: string) => b && brandSet.add(b.trim()));
+      });
+      setSuggest({
+        brands: [...brandSet],
+        models: [...modelSet],
+        suppliers: [...supplierSet],
+        locations: [...locationSet],
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [store]);
 
   useEffect(() => {
     if (isNew || !store) return;
@@ -193,9 +240,9 @@ export default function ProductForm() {
               <p className="text-xs text-muted-foreground mt-1">Opcional. Se deixar em branco, o produto ficará sem SKU (nenhum código é gerado automaticamente ao salvar).</p>
             </Field>
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
-            <Field label="Marca"><Input value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
-            <Field label="Modelo compatível"><Input value={form.compatible_model} onChange={(e) => set("compatible_model", e.target.value)} placeholder="iPhone 15 Pro" /></Field>
-            <Field label="Fornecedor"><Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} /></Field>
+            <Field label="Marca"><AutocompleteInput options={suggest.brands} value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
+            <Field label="Modelo compatível"><AutocompleteInput options={suggest.models} value={form.compatible_model} onChange={(e) => set("compatible_model", e.target.value)} placeholder="iPhone 15 Pro" /></Field>
+            <Field label="Fornecedor"><AutocompleteInput options={suggest.suppliers} value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Selecione ou digite" /></Field>
           </div>
         </Card>
 
@@ -294,7 +341,7 @@ export default function ProductForm() {
             <Field label="Estoque atual"><Input type="number" value={form.stock_current} onChange={(e) => set("stock_current", e.target.value)} /></Field>
             <Field label="Estoque mínimo"><Input type="number" value={form.stock_min} onChange={(e) => set("stock_min", e.target.value)} /></Field>
             <Field label="Estoque máximo"><Input type="number" value={form.stock_max} onChange={(e) => set("stock_max", e.target.value)} /></Field>
-            <Field label="Localização física"><Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Prateleira A3" /></Field>
+            <Field label="Localização física"><AutocompleteInput options={suggest.locations} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Prateleira A3" /></Field>
           </div>
         </Card>
 
@@ -323,7 +370,7 @@ export default function ProductForm() {
                       />
                     </Field>
                     <Field label="Fornecedor / Origem">
-                      <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Nome ou telefone" />
+                      <AutocompleteInput options={suggest.suppliers} value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Nome ou telefone" />
                     </Field>
                     <Field label="Data de entrada">
                       <Input type="date" value={form.data_entrada} onChange={(e) => set("data_entrada", e.target.value)} />
