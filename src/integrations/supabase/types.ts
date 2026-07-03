@@ -1717,34 +1717,64 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          brand: string | null
+          category: string | null
           description: string | null
+          discount_amount: number
           id: string
+          imei_serial: string | null
           is_service: boolean
+          model: string | null
+          name: string | null
           product_id: string | null
+          public_notes: string | null
           quantity: number
           sale_id: string
+          sku: string | null
           total: number
+          unit: string | null
           unit_price: number
+          warranty_days: number | null
         }
         Insert: {
+          brand?: string | null
+          category?: string | null
           description?: string | null
+          discount_amount?: number
           id?: string
+          imei_serial?: string | null
           is_service?: boolean
+          model?: string | null
+          name?: string | null
           product_id?: string | null
+          public_notes?: string | null
           quantity?: number
           sale_id: string
+          sku?: string | null
           total: number
+          unit?: string | null
           unit_price: number
+          warranty_days?: number | null
         }
         Update: {
+          brand?: string | null
+          category?: string | null
           description?: string | null
+          discount_amount?: number
           id?: string
+          imei_serial?: string | null
           is_service?: boolean
+          model?: string | null
+          name?: string | null
           product_id?: string | null
+          public_notes?: string | null
           quantity?: number
           sale_id?: string
+          sku?: string | null
           total?: number
+          unit?: string | null
           unit_price?: number
+          warranty_days?: number | null
         }
         Relationships: [
           {
