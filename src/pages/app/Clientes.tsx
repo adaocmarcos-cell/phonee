@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -48,6 +49,7 @@ const EMPTY: Partial<Customer> = {
 
 export default function Clientes() {
   const { store } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Customer[]>([]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,18 @@ export default function Clientes() {
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store?.id]);
+
+  // Abre o registro automaticamente quando chega via /clientes?edit=<id> (vindo da venda)
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (!editId || items.length === 0) return;
+    const target = items.find((c) => c.id === editId);
+    if (target) {
+      setEditing(target);
+      searchParams.delete("edit");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [items, searchParams, setSearchParams]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
