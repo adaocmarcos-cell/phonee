@@ -204,11 +204,12 @@ export default function PhoneeContas() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-slate-100 truncate">{s.store_name}</span>
                       <StatusPill status={s.subscription_status} trial={trial?.status} />
-                      {s.plan_name && (
-                        <span className="text-[10px] uppercase tracking-widest text-slate-500">
-                          {s.plan_name}{s.billing_cycle ? ` · ${s.billing_cycle}` : ""}
-                        </span>
-                      )}
+                      <PlanPill
+                        plan={s.plan_name}
+                        cycle={s.billing_cycle}
+                        status={s.subscription_status}
+                        expiresAt={s.expires_at}
+                      />
                     </div>
                     <div className="text-xs text-slate-400 truncate">
                       {s.owner_name ?? "—"} <span className="text-slate-600">·</span> {s.owner_email ?? "—"}
