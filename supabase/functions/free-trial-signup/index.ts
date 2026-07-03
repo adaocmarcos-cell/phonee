@@ -83,6 +83,43 @@ Deno.serve(async (req) => {
     const now = new Date();
     const trialEnds = new Date(now.getTime() + 7 * 86400_000);
 
+    // Create a store for the trial user (so my_stores() returns something and
+    // the app can be used during the trial period). Idempotent: skip if the
+    // user already owns a store.
+    if (uid) {
+      const { data: existingStore } = await admin
+        .from("stores")
+        .select("id")
+        .eq("owner_id", uid)
+        .maybeSingle();
+      if (!existingStore) {
+        const baseSlug = (store_name || full_name || email.split("@")[0] || "loja")
+          .toString()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "")
+          .slice(0, 40) || "loja";
+        let slug = baseSlug;
+        for (let i = 0; i < 6; i++) {
+          const { data: taken } = await admin.from("stores").select("id").eq("slug", slug).maybeSingle();
+          if (!taken) break;
+          slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+        }
+        await admin.from("stores").insert({
+          owner_id: uid,
+          name: store_name || full_name || "Minha Loja",
+          slug,
+          email,
+          phone: whatsapp || null,
+          instagram: instagram || null,
+          address_city: city || null,
+          address_uf: state || null,
+        });
+      }
+    }
+
     const noteParts = [
       store_name ? `Loja: ${store_name}` : "",
       instagram ? `Instagram: ${instagram}` : "",
