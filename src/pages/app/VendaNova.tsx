@@ -729,17 +729,63 @@ Obrigado pela preferência.`;
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Cliente">
-                <AutocompleteInput
-                  id="venda-cliente-input"
-                  value={customer}
-                  onChange={(e) => onCustomerNameChange((e.target as HTMLInputElement).value)}
-                  options={customers.map((c) => c.name)}
-                  placeholder="Digite ou selecione…"
-                />
-                {customer.trim() && !customerId && (
+                <div className="relative">
+                  <Input
+                    id="venda-cliente-input"
+                    value={customerSearch}
+                    onFocus={() => setShowCustomerList(true)}
+                    onBlur={() => setTimeout(() => setShowCustomerList(false), 180)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCustomerSearch(v);
+                      setCustomer(v);
+                      setShowCustomerList(true);
+                      // Se já havia vínculo mas o texto mudou, desfaz o vínculo até nova seleção.
+                      if (customerId) {
+                        const linked = customers.find((c) => c.id === customerId);
+                        if (!linked || linked.name.toLowerCase() !== v.trim().toLowerCase()) setCustomerId(null);
+                      }
+                    }}
+                    placeholder="Nome, CPF/CNPJ, telefone, WhatsApp ou e-mail…"
+                    autoComplete="off"
+                  />
+                  {showCustomerList && (
+                    <div className="absolute z-20 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-72 overflow-auto">
+                      {loadingCustomers ? (
+                        <div className="px-3 py-3 text-xs text-muted-foreground">Carregando clientes…</div>
+                      ) : customerMatches.length === 0 ? (
+                        <div className="px-3 py-3 text-xs text-muted-foreground">
+                          Nenhum cliente encontrado.
+                          <button type="button" onMouseDown={(e) => { e.preventDefault(); openQuickCustomer(); }}
+                            className="ml-1 text-primary hover:underline">
+                            Cadastrar agora?
+                          </button>
+                        </div>
+                      ) : (
+                        customerMatches.map((c) => (
+                          <button
+                            key={c.id} type="button"
+                            onMouseDown={(e) => { e.preventDefault(); applyCustomer(c); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-medium truncate flex items-center gap-1">
+                                <UserCheck className="h-3 w-3 text-success shrink-0" />{c.name}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground font-mono truncate">
+                                {[c.document, c.whatsapp || c.phone, c.email].filter(Boolean).join(" · ") || "sem contato"}
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+                {customerSearch.trim() && !customerId && !showCustomerList && (
                   <button type="button" onClick={openQuickCustomer}
                     className="mt-1 text-[11px] text-primary hover:underline">
-                    + Cadastrar “{customer.trim()}” como novo cliente
+                    + Cadastrar “{customerSearch.trim()}” como novo cliente
                   </button>
                 )}
                 {customerId && (
