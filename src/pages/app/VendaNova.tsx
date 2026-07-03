@@ -591,7 +591,7 @@ export default function VendaNova() {
       installments: headInstallments,
       discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
       notes: JSON.stringify(payload),
-    }).select("id").single();
+    }).select("id, sale_number").single();
 
     if (error || !sale) { setBusy(false); return toast.error(error?.message ?? "Erro"); }
 
@@ -666,6 +666,7 @@ export default function VendaNova() {
     toast.success("Venda registrada!");
     setPostSave({
       saleId: sale.id,
+      saleNumber: (sale as any).sale_number ?? null,
       customerId: linkedCustomerId,
       customerName: customer.trim() || "—",
     });
