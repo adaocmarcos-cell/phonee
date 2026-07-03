@@ -522,6 +522,9 @@ export default function Vendas() {
                       <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
                         <Printer className="h-4 w-4" />
                       </Button>
+                      <Button size="icon" variant="ghost" title="Ver itens da venda" onClick={() => openDetails(s)}>
+                        <Eye className="h-4 w-4 text-info" />
+                      </Button>
                       {canRegisterSale(role) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
