@@ -2285,6 +2285,7 @@ export type Database = {
           address_number: string | null
           address_street: string | null
           address_uf: string | null
+          allow_negative_stock: boolean
           created_at: string
           email: string | null
           hours: string | null
@@ -2316,6 +2317,7 @@ export type Database = {
           address_number?: string | null
           address_street?: string | null
           address_uf?: string | null
+          allow_negative_stock?: boolean
           created_at?: string
           email?: string | null
           hours?: string | null
@@ -2347,6 +2349,7 @@ export type Database = {
           address_number?: string | null
           address_street?: string | null
           address_uf?: string | null
+          allow_negative_stock?: boolean
           created_at?: string
           email?: string | null
           hours?: string | null
