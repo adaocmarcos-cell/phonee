@@ -3111,68 +3111,6 @@ export type Database = {
         Args: { _email: string; _user_id: string }
         Returns: undefined
       }
-      mobileplus_coupons_revenue: { Args: { _days?: number }; Returns: Json }
-      mobileplus_growth: {
-        Args: never
-        Returns: {
-          gmv: number
-          month_start: string
-          new_stores: number
-          new_subscriptions: number
-        }[]
-      }
-      mobileplus_overview: { Args: never; Returns: Json }
-      mobileplus_referrals_overview: { Args: never; Returns: Json }
-      mobileplus_sales_traffic: {
-        Args: {
-          _days?: number
-          _from?: string
-          _path?: string
-          _store_id?: string
-          _to?: string
-        }
-        Returns: Json
-      }
-      mobileplus_stores: {
-        Args: never
-        Returns: {
-          avg_ticket: number
-          billing_cycle: string
-          created_at: string
-          expires_at: string
-          owner_email: string
-          owner_id: string
-          owner_name: string
-          plan_name: string
-          sales_count: number
-          store_id: string
-          store_name: string
-          subscription_status: string
-          total_sales: number
-        }[]
-      }
-      mobileplus_traffic_paths: {
-        Args: never
-        Returns: {
-          path: string
-          visits: number
-        }[]
-      }
-      mobileplus_users: {
-        Args: never
-        Returns: {
-          created_at: string
-          email: string
-          full_name: string
-          is_admin_master: boolean
-          plan_name: string
-          roles: string[]
-          stores: Json
-          stores_count: number
-          subscription_status: string
-          user_id: string
-        }[]
-      }
       my_stores: {
         Args: { _user_id: string }
         Returns: {
