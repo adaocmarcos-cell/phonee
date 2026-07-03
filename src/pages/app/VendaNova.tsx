@@ -586,12 +586,32 @@ Obrigado pela preferência.`;
             <h3 className="font-semibold mb-4 flex items-center justify-between">
               Dados do Cliente
               <div className="flex gap-2">
-                <Button type="button" size="sm" variant="outline"><Search className="h-3.5 w-3.5 mr-1" />Buscar</Button>
-                <Button type="button" size="sm" variant="outline"><UserPlus className="h-3.5 w-3.5 mr-1" />Novo</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => {
+                  const el = document.getElementById("venda-cliente-input") as HTMLInputElement | null;
+                  el?.focus();
+                }}><Search className="h-3.5 w-3.5 mr-1" />Buscar</Button>
+                <Button type="button" size="sm" variant="outline" onClick={openQuickCustomer}><UserPlus className="h-3.5 w-3.5 mr-1" />Novo</Button>
               </div>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Cliente"><Input value={customer} onChange={(e) => setCustomer(e.target.value)} /></Field>
+              <Field label="Cliente">
+                <AutocompleteInput
+                  id="venda-cliente-input"
+                  value={customer}
+                  onChange={(e) => onCustomerNameChange((e.target as HTMLInputElement).value)}
+                  options={customers.map((c) => c.name)}
+                  placeholder="Digite ou selecione…"
+                />
+                {customer.trim() && !customerId && (
+                  <button type="button" onClick={openQuickCustomer}
+                    className="mt-1 text-[11px] text-primary hover:underline">
+                    + Cadastrar “{customer.trim()}” como novo cliente
+                  </button>
+                )}
+                {customerId && (
+                  <div className="mt-1 text-[11px] text-success">✓ Cliente vinculado ao CRM</div>
+                )}
+              </Field>
               <Field label="WhatsApp (opcional)"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
               <Field label="Telefone (opcional)"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3000-0000" /></Field>
               <Field label="Tipo de documento">
