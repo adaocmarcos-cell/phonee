@@ -249,61 +249,6 @@ export default function PhoneeUsuarios() {
 
   return (
     <div>
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 text-amber-400" />
-              <div>
-                <div className="text-sm font-semibold text-amber-200">
-                  Link de acesso privado do parceiro
-                </div>
-                <div className="text-xs text-amber-200/70">
-                  Compartilhe somente com o parceiro aprovado. Senha padrão; troca obrigatória no primeiro login. Expira em {new Date(partnerResult.expires_at).toLocaleDateString("pt-BR")}.
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setPartnerResult(null)}
-              className="text-xs text-amber-200/70 hover:text-amber-100"
-            >
-              fechar
-            </button>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <div className="sm:col-span-3 flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <Link2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <input readOnly value={partnerResult.access_url}
-                className="flex-1 bg-transparent text-xs text-slate-200 outline-none" />
-              <button onClick={() => copyText(partnerResult.access_url, "Link")}
-                className="p-1.5 rounded hover:bg-slate-800 text-slate-300">
-                <Copy className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <span className="text-[10px] uppercase text-slate-500">E-mail</span>
-              <span className="text-xs text-slate-200 truncate flex-1">{partnerResult.email}</span>
-              <button onClick={() => copyText(partnerResult.email, "E-mail")}
-                className="p-1 rounded hover:bg-slate-800 text-slate-300">
-                <Copy className="h-3 w-3" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <span className="text-[10px] uppercase text-slate-500">Senha</span>
-              <span className="text-xs font-mono text-slate-200 flex-1">{partnerResult.temp_password}</span>
-              <button onClick={() => copyText(partnerResult.temp_password, "Senha")}
-                className="p-1 rounded hover:bg-slate-800 text-slate-300">
-                <Copy className="h-3 w-3" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-md px-3 py-2">
-              <span className="text-[10px] uppercase text-slate-500">Expira</span>
-              <span className="text-xs text-slate-200 flex-1">
-                {new Date(partnerResult.expires_at).toLocaleString("pt-BR")}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
         <div>
           <h1 className="text-2xl font-bold">Usuários da plataforma</h1>
@@ -317,10 +262,6 @@ export default function PhoneeUsuarios() {
             value={q} onChange={(e) => setQ(e.target.value)}
             className="w-full sm:w-80 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm text-slate-100"
           />
-          <Button onClick={() => setOpenPartner(true)} variant="outline"
-            className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10 hover:text-amber-200">
-            <Handshake className="h-4 w-4 mr-1.5" /> Adicionar Usuário Parceiro
-          </Button>
           <Button onClick={() => setOpenNew(true)} className="bg-sky-600 hover:bg-sky-700">
             <UserPlus className="h-4 w-4 mr-1.5" /> Novo usuário
           </Button>
