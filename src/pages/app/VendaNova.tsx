@@ -497,44 +497,68 @@ export default function VendaNova() {
     return () => clearTimeout(t);
   }, [productQuery]);
 
-  const searching = productQuery.trim() !== productQueryDebounced.trim();
+  const searchState = useMemo(
+    () => getSearchState(products as any, productQuery, productQueryDebounced),
+    [products, productQuery, productQueryDebounced]
+  );
+  const visibleProducts = useMemo<any[]>(() => {
+    if (searchState.kind === "results" || searchState.kind === "initial") return searchState.items as any[];
+    return [];
+  }, [searchState]);
 
-  const filteredProducts = useMemo(() => {
-    const q = productQueryDebounced.trim().toLowerCase();
-    if (!q) return products.slice(0, 8);
-    // Busca case-insensitive e parcial em nome, SKU, código de barras (ean),
-    // categoria, marca e modelo compatível.
-    return products.filter((p: any) =>
-      [p.name, p.sku, p.ean, p.category, p.brand, p.compatible_model]
-        .filter(Boolean)
-        .some((v: string) => String(v).toLowerCase().includes(q))
-    ).slice(0, 20);
-  }, [products, productQueryDebounced]);
+  // Zera o índice ativo sempre que a lista visível muda.
+  useEffect(() => { setActiveIdx(0); }, [productQueryDebounced, products.length]);
 
   const addItem = (p: any) => {
+    // Bloqueio duro apenas quando a loja NÃO permite estoque negativo.
     if (!allowNegativeStock && Number(p.stock_current) <= 0) {
       toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
       return;
     }
+    // Vinculação validada de product_id, nome, preço e estoque.
+    const built = buildLineItemFromProduct(p);
+    if (!built.ok) { toast.error(built.error); return; }
+    built.warnings.forEach((w) => toast.warning(w));
+
     setItems((arr) => {
-      const existing = arr.find((i) => i.product_id === p.id);
-      if (existing) return arr.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
+      const existing = arr.find((i) => i.product_id === built.item.product_id);
+      if (existing) return arr.map((i) => i.product_id === built.item.product_id ? { ...i, quantity: i.quantity + 1 } : i);
       return [...arr, {
-        product_id: p.id,
-        name: p.name,
-        code: p.sku,
-        category: p.category,
-        color: p.color,
-        storage: p.storage,
+        product_id: built.item.product_id,
+        name: built.item.name,
+        code: built.item.code ?? undefined,
+        category: built.item.category ?? undefined,
+        color: built.item.color ?? undefined,
+        storage: built.item.storage ?? undefined,
         quantity: 1,
-        list_price: Number(p.sale_price),
+        list_price: built.item.list_price,
         discount_pct: 0,
         discount_brl: 0,
-        unit_price: Number(p.sale_price),
+        unit_price: built.item.unit_price,
       }];
     });
     setProductQuery("");
     setShowProductList(false);
+  };
+
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showProductList || visibleProducts.length === 0) {
+      if (e.key === "ArrowDown") { setShowProductList(true); }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(visibleProducts.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(0, i - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const p = visibleProducts[activeIdx];
+      if (p) addItem(p);
+    } else if (e.key === "Escape") {
+      setShowProductList(false);
+    }
   };
 
   const updateItem = (id: string, patch: Partial<LineItem>) => {
