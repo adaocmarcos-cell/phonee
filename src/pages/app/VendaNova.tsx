@@ -44,7 +44,9 @@ const EMPTY_QUICK: any = {
 };
 
 type LineItem = {
-  product_id: string;
+  product_id: string; // real id OR synthetic "svc-<uuid>"
+  is_service?: boolean;
+  description?: string;
   name: string;
   code?: string;
   category?: string;
