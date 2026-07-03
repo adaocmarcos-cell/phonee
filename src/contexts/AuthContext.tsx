@@ -141,6 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         s = created;
         await supabase.from("user_stores").insert({ user_id: uid, store_id: created.id });
         await supabase.from("user_roles").insert({ user_id: uid, store_id: created.id, role: "dono" });
+        // Link any pending subscription (paid via checkout before store existed)
+        try {
+          await (supabase.from("subscriptions") as any)
+            .update({ store_id: created.id })
+            .eq("user_id", uid)
+            .is("store_id", null);
+        } catch {}
       }
     } else {
       // Ensure link exists

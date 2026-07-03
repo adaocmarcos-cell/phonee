@@ -204,11 +204,12 @@ export default function PhoneeContas() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-slate-100 truncate">{s.store_name}</span>
                       <StatusPill status={s.subscription_status} trial={trial?.status} />
-                      {s.plan_name && (
-                        <span className="text-[10px] uppercase tracking-widest text-slate-500">
-                          {s.plan_name}{s.billing_cycle ? ` · ${s.billing_cycle}` : ""}
-                        </span>
-                      )}
+                      <PlanPill
+                        plan={s.plan_name}
+                        cycle={s.billing_cycle}
+                        status={s.subscription_status}
+                        expiresAt={s.expires_at}
+                      />
                     </div>
                     <div className="text-xs text-slate-400 truncate">
                       {s.owner_name ?? "—"} <span className="text-slate-600">·</span> {s.owner_email ?? "—"}
@@ -405,5 +406,37 @@ function Stat({
       </div>
       <div className={`text-sm ${strong ? "font-semibold text-[#00abfb]" : "text-slate-200"}`}>{value}</div>
     </div>
+  );
+}
+
+function PlanPill({
+  plan, cycle, status, expiresAt,
+}: { plan: string | null; cycle: string | null; status: string | null; expiresAt: string | null }) {
+  if (!plan && !cycle) return null;
+  const c = (cycle ?? "").toLowerCase();
+  const st = (status ?? "").toLowerCase();
+  const cycleLabel =
+    c === "trial" ? "Teste"
+    : c === "annual" || c === "anual" ? "Anual"
+    : c === "lifetime" || c === "vitalicio" ? "Vitalício"
+    : c === "monthly" || c === "mensal" ? "Mensal"
+    : cycle || "";
+  const isTrialPaid = c === "trial" || st === "trial" || st === "trialing";
+  const tone = isTrialPaid
+    ? "border-sky-500/30 bg-sky-500/10 text-sky-200"
+    : c === "lifetime" || c === "vitalicio"
+    ? "border-purple-500/30 bg-purple-500/10 text-purple-200"
+    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  const expires = expiresAt ? new Date(expiresAt) : null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-widest rounded-md border px-2 py-0.5 ${tone}`}>
+      <span className="font-semibold">{plan ?? "Plano"}</span>
+      {cycleLabel && <span className="opacity-80">· {cycleLabel}</span>}
+      {expires && c !== "lifetime" && c !== "vitalicio" && (
+        <span className="opacity-70 normal-case tracking-normal">
+          · até {expires.toLocaleDateString("pt-BR")}
+        </span>
+      )}
+    </span>
   );
 }

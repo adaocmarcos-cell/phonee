@@ -67,14 +67,23 @@ export default function Auth() {
     let initialPath = "/painel";
     let isAdminMaster = false;
     if (userId) {
-      const [{ data: roles }, { data: myStores }] = await Promise.all([
+      const [{ data: roles }, { data: myStores }, { data: mySubs }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.rpc("my_stores", { _user_id: userId }),
+        supabase
+          .from("subscriptions")
+          .select("status, billing_cycle, expires_at")
+          .eq("user_id", userId),
       ]);
       isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
-      const activeStatuses = new Set(["active", "ativa", "trialing", "vitalicio"]);
+      const activeStatuses = new Set(["active", "ativa", "trial", "trialing", "vitalicio"]);
       const hasActive = (myStores ?? []).some((s: any) => activeStatuses.has(s.subscription_status));
-      allowed = isAdminMaster || hasActive;
+      const hasActiveSub = (mySubs ?? []).some((s: any) => {
+        if (!activeStatuses.has((s.status ?? "").toLowerCase())) return false;
+        if (!s.expires_at) return true;
+        return new Date(s.expires_at).getTime() > Date.now();
+      });
+      allowed = isAdminMaster || hasActive || hasActiveSub;
       const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
       const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
       initialPath = isAdminMaster
