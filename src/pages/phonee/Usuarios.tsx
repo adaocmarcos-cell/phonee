@@ -391,6 +391,42 @@ export default function PhoneeUsuarios() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      {(() => {
+                        const wa = buildWhatsappUrl(r.phone);
+                        return (
+                          <a
+                            href={wa ?? undefined}
+                            target={wa ? "_blank" : undefined}
+                            rel={wa ? "noopener noreferrer" : undefined}
+                            title={wa ? `WhatsApp: ${r.phone}` : "Telefone não cadastrado"}
+                            aria-disabled={!wa}
+                            onClick={(e) => { if (!wa) e.preventDefault(); }}
+                            className={`p-1.5 rounded-md ${wa
+                              ? "hover:bg-emerald-500/10 text-emerald-400 cursor-pointer"
+                              : "text-slate-600 cursor-not-allowed opacity-50"}`}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </a>
+                        );
+                      })()}
+                      {(() => {
+                        const ig = buildInstagramUrl(r.instagram);
+                        return (
+                          <a
+                            href={ig ?? undefined}
+                            target={ig ? "_blank" : undefined}
+                            rel={ig ? "noopener noreferrer" : undefined}
+                            title={ig ? `Instagram: ${r.instagram}` : "Instagram não cadastrado"}
+                            aria-disabled={!ig}
+                            onClick={(e) => { if (!ig) e.preventDefault(); }}
+                            className={`p-1.5 rounded-md ${ig
+                              ? "hover:bg-pink-500/10 text-pink-400 cursor-pointer"
+                              : "text-slate-600 cursor-not-allowed opacity-50"}`}
+                          >
+                            <Instagram className="h-4 w-4" />
+                          </a>
+                        );
+                      })()}
                       <button
                         onClick={() => openEdit(r)}
                         title="Editar dados / redefinir senha"
