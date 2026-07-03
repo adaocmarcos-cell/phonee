@@ -490,7 +490,7 @@ export default function VendaNova() {
   }, [products, productQuery]);
 
   const addItem = (p: any) => {
-    if (Number(p.stock_current) <= 0) {
+    if (!allowNegativeStock && Number(p.stock_current) <= 0) {
       toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
       return;
     }
@@ -512,6 +512,7 @@ export default function VendaNova() {
       }];
     });
     setProductQuery("");
+    setShowProductList(false);
   };
 
   const updateItem = (id: string, patch: Partial<LineItem>) => {
