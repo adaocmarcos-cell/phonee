@@ -220,6 +220,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Realtime: quando o webhook (ou qualquer atualização) mudar a assinatura
+  // do usuário logado, recarrega loja/plano imediatamente — sem exigir logout.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`sub-realtime-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${user.id}` },
+        () => { loadStoreAndRole(user.id); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };

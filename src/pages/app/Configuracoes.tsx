@@ -14,7 +14,8 @@ import {
   getTheme, setTheme, type Theme,
 } from "@/lib/preferences";
 import { ThemePicker } from "@/components/ThemePicker";
-import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon, Paintbrush } from "lucide-react";
+import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon, Paintbrush, RefreshCw, ShieldCheck } from "lucide-react";
+import { subscriptionAccess, anyGrantsAccess } from "@/lib/subscriptionAccess";
 import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,10 +27,67 @@ const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG
 export default function Configuracoes() {
   const [font, setFont] = useState<number>(getFontSize());
   const [theme, setThemeState] = useState<Theme>(getTheme());
-  const { store, refresh, role, user } = useAuth();
+  const { store, refresh, role, user, stores, activeStoreSubscription, reloadStores } = useAuth();
   const demo = isDemoMode() || isDemoUserEmail(user?.email);
   const canEdit = !demo && (role === "dono" || role === "gerente");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncResult, setResyncResult] = useState<null | {
+    label: string;
+    ok: boolean;
+    plan?: string | null;
+    expiresAt?: string | null;
+  }>(null);
+
+  const handleResync = async () => {
+    setResyncing(true);
+    setResyncResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("resync-subscription");
+      if (error) throw error;
+      const subs = (data?.subscriptions ?? []) as any[];
+      const access = anyGrantsAccess(
+        subs.map((s) => ({
+          status: s.status,
+          expires_at: s.expires_at,
+          cancel_at_period_end: s.cancel_at_period_end,
+          billing_cycle: s.billing_cycle,
+        }))
+      );
+      const best = subs.find((s) => {
+        const a = subscriptionAccess({
+          status: s.status,
+          expires_at: s.expires_at,
+          cancel_at_period_end: s.cancel_at_period_end,
+          billing_cycle: s.billing_cycle,
+        });
+        return a.hasAccess;
+      }) ?? subs[0];
+
+      await Promise.all([refresh(), reloadStores()]);
+      setResyncResult({
+        ok: !!access?.hasAccess,
+        label: access?.label ?? "Sem plano",
+        plan: best?.plan_name ?? null,
+        expiresAt: best?.expires_at ?? null,
+      });
+      if (access?.hasAccess) toast.success("Assinatura sincronizada. Acesso liberado.");
+      else toast.warning("Nenhuma assinatura ativa encontrada para este usuário.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao sincronizar assinatura.");
+    } finally {
+      setResyncing(false);
+    }
+  };
+
+  const currentAccess = activeStoreSubscription
+    ? subscriptionAccess({
+        status: activeStoreSubscription.subscription_status,
+        expires_at: activeStoreSubscription.expires_at,
+        billing_cycle: activeStoreSubscription.billing_cycle,
+      })
+    : null;
 
   const [storeForm, setStoreForm] = useState({
     trade_name: "", name: "", instagram: "", phone: "", tax_id: "", price_table_note: "",
@@ -314,6 +372,55 @@ export default function Configuracoes() {
               <Button onClick={saveStore} disabled={savingStore} className="bg-gradient-primary shadow-glow">
                 <Save className="h-4 w-4 mr-1" /> {savingStore ? "Salvando…" : "Salvar dados da loja"}
               </Button>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-5 bg-card border-border">
+          <div className="flex items-start gap-3 mb-4">
+            <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold">Assinatura & acesso</h3>
+              <p className="text-xs text-muted-foreground">
+                Se você acabou de pagar e o acesso ainda não liberou, clique em sincronizar. Cobrimos os
+                estados: em teste, ativa, vencida, vitalícia e cancelada com acesso até o vencimento.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-md border border-border bg-muted/20 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="text-sm">
+              <div className="text-xs text-muted-foreground">Status atual</div>
+              <div className="font-medium">
+                {currentAccess?.label ?? "Sem plano vinculado"}
+                {activeStoreSubscription?.plan_name && (
+                  <span className="text-muted-foreground"> · {activeStoreSubscription.plan_name}</span>
+                )}
+              </div>
+              {currentAccess?.expiresAt && currentAccess.state !== "lifetime" && (
+                <div className="text-xs text-muted-foreground">
+                  {currentAccess.hasAccess ? "Válida até" : "Venceu em"}{" "}
+                  {currentAccess.expiresAt.toLocaleDateString("pt-BR")}
+                  {currentAccess.daysLeft != null && currentAccess.hasAccess && (
+                    <> · {currentAccess.daysLeft} dia(s) restantes</>
+                  )}
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={handleResync}
+              disabled={resyncing}
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${resyncing ? "animate-spin" : ""}`} />
+              {resyncing ? "Sincronizando…" : "Re-sincronizar assinatura"}
+            </Button>
+          </div>
+          {resyncResult && (
+            <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${resyncResult.ok ? "border-success/30 bg-success/10 text-success" : "border-warning/30 bg-warning/10 text-warning"}`}>
+              {resyncResult.ok
+                ? `Acesso liberado — ${resyncResult.label}${resyncResult.plan ? ` (${resyncResult.plan})` : ""}.`
+                : `Nenhuma assinatura ativa localizada. Status: ${resyncResult.label}.`}
             </div>
           )}
         </Card>

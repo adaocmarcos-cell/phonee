@@ -2355,6 +2355,7 @@ export type Database = {
           asaas_charge_id: string | null
           asaas_customer_id: string | null
           billing_cycle: string
+          cancel_at_period_end: boolean
           created_at: string
           customer_doc: string
           customer_email: string
@@ -2383,6 +2384,7 @@ export type Database = {
           asaas_charge_id?: string | null
           asaas_customer_id?: string | null
           billing_cycle?: string
+          cancel_at_period_end?: boolean
           created_at?: string
           customer_doc: string
           customer_email: string
@@ -2411,6 +2413,7 @@ export type Database = {
           asaas_charge_id?: string | null
           asaas_customer_id?: string | null
           billing_cycle?: string
+          cancel_at_period_end?: boolean
           created_at?: string
           customer_doc?: string
           customer_email?: string
