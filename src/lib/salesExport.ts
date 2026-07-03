@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { brl } from "@/lib/format";
 import type { WarrantySettings } from "@/lib/warranty";
+import { validateSaleForReceipt } from "@/lib/salePersistence";
 
 const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, "0")}`;
 const fmtDate = (d: string) => new Date(d).toLocaleString("pt-BR");
@@ -98,6 +99,19 @@ export function printSaleReceipt(opts: {
   warranty?: WarrantySettings | null;
 }) {
   const { sale, items, store, warranty } = opts;
+  const integrity = validateSaleForReceipt(sale, items as any);
+  if (!integrity.ok) {
+    const summary = integrity.issues
+      .slice(0, 5)
+      .map((i) => `• ${i.index >= 0 ? `Item ${i.index + 1} ` : ""}${i.message}`)
+      .join("\n");
+    // eslint-disable-next-line no-console
+    console.error("[printSaleReceipt] integrity failed", integrity.issues);
+    if (typeof window !== "undefined") {
+      window.alert(`Não é possível gerar o comprovante. Corrija:\n\n${summary}`);
+    }
+    return;
+  }
   let extras: any = {};
   try { extras = sale.notes ? JSON.parse(sale.notes) : {}; } catch { extras = {}; }
   const ex = extras?.extras || extras || {};
