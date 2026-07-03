@@ -3159,6 +3159,15 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      phonee_asaas_charge_duplicates: {
+        Args: never
+        Returns: {
+          asaas_charge_id: string
+          qtd: number
+        }[]
+      }
+      phonee_asaas_idempotency_probe: { Args: never; Returns: Json }
+      phonee_asaas_index_status: { Args: never; Returns: Json }
       phonee_coupons_revenue: { Args: { _days?: number }; Returns: Json }
       phonee_growth: {
         Args: never
