@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
+import { anyGrantsAccess } from "@/lib/subscriptionAccess";
 import logoAsset from "@/assets/phonee-logo.png.asset.json";
 const logo = logoAsset.url;
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -72,17 +73,20 @@ export default function Auth() {
         supabase.rpc("my_stores", { _user_id: userId }),
         supabase
           .from("subscriptions")
-          .select("status, billing_cycle, expires_at")
+          .select("status, billing_cycle, expires_at, cancel_at_period_end")
           .eq("user_id", userId),
       ]);
       isAdminMaster = (roles ?? []).some((r: any) => r.role === "admin_master");
-      const activeStatuses = new Set(["active", "ativa", "trial", "trialing", "vitalicio"]);
-      const hasActive = (myStores ?? []).some((s: any) => activeStatuses.has(s.subscription_status));
-      const hasActiveSub = (mySubs ?? []).some((s: any) => {
-        if (!activeStatuses.has((s.status ?? "").toLowerCase())) return false;
-        if (!s.expires_at) return true;
-        return new Date(s.expires_at).getTime() > Date.now();
-      });
+      const storeAccess = anyGrantsAccess(
+        (myStores ?? []).map((s: any) => ({
+          status: s.subscription_status,
+          expires_at: s.expires_at,
+          billing_cycle: s.billing_cycle,
+        }))
+      );
+      const subAccess = anyGrantsAccess(mySubs ?? []);
+      const hasActive = !!storeAccess?.hasAccess;
+      const hasActiveSub = !!subAccess?.hasAccess;
       allowed = isAdminMaster || hasActive || hasActiveSub;
       const gestorRoles = new Set(["admin_master", "dono", "administrador"]);
       const isGestor = (roles ?? []).some((r: any) => gestorRoles.has(r.role));
