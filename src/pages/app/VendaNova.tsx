@@ -25,6 +25,7 @@ import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { onlyDigits, validateDoc } from "@/lib/docValidation";
 import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
+import { UserCheck } from "lucide-react";
 
 type CustomerLite = {
   id: string;
@@ -106,7 +107,10 @@ export default function VendaNova() {
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickEditContact, setQuickEditContact] = useState<any | null>(null);
   const [quickEditSaving, setQuickEditSaving] = useState(false);
-  const [postSave, setPostSave] = useState<{ saleId: string; customerId: string | null; customerName: string } | null>(null);
+  const [postSave, setPostSave] = useState<{ saleId: string; saleNumber: number | null; customerId: string | null; customerName: string } | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerList, setShowCustomerList] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
   const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
@@ -205,17 +209,21 @@ export default function VendaNova() {
   // Carrega clientes cadastrados da loja (autocomplete + sincronização)
   const loadCustomers = async () => {
     if (!store) return;
+    setLoadingCustomers(true);
     const { data } = await (supabase.from("customers") as any)
       .select("id, name, document, doc_type, phone, whatsapp, address_city, email")
       .eq("store_id", store.id)
       .order("name");
     setCustomers((data as CustomerLite[]) ?? []);
+    setLoadingCustomers(false);
   };
   useEffect(() => { loadCustomers(); /* eslint-disable-next-line */ }, [store?.id]);
 
   const applyCustomer = (c: CustomerLite) => {
     setCustomerId(c.id);
     setCustomer(c.name);
+    setCustomerSearch(c.name);
+    setShowCustomerList(false);
     if (c.whatsapp) setWhatsapp(c.whatsapp);
     if (c.phone) setPhone(c.phone);
     if (c.document) setDoc(c.document);
@@ -249,10 +257,37 @@ export default function VendaNova() {
     if (match) applyCustomer(match);
   };
 
+  // Busca clientes por nome, documento, telefone, whatsapp ou e-mail (debounce leve).
+  const customerMatches = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (!q) return customers.slice(0, 8);
+    const qDigits = onlyDigits(q);
+    return customers.filter((c) => {
+      const bag = [c.name, c.email].filter(Boolean).map((s) => String(s).toLowerCase()).join(" ");
+      const digBag = [c.document, c.phone, c.whatsapp].filter(Boolean).map((s) => onlyDigits(String(s))).join(" ");
+      return bag.includes(q) || (qDigits.length >= 3 && digBag.includes(qDigits));
+    }).slice(0, 12);
+  }, [customers, customerSearch]);
+
+  // Dedupe estendido: verifica CPF, telefone, whatsapp e e-mail antes de inserir.
+  const findDuplicate = (payload: { document?: string | null; phone?: string | null; whatsapp?: string | null; email?: string | null }): CustomerLite | undefined => {
+    const docD = onlyDigits(payload.document || "");
+    const phD = onlyDigits(payload.phone || "");
+    const waD = onlyDigits(payload.whatsapp || "");
+    const emL = (payload.email || "").trim().toLowerCase();
+    return customers.find((c) => {
+      if (docD.length >= 11 && onlyDigits(c.document || "") === docD) return true;
+      if (phD.length >= 10 && onlyDigits(c.phone || "") === phD) return true;
+      if (waD.length >= 10 && onlyDigits(c.whatsapp || "") === waD) return true;
+      if (emL && emL.length > 3 && (c.email || "").toLowerCase() === emL) return true;
+      return false;
+    });
+  };
+
   const openQuickCustomer = () => {
     setQuickCustomer({
       ...EMPTY_QUICK,
-      name: customer.trim(),
+      name: (customer || customerSearch).trim(),
       whatsapp, phone,
       document: doc,
       doc_type: docType,
@@ -270,14 +305,14 @@ export default function VendaNova() {
     if (quickCustomer.document && quickCustomer.document.trim()) {
       const v = validateDoc(quickCustomer.document, (quickCustomer.doc_type || "cpf") as any);
       if (!v.ok) { toast.error(v.message!); return; }
-      // Prevenir duplicidade por CPF/CNPJ
-      const dup = customers.find((c) => onlyDigits(c.document || "") === onlyDigits(quickCustomer.document));
-      if (dup) {
-        toast.warning(`Cliente já cadastrado: ${dup.name}. Vinculado à venda.`);
-        applyCustomer(dup);
-        setQuickCustomer(null);
-        return;
-      }
+    }
+    // Prevenir duplicidade por CPF, telefone, whatsapp ou e-mail
+    const dup = findDuplicate(quickCustomer);
+    if (dup) {
+      toast.warning(`Cliente já cadastrado: ${dup.name}. Vinculado à venda.`);
+      applyCustomer(dup);
+      setQuickCustomer(null);
+      return;
     }
     setQuickSaving(true);
     const payload: any = {
@@ -307,9 +342,9 @@ export default function VendaNova() {
     const name = customer.trim();
     if (!name && !onlyDigits(doc)) return null;
     if (customerId) return customerId;
-    // 1) Chave primária: CPF/CNPJ
-    const byDoc = findByDoc(doc);
-    if (byDoc) { setCustomerId(byDoc.id); return byDoc.id; }
+    // 1) Dedupe por CPF, telefone, whatsapp ou e-mail
+    const dup = findDuplicate({ document: doc, phone, whatsapp, email: null });
+    if (dup) { setCustomerId(dup.id); return dup.id; }
     // 2) Fallback: nome exato
     const byName = name
       ? customers.find((c) => c.name.toLowerCase() === name.toLowerCase())
@@ -556,7 +591,7 @@ export default function VendaNova() {
       installments: headInstallments,
       discount: totalDiscount, subtotal: totalItemsValue, total: totalSale,
       notes: JSON.stringify(payload),
-    }).select("id").single();
+    }).select("id, sale_number").single();
 
     if (error || !sale) { setBusy(false); return toast.error(error?.message ?? "Erro"); }
 
@@ -631,6 +666,7 @@ export default function VendaNova() {
     toast.success("Venda registrada!");
     setPostSave({
       saleId: sale.id,
+      saleNumber: (sale as any).sale_number ?? null,
       customerId: linkedCustomerId,
       customerName: customer.trim() || "—",
     });
@@ -693,17 +729,63 @@ Obrigado pela preferência.`;
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Cliente">
-                <AutocompleteInput
-                  id="venda-cliente-input"
-                  value={customer}
-                  onChange={(e) => onCustomerNameChange((e.target as HTMLInputElement).value)}
-                  options={customers.map((c) => c.name)}
-                  placeholder="Digite ou selecione…"
-                />
-                {customer.trim() && !customerId && (
+                <div className="relative">
+                  <Input
+                    id="venda-cliente-input"
+                    value={customerSearch}
+                    onFocus={() => setShowCustomerList(true)}
+                    onBlur={() => setTimeout(() => setShowCustomerList(false), 180)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCustomerSearch(v);
+                      setCustomer(v);
+                      setShowCustomerList(true);
+                      // Se já havia vínculo mas o texto mudou, desfaz o vínculo até nova seleção.
+                      if (customerId) {
+                        const linked = customers.find((c) => c.id === customerId);
+                        if (!linked || linked.name.toLowerCase() !== v.trim().toLowerCase()) setCustomerId(null);
+                      }
+                    }}
+                    placeholder="Nome, CPF/CNPJ, telefone, WhatsApp ou e-mail…"
+                    autoComplete="off"
+                  />
+                  {showCustomerList && (
+                    <div className="absolute z-20 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card max-h-72 overflow-auto">
+                      {loadingCustomers ? (
+                        <div className="px-3 py-3 text-xs text-muted-foreground">Carregando clientes…</div>
+                      ) : customerMatches.length === 0 ? (
+                        <div className="px-3 py-3 text-xs text-muted-foreground">
+                          Nenhum cliente encontrado.
+                          <button type="button" onMouseDown={(e) => { e.preventDefault(); openQuickCustomer(); }}
+                            className="ml-1 text-primary hover:underline">
+                            Cadastrar agora?
+                          </button>
+                        </div>
+                      ) : (
+                        customerMatches.map((c) => (
+                          <button
+                            key={c.id} type="button"
+                            onMouseDown={(e) => { e.preventDefault(); applyCustomer(c); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-medium truncate flex items-center gap-1">
+                                <UserCheck className="h-3 w-3 text-success shrink-0" />{c.name}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground font-mono truncate">
+                                {[c.document, c.whatsapp || c.phone, c.email].filter(Boolean).join(" · ") || "sem contato"}
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+                {customerSearch.trim() && !customerId && !showCustomerList && (
                   <button type="button" onClick={openQuickCustomer}
                     className="mt-1 text-[11px] text-primary hover:underline">
-                    + Cadastrar “{customer.trim()}” como novo cliente
+                    + Cadastrar “{customerSearch.trim()}” como novo cliente
                   </button>
                 )}
                 {customerId && (
@@ -1451,10 +1533,16 @@ Obrigado pela preferência.`;
               <CheckCircle2 className="h-5 w-5 text-success" />Venda registrada!
             </DialogTitle>
             <DialogDescription>
-              Cliente <strong>{postSave?.customerName}</strong>{postSave?.customerId ? " sincronizado ao CRM" : " sem vínculo no CRM"}.
+              Pedido <strong className="font-mono text-foreground">
+                {postSave?.saleNumber != null ? `PED-${String(postSave.saleNumber).padStart(6, "0")}` : "—"}
+              </strong> · Cliente <strong>{postSave?.customerName}</strong>
+              {postSave?.customerId ? " sincronizado ao CRM" : " sem vínculo no CRM"}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 pt-2">
+            <Button variant="outline" onClick={exportPDF} className="justify-start">
+              <FileDown className="h-4 w-4 mr-2" />Imprimir / Gerar PDF
+            </Button>
             {postSave?.customerId && (
               <Button
                 variant="outline"
