@@ -23,6 +23,8 @@ import {
 import { toast } from "sonner";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 import AutocompleteInput from "@/components/AutocompleteInput";
+import { onlyDigits, validateDoc } from "@/lib/docValidation";
+import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
 
 type CustomerLite = {
   id: string;
@@ -102,6 +104,9 @@ export default function VendaNova() {
   const [customers, setCustomers] = useState<CustomerLite[]>([]);
   const [quickCustomer, setQuickCustomer] = useState<any | null>(null);
   const [quickSaving, setQuickSaving] = useState(false);
+  const [quickEditContact, setQuickEditContact] = useState<any | null>(null);
+  const [quickEditSaving, setQuickEditSaving] = useState(false);
+  const [postSave, setPostSave] = useState<{ saleId: string; customerId: string | null; customerName: string } | null>(null);
   const [whatsapp, setWhatsapp] = useState("");
   const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
@@ -192,7 +197,6 @@ export default function VendaNova() {
         .from("products")
         .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, gtin")
         .eq("store_id", store.id)
-        .gt("stock_current", 0)
         .order("name");
       setProducts(data ?? []);
     })();
@@ -219,15 +223,41 @@ export default function VendaNova() {
     if (c.address_city) setCity(c.address_city);
   };
 
+  // Busca cliente por CPF/CNPJ (chave primária) — evita duplicidade quando o nome varia.
+  const findByDoc = (docRaw: string): CustomerLite | undefined => {
+    const d = onlyDigits(docRaw);
+    if (d.length < 11) return undefined;
+    return customers.find((c) => onlyDigits(c.document || "") === d);
+  };
+
   const onCustomerNameChange = (v: string) => {
     setCustomer(v);
+    // Só troca vínculo se o nome não corresponder ao cliente vinculado por CPF.
+    if (customerId) {
+      const linked = customers.find((c) => c.id === customerId);
+      if (linked && linked.name.toLowerCase() === v.trim().toLowerCase()) return;
+    }
     const match = customers.find((c) => c.name.toLowerCase() === v.trim().toLowerCase());
     if (match) applyCustomer(match);
-    else setCustomerId(null);
+    else if (!onlyDigits(doc)) setCustomerId(null);
+  };
+
+  const onDocChange = (raw: string) => {
+    const masked = docType === "cpf" ? maskCPF(raw) : maskCNPJ(raw);
+    setDoc(masked);
+    const match = findByDoc(masked);
+    if (match) applyCustomer(match);
   };
 
   const openQuickCustomer = () => {
-    setQuickCustomer({ ...EMPTY_QUICK, name: customer.trim(), whatsapp, phone, document: doc, doc_type: docType, address_city: city });
+    setQuickCustomer({
+      ...EMPTY_QUICK,
+      name: customer.trim(),
+      whatsapp, phone,
+      document: doc,
+      doc_type: docType,
+      address_city: city,
+    });
   };
 
   const saveQuickCustomer = async () => {
@@ -235,6 +265,19 @@ export default function VendaNova() {
     if (!quickCustomer.name || quickCustomer.name.trim().length < 2) {
       toast.error("Informe o nome do cliente");
       return;
+    }
+    // Validação de documento (obrigatório quando fornecido)
+    if (quickCustomer.document && quickCustomer.document.trim()) {
+      const v = validateDoc(quickCustomer.document, (quickCustomer.doc_type || "cpf") as any);
+      if (!v.ok) { toast.error(v.message!); return; }
+      // Prevenir duplicidade por CPF/CNPJ
+      const dup = customers.find((c) => onlyDigits(c.document || "") === onlyDigits(quickCustomer.document));
+      if (dup) {
+        toast.warning(`Cliente já cadastrado: ${dup.name}. Vinculado à venda.`);
+        applyCustomer(dup);
+        setQuickCustomer(null);
+        return;
+      }
     }
     setQuickSaving(true);
     const payload: any = {
@@ -258,17 +301,23 @@ export default function VendaNova() {
     if (data) applyCustomer(data as CustomerLite);
   };
 
-  // Garante que o cliente exista na base — cria automaticamente se digitado e não encontrado.
+  // Garante que o cliente exista na base — CPF é chave primária, evita duplicidade.
   const ensureCustomerRecord = async () => {
-    if (!store) return;
+    if (!store) return null;
     const name = customer.trim();
-    if (!name) return;
-    if (customerId) return;
-    const match = customers.find((c) => c.name.toLowerCase() === name.toLowerCase());
-    if (match) { setCustomerId(match.id); return; }
+    if (!name && !onlyDigits(doc)) return null;
+    if (customerId) return customerId;
+    // 1) Chave primária: CPF/CNPJ
+    const byDoc = findByDoc(doc);
+    if (byDoc) { setCustomerId(byDoc.id); return byDoc.id; }
+    // 2) Fallback: nome exato
+    const byName = name
+      ? customers.find((c) => c.name.toLowerCase() === name.toLowerCase())
+      : undefined;
+    if (byName) { setCustomerId(byName.id); return byName.id; }
     const payload: any = {
       store_id: store.id,
-      name,
+      name: name || "Cliente sem nome",
       doc_type: docType || null,
       document: doc?.trim() || null,
       phone: phone?.trim() || null,
@@ -279,7 +328,43 @@ export default function VendaNova() {
     if (data?.id) {
       setCustomerId(data.id);
       loadCustomers();
+      return data.id as string;
     }
+    return null;
+  };
+
+  // Edita rapidamente telefone/endereço do cliente já vinculado.
+  const openQuickEditContact = async () => {
+    if (!customerId) { toast.error("Vincule um cliente antes de editar"); return; }
+    const { data } = await (supabase.from("customers") as any)
+      .select("id, phone, whatsapp, address_zip, address_street, address_number, address_neighborhood, address_city, address_uf, address_complement")
+      .eq("id", customerId).single();
+    setQuickEditContact(data ?? { id: customerId });
+  };
+  const saveQuickEditContact = async () => {
+    if (!quickEditContact?.id) return;
+    setQuickEditSaving(true);
+    const payload: any = {
+      phone: quickEditContact.phone?.trim() || null,
+      whatsapp: quickEditContact.whatsapp?.trim() || null,
+      address_zip: quickEditContact.address_zip?.trim() || null,
+      address_street: quickEditContact.address_street?.trim() || null,
+      address_number: quickEditContact.address_number?.trim() || null,
+      address_neighborhood: quickEditContact.address_neighborhood?.trim() || null,
+      address_city: quickEditContact.address_city?.trim() || null,
+      address_uf: quickEditContact.address_uf?.trim() || null,
+      address_complement: quickEditContact.address_complement?.trim() || null,
+    };
+    const { error } = await (supabase.from("customers") as any).update(payload).eq("id", quickEditContact.id);
+    setQuickEditSaving(false);
+    if (error) { toast.error(error.message); return; }
+    // Reflete os novos dados no formulário da venda
+    if (payload.phone) setPhone(payload.phone);
+    if (payload.whatsapp) setWhatsapp(payload.whatsapp);
+    if (payload.address_city) setCity(payload.address_city);
+    await loadCustomers();
+    setQuickEditContact(null);
+    toast.success("Contato do cliente atualizado e sincronizado com o CRM");
   };
 
   // Carrega vendedores/gestores da loja (via função SECURITY DEFINER)
@@ -323,6 +408,10 @@ export default function VendaNova() {
   }, [products, productQuery]);
 
   const addItem = (p: any) => {
+    if (Number(p.stock_current) <= 0) {
+      toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
+      return;
+    }
     setItems((arr) => {
       const existing = arr.find((i) => i.product_id === p.id);
       if (existing) return arr.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
@@ -438,6 +527,11 @@ export default function VendaNova() {
     if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
       return toast.error("Cada forma de pagamento precisa de método e valor > 0");
     }
+    // Validação do documento antes de abrir confirmação
+    if (doc && onlyDigits(doc)) {
+      const v = validateDoc(doc, docType);
+      if (!v.ok) return toast.error(v.message!);
+    }
     setConfirmOpen(true);
   };
 
@@ -448,7 +542,7 @@ export default function VendaNova() {
 
     const payload = buildPayload();
     // Sincroniza cliente com o CRM antes de gravar a venda
-    await ensureCustomerRecord();
+    const linkedCustomerId = await ensureCustomerRecord();
     const dbMethod = isMulti
       ? "misto"
       : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
@@ -535,7 +629,11 @@ export default function VendaNova() {
       }
     } catch { /* noop */ }
     toast.success("Venda registrada!");
-    navigate("/painel/vendas");
+    setPostSave({
+      saleId: sale.id,
+      customerId: linkedCustomerId,
+      customerName: customer.trim() || "—",
+    });
   };
 
   const buildSummary = () => {
@@ -609,7 +707,13 @@ Obrigado pela preferência.`;
                   </button>
                 )}
                 {customerId && (
-                  <div className="mt-1 text-[11px] text-success">✓ Cliente vinculado ao CRM</div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px]">
+                    <span className="text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Vinculado ao CRM</span>
+                    <button type="button" onClick={openQuickEditContact}
+                      className="text-primary hover:underline flex items-center gap-1">
+                      <Pencil className="h-3 w-3" />Editar contato/endereço
+                    </button>
+                  </div>
                 )}
               </Field>
               <Field label="WhatsApp (opcional)"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
@@ -626,10 +730,15 @@ Obrigado pela preferência.`;
               <Field label={docType === "cpf" ? "CPF (11 dígitos)" : "CNPJ (14 dígitos)"}>
                 <Input
                   value={doc}
-                  onChange={(e) => setDoc(docType === "cpf" ? maskCPF(e.target.value) : maskCNPJ(e.target.value))}
+                  onChange={(e) => onDocChange(e.target.value)}
                   placeholder={docType === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
                   inputMode="numeric"
                 />
+                {doc && onlyDigits(doc).length >= (docType === "cpf" ? 11 : 14) && !validateDoc(doc, docType).ok && (
+                  <div className="mt-1 text-[11px] text-danger flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />{validateDoc(doc, docType).message}
+                  </div>
+                )}
               </Field>
               <Field label="Cidade"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
               <Field label="Vendedor">
@@ -677,11 +786,16 @@ Obrigado pela preferência.`;
                     <button
                       key={p.id} type="button"
                       onClick={() => addItem(p)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3"
+                      disabled={Number(p.stock_current) <= 0}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-3 ${Number(p.stock_current) <= 0 ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
                       <div className="min-w-0">
                         <div className="font-medium truncate">{p.name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{p.sku} · {p.category} · est. {p.stock_current}</div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {p.sku} · {p.category} · {Number(p.stock_current) > 0
+                            ? `est. ${p.stock_current}`
+                            : <span className="text-danger">SEM ESTOQUE</span>}
+                        </div>
                       </div>
                       <div className="font-mono text-sm">{brl(Number(p.sale_price))}</div>
                     </button>
@@ -1205,7 +1319,21 @@ Obrigado pela preferência.`;
               <div>
                 <Label>Documento</Label>
                 <Input value={quickCustomer.document ?? ""} maxLength={32}
-                  onChange={(e) => setQuickCustomer({ ...quickCustomer, document: e.target.value })} />
+                  onChange={(e) => {
+                    const t = (quickCustomer.doc_type || "cpf") as "cpf" | "cnpj";
+                    const masked = t === "cpf" ? maskCPF(e.target.value)
+                      : t === "cnpj" ? maskCNPJ(e.target.value)
+                      : e.target.value;
+                    setQuickCustomer({ ...quickCustomer, document: masked });
+                  }}
+                  placeholder={quickCustomer.doc_type === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"} />
+                {quickCustomer.document && onlyDigits(quickCustomer.document).length >= ((quickCustomer.doc_type === "cnpj") ? 14 : 11) &&
+                  !validateDoc(quickCustomer.document, (quickCustomer.doc_type === "cnpj" ? "cnpj" : "cpf")).ok && (
+                    <div className="mt-1 text-[11px] text-danger flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {validateDoc(quickCustomer.document, (quickCustomer.doc_type === "cnpj" ? "cnpj" : "cpf")).message}
+                    </div>
+                )}
               </div>
               <div>
                 <Label>WhatsApp</Label>
@@ -1247,6 +1375,106 @@ Obrigado pela preferência.`;
               {quickSaving ? "Salvando…" : "Cadastrar e vincular"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar rapidamente contato/endereço do cliente vinculado */}
+      <Dialog open={!!quickEditContact} onOpenChange={(o) => !o && setQuickEditContact(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Atualizar contato e endereço</DialogTitle>
+            <DialogDescription>Alterações são sincronizadas imediatamente com o CRM.</DialogDescription>
+          </DialogHeader>
+          {quickEditContact && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label>WhatsApp</Label>
+                <Input value={quickEditContact.whatsapp ?? ""} maxLength={20}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, whatsapp: e.target.value })} />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input value={quickEditContact.phone ?? ""} maxLength={20}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, phone: e.target.value })} />
+              </div>
+              <div>
+                <Label>CEP</Label>
+                <Input value={quickEditContact.address_zip ?? ""} maxLength={10}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_zip: e.target.value })} />
+              </div>
+              <div className="sm:col-span-1">
+                <Label>Bairro</Label>
+                <Input value={quickEditContact.address_neighborhood ?? ""} maxLength={80}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_neighborhood: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Rua</Label>
+                <Input value={quickEditContact.address_street ?? ""} maxLength={120}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_street: e.target.value })} />
+              </div>
+              <div>
+                <Label>Número</Label>
+                <Input value={quickEditContact.address_number ?? ""} maxLength={10}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_number: e.target.value })} />
+              </div>
+              <div>
+                <Label>Complemento</Label>
+                <Input value={quickEditContact.address_complement ?? ""} maxLength={80}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_complement: e.target.value })} />
+              </div>
+              <div className="sm:col-span-1">
+                <Label>Cidade</Label>
+                <Input value={quickEditContact.address_city ?? ""} maxLength={80}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_city: e.target.value })} />
+              </div>
+              <div>
+                <Label>UF</Label>
+                <Input value={quickEditContact.address_uf ?? ""} maxLength={2}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_uf: e.target.value.toUpperCase() })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickEditContact(null)}>Cancelar</Button>
+            <Button onClick={saveQuickEditContact} disabled={quickEditSaving} className="bg-gradient-primary">
+              {quickEditSaving ? "Salvando…" : "Salvar e sincronizar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação pós-venda com atalho para o CRM */}
+      <Dialog open={!!postSave} onOpenChange={(o) => { if (!o) { setPostSave(null); navigate("/painel/vendas"); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-success" />Venda registrada!
+            </DialogTitle>
+            <DialogDescription>
+              Cliente <strong>{postSave?.customerName}</strong>{postSave?.customerId ? " sincronizado ao CRM" : " sem vínculo no CRM"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 pt-2">
+            {postSave?.customerId && (
+              <Button
+                variant="outline"
+                onClick={() => { const id = postSave.customerId; setPostSave(null); navigate(`/painel/clientes?edit=${id}`); }}
+                className="justify-start">
+                <ExternalLink className="h-4 w-4 mr-2" />Abrir cliente no CRM (/clientes)
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => { setPostSave(null); navigate("/painel/vendas"); }}
+              className="justify-start">
+              Voltar para lista de vendas
+            </Button>
+            <Button
+              onClick={() => { setPostSave(null); window.location.reload(); }}
+              className="bg-gradient-primary justify-start">
+              <Plus className="h-4 w-4 mr-2" />Nova venda
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
