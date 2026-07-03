@@ -1319,7 +1319,21 @@ Obrigado pela preferência.`;
               <div>
                 <Label>Documento</Label>
                 <Input value={quickCustomer.document ?? ""} maxLength={32}
-                  onChange={(e) => setQuickCustomer({ ...quickCustomer, document: e.target.value })} />
+                  onChange={(e) => {
+                    const t = (quickCustomer.doc_type || "cpf") as "cpf" | "cnpj";
+                    const masked = t === "cpf" ? maskCPF(e.target.value)
+                      : t === "cnpj" ? maskCNPJ(e.target.value)
+                      : e.target.value;
+                    setQuickCustomer({ ...quickCustomer, document: masked });
+                  }}
+                  placeholder={quickCustomer.doc_type === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"} />
+                {quickCustomer.document && onlyDigits(quickCustomer.document).length >= ((quickCustomer.doc_type === "cnpj") ? 14 : 11) &&
+                  !validateDoc(quickCustomer.document, (quickCustomer.doc_type === "cnpj" ? "cnpj" : "cpf")).ok && (
+                    <div className="mt-1 text-[11px] text-danger flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {validateDoc(quickCustomer.document, (quickCustomer.doc_type === "cnpj" ? "cnpj" : "cpf")).message}
+                    </div>
+                )}
               </div>
               <div>
                 <Label>WhatsApp</Label>
@@ -1361,6 +1375,106 @@ Obrigado pela preferência.`;
               {quickSaving ? "Salvando…" : "Cadastrar e vincular"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar rapidamente contato/endereço do cliente vinculado */}
+      <Dialog open={!!quickEditContact} onOpenChange={(o) => !o && setQuickEditContact(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Atualizar contato e endereço</DialogTitle>
+            <DialogDescription>Alterações são sincronizadas imediatamente com o CRM.</DialogDescription>
+          </DialogHeader>
+          {quickEditContact && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label>WhatsApp</Label>
+                <Input value={quickEditContact.whatsapp ?? ""} maxLength={20}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, whatsapp: e.target.value })} />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input value={quickEditContact.phone ?? ""} maxLength={20}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, phone: e.target.value })} />
+              </div>
+              <div>
+                <Label>CEP</Label>
+                <Input value={quickEditContact.address_zip ?? ""} maxLength={10}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_zip: e.target.value })} />
+              </div>
+              <div className="sm:col-span-1">
+                <Label>Bairro</Label>
+                <Input value={quickEditContact.address_neighborhood ?? ""} maxLength={80}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_neighborhood: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Rua</Label>
+                <Input value={quickEditContact.address_street ?? ""} maxLength={120}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_street: e.target.value })} />
+              </div>
+              <div>
+                <Label>Número</Label>
+                <Input value={quickEditContact.address_number ?? ""} maxLength={10}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_number: e.target.value })} />
+              </div>
+              <div>
+                <Label>Complemento</Label>
+                <Input value={quickEditContact.address_complement ?? ""} maxLength={80}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_complement: e.target.value })} />
+              </div>
+              <div className="sm:col-span-1">
+                <Label>Cidade</Label>
+                <Input value={quickEditContact.address_city ?? ""} maxLength={80}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_city: e.target.value })} />
+              </div>
+              <div>
+                <Label>UF</Label>
+                <Input value={quickEditContact.address_uf ?? ""} maxLength={2}
+                  onChange={(e) => setQuickEditContact({ ...quickEditContact, address_uf: e.target.value.toUpperCase() })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickEditContact(null)}>Cancelar</Button>
+            <Button onClick={saveQuickEditContact} disabled={quickEditSaving} className="bg-gradient-primary">
+              {quickEditSaving ? "Salvando…" : "Salvar e sincronizar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação pós-venda com atalho para o CRM */}
+      <Dialog open={!!postSave} onOpenChange={(o) => { if (!o) { setPostSave(null); navigate("/painel/vendas"); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-success" />Venda registrada!
+            </DialogTitle>
+            <DialogDescription>
+              Cliente <strong>{postSave?.customerName}</strong>{postSave?.customerId ? " sincronizado ao CRM" : " sem vínculo no CRM"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 pt-2">
+            {postSave?.customerId && (
+              <Button
+                variant="outline"
+                onClick={() => { const id = postSave.customerId; setPostSave(null); navigate(`/painel/clientes?edit=${id}`); }}
+                className="justify-start">
+                <ExternalLink className="h-4 w-4 mr-2" />Abrir cliente no CRM (/clientes)
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => { setPostSave(null); navigate("/painel/vendas"); }}
+              className="justify-start">
+              Voltar para lista de vendas
+            </Button>
+            <Button
+              onClick={() => { setPostSave(null); window.location.reload(); }}
+              className="bg-gradient-primary justify-start">
+              <Plus className="h-4 w-4 mr-2" />Nova venda
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
