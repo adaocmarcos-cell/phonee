@@ -26,7 +26,6 @@ const ALL_PERMS: { key: string; label: string; desc: string }[] = [
   { key: "change_plans",         label: "Alterar planos",        desc: "Pode trocar o plano/validade/status de assinaturas de usuários." },
   { key: "manage_subscriptions", label: "Aprovar assinaturas",   desc: "Aprovar/recusar solicitações de mudança de assinatura." },
   { key: "manage_users",         label: "Gerir usuários",        desc: "Editar dados de usuários, redefinir senha, bloquear." },
-  { key: "manage_partners",      label: "Gerir parceiros",       desc: "Convites, liberação 12 meses, revogação de parceiros." },
   { key: "manage_coupons",       label: "Gerir cupons",          desc: "Criar, editar e desativar cupons promocionais." },
   { key: "manage_marketing",     label: "Marketing & Tráfego",   desc: "Acessar dashboard, investimentos e pixel/CAPI." },
   { key: "view_financial",       label: "Ver financeiro",        desc: "Visualizar receita, repasses e relatórios financeiros." },
