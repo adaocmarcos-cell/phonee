@@ -489,13 +489,25 @@ export default function VendaNova() {
     setSeller(s?.full_name ?? "");
   };
 
+  // Debounce de 300ms para o termo de busca.
+  useEffect(() => {
+    const t = setTimeout(() => setProductQueryDebounced(productQuery), 300);
+    return () => clearTimeout(t);
+  }, [productQuery]);
+
+  const searching = productQuery.trim() !== productQueryDebounced.trim();
+
   const filteredProducts = useMemo(() => {
-    const q = productQuery.trim().toLowerCase();
+    const q = productQueryDebounced.trim().toLowerCase();
     if (!q) return products.slice(0, 8);
+    // Busca case-insensitive e parcial em nome, SKU, código de barras (ean),
+    // categoria, marca e modelo compatível.
     return products.filter((p: any) =>
-      [p.name, p.sku, p.category, p.gtin].filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q))
-    ).slice(0, 12);
-  }, [products, productQuery]);
+      [p.name, p.sku, p.ean, p.category, p.brand, p.compatible_model]
+        .filter(Boolean)
+        .some((v: string) => String(v).toLowerCase().includes(q))
+    ).slice(0, 20);
+  }, [products, productQueryDebounced]);
 
   const addItem = (p: any) => {
     if (!allowNegativeStock && Number(p.stock_current) <= 0) {
