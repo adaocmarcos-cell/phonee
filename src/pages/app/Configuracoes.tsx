@@ -14,7 +14,8 @@ import {
   getTheme, setTheme, type Theme,
 } from "@/lib/preferences";
 import { ThemePicker } from "@/components/ThemePicker";
-import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon, Paintbrush } from "lucide-react";
+import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon, Paintbrush, RefreshCw, ShieldCheck } from "lucide-react";
+import { subscriptionAccess, anyGrantsAccess } from "@/lib/subscriptionAccess";
 import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,10 +27,67 @@ const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG
 export default function Configuracoes() {
   const [font, setFont] = useState<number>(getFontSize());
   const [theme, setThemeState] = useState<Theme>(getTheme());
-  const { store, refresh, role, user } = useAuth();
+  const { store, refresh, role, user, stores, activeStoreSubscription, reloadStores } = useAuth();
   const demo = isDemoMode() || isDemoUserEmail(user?.email);
   const canEdit = !demo && (role === "dono" || role === "gerente");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncResult, setResyncResult] = useState<null | {
+    label: string;
+    ok: boolean;
+    plan?: string | null;
+    expiresAt?: string | null;
+  }>(null);
+
+  const handleResync = async () => {
+    setResyncing(true);
+    setResyncResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("resync-subscription");
+      if (error) throw error;
+      const subs = (data?.subscriptions ?? []) as any[];
+      const access = anyGrantsAccess(
+        subs.map((s) => ({
+          status: s.status,
+          expires_at: s.expires_at,
+          cancel_at_period_end: s.cancel_at_period_end,
+          billing_cycle: s.billing_cycle,
+        }))
+      );
+      const best = subs.find((s) => {
+        const a = subscriptionAccess({
+          status: s.status,
+          expires_at: s.expires_at,
+          cancel_at_period_end: s.cancel_at_period_end,
+          billing_cycle: s.billing_cycle,
+        });
+        return a.hasAccess;
+      }) ?? subs[0];
+
+      await Promise.all([refresh(), reloadStores()]);
+      setResyncResult({
+        ok: !!access?.hasAccess,
+        label: access?.label ?? "Sem plano",
+        plan: best?.plan_name ?? null,
+        expiresAt: best?.expires_at ?? null,
+      });
+      if (access?.hasAccess) toast.success("Assinatura sincronizada. Acesso liberado.");
+      else toast.warning("Nenhuma assinatura ativa encontrada para este usuário.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao sincronizar assinatura.");
+    } finally {
+      setResyncing(false);
+    }
+  };
+
+  const currentAccess = activeStoreSubscription
+    ? subscriptionAccess({
+        status: activeStoreSubscription.subscription_status,
+        expires_at: activeStoreSubscription.expires_at,
+        billing_cycle: activeStoreSubscription.billing_cycle,
+      })
+    : null;
 
   const [storeForm, setStoreForm] = useState({
     trade_name: "", name: "", instagram: "", phone: "", tax_id: "", price_table_note: "",
