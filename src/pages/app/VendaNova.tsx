@@ -629,7 +629,7 @@ export default function VendaNova() {
       : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
     const headInstallments = payments[0]?.installments ?? 1;
 
-    const { data: sale, error } = await supabase.from("sales").insert({
+    const { data: sale, error } = await (supabase.from("sales") as any).insert({
       store_id: store.id, seller_id: user.id,
       customer_name: customer || null, customer_doc: doc || null,
       customer_whatsapp: whatsapp || null,
