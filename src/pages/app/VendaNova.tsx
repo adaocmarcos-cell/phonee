@@ -523,6 +523,11 @@ export default function VendaNova() {
     if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
       return toast.error("Cada forma de pagamento precisa de método e valor > 0");
     }
+    // Validação do documento antes de abrir confirmação
+    if (doc && onlyDigits(doc)) {
+      const v = validateDoc(doc, docType);
+      if (!v.ok) return toast.error(v.message!);
+    }
     setConfirmOpen(true);
   };
 
@@ -533,7 +538,7 @@ export default function VendaNova() {
 
     const payload = buildPayload();
     // Sincroniza cliente com o CRM antes de gravar a venda
-    await ensureCustomerRecord();
+    const linkedCustomerId = await ensureCustomerRecord();
     const dbMethod = isMulti
       ? "misto"
       : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
@@ -620,7 +625,11 @@ export default function VendaNova() {
       }
     } catch { /* noop */ }
     toast.success("Venda registrada!");
-    navigate("/painel/vendas");
+    setPostSave({
+      saleId: sale.id,
+      customerId: linkedCustomerId,
+      customerName: customer.trim() || "—",
+    });
   };
 
   const buildSummary = () => {
@@ -694,7 +703,13 @@ Obrigado pela preferência.`;
                   </button>
                 )}
                 {customerId && (
-                  <div className="mt-1 text-[11px] text-success">✓ Cliente vinculado ao CRM</div>
+                  <div className="mt-1 flex items-center gap-2 text-[11px]">
+                    <span className="text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Vinculado ao CRM</span>
+                    <button type="button" onClick={openQuickEditContact}
+                      className="text-primary hover:underline flex items-center gap-1">
+                      <Pencil className="h-3 w-3" />Editar contato/endereço
+                    </button>
+                  </div>
                 )}
               </Field>
               <Field label="WhatsApp (opcional)"><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 90000-0000" /></Field>
@@ -711,10 +726,15 @@ Obrigado pela preferência.`;
               <Field label={docType === "cpf" ? "CPF (11 dígitos)" : "CNPJ (14 dígitos)"}>
                 <Input
                   value={doc}
-                  onChange={(e) => setDoc(docType === "cpf" ? maskCPF(e.target.value) : maskCNPJ(e.target.value))}
+                  onChange={(e) => onDocChange(e.target.value)}
                   placeholder={docType === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"}
                   inputMode="numeric"
                 />
+                {doc && onlyDigits(doc).length >= (docType === "cpf" ? 11 : 14) && !validateDoc(doc, docType).ok && (
+                  <div className="mt-1 text-[11px] text-danger flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />{validateDoc(doc, docType).message}
+                  </div>
+                )}
               </Field>
               <Field label="Cidade"><Input value={city} onChange={(e) => setCity(e.target.value)} /></Field>
               <Field label="Vendedor">
