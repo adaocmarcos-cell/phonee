@@ -80,7 +80,20 @@ export function exportSalesXLSX(opts: {
 
 export function printSaleReceipt(opts: {
   sale: SaleRow;
-  items: { name: string; sku?: string | null; quantity: number; unit_price: number; total: number }[];
+  items: {
+    name: string;
+    sku?: string | null;
+    category?: string | null;
+    brand?: string | null;
+    model?: string | null;
+    unit?: string | null;
+    imei_serial?: string | null;
+    public_notes?: string | null;
+    discount_amount?: number;
+    quantity: number;
+    unit_price: number;
+    total: number;
+  }[];
   store: any;
   warranty?: WarrantySettings | null;
 }) {
@@ -108,6 +121,10 @@ export function printSaleReceipt(opts: {
   const showLegal = store?.show_legal_name_on_docs !== false;
   const showNonFiscal = store?.show_non_fiscal_notice !== false;
   const logoUrl = store?.pdf_logo_url && /^https?:\/\//i.test(store.pdf_logo_url) ? store.pdf_logo_url : "";
+
+  const totalItemsQty = items.reduce((a, i) => a + Number(i.quantity || 0), 0);
+  const totalItemsDiscount = items.reduce((a, i) => a + Number(i.discount_amount || 0), 0);
+  const grossTotal = items.reduce((a, i) => a + Number(i.total || 0), 0) + totalItemsDiscount;
 
   const css = `
     *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#0f172a}
@@ -184,21 +201,48 @@ export function printSaleReceipt(opts: {
 
       <div style="padding:0">
         <table>
-          <thead><tr><th>Produto</th><th style="text-align:right;width:70px">Qtd</th><th style="text-align:right;width:120px">Unit.</th><th style="text-align:right;width:130px">Total</th></tr></thead>
+          <thead><tr>
+            <th style="width:70px">Código</th>
+            <th>Descrição</th>
+            <th style="text-align:center;width:60px">Un.</th>
+            <th style="text-align:right;width:60px">Qtd</th>
+            <th style="text-align:right;width:110px">Vlr. Unit.</th>
+            <th style="text-align:right;width:110px">Vlr. Total</th>
+          </tr></thead>
           <tbody>
-            ${items.map((i) => `<tr>
-              <td><div style="font-weight:600">${escape(i.name)}</div>${i.sku ? `<div style="color:#64748b;font-size:10.5px;margin-top:2px">SKU: ${escape(i.sku)}</div>` : ""}</td>
-              <td style="text-align:right">${i.quantity}</td>
-              <td style="text-align:right">${brl(i.unit_price)}</td>
-              <td style="text-align:right;font-weight:600">${brl(i.total)}</td>
-            </tr>`).join("")}
+            ${items.map((i) => {
+              const details = [
+                i.brand ? `Marca: ${escape(i.brand)}` : "",
+                i.model ? `Modelo: ${escape(i.model)}` : "",
+                i.category ? `Cat.: ${escape(i.category)}` : "",
+                i.imei_serial ? `IMEI/Serial: ${escape(i.imei_serial)}` : "",
+              ].filter(Boolean).join(" · ");
+              const discountLine = Number(i.discount_amount || 0) > 0
+                ? `<div style="color:#b45309;font-size:10.5px;margin-top:2px">Desconto: - ${brl(Number(i.discount_amount))}</div>` : "";
+              const notesLine = i.public_notes
+                ? `<div style="color:#334155;font-size:10.5px;margin-top:2px">Obs.: ${escape(i.public_notes)}</div>` : "";
+              return `<tr>
+                <td style="font-family:'Courier New',monospace;font-size:10.5px">${escape(i.sku || "—")}</td>
+                <td>
+                  <div style="font-weight:600">${escape(i.name)}</div>
+                  ${details ? `<div style="color:#64748b;font-size:10.5px;margin-top:2px">${details}</div>` : ""}
+                  ${discountLine}
+                  ${notesLine}
+                </td>
+                <td style="text-align:center">${escape(i.unit || "un")}</td>
+                <td style="text-align:right">${i.quantity}</td>
+                <td style="text-align:right">${brl(i.unit_price)}</td>
+                <td style="text-align:right;font-weight:600">${brl(i.total)}</td>
+              </tr>`;
+            }).join("")}
           </tbody>
         </table>
       </div>
 
       <div class="totals">
-        <div><span>Subtotal</span><span>${brl(Number(sale.subtotal || 0))}</span></div>
-        <div><span>Desconto</span><span>- ${brl(Number(sale.discount || 0))}</span></div>
+        <div><span>Total de itens</span><span>${items.length} (${totalItemsQty} un.)</span></div>
+        <div><span>Subtotal produtos/serviços</span><span>${brl(grossTotal || Number(sale.subtotal || 0))}</span></div>
+        <div><span>Descontos</span><span>- ${brl(totalItemsDiscount || Number(sale.discount || 0))}</span></div>
         <div class="tot"><span>TOTAL</span><span>${brl(Number(sale.total || 0))}</span></div>
       </div>
 

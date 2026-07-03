@@ -644,7 +644,7 @@ export default function VendaNova() {
       if (ePay) console.warn("sale_payments insert error", ePay);
     }
 
-    const { error: e2 } = await supabase.from("sale_items").insert(
+    const { error: e2 } = await (supabase.from("sale_items") as any).insert(
       items.map((i) => ({
         sale_id: sale.id,
         product_id: i.is_service ? null : i.product_id,
@@ -653,6 +653,16 @@ export default function VendaNova() {
         quantity: i.quantity,
         unit_price: i.unit_price,
         total: i.quantity * i.unit_price,
+        // Snapshot dos dados exibidos ao cliente — preserva o pedido mesmo
+        // que o produto seja renomeado, corrigido ou excluído depois.
+        name: i.name || null,
+        sku: i.is_service ? "SERVIÇO" : (i.code || null),
+        category: i.category || null,
+        brand: (i as any).brand || null,
+        model: (i as any).model || null,
+        unit: unit || null,
+        discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
+        warranty_days: warrantyEnabled ? warrantyDays : null,
       }))
     );
     if (e2) { setBusy(false); return toast.error(e2.message); }
