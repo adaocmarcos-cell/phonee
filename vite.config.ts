@@ -26,7 +26,11 @@ export default defineConfig(({ mode }) => ({
           if (!id.includes("node_modules")) return;
           if (id.includes("/html2canvas/")) return "vendor-html2canvas";
           if (id.includes("/dompurify/")) return "vendor-dompurify";
-          if (id.includes("/recharts/") || id.includes("/victory-vendor/") || id.includes("/d3-")) return "vendor-charts";
+          // NOTE: do NOT split recharts / d3 / victory-vendor into a separate
+          // chunk. Recharts + d3 have circular imports internally; splitting
+          // them across chunk boundaries breaks initialization order and
+          // triggers a TDZ error ("Cannot access 'P' before initialization")
+          // in production. Let Rollup co-locate them with their consumers.
           if (id.includes("/jspdf/")) return "vendor-jspdf";
           if (id.includes("/@supabase/")) return "vendor-supabase";
           if (id.includes("/@tanstack/")) return "vendor-query";
