@@ -1175,6 +1175,80 @@ Obrigado pela preferência.`;
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cadastro rápido de cliente (sem sair da venda) */}
+      <Dialog open={!!quickCustomer} onOpenChange={(o) => !o && setQuickCustomer(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Cadastro rápido de cliente</DialogTitle>
+            <DialogDescription>Salve os dados essenciais — você pode completar o cadastro depois em Clientes.</DialogDescription>
+          </DialogHeader>
+          {quickCustomer && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <Label>Nome completo *</Label>
+                <Input value={quickCustomer.name ?? ""} maxLength={120}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Tipo de documento</Label>
+                <Select value={quickCustomer.doc_type ?? "cpf"} onValueChange={(v) => setQuickCustomer({ ...quickCustomer, doc_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cpf">CPF</SelectItem>
+                    <SelectItem value="cnpj">CNPJ</SelectItem>
+                    <SelectItem value="rg">RG</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Documento</Label>
+                <Input value={quickCustomer.document ?? ""} maxLength={32}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, document: e.target.value })} />
+              </div>
+              <div>
+                <Label>WhatsApp</Label>
+                <Input value={quickCustomer.whatsapp ?? ""} maxLength={20}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, whatsapp: e.target.value })} placeholder="(11) 90000-0000" />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input value={quickCustomer.phone ?? ""} maxLength={20}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, phone: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>E-mail</Label>
+                <Input type="email" value={quickCustomer.email ?? ""} maxLength={120}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, email: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2 grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Label>Cidade</Label>
+                  <Input value={quickCustomer.address_city ?? ""} maxLength={80}
+                    onChange={(e) => setQuickCustomer({ ...quickCustomer, address_city: e.target.value })} />
+                </div>
+                <div>
+                  <Label>UF</Label>
+                  <Input value={quickCustomer.address_uf ?? ""} maxLength={2}
+                    onChange={(e) => setQuickCustomer({ ...quickCustomer, address_uf: e.target.value.toUpperCase() })} />
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Observações</Label>
+                <Textarea rows={2} value={quickCustomer.notes ?? ""} maxLength={2000}
+                  onChange={(e) => setQuickCustomer({ ...quickCustomer, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickCustomer(null)}>Cancelar</Button>
+            <Button onClick={saveQuickCustomer} disabled={quickSaving} className="bg-gradient-primary">
+              {quickSaving ? "Salvando…" : "Cadastrar e vincular"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
