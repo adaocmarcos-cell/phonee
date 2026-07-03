@@ -408,3 +408,35 @@ function Stat({
     </div>
   );
 }
+
+function PlanPill({
+  plan, cycle, status, expiresAt,
+}: { plan: string | null; cycle: string | null; status: string | null; expiresAt: string | null }) {
+  if (!plan && !cycle) return null;
+  const c = (cycle ?? "").toLowerCase();
+  const st = (status ?? "").toLowerCase();
+  const cycleLabel =
+    c === "trial" ? "Teste"
+    : c === "annual" || c === "anual" ? "Anual"
+    : c === "lifetime" || c === "vitalicio" ? "Vitalício"
+    : c === "monthly" || c === "mensal" ? "Mensal"
+    : cycle || "";
+  const isTrialPaid = c === "trial" || st === "trial" || st === "trialing";
+  const tone = isTrialPaid
+    ? "border-sky-500/30 bg-sky-500/10 text-sky-200"
+    : c === "lifetime" || c === "vitalicio"
+    ? "border-purple-500/30 bg-purple-500/10 text-purple-200"
+    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  const expires = expiresAt ? new Date(expiresAt) : null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-widest rounded-md border px-2 py-0.5 ${tone}`}>
+      <span className="font-semibold">{plan ?? "Plano"}</span>
+      {cycleLabel && <span className="opacity-80">· {cycleLabel}</span>}
+      {expires && c !== "lifetime" && c !== "vitalicio" && (
+        <span className="opacity-70 normal-case tracking-normal">
+          · até {expires.toLocaleDateString("pt-BR")}
+        </span>
+      )}
+    </span>
+  );
+}
