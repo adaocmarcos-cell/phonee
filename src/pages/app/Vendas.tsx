@@ -60,6 +60,24 @@ export default function Vendas() {
   const [adjustSale, setAdjustSale] = useState<any | null>(null);
   const [adjustNet, setAdjustNet] = useState<string>("");
   const [adjustReason, setAdjustReason] = useState<string>("Taxa cartão de crédito");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsSale, setDetailsSale] = useState<any | null>(null);
+  const [detailsItems, setDetailsItems] = useState<any[] | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+
+  const openDetails = async (sale: any) => {
+    setDetailsSale(sale);
+    setDetailsItems(null);
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    const { data, error } = await supabase
+      .from("sale_items")
+      .select("quantity, unit_price, total, description, is_service, name, sku, category, brand, model, unit, discount_amount, imei_serial, warranty_days")
+      .eq("sale_id", sale.id);
+    setDetailsLoading(false);
+    if (error) { toast.error(error.message); return; }
+    setDetailsItems(data ?? []);
+  };
   const tplKey = store ? `phonee.salesReminder.${store.id}` : "phonee.salesReminder";
   const legacyTplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
   const getTemplate = () => {
