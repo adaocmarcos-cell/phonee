@@ -377,6 +377,55 @@ export default function Configuracoes() {
         </Card>
 
         <Card className="p-5 bg-card border-border">
+          <div className="flex items-start gap-3 mb-4">
+            <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold">Assinatura & acesso</h3>
+              <p className="text-xs text-muted-foreground">
+                Se você acabou de pagar e o acesso ainda não liberou, clique em sincronizar. Cobrimos os
+                estados: em teste, ativa, vencida, vitalícia e cancelada com acesso até o vencimento.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-md border border-border bg-muted/20 p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="text-sm">
+              <div className="text-xs text-muted-foreground">Status atual</div>
+              <div className="font-medium">
+                {currentAccess?.label ?? "Sem plano vinculado"}
+                {activeStoreSubscription?.plan_name && (
+                  <span className="text-muted-foreground"> · {activeStoreSubscription.plan_name}</span>
+                )}
+              </div>
+              {currentAccess?.expiresAt && currentAccess.state !== "lifetime" && (
+                <div className="text-xs text-muted-foreground">
+                  {currentAccess.hasAccess ? "Válida até" : "Venceu em"}{" "}
+                  {currentAccess.expiresAt.toLocaleDateString("pt-BR")}
+                  {currentAccess.daysLeft != null && currentAccess.hasAccess && (
+                    <> · {currentAccess.daysLeft} dia(s) restantes</>
+                  )}
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={handleResync}
+              disabled={resyncing}
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${resyncing ? "animate-spin" : ""}`} />
+              {resyncing ? "Sincronizando…" : "Re-sincronizar assinatura"}
+            </Button>
+          </div>
+          {resyncResult && (
+            <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${resyncResult.ok ? "border-success/30 bg-success/10 text-success" : "border-warning/30 bg-warning/10 text-warning"}`}>
+              {resyncResult.ok
+                ? `Acesso liberado — ${resyncResult.label}${resyncResult.plan ? ` (${resyncResult.plan})` : ""}.`
+                : `Nenhuma assinatura ativa localizada. Status: ${resyncResult.label}.`}
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-5 bg-card border-border">
           <div className="flex items-start gap-3">
             <FileText className="h-5 w-5 text-primary mt-0.5" />
             <div>
