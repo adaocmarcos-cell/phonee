@@ -565,6 +565,77 @@ export default function Vendas() {
       </div>
 
       <Dialog open={reminderOpen} onOpenChange={setReminderOpen}>
+        {/* dialog abaixo (mantém original) */}
+      </Dialog>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-primary" />
+              Itens da venda {detailsSale ? fmtNum(detailsSale.sale_number) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground grid grid-cols-2 gap-2">
+              <div>Cliente: <strong className="text-foreground">{detailsSale?.customer_name || "Avulso"}</strong></div>
+              <div>Pagamento: <strong className="text-foreground capitalize">{detailsSale?.payment_method}</strong>{detailsSale?.installments > 1 ? ` · ${detailsSale.installments}x` : ""}</div>
+              <div>Data: <strong className="text-foreground">{detailsSale ? new Date(detailsSale.created_at).toLocaleString("pt-BR") : ""}</strong></div>
+              <div>Total: <strong className="text-foreground">{detailsSale ? brl(Number(detailsSale.total)) : ""}</strong></div>
+            </div>
+            {detailsLoading ? (
+              <div className="text-sm text-muted-foreground py-6 text-center">Carregando itens…</div>
+            ) : !detailsItems || detailsItems.length === 0 ? (
+              <div className="text-sm text-danger py-6 text-center">Nenhum item vinculado a esta venda.</div>
+            ) : (
+              <div className="overflow-x-auto border border-border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">Código</th>
+                      <th className="text-left px-3 py-2 font-medium">Descrição</th>
+                      <th className="text-right px-3 py-2 font-medium">Qtd</th>
+                      <th className="text-right px-3 py-2 font-medium">Unit.</th>
+                      <th className="text-right px-3 py-2 font-medium">Desc.</th>
+                      <th className="text-right px-3 py-2 font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {detailsItems.map((it: any, idx: number) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2 font-mono text-xs">{it.sku || (it.is_service ? "SERVIÇO" : "—")}</td>
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{it.name || it.description || "—"}</div>
+                          {(it.brand || it.model || it.category || it.imei_serial) && (
+                            <div className="text-[11px] text-muted-foreground">
+                              {[it.brand, it.model, it.category].filter(Boolean).join(" · ")}
+                              {it.imei_serial ? ` · IMEI/Serial: ${it.imei_serial}` : ""}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">{it.quantity} {it.unit || ""}</td>
+                        <td className="px-3 py-2 text-right font-mono">{brl(Number(it.unit_price))}</td>
+                        <td className="px-3 py-2 text-right font-mono text-warning">{Number(it.discount_amount) > 0 ? `- ${brl(Number(it.discount_amount))}` : "—"}</td>
+                        <td className="px-3 py-2 text-right font-mono font-semibold">{brl(Number(it.total))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            {detailsSale && (
+              <Button variant="outline" onClick={() => { setDetailsOpen(false); onPrintReceipt(detailsSale); }}>
+                <Printer className="h-4 w-4 mr-2" /> Imprimir comprovante
+              </Button>
+            )}
+            <Button onClick={() => setDetailsOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reminderOpen} onOpenChange={setReminderOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
