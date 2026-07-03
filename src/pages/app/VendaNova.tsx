@@ -240,7 +240,7 @@ export default function VendaNova() {
       // Pedir `gtin` fazia a query falhar e a lista ficar vazia.
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, ean, brand, compatible_model")
+        .select("id, name, sku, sale_price, cost_price, stock_current, category, subcategory, ean, brand, compatible_model")
         .eq("store_id", store.id)
         .order("name");
       if (error) {
