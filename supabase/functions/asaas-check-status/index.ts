@@ -80,16 +80,33 @@ Deno.serve(async (req) => {
         const email = String(sub.customer_email);
         const siteUrl = Deno.env.get("SITE_URL") ?? "";
         const redirectTo = siteUrl ? `${siteUrl}/reset-password` : undefined;
+        // Lookup via indexed profiles.email (see asaas-webhook for rationale):
+        // paginating auth.users caps at a few hundred accounts and silently
+        // fails to find existing users, leaving paid subscriptions orphaned.
         let userId: string | null = null;
-        const { data: created, error: createErr } = await admin.auth.admin.createUser({
-          email,
-          email_confirm: true,
-          user_metadata: { full_name: sub.customer_name, source: "asaas_poll" },
-        });
-        if (created?.user) userId = created.user.id;
-        else if (createErr && /already/i.test(createErr.message ?? "")) {
-          const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-          userId = list?.users?.find((u: any) => (u.email ?? "").toLowerCase() === email.toLowerCase())?.id ?? null;
+        const { data: existingProfile } = await admin
+          .from("profiles")
+          .select("id")
+          .ilike("email", email)
+          .maybeSingle();
+        if (existingProfile?.id) {
+          userId = existingProfile.id as string;
+        } else {
+          const { data: created, error: createErr } = await admin.auth.admin.createUser({
+            email,
+            email_confirm: true,
+            user_metadata: { full_name: sub.customer_name, source: "asaas_poll" },
+          });
+          if (created?.user) {
+            userId = created.user.id;
+          } else if (createErr && /already/i.test(createErr.message ?? "")) {
+            const { data: retry } = await admin
+              .from("profiles")
+              .select("id")
+              .ilike("email", email)
+              .maybeSingle();
+            userId = (retry?.id as string | undefined) ?? null;
+          }
         }
         if (userId) {
           await admin.rpc("link_orphan_subscription", { _user_id: userId, _email: email });
