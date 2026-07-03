@@ -23,6 +23,8 @@ import {
 import { toast } from "sonner";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 import AutocompleteInput from "@/components/AutocompleteInput";
+import { onlyDigits, validateDoc } from "@/lib/docValidation";
+import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
 
 type CustomerLite = {
   id: string;
@@ -102,6 +104,9 @@ export default function VendaNova() {
   const [customers, setCustomers] = useState<CustomerLite[]>([]);
   const [quickCustomer, setQuickCustomer] = useState<any | null>(null);
   const [quickSaving, setQuickSaving] = useState(false);
+  const [quickEditContact, setQuickEditContact] = useState<any | null>(null);
+  const [quickEditSaving, setQuickEditSaving] = useState(false);
+  const [postSave, setPostSave] = useState<{ saleId: string; customerId: string | null; customerName: string } | null>(null);
   const [whatsapp, setWhatsapp] = useState("");
   const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
@@ -192,7 +197,6 @@ export default function VendaNova() {
         .from("products")
         .select("id, name, sku, sale_price, cost_price, stock_current, category, color, storage, gtin")
         .eq("store_id", store.id)
-        .gt("stock_current", 0)
         .order("name");
       setProducts(data ?? []);
     })();
@@ -219,15 +223,41 @@ export default function VendaNova() {
     if (c.address_city) setCity(c.address_city);
   };
 
+  // Busca cliente por CPF/CNPJ (chave primária) — evita duplicidade quando o nome varia.
+  const findByDoc = (docRaw: string): CustomerLite | undefined => {
+    const d = onlyDigits(docRaw);
+    if (d.length < 11) return undefined;
+    return customers.find((c) => onlyDigits(c.document || "") === d);
+  };
+
   const onCustomerNameChange = (v: string) => {
     setCustomer(v);
+    // Só troca vínculo se o nome não corresponder ao cliente vinculado por CPF.
+    if (customerId) {
+      const linked = customers.find((c) => c.id === customerId);
+      if (linked && linked.name.toLowerCase() === v.trim().toLowerCase()) return;
+    }
     const match = customers.find((c) => c.name.toLowerCase() === v.trim().toLowerCase());
     if (match) applyCustomer(match);
-    else setCustomerId(null);
+    else if (!onlyDigits(doc)) setCustomerId(null);
+  };
+
+  const onDocChange = (raw: string) => {
+    const masked = docType === "cpf" ? maskCPF(raw) : maskCNPJ(raw);
+    setDoc(masked);
+    const match = findByDoc(masked);
+    if (match) applyCustomer(match);
   };
 
   const openQuickCustomer = () => {
-    setQuickCustomer({ ...EMPTY_QUICK, name: customer.trim(), whatsapp, phone, document: doc, doc_type: docType, address_city: city });
+    setQuickCustomer({
+      ...EMPTY_QUICK,
+      name: customer.trim(),
+      whatsapp, phone,
+      document: doc,
+      doc_type: docType,
+      address_city: city,
+    });
   };
 
   const saveQuickCustomer = async () => {
@@ -235,6 +265,19 @@ export default function VendaNova() {
     if (!quickCustomer.name || quickCustomer.name.trim().length < 2) {
       toast.error("Informe o nome do cliente");
       return;
+    }
+    // Validação de documento (obrigatório quando fornecido)
+    if (quickCustomer.document && quickCustomer.document.trim()) {
+      const v = validateDoc(quickCustomer.document, (quickCustomer.doc_type || "cpf") as any);
+      if (!v.ok) { toast.error(v.message!); return; }
+      // Prevenir duplicidade por CPF/CNPJ
+      const dup = customers.find((c) => onlyDigits(c.document || "") === onlyDigits(quickCustomer.document));
+      if (dup) {
+        toast.warning(`Cliente já cadastrado: ${dup.name}. Vinculado à venda.`);
+        applyCustomer(dup);
+        setQuickCustomer(null);
+        return;
+      }
     }
     setQuickSaving(true);
     const payload: any = {
@@ -258,17 +301,23 @@ export default function VendaNova() {
     if (data) applyCustomer(data as CustomerLite);
   };
 
-  // Garante que o cliente exista na base — cria automaticamente se digitado e não encontrado.
+  // Garante que o cliente exista na base — CPF é chave primária, evita duplicidade.
   const ensureCustomerRecord = async () => {
-    if (!store) return;
+    if (!store) return null;
     const name = customer.trim();
-    if (!name) return;
-    if (customerId) return;
-    const match = customers.find((c) => c.name.toLowerCase() === name.toLowerCase());
-    if (match) { setCustomerId(match.id); return; }
+    if (!name && !onlyDigits(doc)) return null;
+    if (customerId) return customerId;
+    // 1) Chave primária: CPF/CNPJ
+    const byDoc = findByDoc(doc);
+    if (byDoc) { setCustomerId(byDoc.id); return byDoc.id; }
+    // 2) Fallback: nome exato
+    const byName = name
+      ? customers.find((c) => c.name.toLowerCase() === name.toLowerCase())
+      : undefined;
+    if (byName) { setCustomerId(byName.id); return byName.id; }
     const payload: any = {
       store_id: store.id,
-      name,
+      name: name || "Cliente sem nome",
       doc_type: docType || null,
       document: doc?.trim() || null,
       phone: phone?.trim() || null,
@@ -279,7 +328,43 @@ export default function VendaNova() {
     if (data?.id) {
       setCustomerId(data.id);
       loadCustomers();
+      return data.id as string;
     }
+    return null;
+  };
+
+  // Edita rapidamente telefone/endereço do cliente já vinculado.
+  const openQuickEditContact = async () => {
+    if (!customerId) { toast.error("Vincule um cliente antes de editar"); return; }
+    const { data } = await (supabase.from("customers") as any)
+      .select("id, phone, whatsapp, address_zip, address_street, address_number, address_neighborhood, address_city, address_uf, address_complement")
+      .eq("id", customerId).single();
+    setQuickEditContact(data ?? { id: customerId });
+  };
+  const saveQuickEditContact = async () => {
+    if (!quickEditContact?.id) return;
+    setQuickEditSaving(true);
+    const payload: any = {
+      phone: quickEditContact.phone?.trim() || null,
+      whatsapp: quickEditContact.whatsapp?.trim() || null,
+      address_zip: quickEditContact.address_zip?.trim() || null,
+      address_street: quickEditContact.address_street?.trim() || null,
+      address_number: quickEditContact.address_number?.trim() || null,
+      address_neighborhood: quickEditContact.address_neighborhood?.trim() || null,
+      address_city: quickEditContact.address_city?.trim() || null,
+      address_uf: quickEditContact.address_uf?.trim() || null,
+      address_complement: quickEditContact.address_complement?.trim() || null,
+    };
+    const { error } = await (supabase.from("customers") as any).update(payload).eq("id", quickEditContact.id);
+    setQuickEditSaving(false);
+    if (error) { toast.error(error.message); return; }
+    // Reflete os novos dados no formulário da venda
+    if (payload.phone) setPhone(payload.phone);
+    if (payload.whatsapp) setWhatsapp(payload.whatsapp);
+    if (payload.address_city) setCity(payload.address_city);
+    await loadCustomers();
+    setQuickEditContact(null);
+    toast.success("Contato do cliente atualizado e sincronizado com o CRM");
   };
 
   // Carrega vendedores/gestores da loja (via função SECURITY DEFINER)
