@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { DemoLeadModal } from "@/components/DemoLeadModal";
-import { LandingReferralSignupDialog } from "@/components/LandingReferralSignupDialog";
 import { FreeTrialSignupDialog } from "@/components/FreeTrialSignupDialog";
 import { trackPageVisit } from "@/lib/trackVisit";
 import { trackMetaEvent } from "@/lib/metaPixel";
@@ -16,7 +15,7 @@ import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
   ArrowRight, Lock, CheckCircle2, Star, Apple, Smartphone, UsersRound, Play,
-  DollarSign, Percent, Package, Gift, Loader2, BadgeCheck, type LucideIcon,
+  DollarSign, Percent, Package, Loader2, BadgeCheck, type LucideIcon,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 const logo = logoAsset.url;
@@ -148,7 +147,6 @@ export default function Landing() {
   const heroGlowOffset = useParallax(0.25);
   const navigate = useNavigate();
   const [demoOpen, setDemoOpen] = useState(false);
-  const [refOpen, setRefOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<null | "trial" | "annual" | "lifetime">(null);
   // Garante que o estado de loading do botão Trial é resetado quando o dialog fecha.
@@ -163,7 +161,6 @@ export default function Landing() {
     if (p.get("demo") === "1" || p.get("demonstracao") === "1" || p.get("trial") === "1") {
       setFreeTrialOpen(true);
     }
-    if (p.get("indique") === "1" || p.get("indicacao") === "1") setRefOpen(true);
     trackPageVisit("/");
     // Conversão Meta: visualização da página de vendas
     trackMetaEvent("ViewContent", {
@@ -212,7 +209,6 @@ export default function Landing() {
         onOpenChange={setDemoOpen}
         onSuccess={() => navigate("/painel")}
       />
-      <LandingReferralSignupDialog open={refOpen} onOpenChange={setRefOpen} />
       <FreeTrialSignupDialog open={freeTrialOpen} onOpenChange={setFreeTrialOpen} />
       {/* NAV — mesma cor do hero */}
       <header className="sticky top-0 z-50 bg-[hsl(226_50%_15%)] border-b border-white/10">
@@ -222,23 +218,7 @@ export default function Landing() {
             <a href="#dashboard" className="hover:text-primary transition">Dashboard</a>
             <a href="#preco" className="hover:text-primary transition">Planos &amp; Preços</a>
             <a href="#garantia" className="hover:text-primary transition">Garantia</a>
-            <button
-              type="button"
-              onClick={() => setRefOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/50 bg-emerald-500/15 px-3 py-1 text-emerald-200 hover:bg-emerald-500/25 hover:text-white transition"
-            >
-              <Gift className="h-3.5 w-3.5" />
-              Indique e ganhe
-            </button>
           </nav>
-          <button
-            type="button"
-            onClick={() => setRefOpen(true)}
-            className="md:hidden inline-flex items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-200 hover:bg-emerald-500/25 hover:text-white transition"
-          >
-            <Gift className="h-3.5 w-3.5" />
-            Indique
-          </button>
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="outline"

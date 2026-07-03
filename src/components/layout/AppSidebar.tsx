@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
   ArrowRightLeft, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
-  DollarSign, Building2, Gift, AlertTriangle,
+  DollarSign, Building2, AlertTriangle,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -224,18 +224,6 @@ export function AppSidebar() {
         {renderGroup("", main, { hideLabel: true })}
         {renderGroup("Configuração", config.filter((it) => it.url !== "/painel/usuarios" || showAdmin))}
         {isAdminMaster(role as any) && renderGroup("Financeiro / Admin Master", adminMasterItems)}
-        <div className="px-2 pt-2">
-          <NavLink to="/painel/indique-e-ganhe"
-            className={({ isActive }) =>
-              `mx-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                isActive
-                  ? "bg-gradient-primary text-primary-foreground border-primary shadow-glow"
-                  : "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
-              } ${collapsed ? "justify-center" : ""}`}>
-            <Gift className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Indique e Ganhe</span>}
-          </NavLink>
-        </div>
         <div className="mt-auto px-3 py-3 border-t border-sidebar-border">
           <div className={`flex items-center gap-2 text-[10px] text-muted-foreground/80 ${collapsed ? "justify-center" : ""}`}>
             <Lock className="h-3 w-3 text-success shrink-0" />
