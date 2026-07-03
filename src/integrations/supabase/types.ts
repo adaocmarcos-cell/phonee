@@ -3045,6 +3045,22 @@ export type Database = {
         }
         Returns: Json
       }
+      create_sale: {
+        Args: {
+          _customer_doc: string
+          _customer_id: string
+          _customer_name: string
+          _customer_whatsapp: string
+          _discount: number
+          _installments: number
+          _items: Json
+          _notes: string
+          _payment_method: Database["public"]["Enums"]["payment_method"]
+          _payments: Json
+          _store_id: string
+        }
+        Returns: Json
+      }
       dispatch_push_event: {
         Args: { _event: string; _payload: Json; _store_id: string }
         Returns: undefined
