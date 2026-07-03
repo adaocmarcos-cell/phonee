@@ -94,29 +94,54 @@ Deno.serve(async (req) => {
 
     if (action === "update") {
       const { full_name, email, phone, new_password, expires_at } = body;
+
+      // Confirma que o usuário-alvo existe antes de qualquer update de credenciais
+      const { data: targetUser, error: getUserErr } = await admin.auth.admin.getUserById(user_id);
+      if (getUserErr || !targetUser?.user) {
+        console.error("[phonee-admin-user][update] target not found", getUserErr);
+        return json({ error: "Usuário não encontrado no sistema de autenticação." }, 404);
+      }
+      const currentEmail = (targetUser.user.email ?? "").toLowerCase();
+
       const authPatch: Record<string, unknown> = {};
-      if (typeof email === "string" && email.trim()) authPatch.email = email.trim().toLowerCase();
+      if (typeof email === "string" && email.trim()) {
+        const nextEmail = email.trim().toLowerCase();
+        // Só envia email quando realmente mudou — evita "email already registered"
+        if (nextEmail !== currentEmail) {
+          authPatch.email = nextEmail;
+          authPatch.email_confirm = true;
+        }
+      }
       if (typeof new_password === "string" && new_password) {
         if (new_password.length < 8) return json({ error: "Senha mínima de 8 caracteres." }, 400);
         authPatch.password = new_password;
       }
       if (Object.keys(authPatch).length > 0) {
-        const { error } = await admin.auth.admin.updateUserById(user_id, authPatch);
-        if (error) return json({ error: error.message }, 400);
+        const { error: authErr } = await admin.auth.admin.updateUserById(user_id, authPatch);
+        if (authErr) {
+          console.error("[phonee-admin-user][update] auth error", authErr);
+          await audit("user_reset_password", "users", user_id,
+            { error: authErr.message, tried: Object.keys(authPatch) }, "erro");
+          return json({ error: `Falha ao atualizar credenciais: ${authErr.message}` }, 400);
+        }
       }
       const profPatch: Record<string, unknown> = { id: user_id };
       if (typeof full_name === "string") profPatch.full_name = full_name.trim();
       if (typeof email === "string" && email.trim()) profPatch.email = email.trim().toLowerCase();
       if (typeof phone === "string") profPatch.phone = phone.trim() || null;
       if (Object.keys(profPatch).length > 1) {
-        const { error } = await admin.from("profiles").upsert(profPatch);
-        if (error) return json({ error: error.message }, 500);
+        const { error: profErr } = await admin.from("profiles").upsert(profPatch);
+        if (profErr) {
+          console.error("[phonee-admin-user][update] profile upsert failed", profErr);
+          return json({ error: `Falha ao atualizar perfil: ${profErr.message}` }, 500);
+        }
       }
       if (expires_at !== undefined) {
-        await admin.from("user_profile_extras").upsert(
+        const { error: extErr } = await admin.from("user_profile_extras").upsert(
           { user_id, expires_at: expires_at || null },
           { onConflict: "user_id" },
         );
+        if (extErr) console.error("[phonee-admin-user][update] extras upsert failed", extErr);
       }
       await audit(
         new_password ? "user_reset_password" : "user_update",
@@ -133,7 +158,7 @@ Deno.serve(async (req) => {
           expires_at: expires_at ?? undefined,
         },
       );
-      return json({ ok: true });
+      return json({ ok: true, message: "Usuário atualizado com sucesso." });
     }
 
     // Manual creation of a regular user (with optional expiration)
