@@ -564,10 +564,6 @@ export default function Vendas() {
         <span>Dados protegidos com segurança e criptografia.</span>
       </div>
 
-      <Dialog open={reminderOpen} onOpenChange={setReminderOpen}>
-        {/* dialog abaixo (mantém original) */}
-      </Dialog>
-
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
