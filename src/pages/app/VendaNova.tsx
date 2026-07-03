@@ -25,6 +25,7 @@ import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { onlyDigits, validateDoc } from "@/lib/docValidation";
 import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
+import { UserCheck } from "lucide-react";
 
 type CustomerLite = {
   id: string;
@@ -106,7 +107,10 @@ export default function VendaNova() {
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickEditContact, setQuickEditContact] = useState<any | null>(null);
   const [quickEditSaving, setQuickEditSaving] = useState(false);
-  const [postSave, setPostSave] = useState<{ saleId: string; customerId: string | null; customerName: string } | null>(null);
+  const [postSave, setPostSave] = useState<{ saleId: string; saleNumber: number | null; customerId: string | null; customerName: string } | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerList, setShowCustomerList] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
   const [phone, setPhone] = useState("");
   const [docType, setDocType] = useState<"cpf" | "cnpj">("cpf");
@@ -205,17 +209,21 @@ export default function VendaNova() {
   // Carrega clientes cadastrados da loja (autocomplete + sincronização)
   const loadCustomers = async () => {
     if (!store) return;
+    setLoadingCustomers(true);
     const { data } = await (supabase.from("customers") as any)
       .select("id, name, document, doc_type, phone, whatsapp, address_city, email")
       .eq("store_id", store.id)
       .order("name");
     setCustomers((data as CustomerLite[]) ?? []);
+    setLoadingCustomers(false);
   };
   useEffect(() => { loadCustomers(); /* eslint-disable-next-line */ }, [store?.id]);
 
   const applyCustomer = (c: CustomerLite) => {
     setCustomerId(c.id);
     setCustomer(c.name);
+    setCustomerSearch(c.name);
+    setShowCustomerList(false);
     if (c.whatsapp) setWhatsapp(c.whatsapp);
     if (c.phone) setPhone(c.phone);
     if (c.document) setDoc(c.document);
@@ -249,10 +257,37 @@ export default function VendaNova() {
     if (match) applyCustomer(match);
   };
 
+  // Busca clientes por nome, documento, telefone, whatsapp ou e-mail (debounce leve).
+  const customerMatches = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+    if (!q) return customers.slice(0, 8);
+    const qDigits = onlyDigits(q);
+    return customers.filter((c) => {
+      const bag = [c.name, c.email].filter(Boolean).map((s) => String(s).toLowerCase()).join(" ");
+      const digBag = [c.document, c.phone, c.whatsapp].filter(Boolean).map((s) => onlyDigits(String(s))).join(" ");
+      return bag.includes(q) || (qDigits.length >= 3 && digBag.includes(qDigits));
+    }).slice(0, 12);
+  }, [customers, customerSearch]);
+
+  // Dedupe estendido: verifica CPF, telefone, whatsapp e e-mail antes de inserir.
+  const findDuplicate = (payload: { document?: string | null; phone?: string | null; whatsapp?: string | null; email?: string | null }): CustomerLite | undefined => {
+    const docD = onlyDigits(payload.document || "");
+    const phD = onlyDigits(payload.phone || "");
+    const waD = onlyDigits(payload.whatsapp || "");
+    const emL = (payload.email || "").trim().toLowerCase();
+    return customers.find((c) => {
+      if (docD.length >= 11 && onlyDigits(c.document || "") === docD) return true;
+      if (phD.length >= 10 && onlyDigits(c.phone || "") === phD) return true;
+      if (waD.length >= 10 && onlyDigits(c.whatsapp || "") === waD) return true;
+      if (emL && emL.length > 3 && (c.email || "").toLowerCase() === emL) return true;
+      return false;
+    });
+  };
+
   const openQuickCustomer = () => {
     setQuickCustomer({
       ...EMPTY_QUICK,
-      name: customer.trim(),
+      name: (customer || customerSearch).trim(),
       whatsapp, phone,
       document: doc,
       doc_type: docType,
@@ -270,14 +305,14 @@ export default function VendaNova() {
     if (quickCustomer.document && quickCustomer.document.trim()) {
       const v = validateDoc(quickCustomer.document, (quickCustomer.doc_type || "cpf") as any);
       if (!v.ok) { toast.error(v.message!); return; }
-      // Prevenir duplicidade por CPF/CNPJ
-      const dup = customers.find((c) => onlyDigits(c.document || "") === onlyDigits(quickCustomer.document));
-      if (dup) {
-        toast.warning(`Cliente já cadastrado: ${dup.name}. Vinculado à venda.`);
-        applyCustomer(dup);
-        setQuickCustomer(null);
-        return;
-      }
+    }
+    // Prevenir duplicidade por CPF, telefone, whatsapp ou e-mail
+    const dup = findDuplicate(quickCustomer);
+    if (dup) {
+      toast.warning(`Cliente já cadastrado: ${dup.name}. Vinculado à venda.`);
+      applyCustomer(dup);
+      setQuickCustomer(null);
+      return;
     }
     setQuickSaving(true);
     const payload: any = {
@@ -307,9 +342,9 @@ export default function VendaNova() {
     const name = customer.trim();
     if (!name && !onlyDigits(doc)) return null;
     if (customerId) return customerId;
-    // 1) Chave primária: CPF/CNPJ
-    const byDoc = findByDoc(doc);
-    if (byDoc) { setCustomerId(byDoc.id); return byDoc.id; }
+    // 1) Dedupe por CPF, telefone, whatsapp ou e-mail
+    const dup = findDuplicate({ document: doc, phone, whatsapp, email: null });
+    if (dup) { setCustomerId(dup.id); return dup.id; }
     // 2) Fallback: nome exato
     const byName = name
       ? customers.find((c) => c.name.toLowerCase() === name.toLowerCase())
