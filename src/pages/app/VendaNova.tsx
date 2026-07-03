@@ -44,7 +44,9 @@ const EMPTY_QUICK: any = {
 };
 
 type LineItem = {
-  product_id: string;
+  product_id: string; // real id OR synthetic "svc-<uuid>"
+  is_service?: boolean;
+  description?: string;
   name: string;
   code?: string;
   category?: string;
@@ -126,6 +128,37 @@ export default function VendaNova() {
   const [products, setProducts] = useState<any[]>([]);
   const [productQuery, setProductQuery] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
+
+  // Serviços
+  const [serviceDialog, setServiceDialog] = useState<{ open: boolean; description: string; quantity: number; unit_price: number; editing?: string | null }>({
+    open: false, description: "", quantity: 1, unit_price: 0, editing: null,
+  });
+  const openNewService = () =>
+    setServiceDialog({ open: true, description: "", quantity: 1, unit_price: 0, editing: null });
+  const openEditService = (i: LineItem) =>
+    setServiceDialog({ open: true, description: i.description || i.name, quantity: i.quantity, unit_price: i.unit_price, editing: i.product_id });
+  const saveService = () => {
+    const desc = serviceDialog.description.trim();
+    const qty = Math.max(1, Number(serviceDialog.quantity) || 1);
+    const price = Number(serviceDialog.unit_price) || 0;
+    if (!desc) return toast.error("Descreva o serviço");
+    if (price <= 0) return toast.error("Informe um valor maior que zero");
+    setItems((arr) => {
+      if (serviceDialog.editing) {
+        return arr.map((i) => i.product_id === serviceDialog.editing ? {
+          ...i, name: desc, description: desc, quantity: qty,
+          list_price: price, unit_price: price, discount_pct: 0, discount_brl: 0,
+        } : i);
+      }
+      const id = `svc-${(crypto as any).randomUUID?.() ?? Date.now()}`;
+      return [...arr, {
+        product_id: id, is_service: true, description: desc,
+        name: desc, code: "SERVIÇO", category: "Serviço",
+        quantity: qty, list_price: price, discount_pct: 0, discount_brl: 0, unit_price: price,
+      }];
+    });
+    setServiceDialog({ open: false, description: "", quantity: 1, unit_price: 0, editing: null });
+  };
 
   // Comissões
   const [commissionPct, setCommissionPct] = useState(0);
@@ -613,13 +646,19 @@ export default function VendaNova() {
 
     const { error: e2 } = await supabase.from("sale_items").insert(
       items.map((i) => ({
-        sale_id: sale.id, product_id: i.product_id,
-        quantity: i.quantity, unit_price: i.unit_price, total: i.quantity * i.unit_price,
+        sale_id: sale.id,
+        product_id: i.is_service ? null : i.product_id,
+        is_service: !!i.is_service,
+        description: i.is_service ? (i.description || i.name) : null,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.quantity * i.unit_price,
       }))
     );
     if (e2) { setBusy(false); return toast.error(e2.message); }
 
     for (const i of items) {
+      if (i.is_service) continue;
       const cur = products.find((p) => p.id === i.product_id);
       if (cur) {
         await supabase.from("products").update({
@@ -954,9 +993,14 @@ Obrigado pela preferência.`;
               ))}
             </div>
 
-            <Button type="button" variant="outline" className="mt-3" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder*="Buscar por nome"]')?.focus()}>
-              <Plus className="h-4 w-4 mr-1" />Adicionar outro item
-            </Button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder*="Buscar por nome"]')?.focus()}>
+                <Plus className="h-4 w-4 mr-1" />Adicionar outro item
+              </Button>
+              <Button type="button" variant="outline" onClick={openNewService}>
+                <Plus className="h-4 w-4 mr-1" />Adicionar serviço
+              </Button>
+            </div>
           </Card>
 
           {/* TABS: Comissões / Pagamento / Entrega / Adicionais */}
@@ -1526,6 +1570,46 @@ Obrigado pela preferência.`;
       </Dialog>
 
       {/* Confirmação pós-venda com atalho para o CRM */}
+      <Dialog open={serviceDialog.open} onOpenChange={(o) => setServiceDialog((s) => ({ ...s, open: o }))}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{serviceDialog.editing ? "Editar serviço" : "Adicionar serviço"}</DialogTitle>
+            <DialogDescription>Descreva o serviço e informe o valor cobrado.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <div>
+              <Label>Descrição do serviço *</Label>
+              <Textarea
+                value={serviceDialog.description}
+                onChange={(e) => setServiceDialog((s) => ({ ...s, description: e.target.value }))}
+                placeholder="Ex.: Troca de tela iPhone 12"
+                rows={3}
+                maxLength={300}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Quantidade</Label>
+                <Input type="number" min={1} value={serviceDialog.quantity}
+                  onChange={(e) => setServiceDialog((s) => ({ ...s, quantity: Math.max(1, Number(e.target.value) || 1) }))} />
+              </div>
+              <div>
+                <Label>Valor unitário (R$) *</Label>
+                <Input type="number" step="0.01" min={0} value={serviceDialog.unit_price}
+                  onChange={(e) => setServiceDialog((s) => ({ ...s, unit_price: Number(e.target.value) || 0 }))} />
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Total: <span className="font-mono text-foreground font-semibold">{brl((Number(serviceDialog.unit_price) || 0) * (Number(serviceDialog.quantity) || 0))}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setServiceDialog({ open: false, description: "", quantity: 1, unit_price: 0, editing: null })}>Cancelar</Button>
+            <Button onClick={saveService} className="bg-gradient-primary">{serviceDialog.editing ? "Salvar alterações" : "Adicionar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!postSave} onOpenChange={(o) => { if (!o) { setPostSave(null); navigate("/painel/vendas"); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>

@@ -1717,24 +1717,30 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          description: string | null
           id: string
-          product_id: string
+          is_service: boolean
+          product_id: string | null
           quantity: number
           sale_id: string
           total: number
           unit_price: number
         }
         Insert: {
+          description?: string | null
           id?: string
-          product_id: string
+          is_service?: boolean
+          product_id?: string | null
           quantity?: number
           sale_id: string
           total: number
           unit_price: number
         }
         Update: {
+          description?: string | null
           id?: string
-          product_id?: string
+          is_service?: boolean
+          product_id?: string | null
           quantity?: number
           sale_id?: string
           total?: number
