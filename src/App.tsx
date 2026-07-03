@@ -1,80 +1,92 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
-import AppLayout from "@/components/layout/AppLayout";
 import Auth from "./pages/auth/Auth";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
-import Dashboard from "./pages/app/Dashboard";
-import Estoque from "./pages/app/Estoque";
-import ProductForm from "./pages/app/ProductForm";
-import EstoqueRelatorio from "./pages/app/EstoqueRelatorio";
-import EstoqueRelatoriosCentral from "./pages/app/EstoqueRelatoriosCentral";
-import EstoqueAuditoriaPDF from "./pages/app/EstoqueAuditoriaPDF";
-import Vendas from "./pages/app/Vendas";
-import VendaNova from "./pages/app/VendaNova";
-import Alertas from "./pages/app/Alertas";
-import CurvaABC from "./pages/app/CurvaABC";
-import TradeIn from "./pages/app/TradeIn";
-import TradeInForm from "./pages/app/TradeInForm";
-import TradeInDetails from "./pages/app/TradeInDetails";
-import Pedidos from "./pages/app/Pedidos";
-import PedidoNovo from "./pages/app/PedidoNovo";
-import Despesas from "./pages/app/Despesas";
-import Financeiro from "./pages/app/Financeiro";
-import OrdensServico from "./pages/app/OrdensServico";
-import OrdemServicoForm from "./pages/app/OrdemServicoForm";
-import PartsInventory from "./pages/app/PartsInventory";
-import VendasPecas from "./pages/app/VendasPecas";
-import Configuracoes from "./pages/app/Configuracoes";
-import TabelasPreco from "./pages/app/TabelasPreco";
-import ComingSoon from "./pages/app/ComingSoon";
-import Usuarios from "./pages/app/admin/Usuarios";
-import Cargos from "./pages/app/admin/Cargos";
-import Garantias from "./pages/app/admin/Garantias";
-import PagamentosAsaas from "./pages/app/admin/PagamentosAsaas";
-import Planos from "./pages/app/admin/Planos";
-import Assinaturas from "./pages/app/admin/Assinaturas";
-import LogsPagamento from "./pages/app/admin/LogsPagamento";
-import LogsPage from "./pages/app/admin/Logs";
-import AjustesEstoque from "./pages/app/admin/AjustesEstoque";
-import Suporte from "./pages/app/Suporte";
-import Notificacoes from "./pages/app/Notificacoes";
-import SuporteAdmin from "./pages/app/admin/SuporteAdmin";
-import Clientes from "./pages/app/Clientes";
-import MinhasLojas from "./pages/app/MinhasLojas";
-import TransferenciaProdutos from "./pages/app/TransferenciaProdutos";
-import Compras from "./pages/app/Compras";
-import Fornecedores from "./pages/app/Fornecedores";
-import MeuTeste from "./pages/app/MeuTeste";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
-import Comprar from "./pages/Comprar";
-import ComprarSucesso from "./pages/ComprarSucesso";
 import { Navigate, useLocation } from "react-router-dom";
-import PhoneeLogin from "./pages/phonee/Login";
-import PhoneeLayout from "./pages/phonee/Layout";
-import PhoneeVisaoGeral from "./pages/phonee/VisaoGeral";
-import PhoneeLojas from "./pages/phonee/Lojas";
-import PhoneeUsuarios from "./pages/phonee/Usuarios";
-import PhoneeAssinaturas from "./pages/phonee/Assinaturas";
-import PhoneeFinanceiro from "./pages/phonee/Financeiro";
-import PhoneeCrescimento from "./pages/phonee/Crescimento";
-import PhoneeLeads from "./pages/phonee/Leads";
-import PhoneeMarketing from "./pages/phonee/Marketing";
-import PhoneeCupons from "./pages/phonee/Cupons";
-import PhoneeAuditoria from "./pages/phonee/Auditoria";
-import PhoneeAssinaturaSolicitacoes from "./pages/phonee/AssinaturaSolicitacoes";
-import PhoneeAdminMasters from "./pages/phonee/AdminMasters";
-import PhoneeContas from "./pages/phonee/Contas";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { SplashScreen } from "./components/SplashScreen";
 import AdminMasterRoute from "@/components/layout/AdminMasterRoute";
+
+// Lazy-loaded: layout + páginas do painel ERP e do painel Phonee.
+// Landing e telas de auth ficam eager para não atrasar o primeiro paint.
+const AppLayout = lazy(() => import("@/components/layout/AppLayout"));
+const Comprar = lazy(() => import("./pages/Comprar"));
+const ComprarSucesso = lazy(() => import("./pages/ComprarSucesso"));
+
+const Dashboard = lazy(() => import("./pages/app/Dashboard"));
+const Estoque = lazy(() => import("./pages/app/Estoque"));
+const ProductForm = lazy(() => import("./pages/app/ProductForm"));
+const EstoqueRelatorio = lazy(() => import("./pages/app/EstoqueRelatorio"));
+const EstoqueRelatoriosCentral = lazy(() => import("./pages/app/EstoqueRelatoriosCentral"));
+const EstoqueAuditoriaPDF = lazy(() => import("./pages/app/EstoqueAuditoriaPDF"));
+const Vendas = lazy(() => import("./pages/app/Vendas"));
+const VendaNova = lazy(() => import("./pages/app/VendaNova"));
+const Alertas = lazy(() => import("./pages/app/Alertas"));
+const CurvaABC = lazy(() => import("./pages/app/CurvaABC"));
+const TradeIn = lazy(() => import("./pages/app/TradeIn"));
+const TradeInForm = lazy(() => import("./pages/app/TradeInForm"));
+const TradeInDetails = lazy(() => import("./pages/app/TradeInDetails"));
+const Pedidos = lazy(() => import("./pages/app/Pedidos"));
+const PedidoNovo = lazy(() => import("./pages/app/PedidoNovo"));
+const Despesas = lazy(() => import("./pages/app/Despesas"));
+const Financeiro = lazy(() => import("./pages/app/Financeiro"));
+const OrdensServico = lazy(() => import("./pages/app/OrdensServico"));
+const OrdemServicoForm = lazy(() => import("./pages/app/OrdemServicoForm"));
+const PartsInventory = lazy(() => import("./pages/app/PartsInventory"));
+const VendasPecas = lazy(() => import("./pages/app/VendasPecas"));
+const Configuracoes = lazy(() => import("./pages/app/Configuracoes"));
+const TabelasPreco = lazy(() => import("./pages/app/TabelasPreco"));
+const ComingSoon = lazy(() => import("./pages/app/ComingSoon"));
+const Usuarios = lazy(() => import("./pages/app/admin/Usuarios"));
+const Cargos = lazy(() => import("./pages/app/admin/Cargos"));
+const Garantias = lazy(() => import("./pages/app/admin/Garantias"));
+const PagamentosAsaas = lazy(() => import("./pages/app/admin/PagamentosAsaas"));
+const Planos = lazy(() => import("./pages/app/admin/Planos"));
+const Assinaturas = lazy(() => import("./pages/app/admin/Assinaturas"));
+const LogsPagamento = lazy(() => import("./pages/app/admin/LogsPagamento"));
+const LogsPage = lazy(() => import("./pages/app/admin/Logs"));
+const AjustesEstoque = lazy(() => import("./pages/app/admin/AjustesEstoque"));
+const Suporte = lazy(() => import("./pages/app/Suporte"));
+const Notificacoes = lazy(() => import("./pages/app/Notificacoes"));
+const SuporteAdmin = lazy(() => import("./pages/app/admin/SuporteAdmin"));
+const Clientes = lazy(() => import("./pages/app/Clientes"));
+const MinhasLojas = lazy(() => import("./pages/app/MinhasLojas"));
+const TransferenciaProdutos = lazy(() => import("./pages/app/TransferenciaProdutos"));
+const Compras = lazy(() => import("./pages/app/Compras"));
+const Fornecedores = lazy(() => import("./pages/app/Fornecedores"));
+const MeuTeste = lazy(() => import("./pages/app/MeuTeste"));
+
+const PhoneeLogin = lazy(() => import("./pages/phonee/Login"));
+const PhoneeLayout = lazy(() => import("./pages/phonee/Layout"));
+const PhoneeVisaoGeral = lazy(() => import("./pages/phonee/VisaoGeral"));
+const PhoneeLojas = lazy(() => import("./pages/phonee/Lojas"));
+const PhoneeUsuarios = lazy(() => import("./pages/phonee/Usuarios"));
+const PhoneeAssinaturas = lazy(() => import("./pages/phonee/Assinaturas"));
+const PhoneeFinanceiro = lazy(() => import("./pages/phonee/Financeiro"));
+const PhoneeCrescimento = lazy(() => import("./pages/phonee/Crescimento"));
+const PhoneeLeads = lazy(() => import("./pages/phonee/Leads"));
+const PhoneeMarketing = lazy(() => import("./pages/phonee/Marketing"));
+const PhoneeCupons = lazy(() => import("./pages/phonee/Cupons"));
+const PhoneeAuditoria = lazy(() => import("./pages/phonee/Auditoria"));
+const PhoneeAssinaturaSolicitacoes = lazy(() => import("./pages/phonee/AssinaturaSolicitacoes"));
+const PhoneeAdminMasters = lazy(() => import("./pages/phonee/AdminMasters"));
+const PhoneeContas = lazy(() => import("./pages/phonee/Contas"));
+
+const RouteFallback = () => (
+  <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+    Carregando…
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -88,6 +100,7 @@ const App = () => (
           <SplashScreen />
           <MetaPixel />
           <CookieConsentBanner />
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/entrar" element={<Auth />} />
@@ -177,6 +190,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
