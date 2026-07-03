@@ -127,6 +127,8 @@ export default function VendaNova() {
   // Itens
   const [products, setProducts] = useState<any[]>([]);
   const [productQuery, setProductQuery] = useState("");
+  const [showProductList, setShowProductList] = useState(false);
+  const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
 
   // Serviços
@@ -236,6 +238,18 @@ export default function VendaNova() {
         .eq("store_id", store.id)
         .order("name");
       setProducts(data ?? []);
+    })();
+  }, [store]);
+
+  // Configuração da loja: permite (ou não) vender com estoque negativo.
+  useEffect(() => {
+    if (!store) return;
+    (async () => {
+      const { data } = await (supabase.from("stores") as any)
+        .select("allow_negative_stock")
+        .eq("id", store.id)
+        .maybeSingle();
+      setAllowNegativeStock(data?.allow_negative_stock ?? true);
     })();
   }, [store]);
 
