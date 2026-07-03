@@ -3187,6 +3187,7 @@ export type Database = {
         }
         Returns: Json
       }
+      phonee_smoke_test: { Args: { _as_admin?: string }; Returns: Json }
       phonee_stores: {
         Args: never
         Returns: {
