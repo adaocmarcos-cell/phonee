@@ -96,13 +96,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Audit: because we look up `sub` by asaas_charge_id BEFORE the upsert and
+    // bail out earlier when it isn't found, reaching this point means the
+    // upsert always updated an existing row rather than creating a new one.
+    // Log that explicitly so a reprocessed webhook event is visibly recorded
+    // as an idempotent update and never mistaken for a duplicate creation.
     await admin.from("payment_logs").insert({
       subscription_id: sub.id,
       event_type: event,
       status: newStatus,
       amount_cents: sub.amount_cents,
       asaas_payload: body,
-      action: "webhook",
+      action: "webhook_update",
     });
 
     return jsonResponse({ ok: true });

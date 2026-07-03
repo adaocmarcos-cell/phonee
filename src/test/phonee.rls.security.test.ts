@@ -79,4 +79,17 @@ describe("phonee_* RPCs — anonymous callers must be blocked", () => {
     const denied = !!error || (Array.isArray(data) && data.length === 0);
     expect(denied).toBe(true);
   });
+  it("phonee_asaas_charge_duplicates is blocked", async () => {
+    const { data, error } = await sb().rpc("phonee_asaas_charge_duplicates");
+    const denied = !!error || (Array.isArray(data) && data.length === 0);
+    expect(denied).toBe(true);
+  });
+  it("phonee_asaas_index_status is blocked", async () => {
+    const { data, error } = await sb().rpc("phonee_asaas_index_status");
+    expect(mustBlock(error, data)).toBe(true);
+  });
+  it("phonee_asaas_idempotency_probe is blocked", async () => {
+    const { data, error } = await sb().rpc("phonee_asaas_idempotency_probe");
+    expect(mustBlock(error, data)).toBe(true);
+  });
 });
