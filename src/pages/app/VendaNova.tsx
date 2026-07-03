@@ -644,7 +644,7 @@ export default function VendaNova() {
       if (ePay) console.warn("sale_payments insert error", ePay);
     }
 
-    const { error: e2 } = await supabase.from("sale_items").insert(
+    const { error: e2 } = await (supabase.from("sale_items") as any).insert(
       items.map((i) => ({
         sale_id: sale.id,
         product_id: i.is_service ? null : i.product_id,
