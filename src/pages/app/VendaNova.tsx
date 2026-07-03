@@ -127,6 +127,7 @@ export default function VendaNova() {
   // Itens
   const [products, setProducts] = useState<any[]>([]);
   const [productQuery, setProductQuery] = useState("");
+  const [productQueryDebounced, setProductQueryDebounced] = useState("");
   const [showProductList, setShowProductList] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
