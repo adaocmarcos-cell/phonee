@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard } from "lucide-react";
+import { Pencil, Ban, Trash2, ShieldCheck, KeyRound, UserPlus, CalendarClock, HardDrive, Package, ShoppingCart, DollarSign, CreditCard, MessageCircle, Instagram } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -18,6 +18,8 @@ type Row = {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  phone: string | null;
+  instagram: string | null;
   created_at: string;
   stores_count: number;
   roles: string[];
