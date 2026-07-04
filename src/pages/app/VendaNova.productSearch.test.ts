@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync(new URL("./VendaNova.tsx", import.meta.url), "utf8");
+const source = readFileSync(join(process.cwd(), "src/pages/app/VendaNova.tsx"), "utf8");
 
 describe("VendaNova product search regression", () => {
   it("busca itens de venda no banco em vez de depender de um lote local de produtos", () => {

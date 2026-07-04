@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync(new URL("./Dashboard.tsx", import.meta.url), "utf8");
+const source = readFileSync(join(process.cwd(), "src/pages/app/Dashboard.tsx"), "utf8");
 
 describe("Dashboard stock metrics regression", () => {
   it("usa métricas agregadas no banco para estoque baixo, encalhado e total", () => {
