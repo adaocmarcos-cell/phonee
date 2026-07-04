@@ -315,6 +315,8 @@ export default function Dashboard() {
                 value={canSeeCost(role) ? pct(margin) : num(productsLow)}
                 icon={canSeeCost(role) ? Percent : AlertTriangle}
                 tone={canSeeCost(role) ? "violet" : "warning"}
+                delta={canSeeCost(role) ? "Lucro / receita do período" : "Produtos abaixo do mínimo"}
+                className="h-full"
               />
             ),
           },
