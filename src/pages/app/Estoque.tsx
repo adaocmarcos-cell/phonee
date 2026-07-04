@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown } from "lucide-react";
-import { brl, num, daysAgo } from "@/lib/format";
+import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { VendaRapidaModal } from "@/components/VendaRapidaModal";
@@ -743,7 +743,7 @@ export default function Estoque() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr><td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
-              ) : filtered.length === 0 ? (
+              ) : products.length === 0 ? (
                 <tr><td colSpan={11} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
@@ -864,12 +864,12 @@ export default function Estoque() {
           </table>
         </div>
         {/* Paginação */}
-        {!loading && filtered.length > 0 && (
+        {!loading && filteredCount > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-border bg-surface-elevated/40">
             <div className="text-xs text-muted-foreground">
               Mostrando <b className="text-foreground">{(safePage - 1) * pageSize + 1}</b>–
-              <b className="text-foreground">{Math.min(safePage * pageSize, filtered.length)}</b> de{" "}
-              <b className="text-foreground">{num(filtered.length)}</b>
+              <b className="text-foreground">{Math.min(safePage * pageSize, filteredCount)}</b> de{" "}
+              <b className="text-foreground">{num(filteredCount)}</b>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">por página</span>
