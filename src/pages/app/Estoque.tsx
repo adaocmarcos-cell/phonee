@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canSeeCost, canManageProducts } from "@/contexts/AuthContext";
@@ -44,15 +44,17 @@ type Product = {
   supplier?: string | null;
 };
 
-type PartLite = {
-  id: string;
-  name: string;
-  sku: string | null;
-  brand: string | null;
-  stock_current: number;
-  stock_min: number;
-  sale_price: number;
-  cost_price: number;
+type StockMetrics = {
+  product_count: number;
+  units: number;
+  low_count: number;
+  stalled_count: number;
+  sale_value: number;
+  cost_value: number;
+  parts_count: number;
+  parts_units: number;
+  parts_low_count: number;
+  parts_sale_value: number;
 };
 
 const categoryLabel: Record<string, string> = {
@@ -64,7 +66,13 @@ export default function Estoque() {
   const { store, role } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [parts, setParts] = useState<PartLite[]>([]);
+  const [filteredCount, setFilteredCount] = useState(0);
+  const [stockMetrics, setStockMetrics] = useState<StockMetrics>({
+    product_count: 0, units: 0, low_count: 0, stalled_count: 0,
+    sale_value: 0, cost_value: 0, parts_count: 0, parts_units: 0,
+    parts_low_count: 0, parts_sale_value: 0,
+  });
+  const [filterOptions, setFilterOptions] = useState<{ brands: string[]; categories: string[]; suppliers: string[] }>({ brands: [], categories: [], suppliers: [] });
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "stalled">("all");
   const [delTarget, setDelTarget] = useState<Product | null>(null);
@@ -89,29 +97,50 @@ export default function Estoque() {
   const [bulkValue, setBulkValue] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!store) return;
     setLoading(true);
-    const [{ data: pData }, { data: ptData }] = await Promise.all([
-      supabase
-        .from("products")
-        .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at, supplier")
-        .eq("store_id", store.id)
-        .order("created_at", { ascending: false })
-        .range(0, 49999),
-      supabase
-        .from("parts_inventory")
-        .select("id, name, sku, brand, stock_current, stock_min, sale_price, cost_price")
-        .eq("store_id", store.id)
-        .order("name", { ascending: true })
-        .range(0, 49999),
+    const [{ data: pData, error: pErr }, { data: metrics }, { data: options }] = await Promise.all([
+      (supabase as any).rpc("stock_products_page", {
+        _store_id: store.id,
+        _query: q,
+        _filter: filter,
+        _brand: brandFilter,
+        _category: categoryFilter,
+        _page: page,
+        _page_size: pageSize,
+      }),
+      (supabase as any).rpc("product_stock_metrics", { _store_id: store.id }),
+      (supabase as any).rpc("product_stock_filter_options", { _store_id: store.id }),
     ]);
+    if (pErr) toast.error(`Erro ao carregar produtos: ${pErr.message}`);
     setProducts((pData ?? []) as Product[]);
-    setParts((ptData ?? []) as PartLite[]);
+    setFilteredCount(Number((pData ?? [])[0]?.total_count ?? 0));
+    if (metrics) {
+      setStockMetrics({
+        product_count: Number(metrics.product_count ?? 0),
+        units: Number(metrics.units ?? 0),
+        low_count: Number(metrics.low_count ?? 0),
+        stalled_count: Number(metrics.stalled_count ?? 0),
+        sale_value: Number(metrics.sale_value ?? 0),
+        cost_value: Number(metrics.cost_value ?? 0),
+        parts_count: Number(metrics.parts_count ?? 0),
+        parts_units: Number(metrics.parts_units ?? 0),
+        parts_low_count: Number(metrics.parts_low_count ?? 0),
+        parts_sale_value: Number(metrics.parts_sale_value ?? 0),
+      });
+    }
+    if (options) {
+      setFilterOptions({
+        brands: Array.isArray(options.brands) ? options.brands : [],
+        categories: Array.isArray(options.categories) ? options.categories : [],
+        suppliers: Array.isArray(options.suppliers) ? options.suppliers : [],
+      });
+    }
     setLoading(false);
-  };
+  }, [store, q, filter, brandFilter, categoryFilter, page, pageSize]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [store]);
+  useEffect(() => { load(); }, [load]);
 
   // Realtime sync
   useEffect(() => {
@@ -122,36 +151,22 @@ export default function Estoque() {
       .on("postgres_changes", { event: "*", schema: "public", table: "parts_inventory", filter: `store_id=eq.${store.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-    // eslint-disable-next-line
-  }, [store?.id]);
+  }, [store?.id, load]);
 
   const filtered = useMemo(() => {
-    return products.filter((p) => {
-      if (q && !`${p.name} ${p.sku ?? ""} ${p.brand ?? ""}`.toLowerCase().includes(q.toLowerCase())) return false;
-      if (filter === "low" && p.stock_current > p.stock_min) return false;
-      if (filter === "stalled") {
-        const d = daysAgo(p.last_sold_at);
-        if (d !== null && d <= 30) return false;
-      }
-      if (brandFilter !== "all" && (p.brand ?? "—") !== brandFilter) return false;
-      if (categoryFilter !== "all" && (p.category ?? "—") !== categoryFilter) return false;
-      return true;
-    });
-  }, [products, q, filter, brandFilter, categoryFilter]);
+    return products;
+  }, [products]);
 
   // Reset page when filter changes
   useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, filter, brandFilter, categoryFilter, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const safePage = Math.min(page, totalPages);
-  const paged = useMemo(() => filtered.slice((safePage - 1) * pageSize, safePage * pageSize), [filtered, safePage, pageSize]);
+  const paged = filtered;
 
-  const distinctBrands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))).sort() as string[], [products]);
-  const distinctCategories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort() as string[], [products]);
-  const distinctSuppliers = useMemo(
-    () => Array.from(new Set(products.map((p: any) => p.supplier).filter(Boolean))).sort() as string[],
-    [products]
-  );
+  const distinctBrands = filterOptions.brands;
+  const distinctCategories = filterOptions.categories;
+  const distinctSuppliers = filterOptions.suppliers;
   const bulkOptions = useMemo(() => {
     if (bulkOp === "brand") return distinctBrands;
     if (bulkOp === "supplier") return distinctSuppliers;
@@ -172,27 +187,24 @@ export default function Estoque() {
   const pageAllChecked = paged.length > 0 && paged.every((p) => selectedIds.has(p.id));
 
   const totals = useMemo(() => {
-    const units = products.reduce((s, p) => s + (p.stock_current || 0), 0);
-    const partsUnits = parts.reduce((s, p) => s + (p.stock_current || 0), 0);
-    const partsLow = parts.filter((p) => p.stock_current <= p.stock_min).length;
     const saleValue = filtered.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0);
     const costValue = filtered.reduce((s, p) => s + Number(p.cost_price) * p.stock_current, 0);
     const totalUnits = filtered.reduce((s, p) => s + (p.stock_current || 0), 0);
     return {
-      count: products.length,
-      filtered: filtered.length,
+      count: stockMetrics.product_count,
+      filtered: filteredCount,
       selected: selectedIds.size,
-      units,
-      low: products.filter((p) => p.stock_current <= p.stock_min).length + partsLow,
-      value: saleValue + parts.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
+      units: stockMetrics.units,
+      low: stockMetrics.low_count + stockMetrics.parts_low_count,
+      value: stockMetrics.sale_value + stockMetrics.parts_sale_value,
       costValue,
       saleValue,
       profitValue: saleValue - costValue,
       avgCost: totalUnits > 0 ? costValue / totalUnits : 0,
-      partsCount: parts.length,
-      partsUnits,
+      partsCount: stockMetrics.parts_count,
+      partsUnits: stockMetrics.parts_units,
     };
-  }, [products, parts, filtered, selectedIds]);
+  }, [stockMetrics, filtered, filteredCount, selectedIds]);
 
   const handleDelete = async () => {
     if (!delTarget) return;
