@@ -9,8 +9,10 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
+import { Button } from "@/components/ui/button";
 import { WhatsappCTA } from "@/components/marketing/WhatsappCTA";
 import { LeadForm } from "@/components/marketing/LeadForm";
+import { SHOW_WHATSAPP } from "@/config/marketing";
 import { captureUtms } from "@/lib/utmTracking";
 import { trackPageVisit } from "@/lib/trackVisit";
 import { trackMetaEvent } from "@/lib/metaPixel";
@@ -76,6 +78,11 @@ export default function Comece() {
     }
   }, []);
 
+  const scrollToForm = () => {
+    const el = document.getElementById("formulario");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Top bar minimal — só logo */}
@@ -111,17 +118,16 @@ export default function Comece() {
               direto do celular.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <WhatsappCTA
-                size="lg"
-                className="flex-1"
-                label="Falar no WhatsApp agora"
-              />
-              <a
-                href="#formulario"
-                className="inline-flex flex-1 items-center justify-center rounded-md border border-primary bg-transparent px-6 py-3 text-sm font-semibold text-primary hover:bg-primary/10"
-              >
-                Testar grátis por 7 dias
-              </a>
+              <Button size="lg" className="flex-1" onClick={scrollToForm}>
+                Quero testar grátis
+              </Button>
+              {SHOW_WHATSAPP && (
+                <WhatsappCTA
+                  size="lg"
+                  className="flex-1"
+                  label="Falar no WhatsApp"
+                />
+              )}
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
               Sem cartão de crédito. Cancelamento em 1 clique.
@@ -132,10 +138,11 @@ export default function Comece() {
           <div id="formulario" className="scroll-mt-24">
             <Card className="border-2 border-primary/40 p-5 shadow-glow">
               <h2 className="text-xl font-extrabold">
-                Receba uma demonstração no WhatsApp
+                Comece o teste grátis em 20 segundos
               </h2>
               <p className="mb-4 text-sm text-muted-foreground">
-                Preencha em 20 segundos. A gente te chama pra montar o teste na sua loja.
+                Preencha e nossa equipe entra em contato para montar o
+                teste na sua loja.
               </p>
               <LeadForm origem_pagina="/comece#hero" />
             </Card>
@@ -258,13 +265,12 @@ export default function Comece() {
               </ul>
             </div>
             <div className="flex flex-col gap-3">
-              <WhatsappCTA size="lg" label="Quero falar agora no WhatsApp" />
-              <a
-                href="#formulario"
-                className="inline-flex items-center justify-center rounded-md border border-primary px-6 py-3 text-sm font-semibold text-primary hover:bg-primary/10"
-              >
-                Prefiro receber contato
-              </a>
+              <Button size="lg" onClick={scrollToForm}>
+                Quero testar grátis
+              </Button>
+              {SHOW_WHATSAPP && (
+                <WhatsappCTA size="lg" label="Falar no WhatsApp" />
+              )}
             </div>
           </div>
         </Card>
@@ -299,13 +305,12 @@ export default function Comece() {
       {/* CTA fixo mobile */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.12)] backdrop-blur md:hidden">
         <div className="mx-auto flex max-w-5xl gap-2">
-          <WhatsappCTA size="lg" className="flex-1" label="WhatsApp" />
-          <a
-            href="#formulario"
-            className="flex flex-1 items-center justify-center rounded-md border border-primary bg-transparent px-4 text-sm font-semibold text-primary"
-          >
-            Testar grátis
-          </a>
+          <Button size="lg" className="flex-1" onClick={scrollToForm}>
+            Quero testar grátis
+          </Button>
+          {SHOW_WHATSAPP && (
+            <WhatsappCTA size="lg" className="flex-1" label="WhatsApp" />
+          )}
         </div>
       </div>
       <div className="h-20 md:hidden" aria-hidden />
