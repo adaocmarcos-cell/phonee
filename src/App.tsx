@@ -11,6 +11,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
+import Comece from "./pages/Comece";
 import { Navigate, useLocation } from "react-router-dom";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
@@ -76,6 +77,7 @@ const PhoneeAssinaturas = lazy(() => import("./pages/phonee/Assinaturas"));
 const PhoneeFinanceiro = lazy(() => import("./pages/phonee/Financeiro"));
 const PhoneeCrescimento = lazy(() => import("./pages/phonee/Crescimento"));
 const PhoneeLeads = lazy(() => import("./pages/phonee/Leads"));
+const PhoneeLeadsAds = lazy(() => import("./pages/phonee/LeadsAds"));
 const PhoneeMarketing = lazy(() => import("./pages/phonee/Marketing"));
 const PhoneeCupons = lazy(() => import("./pages/phonee/Cupons"));
 const PhoneeAuditoria = lazy(() => import("./pages/phonee/Auditoria"));
@@ -106,6 +108,7 @@ const App = () => (
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/comece" element={<Comece />} />
             <Route path="/entrar" element={<Auth />} />
             <Route path="/esqueci-senha" element={<ForgotPassword />} />
             <Route path="/redefinir-senha" element={<ResetPassword />} />
@@ -184,6 +187,7 @@ const App = () => (
               <Route path="financeiro" element={<PhoneeFinanceiro />} />
               <Route path="crescimento" element={<PhoneeCrescimento />} />
               <Route path="leads" element={<PhoneeLeads />} />
+              <Route path="leads-ads" element={<PhoneeLeadsAds />} />
               <Route path="marketing" element={<PhoneeMarketing />} />
               <Route path="cupons" element={<PhoneeCupons />} />
               <Route path="suporte" element={<SuporteAdmin />} />

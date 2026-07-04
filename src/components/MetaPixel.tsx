@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getConsent, trackMetaEvent } from "@/lib/metaPixel";
+import { META_PIXEL_ID, isPixelConfigured } from "@/config/marketing";
+import { captureUtms } from "@/lib/utmTracking";
 
 /**
  * Carrega o Meta Pixel a partir de marketing_settings (admin master).
@@ -15,8 +17,13 @@ export function MetaPixel() {
     const init = async () => {
       if ((window as any).__phnPixelLoaded) return;
       if (getConsent() !== "granted") return;
-      const { data } = await (supabase as any).rpc("get_meta_pixel_id");
-      const pixelId = (typeof data === "string" ? data : "")?.trim();
+      // Preferência: constante central em src/config/marketing.ts.
+      // Fallback: valor salvo em marketing_settings (get_meta_pixel_id).
+      let pixelId = isPixelConfigured() ? META_PIXEL_ID.trim() : "";
+      if (!pixelId) {
+        const { data } = await (supabase as any).rpc("get_meta_pixel_id");
+        pixelId = (typeof data === "string" ? data : "")?.trim() ?? "";
+      }
       if (cancelled || !pixelId) return;
       // Loader oficial do Meta Pixel
       (function (f: any, b: Document, e: string, v: string) {
@@ -43,6 +50,8 @@ export function MetaPixel() {
   }, []);
 
   useEffect(() => {
+    // Captura UTMs a cada navegação (URL de anúncio pode vir em qualquer rota).
+    captureUtms();
     if (getConsent() !== "granted") return;
     if (!(window as any).__phnPixelLoaded) return;
     trackMetaEvent("PageView");
