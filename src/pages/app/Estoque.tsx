@@ -1024,59 +1024,17 @@ export default function Estoque() {
 
       {/* Peças (sincronizado com Assistência) */}
       <Card className="bg-card border-border shadow-card overflow-hidden mt-6">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-border bg-surface-elevated">
           <div className="flex items-center gap-2">
             <Wrench className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">Peças</h3>
             <span className="text-[11px] text-muted-foreground font-mono">
-              sincronizado com Assistência · {num(parts.length)} itens
+              sincronizado com Assistência · {num(stockMetrics.parts_count)} itens · {num(stockMetrics.parts_units)} unid.
             </span>
           </div>
           <Button size="sm" variant="outline" onClick={() => navigate("/painel/pecas")}>
             Gerenciar peças
           </Button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-elevated/50 text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium">Peça</th>
-                <th className="text-left px-4 py-2 font-medium">Marca</th>
-                <th className="text-right px-4 py-2 font-medium">Estoque</th>
-                {canSeeCost(role) && <th className="text-right px-4 py-2 font-medium">Custo</th>}
-                <th className="text-right px-4 py-2 font-medium">Venda</th>
-                <th className="text-left px-4 py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {parts.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-xs">
-                  Nenhuma peça cadastrada. Use "Gerenciar peças" para adicionar.
-                </td></tr>
-              ) : parts.map((p) => {
-                const low = p.stock_current <= p.stock_min;
-                return (
-                  <tr key={p.id} className="hover:bg-surface-elevated/40">
-                    <td className="px-4 py-2">
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono">{p.sku || "—"}</div>
-                    </td>
-                    <td className="px-4 py-2 text-muted-foreground">{p.brand ?? "—"}</td>
-                    <td className={`px-4 py-2 text-right metric font-semibold ${low ? "text-warning" : ""}`}>{p.stock_current}</td>
-                    {canSeeCost(role) && <td className="px-4 py-2 text-right metric text-muted-foreground">{brl(Number(p.cost_price))}</td>}
-                    <td className="px-4 py-2 text-right metric">{brl(Number(p.sale_price))}</td>
-                    <td className="px-4 py-2">
-                      {low ? (
-                        <Badge className="bg-warning/15 text-warning border-warning/30"><AlertTriangle className="h-3 w-3 mr-1" />Baixo</Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-border text-muted-foreground">OK</Badge>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
       </Card>
     </div>
