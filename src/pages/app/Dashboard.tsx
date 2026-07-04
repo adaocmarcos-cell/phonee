@@ -145,7 +145,8 @@ export default function Dashboard() {
       const { data: prods } = await supabase
         .from("products")
         .select("id, name, stock_current, stock_min, last_sold_at")
-        .eq("store_id", store.id);
+        .eq("store_id", store.id)
+        .range(0, 49999);
       setProductsLow((prods ?? []).filter((p) => p.stock_current <= p.stock_min).length);
       setStalled(
         (prods ?? []).filter((p) => {
