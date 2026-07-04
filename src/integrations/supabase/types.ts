@@ -3299,6 +3299,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      product_stock_filter_options: {
+        Args: { _store_id: string }
+        Returns: Json
+      }
       product_stock_metrics: { Args: { _store_id: string }; Returns: Json }
       redeem_coupon: {
         Args: {
@@ -3356,6 +3360,33 @@ export type Database = {
           stock_current: number
           storage: string
           subcategory: string
+        }[]
+      }
+      stock_products_page: {
+        Args: {
+          _brand?: string
+          _category?: string
+          _filter?: string
+          _page?: number
+          _page_size?: number
+          _query?: string
+          _store_id: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          condition: string
+          cost_price: number
+          id: string
+          last_sold_at: string
+          name: string
+          sale_price: number
+          sku: string
+          status: Database["public"]["Enums"]["product_status"]
+          stock_current: number
+          stock_min: number
+          supplier: string
+          total_count: number
         }[]
       }
       trial_eligibility: {
