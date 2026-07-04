@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canSeeCost, canManageProducts } from "@/contexts/AuthContext";
@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown } from "lucide-react";
-import { brl, num, daysAgo } from "@/lib/format";
+import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { VendaRapidaModal } from "@/components/VendaRapidaModal";
 import { MarcasModal } from "@/components/MarcasModal";
 import { canRegisterSale } from "@/contexts/AuthContext";
 import { generateUniqueSku } from "@/lib/sku";
+import { normalizeProductStockMetrics, type ProductStockMetrics } from "@/lib/stockMetrics";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -44,17 +45,6 @@ type Product = {
   supplier?: string | null;
 };
 
-type PartLite = {
-  id: string;
-  name: string;
-  sku: string | null;
-  brand: string | null;
-  stock_current: number;
-  stock_min: number;
-  sale_price: number;
-  cost_price: number;
-};
-
 const categoryLabel: Record<string, string> = {
   acessorio: "Acessório", peca: "Peça",
   aparelho_novo: "Aparelho novo", aparelho_seminovo: "Aparelho seminovo",
@@ -64,7 +54,13 @@ export default function Estoque() {
   const { store, role } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [parts, setParts] = useState<PartLite[]>([]);
+  const [filteredCount, setFilteredCount] = useState(0);
+  const [stockMetrics, setStockMetrics] = useState<ProductStockMetrics>({
+    product_count: 0, units: 0, low_count: 0, stalled_count: 0,
+    sale_value: 0, cost_value: 0, parts_count: 0, parts_units: 0,
+    parts_low_count: 0, parts_sale_value: 0, alert_count: 0,
+  });
+  const [filterOptions, setFilterOptions] = useState<{ brands: string[]; categories: string[]; suppliers: string[] }>({ brands: [], categories: [], suppliers: [] });
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "stalled">("all");
   const [delTarget, setDelTarget] = useState<Product | null>(null);
@@ -89,29 +85,37 @@ export default function Estoque() {
   const [bulkValue, setBulkValue] = useState<string>("");
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!store) return;
     setLoading(true);
-    const [{ data: pData }, { data: ptData }] = await Promise.all([
-      supabase
-        .from("products")
-        .select("id, name, sku, brand, category, condition, status, cost_price, sale_price, stock_current, stock_min, last_sold_at, supplier")
-        .eq("store_id", store.id)
-        .order("created_at", { ascending: false })
-        .range(0, 49999),
-      supabase
-        .from("parts_inventory")
-        .select("id, name, sku, brand, stock_current, stock_min, sale_price, cost_price")
-        .eq("store_id", store.id)
-        .order("name", { ascending: true })
-        .range(0, 49999),
+    const [{ data: pData, error: pErr }, { data: metrics }, { data: options }] = await Promise.all([
+      (supabase as any).rpc("stock_products_page", {
+        _store_id: store.id,
+        _query: q,
+        _filter: filter,
+        _brand: brandFilter,
+        _category: categoryFilter,
+        _page: page,
+        _page_size: pageSize,
+      }),
+      (supabase as any).rpc("product_stock_metrics", { _store_id: store.id }),
+      (supabase as any).rpc("product_stock_filter_options", { _store_id: store.id }),
     ]);
+    if (pErr) toast.error(`Erro ao carregar produtos: ${pErr.message}`);
     setProducts((pData ?? []) as Product[]);
-    setParts((ptData ?? []) as PartLite[]);
+    setFilteredCount(Number((pData ?? [])[0]?.total_count ?? 0));
+    if (metrics) setStockMetrics(normalizeProductStockMetrics(metrics));
+    if (options) {
+      setFilterOptions({
+        brands: Array.isArray(options.brands) ? options.brands : [],
+        categories: Array.isArray(options.categories) ? options.categories : [],
+        suppliers: Array.isArray(options.suppliers) ? options.suppliers : [],
+      });
+    }
     setLoading(false);
-  };
+  }, [store, q, filter, brandFilter, categoryFilter, page, pageSize]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [store]);
+  useEffect(() => { load(); }, [load]);
 
   // Realtime sync
   useEffect(() => {
@@ -122,36 +126,22 @@ export default function Estoque() {
       .on("postgres_changes", { event: "*", schema: "public", table: "parts_inventory", filter: `store_id=eq.${store.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-    // eslint-disable-next-line
-  }, [store?.id]);
+  }, [store?.id, load]);
 
   const filtered = useMemo(() => {
-    return products.filter((p) => {
-      if (q && !`${p.name} ${p.sku ?? ""} ${p.brand ?? ""}`.toLowerCase().includes(q.toLowerCase())) return false;
-      if (filter === "low" && p.stock_current > p.stock_min) return false;
-      if (filter === "stalled") {
-        const d = daysAgo(p.last_sold_at);
-        if (d !== null && d <= 30) return false;
-      }
-      if (brandFilter !== "all" && (p.brand ?? "—") !== brandFilter) return false;
-      if (categoryFilter !== "all" && (p.category ?? "—") !== categoryFilter) return false;
-      return true;
-    });
-  }, [products, q, filter, brandFilter, categoryFilter]);
+    return products;
+  }, [products]);
 
   // Reset page when filter changes
   useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, filter, brandFilter, categoryFilter, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const safePage = Math.min(page, totalPages);
-  const paged = useMemo(() => filtered.slice((safePage - 1) * pageSize, safePage * pageSize), [filtered, safePage, pageSize]);
+  const paged = filtered;
 
-  const distinctBrands = useMemo(() => Array.from(new Set(products.map((p) => p.brand).filter(Boolean))).sort() as string[], [products]);
-  const distinctCategories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort() as string[], [products]);
-  const distinctSuppliers = useMemo(
-    () => Array.from(new Set(products.map((p: any) => p.supplier).filter(Boolean))).sort() as string[],
-    [products]
-  );
+  const distinctBrands = filterOptions.brands;
+  const distinctCategories = filterOptions.categories;
+  const distinctSuppliers = filterOptions.suppliers;
   const bulkOptions = useMemo(() => {
     if (bulkOp === "brand") return distinctBrands;
     if (bulkOp === "supplier") return distinctSuppliers;
@@ -172,27 +162,24 @@ export default function Estoque() {
   const pageAllChecked = paged.length > 0 && paged.every((p) => selectedIds.has(p.id));
 
   const totals = useMemo(() => {
-    const units = products.reduce((s, p) => s + (p.stock_current || 0), 0);
-    const partsUnits = parts.reduce((s, p) => s + (p.stock_current || 0), 0);
-    const partsLow = parts.filter((p) => p.stock_current <= p.stock_min).length;
     const saleValue = filtered.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0);
     const costValue = filtered.reduce((s, p) => s + Number(p.cost_price) * p.stock_current, 0);
     const totalUnits = filtered.reduce((s, p) => s + (p.stock_current || 0), 0);
     return {
-      count: products.length,
-      filtered: filtered.length,
+      count: stockMetrics.product_count,
+      filtered: filteredCount,
       selected: selectedIds.size,
-      units,
-      low: products.filter((p) => p.stock_current <= p.stock_min).length + partsLow,
-      value: saleValue + parts.reduce((s, p) => s + Number(p.sale_price) * p.stock_current, 0),
+      units: stockMetrics.units,
+      low: stockMetrics.low_count + stockMetrics.parts_low_count,
+      value: stockMetrics.sale_value + stockMetrics.parts_sale_value,
       costValue,
       saleValue,
       profitValue: saleValue - costValue,
       avgCost: totalUnits > 0 ? costValue / totalUnits : 0,
-      partsCount: parts.length,
-      partsUnits,
+      partsCount: stockMetrics.parts_count,
+      partsUnits: stockMetrics.parts_units,
     };
-  }, [products, parts, filtered, selectedIds]);
+  }, [stockMetrics, filtered, filteredCount, selectedIds]);
 
   const handleDelete = async () => {
     if (!delTarget) return;
@@ -343,7 +330,7 @@ export default function Estoque() {
         .map((r) => ({
           name: (r.name || r.nome || "").trim().slice(0, 200),
           sku: (r.sku || r.codigo || "").trim().toUpperCase(),
-          gtin: (r.gtin || r.ean || r.barcode || r.codigo_barras || "").trim(),
+          ean: (r.ean || r.gtin || r.barcode || r.codigo_barras || "").trim(),
           brand: (r.brand || r.marca || "").trim() || null,
           category: (r.category || r.categoria || "acessorio").trim(),
           condition: (r.condition || r.condicao || "novo").trim(),
@@ -360,19 +347,19 @@ export default function Estoque() {
       // Carrega base existente para dedupe
       const { data: existing, error: exErr } = await supabase
         .from("products")
-        .select("id, name, sku, gtin, brand, stock_current")
+        .select("id, name, sku, ean, brand, stock_current")
         .eq("store_id", store.id);
       if (exErr) { toast.error(`Erro ao ler base: ${exErr.message}`); return; }
 
       const byId = new Map<string, any>();
       const bySku = new Map<string, any>();
-      const byGtin = new Map<string, any>();
+      const byEan = new Map<string, any>();
       const byNameBrand = new Map<string, any>();
       const usedSkus = new Set<string>();
       (existing ?? []).forEach((p: any) => {
         byId.set(p.id, p);
         if (p.sku) { bySku.set(String(p.sku).toUpperCase(), p); usedSkus.add(String(p.sku).toUpperCase()); }
-        if (p.gtin) byGtin.set(String(p.gtin), p);
+        if (p.ean) byEan.set(String(p.ean), p);
         const key = `${(p.name || "").toLowerCase().trim()}|${(p.brand || "").toLowerCase().trim()}`;
         if (key.trim() !== "|") byNameBrand.set(key, p);
       });
@@ -395,7 +382,7 @@ export default function Estoque() {
       const errors: string[] = [];
       const seenSkuInBatch = new Set<string>();
       const report: {
-        name: string; sku: string; gtin: string; status: string;
+        name: string; sku: string; ean: string; status: string;
         match_by: string; message: string;
       }[] = [];
 
@@ -404,7 +391,7 @@ export default function Estoque() {
         let match: any = null;
         let matchBy = "";
         if (r.sku && bySku.has(r.sku)) { match = bySku.get(r.sku); matchBy = "sku"; }
-        if (!match && r.gtin && byGtin.has(r.gtin)) { match = byGtin.get(r.gtin); matchBy = "gtin"; }
+        if (!match && r.ean && byEan.has(r.ean)) { match = byEan.get(r.ean); matchBy = "ean"; }
         if (!match) {
           const k = `${r.name.toLowerCase().trim()}|${(r.brand || "").toLowerCase().trim()}`;
           if (byNameBrand.has(k)) { match = byNameBrand.get(k); matchBy = "nome+marca"; }
@@ -423,13 +410,13 @@ export default function Estoque() {
             status: r.status,
           };
           if (r.stock_current > 0) patch.stock_current = r.stock_current;
-          if (r.gtin) patch.gtin = r.gtin;
+          if (r.ean) patch.ean = r.ean;
           // Corrige SKU se estava vazio ou inválido
           if (!match.sku && r.sku && !usedSkus.has(r.sku)) {
             patch.sku = r.sku; usedSkus.add(r.sku);
           }
           toUpdate.push({ id: match.id, patch });
-          report.push({ name: r.name, sku: r.sku || match.sku || "", gtin: r.gtin || "", status: "atualizado", match_by: matchBy, message: "" });
+          report.push({ name: r.name, sku: r.sku || match.sku || "", ean: r.ean || "", status: "atualizado", match_by: matchBy, message: "" });
         } else {
           // Novo produto — gera SKU se ausente/duplicado
           let sku = r.sku;
@@ -445,7 +432,7 @@ export default function Estoque() {
             store_id: store.id,
             name: r.name,
             sku,
-            gtin: r.gtin || null,
+            ean: r.ean || null,
             brand: r.brand,
             category: r.category,
             condition: r.condition,
@@ -455,7 +442,7 @@ export default function Estoque() {
             stock_min: r.stock_min,
             status: r.status,
           });
-          report.push({ name: r.name, sku, gtin: r.gtin || "", status: "criado", match_by: "novo", message: genMsg });
+          report.push({ name: r.name, sku, ean: r.ean || "", status: "criado", match_by: "novo", message: genMsg });
         }
       }
 
@@ -465,19 +452,19 @@ export default function Estoque() {
         const { error, count } = await supabase
           .from("products")
           .insert(toInsert as any, { count: "exact" });
-        if (error) { errors.push(`Inserção: ${error.message}`); report.push({ name: "-", sku: "-", gtin: "-", status: "erro", match_by: "-", message: `Inserção em lote: ${error.message}` }); }
+        if (error) { errors.push(`Inserção: ${error.message}`); report.push({ name: "-", sku: "-", ean: "-", status: "erro", match_by: "-", message: `Inserção em lote: ${error.message}` }); }
         else created = count ?? toInsert.length;
       }
       for (const u of toUpdate) {
         const { error } = await supabase.from("products").update(u.patch).eq("id", u.id);
-        if (error) { errors.push(`Atualização (${u.id.slice(0, 8)}): ${error.message}`); report.push({ name: "-", sku: u.id.slice(0, 8), gtin: "-", status: "erro", match_by: "-", message: error.message }); }
+        if (error) { errors.push(`Atualização (${u.id.slice(0, 8)}): ${error.message}`); report.push({ name: "-", sku: u.id.slice(0, 8), ean: "-", status: "erro", match_by: "-", message: error.message }); }
         else updated++;
       }
 
       // Gera CSV do relatório e dispara download
       try {
-        const header = "status,critério_dedupe,nome,sku,gtin,observação\n";
-        const body = report.map((r) => [r.status, r.match_by, r.name, r.sku, r.gtin, r.message]
+        const header = "status,critério_dedupe,nome,sku,ean,observação\n";
+        const body = report.map((r) => [r.status, r.match_by, r.name, r.sku, r.ean, r.message]
           .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
         const blob = new Blob(["\ufeff" + header + body], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -731,7 +718,7 @@ export default function Estoque() {
             <tbody className="divide-y divide-border">
               {loading ? (
                 <tr><td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
-              ) : filtered.length === 0 ? (
+              ) : products.length === 0 ? (
                 <tr><td colSpan={11} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
@@ -852,12 +839,12 @@ export default function Estoque() {
           </table>
         </div>
         {/* Paginação */}
-        {!loading && filtered.length > 0 && (
+        {!loading && filteredCount > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-border bg-surface-elevated/40">
             <div className="text-xs text-muted-foreground">
               Mostrando <b className="text-foreground">{(safePage - 1) * pageSize + 1}</b>–
-              <b className="text-foreground">{Math.min(safePage * pageSize, filtered.length)}</b> de{" "}
-              <b className="text-foreground">{num(filtered.length)}</b>
+              <b className="text-foreground">{Math.min(safePage * pageSize, filteredCount)}</b> de{" "}
+              <b className="text-foreground">{num(filteredCount)}</b>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">por página</span>
@@ -1012,59 +999,17 @@ export default function Estoque() {
 
       {/* Peças (sincronizado com Assistência) */}
       <Card className="bg-card border-border shadow-card overflow-hidden mt-6">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-border bg-surface-elevated">
           <div className="flex items-center gap-2">
             <Wrench className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">Peças</h3>
             <span className="text-[11px] text-muted-foreground font-mono">
-              sincronizado com Assistência · {num(parts.length)} itens
+              sincronizado com Assistência · {num(stockMetrics.parts_count)} itens · {num(stockMetrics.parts_units)} unid.
             </span>
           </div>
           <Button size="sm" variant="outline" onClick={() => navigate("/painel/pecas")}>
             Gerenciar peças
           </Button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-elevated/50 text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
-              <tr>
-                <th className="text-left px-4 py-2 font-medium">Peça</th>
-                <th className="text-left px-4 py-2 font-medium">Marca</th>
-                <th className="text-right px-4 py-2 font-medium">Estoque</th>
-                {canSeeCost(role) && <th className="text-right px-4 py-2 font-medium">Custo</th>}
-                <th className="text-right px-4 py-2 font-medium">Venda</th>
-                <th className="text-left px-4 py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {parts.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-xs">
-                  Nenhuma peça cadastrada. Use "Gerenciar peças" para adicionar.
-                </td></tr>
-              ) : parts.map((p) => {
-                const low = p.stock_current <= p.stock_min;
-                return (
-                  <tr key={p.id} className="hover:bg-surface-elevated/40">
-                    <td className="px-4 py-2">
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono">{p.sku || "—"}</div>
-                    </td>
-                    <td className="px-4 py-2 text-muted-foreground">{p.brand ?? "—"}</td>
-                    <td className={`px-4 py-2 text-right metric font-semibold ${low ? "text-warning" : ""}`}>{p.stock_current}</td>
-                    {canSeeCost(role) && <td className="px-4 py-2 text-right metric text-muted-foreground">{brl(Number(p.cost_price))}</td>}
-                    <td className="px-4 py-2 text-right metric">{brl(Number(p.sale_price))}</td>
-                    <td className="px-4 py-2">
-                      {low ? (
-                        <Badge className="bg-warning/15 text-warning border-warning/30"><AlertTriangle className="h-3 w-3 mr-1" />Baixo</Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-border text-muted-foreground">OK</Badge>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
       </Card>
     </div>

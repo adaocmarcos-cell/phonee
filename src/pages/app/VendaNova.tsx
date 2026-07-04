@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +26,7 @@ import AutocompleteInput from "@/components/AutocompleteInput";
 import { onlyDigits, validateDoc } from "@/lib/docValidation";
 import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
 import { UserCheck } from "lucide-react";
-import { buildLineItemFromProduct, getSearchState } from "@/lib/vendaSearch";
+import { buildLineItemFromProduct } from "@/lib/vendaSearch";
 
 type CustomerLite = {
   id: string;
@@ -130,6 +130,7 @@ export default function VendaNova() {
   const [productQuery, setProductQuery] = useState("");
   const [productQueryDebounced, setProductQueryDebounced] = useState("");
   const [showProductList, setShowProductList] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
@@ -232,28 +233,33 @@ export default function VendaNova() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store?.id]);
 
+  const loadSaleProducts = useCallback(async (query = productQueryDebounced) => {
+    if (!store) return;
+    setLoadingProducts(true);
+    const { data, error } = await (supabase as any).rpc("search_sale_products", {
+      _store_id: store.id,
+      _query: query,
+      _limit: query.trim() ? 30 : 12,
+    });
+    setLoadingProducts(false);
+    if (error) {
+      console.error("[VendaNova] falha ao buscar produtos:", error);
+      toast.error("Não foi possível buscar os produtos da loja.");
+      return;
+    }
+    setProducts(data ?? []);
+  }, [store, productQueryDebounced]);
+
+  useEffect(() => { loadSaleProducts(productQueryDebounced); }, [loadSaleProducts, productQueryDebounced]);
+
   useEffect(() => {
     if (!store) return;
-    (async () => {
-      // Mesma tabela usada em Estoque > Produtos, mesmo escopo (store_id).
-      // IMPORTANTE: a coluna de código de barras chama-se `ean` (não `gtin`).
-      // Pedir `gtin` fazia a query falhar e a lista ficar vazia.
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, name, sku, sale_price, cost_price, stock_current, category, subcategory, ean, brand, compatible_model")
-        .eq("store_id", store.id)
-        .order("name")
-        // Mesmo comportamento de Estoque > Produtos: carrega a base completa da loja.
-        // Sem range explícito, o backend retorna só o primeiro lote e produtos no fim
-        // da ordenação (ex.: smartphones/iPhones) não entram no autocomplete.
-        .range(0, 49999);
-      if (error) {
-        console.error("[VendaNova] falha ao carregar produtos:", error);
-        toast.error("Não foi possível carregar os produtos da loja.");
-      }
-      setProducts(data ?? []);
-    })();
-  }, [store]);
+    const ch = supabase
+      .channel(`venda-nova-products-${store.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `store_id=eq.${store.id}` }, () => loadSaleProducts(productQueryDebounced))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [store, loadSaleProducts, productQueryDebounced]);
 
   // Configuração da loja: permite (ou não) vender com estoque negativo.
   useEffect(() => {
@@ -501,10 +507,15 @@ export default function VendaNova() {
     return () => clearTimeout(t);
   }, [productQuery]);
 
-  const searchState = useMemo(
-    () => getSearchState(products as any, productQuery, productQueryDebounced),
-    [products, productQuery, productQueryDebounced]
-  );
+  const searchState = useMemo(() => {
+    const raw = productQuery.trim();
+    const deb = productQueryDebounced.trim();
+    if (loadingProducts || raw !== deb) return { kind: "searching" as const };
+    if (products.length === 0 && deb) return { kind: "no-results" as const, term: deb };
+    if (products.length === 0) return { kind: "empty-table" as const };
+    if (!deb) return { kind: "initial" as const, items: products };
+    return { kind: "results" as const, items: products };
+  }, [products, productQuery, productQueryDebounced, loadingProducts]);
   const visibleProducts = useMemo<any[]>(() => {
     if (searchState.kind === "results" || searchState.kind === "initial") return searchState.items as any[];
     return [];

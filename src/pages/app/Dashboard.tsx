@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/MetricCard";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
+import { loadProductStockMetrics } from "@/lib/stockMetrics";
 import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Users, Wrench, LayoutGrid, Check } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const [costMonth, setCostMonth] = useState(0);
   const [costToday, setCostToday] = useState(0);
   const [expensesMonth, setExpensesMonth] = useState(0);
+  const [productsTotal, setProductsTotal] = useState(0);
   const [productsLow, setProductsLow] = useState(0);
   const [stalled, setStalled] = useState(0);
   const [series, setSeries] = useState<{ day: string; total: number }[]>([]);
@@ -41,6 +43,29 @@ export default function Dashboard() {
   const [evoSeries, setEvoSeries] = useState<{ label: string; total: number }[]>([]);
   const [trendPeriod, setTrendPeriod] = useState<PeriodValue>("1y");
   const [trendSeries, setTrendSeries] = useState<{ label: string; total: number; count: number }[]>([]);
+
+  const loadStockMetrics = useCallback(async () => {
+    if (!store) return;
+    try {
+      const metrics = await loadProductStockMetrics(supabase, store.id);
+      setProductsTotal(metrics.product_count);
+      setProductsLow(metrics.low_count);
+      setStalled(metrics.stalled_count);
+    } catch (error) {
+      console.error("[Dashboard] falha ao carregar métricas de estoque:", error);
+    }
+  }, [store]);
+
+  useEffect(() => {
+    if (!store) return;
+    loadStockMetrics();
+    const ch = supabase
+      .channel(`dashboard-stock-metrics-${store.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `store_id=eq.${store.id}` }, loadStockMetrics)
+      .on("postgres_changes", { event: "*", schema: "public", table: "parts_inventory", filter: `store_id=eq.${store.id}` }, loadStockMetrics)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [store, loadStockMetrics]);
 
   useEffect(() => {
     if (!store) return;
@@ -141,20 +166,6 @@ export default function Dashboard() {
       if (osCost > 0 && canSeeCost(role)) {
         setCostMonth((v) => v + osCost);
       }
-
-      const { data: prods } = await supabase
-        .from("products")
-        .select("id, name, stock_current, stock_min, last_sold_at")
-        .eq("store_id", store.id)
-        .range(0, 49999);
-      setProductsLow((prods ?? []).filter((p) => p.stock_current <= p.stock_min).length);
-      setStalled(
-        (prods ?? []).filter((p) => {
-          if (!p.last_sold_at) return true;
-          const d = (Date.now() - new Date(p.last_sold_at).getTime()) / (1000 * 60 * 60 * 24);
-          return d > 30;
-        }).length
-      );
 
       const { data: al } = await supabase
         .from("alerts")
@@ -316,7 +327,7 @@ export default function Dashboard() {
                 value={canSeeCost(role) ? pct(margin) : num(productsLow)}
                 icon={canSeeCost(role) ? Percent : AlertTriangle}
                 tone={canSeeCost(role) ? "violet" : "warning"}
-                delta={canSeeCost(role) ? "Lucro / receita do período" : "Produtos abaixo do mínimo"}
+                delta={canSeeCost(role) ? "Lucro / receita do período" : `${num(productsTotal)} produtos no estoque`}
                 className="h-full"
               />
             ),
@@ -327,7 +338,7 @@ export default function Dashboard() {
               <MetricCard
                 label="Estoque encalhado"
                 value={num(stalled)}
-                delta="+30 dias sem venda"
+                delta={`+30 dias sem venda · ${num(productsTotal)} produtos`}
                 trend="down"
                 icon={Package}
                 tone="danger"
@@ -408,7 +419,7 @@ export default function Dashboard() {
               <MetricCard
                 label="Itens em alerta"
                 value={num(itensAlerta)}
-                delta={`${num(productsLow)} baixo · ${num(stalled)} encalhado`}
+                delta={`${num(productsLow)} baixo · ${num(stalled)} encalhado · ${num(productsTotal)} total`}
                 icon={Wrench}
                 tone="danger"
               />

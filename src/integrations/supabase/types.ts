@@ -3299,6 +3299,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      product_stock_filter_options: {
+        Args: { _store_id: string }
+        Returns: Json
+      }
+      product_stock_metrics: { Args: { _store_id: string }; Returns: Json }
       redeem_coupon: {
         Args: {
           _code: string
@@ -3338,6 +3343,51 @@ export type Database = {
       request_subscription_change: {
         Args: { _changes: Json; _reason: string; _subscription_id: string }
         Returns: string
+      }
+      search_sale_products: {
+        Args: { _limit?: number; _query?: string; _store_id: string }
+        Returns: {
+          brand: string
+          category: string
+          color: string
+          compatible_model: string
+          cost_price: number
+          ean: string
+          id: string
+          name: string
+          sale_price: number
+          sku: string
+          stock_current: number
+          storage: string
+          subcategory: string
+        }[]
+      }
+      stock_products_page: {
+        Args: {
+          _brand?: string
+          _category?: string
+          _filter?: string
+          _page?: number
+          _page_size?: number
+          _query?: string
+          _store_id: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          condition: string
+          cost_price: number
+          id: string
+          last_sold_at: string
+          name: string
+          sale_price: number
+          sku: string
+          status: string
+          stock_current: number
+          stock_min: number
+          supplier: string
+          total_count: number
+        }[]
       }
       trial_eligibility: {
         Args: { _doc?: string; _email?: string; _user_id?: string }
