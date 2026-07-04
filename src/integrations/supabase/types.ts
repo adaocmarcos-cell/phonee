@@ -3382,7 +3382,7 @@ export type Database = {
           name: string
           sale_price: number
           sku: string
-          status: Database["public"]["Enums"]["product_status"]
+          status: string
           stock_current: number
           stock_min: number
           supplier: string
