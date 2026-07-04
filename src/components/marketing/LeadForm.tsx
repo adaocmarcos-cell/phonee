@@ -78,8 +78,7 @@ export function LeadForm({ origem_pagina }: { origem_pagina?: string }) {
           Recebemos seus dados!
         </h3>
         <p className="mt-2 text-foreground/80">
-          Vamos te chamar no WhatsApp em breve para montar o teste do sistema
-          na sua loja.
+          Nossa equipe vai entrar em contato em breve.
         </p>
       </div>
     );

@@ -1,6 +1,10 @@
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
-import { buildWhatsappUrl, WHATSAPP_DEFAULT_MESSAGE } from "@/config/marketing";
+import {
+  buildWhatsappUrl,
+  SHOW_WHATSAPP,
+  WHATSAPP_DEFAULT_MESSAGE,
+} from "@/config/marketing";
 import { getUtms } from "@/lib/utmTracking";
 
 interface Props extends Omit<ButtonProps, "onClick" | "asChild"> {
@@ -14,6 +18,8 @@ export function WhatsappCTA({
   className,
   ...rest
 }: Props) {
+  // Enquanto SHOW_WHATSAPP for false, nenhum botão de WhatsApp aparece.
+  if (!SHOW_WHATSAPP) return null;
   const handleClick = () => {
     try {
       const utms = getUtms();

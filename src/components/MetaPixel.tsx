@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getConsent, trackMetaEvent } from "@/lib/metaPixel";
-import { META_PIXEL_ID, isPixelConfigured } from "@/config/marketing";
 import { captureUtms } from "@/lib/utmTracking";
 
 /**
@@ -17,13 +16,10 @@ export function MetaPixel() {
     const init = async () => {
       if ((window as any).__phnPixelLoaded) return;
       if (getConsent() !== "granted") return;
-      // Preferência: constante central em src/config/marketing.ts.
-      // Fallback: valor salvo em marketing_settings (get_meta_pixel_id).
-      let pixelId = isPixelConfigured() ? META_PIXEL_ID.trim() : "";
-      if (!pixelId) {
-        const { data } = await (supabase as any).rpc("get_meta_pixel_id");
-        pixelId = (typeof data === "string" ? data : "")?.trim() ?? "";
-      }
+      // Fonte única do Pixel ID: marketing_settings (RPC get_meta_pixel_id).
+      // Não duplicamos o pixel — todos os eventos fbq usam esta instância.
+      const { data } = await (supabase as any).rpc("get_meta_pixel_id");
+      const pixelId = (typeof data === "string" ? data : "")?.trim() ?? "";
       if (cancelled || !pixelId) return;
       // Loader oficial do Meta Pixel
       (function (f: any, b: Document, e: string, v: string) {
