@@ -330,7 +330,7 @@ export default function Estoque() {
         .map((r) => ({
           name: (r.name || r.nome || "").trim().slice(0, 200),
           sku: (r.sku || r.codigo || "").trim().toUpperCase(),
-          gtin: (r.gtin || r.ean || r.barcode || r.codigo_barras || "").trim(),
+          ean: (r.ean || r.gtin || r.barcode || r.codigo_barras || "").trim(),
           brand: (r.brand || r.marca || "").trim() || null,
           category: (r.category || r.categoria || "acessorio").trim(),
           condition: (r.condition || r.condicao || "novo").trim(),
@@ -347,19 +347,19 @@ export default function Estoque() {
       // Carrega base existente para dedupe
       const { data: existing, error: exErr } = await supabase
         .from("products")
-        .select("id, name, sku, gtin, brand, stock_current")
+        .select("id, name, sku, ean, brand, stock_current")
         .eq("store_id", store.id);
       if (exErr) { toast.error(`Erro ao ler base: ${exErr.message}`); return; }
 
       const byId = new Map<string, any>();
       const bySku = new Map<string, any>();
-      const byGtin = new Map<string, any>();
+      const byEan = new Map<string, any>();
       const byNameBrand = new Map<string, any>();
       const usedSkus = new Set<string>();
       (existing ?? []).forEach((p: any) => {
         byId.set(p.id, p);
         if (p.sku) { bySku.set(String(p.sku).toUpperCase(), p); usedSkus.add(String(p.sku).toUpperCase()); }
-        if (p.gtin) byGtin.set(String(p.gtin), p);
+        if (p.ean) byEan.set(String(p.ean), p);
         const key = `${(p.name || "").toLowerCase().trim()}|${(p.brand || "").toLowerCase().trim()}`;
         if (key.trim() !== "|") byNameBrand.set(key, p);
       });
@@ -382,7 +382,7 @@ export default function Estoque() {
       const errors: string[] = [];
       const seenSkuInBatch = new Set<string>();
       const report: {
-        name: string; sku: string; gtin: string; status: string;
+        name: string; sku: string; ean: string; status: string;
         match_by: string; message: string;
       }[] = [];
 
@@ -391,7 +391,7 @@ export default function Estoque() {
         let match: any = null;
         let matchBy = "";
         if (r.sku && bySku.has(r.sku)) { match = bySku.get(r.sku); matchBy = "sku"; }
-        if (!match && r.gtin && byGtin.has(r.gtin)) { match = byGtin.get(r.gtin); matchBy = "gtin"; }
+        if (!match && r.ean && byEan.has(r.ean)) { match = byEan.get(r.ean); matchBy = "ean"; }
         if (!match) {
           const k = `${r.name.toLowerCase().trim()}|${(r.brand || "").toLowerCase().trim()}`;
           if (byNameBrand.has(k)) { match = byNameBrand.get(k); matchBy = "nome+marca"; }
@@ -410,13 +410,13 @@ export default function Estoque() {
             status: r.status,
           };
           if (r.stock_current > 0) patch.stock_current = r.stock_current;
-          if (r.gtin) patch.gtin = r.gtin;
+          if (r.ean) patch.ean = r.ean;
           // Corrige SKU se estava vazio ou inválido
           if (!match.sku && r.sku && !usedSkus.has(r.sku)) {
             patch.sku = r.sku; usedSkus.add(r.sku);
           }
           toUpdate.push({ id: match.id, patch });
-          report.push({ name: r.name, sku: r.sku || match.sku || "", gtin: r.gtin || "", status: "atualizado", match_by: matchBy, message: "" });
+          report.push({ name: r.name, sku: r.sku || match.sku || "", ean: r.ean || "", status: "atualizado", match_by: matchBy, message: "" });
         } else {
           // Novo produto — gera SKU se ausente/duplicado
           let sku = r.sku;
@@ -432,7 +432,7 @@ export default function Estoque() {
             store_id: store.id,
             name: r.name,
             sku,
-            gtin: r.gtin || null,
+            ean: r.ean || null,
             brand: r.brand,
             category: r.category,
             condition: r.condition,
@@ -442,7 +442,7 @@ export default function Estoque() {
             stock_min: r.stock_min,
             status: r.status,
           });
-          report.push({ name: r.name, sku, gtin: r.gtin || "", status: "criado", match_by: "novo", message: genMsg });
+          report.push({ name: r.name, sku, ean: r.ean || "", status: "criado", match_by: "novo", message: genMsg });
         }
       }
 
@@ -452,19 +452,19 @@ export default function Estoque() {
         const { error, count } = await supabase
           .from("products")
           .insert(toInsert as any, { count: "exact" });
-        if (error) { errors.push(`Inserção: ${error.message}`); report.push({ name: "-", sku: "-", gtin: "-", status: "erro", match_by: "-", message: `Inserção em lote: ${error.message}` }); }
+        if (error) { errors.push(`Inserção: ${error.message}`); report.push({ name: "-", sku: "-", ean: "-", status: "erro", match_by: "-", message: `Inserção em lote: ${error.message}` }); }
         else created = count ?? toInsert.length;
       }
       for (const u of toUpdate) {
         const { error } = await supabase.from("products").update(u.patch).eq("id", u.id);
-        if (error) { errors.push(`Atualização (${u.id.slice(0, 8)}): ${error.message}`); report.push({ name: "-", sku: u.id.slice(0, 8), gtin: "-", status: "erro", match_by: "-", message: error.message }); }
+        if (error) { errors.push(`Atualização (${u.id.slice(0, 8)}): ${error.message}`); report.push({ name: "-", sku: u.id.slice(0, 8), ean: "-", status: "erro", match_by: "-", message: error.message }); }
         else updated++;
       }
 
       // Gera CSV do relatório e dispara download
       try {
-        const header = "status,critério_dedupe,nome,sku,gtin,observação\n";
-        const body = report.map((r) => [r.status, r.match_by, r.name, r.sku, r.gtin, r.message]
+        const header = "status,critério_dedupe,nome,sku,ean,observação\n";
+        const body = report.map((r) => [r.status, r.match_by, r.name, r.sku, r.ean, r.message]
           .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
         const blob = new Blob(["\ufeff" + header + body], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
