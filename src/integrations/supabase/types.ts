@@ -560,6 +560,57 @@ export type Database = {
           },
         ]
       }
+      leads: {
+        Row: {
+          cidade: string | null
+          created_at: string
+          id: string
+          nome: string
+          nome_loja: string | null
+          origem_pagina: string | null
+          status: string
+          updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          whatsapp: string
+        }
+        Insert: {
+          cidade?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          nome_loja?: string | null
+          origem_pagina?: string | null
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          whatsapp: string
+        }
+        Update: {
+          cidade?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          nome_loja?: string | null
+          origem_pagina?: string | null
+          status?: string
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       marketing_investments: {
         Row: {
           ad: string | null
