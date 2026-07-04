@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
+import { loadProductStockMetrics } from "@/lib/stockMetrics";
 import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Users, Wrench, LayoutGrid, Check } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
@@ -45,14 +46,14 @@ export default function Dashboard() {
 
   const loadStockMetrics = useCallback(async () => {
     if (!store) return;
-    const { data, error } = await (supabase as any).rpc("product_stock_metrics", { _store_id: store.id });
-    if (error) {
+    try {
+      const metrics = await loadProductStockMetrics(supabase, store.id);
+      setProductsTotal(metrics.product_count);
+      setProductsLow(metrics.low_count);
+      setStalled(metrics.stalled_count);
+    } catch (error) {
       console.error("[Dashboard] falha ao carregar métricas de estoque:", error);
-      return;
     }
-    setProductsTotal(Number(data?.product_count ?? 0));
-    setProductsLow(Number(data?.low_count ?? 0));
-    setStalled(Number(data?.stalled_count ?? 0));
   }, [store]);
 
   useEffect(() => {

@@ -16,6 +16,7 @@ import { VendaRapidaModal } from "@/components/VendaRapidaModal";
 import { MarcasModal } from "@/components/MarcasModal";
 import { canRegisterSale } from "@/contexts/AuthContext";
 import { generateUniqueSku } from "@/lib/sku";
+import { normalizeProductStockMetrics, type ProductStockMetrics } from "@/lib/stockMetrics";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -44,19 +45,6 @@ type Product = {
   supplier?: string | null;
 };
 
-type StockMetrics = {
-  product_count: number;
-  units: number;
-  low_count: number;
-  stalled_count: number;
-  sale_value: number;
-  cost_value: number;
-  parts_count: number;
-  parts_units: number;
-  parts_low_count: number;
-  parts_sale_value: number;
-};
-
 const categoryLabel: Record<string, string> = {
   acessorio: "Acessório", peca: "Peça",
   aparelho_novo: "Aparelho novo", aparelho_seminovo: "Aparelho seminovo",
@@ -67,10 +55,10 @@ export default function Estoque() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredCount, setFilteredCount] = useState(0);
-  const [stockMetrics, setStockMetrics] = useState<StockMetrics>({
+  const [stockMetrics, setStockMetrics] = useState<ProductStockMetrics>({
     product_count: 0, units: 0, low_count: 0, stalled_count: 0,
     sale_value: 0, cost_value: 0, parts_count: 0, parts_units: 0,
-    parts_low_count: 0, parts_sale_value: 0,
+    parts_low_count: 0, parts_sale_value: 0, alert_count: 0,
   });
   const [filterOptions, setFilterOptions] = useState<{ brands: string[]; categories: string[]; suppliers: string[] }>({ brands: [], categories: [], suppliers: [] });
   const [q, setQ] = useState("");
@@ -116,20 +104,7 @@ export default function Estoque() {
     if (pErr) toast.error(`Erro ao carregar produtos: ${pErr.message}`);
     setProducts((pData ?? []) as Product[]);
     setFilteredCount(Number((pData ?? [])[0]?.total_count ?? 0));
-    if (metrics) {
-      setStockMetrics({
-        product_count: Number(metrics.product_count ?? 0),
-        units: Number(metrics.units ?? 0),
-        low_count: Number(metrics.low_count ?? 0),
-        stalled_count: Number(metrics.stalled_count ?? 0),
-        sale_value: Number(metrics.sale_value ?? 0),
-        cost_value: Number(metrics.cost_value ?? 0),
-        parts_count: Number(metrics.parts_count ?? 0),
-        parts_units: Number(metrics.parts_units ?? 0),
-        parts_low_count: Number(metrics.parts_low_count ?? 0),
-        parts_sale_value: Number(metrics.parts_sale_value ?? 0),
-      });
-    }
+    if (metrics) setStockMetrics(normalizeProductStockMetrics(metrics));
     if (options) {
       setFilterOptions({
         brands: Array.isArray(options.brands) ? options.brands : [],
