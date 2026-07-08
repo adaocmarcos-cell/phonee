@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { ShieldCheck, Clock, ArrowRight, Check, Store, MapPin, Instagram, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { trackMetaEvent } from "@/lib/metaPixel";
 
 const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -19,6 +19,7 @@ const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","P
 type Props = { open: boolean; onOpenChange: (v: boolean) => void };
 
 export function FreeTrialSignupDialog({ open, onOpenChange }: Props) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -57,8 +58,29 @@ export function FreeTrialSignupDialog({ open, onOpenChange }: Props) {
     });
     setLoading(false);
 
-    if (error || (data as any)?.error) {
-      return toast.error((data as any)?.error || error?.message || "Falha ao criar conta.");
+    // Extract friendly error from FunctionsHttpError body when supabase-js
+    // masks non-2xx responses with a generic message.
+    let errPayload: any = (data as any)?.error ? data : null;
+    if (error) {
+      try {
+        const parsed = await (error as any)?.context?.json?.();
+        if (parsed) errPayload = parsed;
+      } catch {
+        // ignore parse failures
+      }
+    }
+    if (errPayload?.error || error) {
+      const msg =
+        errPayload?.error ||
+        (error && !/non-2xx/i.test(error.message) ? error.message : null) ||
+        "Falha ao criar conta.";
+      if (errPayload?.code === "already_exists" || /já tem um teste ativo|já existe um teste/i.test(msg)) {
+        toast.info(msg);
+        onOpenChange(false);
+        navigate("/entrar");
+        return;
+      }
+      return toast.error(msg);
     }
     setDone(true);
     toast.success("Conta criada! Acesso liberado por 7 dias.");
