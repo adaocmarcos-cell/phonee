@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       .gte("created_at", oneHourAgo);
     if ((recentAttempts ?? 0) >= 3) {
       await admin.from("trial_signup_attempts").insert({ ip });
-      return json({ error: "Muitas tentativas. Tente novamente mais tarde." }, 429);
+      return json({ error: "Muitas tentativas. Tente novamente mais tarde.", code: "rate_limited" });
     }
     // Registra a tentativa (sucesso ou falha)
     await admin.from("trial_signup_attempts").insert({ ip });
@@ -51,14 +51,14 @@ Deno.serve(async (req) => {
     const city = String(body?.city ?? "").trim();
     const state = String(body?.state ?? "").trim().toUpperCase().slice(0, 2);
 
-    if (!store_name) return json({ error: "Informe o nome da loja." }, 400);
-    if (!full_name) return json({ error: "Informe seu nome completo." }, 400);
-    if (!email || !/.+@.+\..+/.test(email)) return json({ error: "E-mail inválido." }, 400);
-    if (!whatsapp || whatsapp.replace(/\D/g, "").length < 10) return json({ error: "Informe um WhatsApp válido." }, 400);
-    if (!instagram || instagram.length < 2) return json({ error: "Informe o @ do Instagram." }, 400);
-    if (!city) return json({ error: "Informe a cidade." }, 400);
-    if (!state || state.length !== 2) return json({ error: "Informe o estado (UF)." }, 400);
-    if (password.length < 8) return json({ error: "Senha mínima de 8 caracteres." }, 400);
+    if (!store_name) return json({ error: "Informe o nome da loja.", code: "validation" });
+    if (!full_name) return json({ error: "Informe seu nome completo.", code: "validation" });
+    if (!email || !/.+@.+\..+/.test(email)) return json({ error: "E-mail inválido.", code: "validation" });
+    if (!whatsapp || whatsapp.replace(/\D/g, "").length < 10) return json({ error: "Informe um WhatsApp válido.", code: "validation" });
+    if (!instagram || instagram.length < 2) return json({ error: "Informe o @ do Instagram.", code: "validation" });
+    if (!city) return json({ error: "Informe a cidade.", code: "validation" });
+    if (!state || state.length !== 2) return json({ error: "Informe o estado (UF).", code: "validation" });
+    if (password.length < 8) return json({ error: "Senha mínima de 8 caracteres.", code: "validation" });
 
     // Block duplicates by email
     const { data: existing } = await admin
@@ -67,7 +67,10 @@ Deno.serve(async (req) => {
       .eq("email", email)
       .maybeSingle();
     if (existing) {
-      return json({ error: "Já existe um teste vinculado a este e-mail. Acesse pela página de login." }, 409);
+      return json({
+        error: "Você já tem um teste ativo nesse e-mail. Faça login em /entrar (use 'Esqueceu a senha?' se precisar).",
+        code: "already_exists",
+      });
     }
 
     // Create auth user
@@ -79,7 +82,7 @@ Deno.serve(async (req) => {
       user_metadata: { full_name, free_trial: true, store_name, city, state },
     });
     if (cErr && !/already.*registered|exists/i.test(cErr.message)) {
-      return json({ error: cErr.message }, 400);
+      return json({ error: cErr.message, code: "auth_create_failed" });
     }
     if (created?.user) {
       uid = created.user.id;
@@ -133,6 +136,36 @@ Deno.serve(async (req) => {
           address_city: city || null,
           address_uf: state || null,
         });
+      }
+
+      // Ensure user_stores + user_roles link exists (idempotent) so the owner
+      // can actually operate the store after login.
+      const { data: ownerStore } = await admin
+        .from("stores")
+        .select("id")
+        .eq("owner_id", uid)
+        .maybeSingle();
+      const ownerStoreId = (ownerStore as any)?.id ?? null;
+      if (ownerStoreId) {
+        const { data: usLink } = await admin
+          .from("user_stores")
+          .select("user_id")
+          .eq("user_id", uid)
+          .eq("store_id", ownerStoreId)
+          .maybeSingle();
+        if (!usLink) {
+          await admin.from("user_stores").insert({ user_id: uid, store_id: ownerStoreId });
+        }
+        const { data: roleLink } = await admin
+          .from("user_roles")
+          .select("id")
+          .eq("user_id", uid)
+          .eq("store_id", ownerStoreId)
+          .eq("role", "dono")
+          .maybeSingle();
+        if (!roleLink) {
+          await admin.from("user_roles").insert({ user_id: uid, store_id: ownerStoreId, role: "dono" });
+        }
       }
     }
 
