@@ -338,9 +338,9 @@ export default function ProductForm() {
                 </div>
               </Field>
             )}
-            <Field label="Estoque atual"><Input type="number" value={form.stock_current} onChange={(e) => set("stock_current", e.target.value)} /></Field>
-            <Field label="Estoque mínimo"><Input type="number" value={form.stock_min} onChange={(e) => set("stock_min", e.target.value)} /></Field>
-            <Field label="Estoque máximo"><Input type="number" value={form.stock_max} onChange={(e) => set("stock_max", e.target.value)} /></Field>
+            <Field label="Estoque atual"><Input type="number" placeholder="0" value={form.stock_current === 0 ? "" : form.stock_current} onFocus={(e) => e.target.select()} onChange={(e) => set("stock_current", e.target.value === "" ? 0 : Number(e.target.value))} /></Field>
+            <Field label="Estoque mínimo"><Input type="number" placeholder="0" value={form.stock_min === 0 ? "" : form.stock_min} onFocus={(e) => e.target.select()} onChange={(e) => set("stock_min", e.target.value === "" ? 0 : Number(e.target.value))} /></Field>
+            <Field label="Estoque máximo"><Input type="number" placeholder="0" value={form.stock_max === 0 ? "" : form.stock_max} onFocus={(e) => e.target.select()} onChange={(e) => set("stock_max", e.target.value === "" ? 0 : Number(e.target.value))} /></Field>
             <Field label="Localização física"><AutocompleteInput options={suggest.locations} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Prateleira A3" /></Field>
           </div>
         </Card>

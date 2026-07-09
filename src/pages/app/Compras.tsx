@@ -895,10 +895,11 @@ export default function Compras() {
                   </div>
                   <Input
                     ref={(el) => { qtyInputsRef.current[idx] = el; }}
-                    className="col-span-2" type="number" min={1} placeholder="Qtd" value={it.quantity}
-                    onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))}
+                    className="col-span-2" type="number" min={1} placeholder="Qtd" value={it.quantity === 0 ? "" : it.quantity}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, quantity: e.target.value === "" ? 0 : Number(e.target.value) } : x))}
                   />
-                  <Input className="col-span-2" type="number" step="0.01" placeholder="Custo unit." value={it.unit_cost} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: Number(e.target.value) } : x))} />
+                  <Input className="col-span-2" type="number" step="0.01" placeholder="Custo unit." value={it.unit_cost === 0 ? "" : it.unit_cost} onFocus={(e) => e.target.select()} onChange={(e) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: e.target.value === "" ? 0 : Number(e.target.value) } : x))} />
                   <Button size="icon" variant="ghost" className="col-span-1 text-danger" onClick={() => setItems((a) => a.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               ))}
