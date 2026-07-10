@@ -1006,7 +1006,7 @@ export default function PhoneeMarketing() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Investimento (R$)</Label>
-                <Input type="number" step="0.01" value={(editingInv as any).amount_brl ?? ((editingInv.amount_cents ?? 0) / 100)} onChange={(e) => setEditingInv({ ...editingInv, ...({ amount_brl: e.target.value } as any) })} className="bg-slate-950 border-slate-800" />
+                <NumberInput min={0} value={Number((editingInv as any).amount_brl ?? ((editingInv.amount_cents ?? 0) / 100)) || 0} onValueChange={(n) => setEditingInv({ ...editingInv, ...({ amount_brl: String(n) } as any) })} className="bg-slate-950 border-slate-800" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Impressões</Label>
