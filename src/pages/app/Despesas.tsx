@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -732,7 +733,7 @@ function NewExpenseDialog({ storeId, categories, onDone }: { storeId: string; ca
         </div>
         <div>
           <Label>Valor (R$) *</Label>
-          <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <NumberInput min={0} value={Number(amount) || 0} onValueChange={(n) => setAmount(String(n))} />
         </div>
         <div>
           <Label>Data</Label>
