@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -526,8 +527,8 @@ Status: ${os.status}`;
 
         <TabsContent value="orcamento">
           <Card className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Field label="Peças (R$)"><Input type="number" step="0.01" value={os.parts_value ?? 0} onChange={(e) => set("parts_value", Number(e.target.value))} /></Field>
-            <Field label="Mão de obra (R$)"><Input type="number" step="0.01" value={os.labor_value ?? 0} onChange={(e) => set("labor_value", Number(e.target.value))} /></Field>
+            <Field label="Peças (R$)"><NumberInput value={os.parts_value ?? 0} onValueChange={(n) => set("parts_value", n)} /></Field>
+            <Field label="Mão de obra (R$)"><NumberInput value={os.labor_value ?? 0} onValueChange={(n) => set("labor_value", n)} /></Field>
             <Field label="Total (R$)"><Input readOnly value={(Number(os.parts_value || 0) + Number(os.labor_value || 0)).toFixed(2)} className="bg-primary/10 text-primary font-bold" /></Field>
             <Field label="Prazo estimado (dias)"><Input type="number" min={0} value={os.estimated_days ?? ""} onChange={(e) => set("estimated_days", e.target.value ? Number(e.target.value) : null)} /></Field>
             <Field label="Status do orçamento">
