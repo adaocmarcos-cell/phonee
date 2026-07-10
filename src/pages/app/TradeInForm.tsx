@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -614,7 +615,7 @@ export default function TradeInForm() {
             </div>
             <div className="space-y-2">
               <Label>Quantidade</Label>
-              <Input type="number" min={1} value={selPartQty} onChange={(e) => setSelPartQty(Math.max(1, parseInt(e.target.value || "1", 10)))} className="font-mono" />
+              <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={selPartQty} onValueChange={setSelPartQty} className="font-mono" />
             </div>
             <p className="text-[11px] text-muted-foreground">O custo da peça (qtd × custo) será somado aos custos de reparo. Ao salvar, o estoque é baixado e uma despesa é lançada no financeiro.</p>
           </div>
