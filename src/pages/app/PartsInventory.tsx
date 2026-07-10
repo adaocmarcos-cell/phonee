@@ -27,6 +27,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import VendasPecas from "./VendasPecas";
 import PartsPurchaseCenter from "./PartsPurchaseCenter";
+import { NumberInput } from "@/components/NumberInput";
 
 type Category =
   | "telas" | "baterias" | "tampas" | "cameras"
@@ -460,23 +461,23 @@ export default function PartsInventory() {
             </div>
             <div>
               <Label>Custo (R$)</Label>
-              <Input type="number" step="0.01" value={form.cost_price}
-                onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })} />
+              <NumberInput value={form.cost_price}
+                onValueChange={(n) => setForm({ ...form, cost_price: n })} />
             </div>
             <div>
               <Label>Venda (R$)</Label>
-              <Input type="number" step="0.01" value={form.sale_price}
-                onChange={(e) => setForm({ ...form, sale_price: Number(e.target.value) })} />
+              <NumberInput value={form.sale_price}
+                onValueChange={(n) => setForm({ ...form, sale_price: n })} />
             </div>
             <div>
               <Label>Estoque atual</Label>
-              <Input type="number" value={form.stock_current}
-                onChange={(e) => setForm({ ...form, stock_current: Number(e.target.value) })} />
+              <NumberInput allowDecimal={false} value={form.stock_current}
+                onValueChange={(n) => setForm({ ...form, stock_current: n })} />
             </div>
             <div>
               <Label>Estoque mínimo</Label>
-              <Input type="number" value={form.stock_min}
-                onChange={(e) => setForm({ ...form, stock_min: Number(e.target.value) })} />
+              <NumberInput allowDecimal={false} value={form.stock_min}
+                onValueChange={(n) => setForm({ ...form, stock_min: n })} />
             </div>
             <div>
               <Label>Fornecedor</Label>
@@ -526,8 +527,9 @@ export default function PartsInventory() {
               </div>
               <div>
                 <Label>Quantidade</Label>
-                <Input type="number" min={1} max={osTarget.stock_current} value={osQty}
-                  onChange={(e) => setOsQty(Number(e.target.value))} />
+                <NumberInput allowDecimal={false} min={1} max={osTarget.stock_current}
+                  emptyBehavior="min" value={osQty}
+                  onValueChange={setOsQty} />
               </div>
             </div>
           )}
