@@ -14,9 +14,7 @@ function numberToText(n: number | null | undefined, allowDecimal: boolean): stri
   if (n === null || n === undefined || Number.isNaN(n)) return "";
   if (n === 0) return "";
   if (!allowDecimal) return String(Math.trunc(n));
-  // Use pt-BR style (dot -> comma) only if fractional part exists
-  const s = String(n);
-  return s;
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function parseText(text: string, allowDecimal: boolean): number | null {
