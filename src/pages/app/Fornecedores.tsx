@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -238,7 +239,7 @@ export default function Fornecedores() {
               <div><Label>Estado (UF)</Label><Input maxLength={2} value={editing.state ?? ""} onChange={(e) => setEditing({ ...editing, state: e.target.value.toUpperCase() })} /></div>
               <div className="md:col-span-2"><Label>Marcas fornecidas (separadas por vírgula)</Label><Input value={brandsInput} onChange={(e) => setBrandsInput(e.target.value)} placeholder="Apple, Samsung, Motorola" /></div>
               <div><Label>Condições de pagamento</Label><Input value={editing.payment_terms ?? ""} onChange={(e) => setEditing({ ...editing, payment_terms: e.target.value })} placeholder="ex.: 30/60/90" /></div>
-              <div><Label>Prazo médio de entrega (dias)</Label><Input type="number" min={0} value={editing.avg_delivery_days ?? ""} onChange={(e) => setEditing({ ...editing, avg_delivery_days: e.target.value ? Number(e.target.value) : null })} /></div>
+              <div><Label>Prazo médio de entrega (dias)</Label><NumberInput allowDecimal={false} min={0} value={editing.avg_delivery_days ?? 0} onValueChange={(n) => setEditing({ ...editing, avg_delivery_days: n === 0 ? null : n })} /></div>
               <div className="md:col-span-2"><Label>Observações</Label><Textarea rows={3} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></div>
               <div className="md:col-span-2 flex items-center gap-2"><Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /><Label className="!mb-0">Fornecedor ativo</Label></div>
             </div>
