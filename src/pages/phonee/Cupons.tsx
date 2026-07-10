@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -177,8 +178,9 @@ export default function PhoneeCupons() {
               </div>
               <div>
                 <Label>Valor</Label>
-                <Input type="number" step="0.01" min="0" value={form.discount_value}
-                  onChange={(e) => setForm((f) => ({ ...f, discount_value: e.target.value }))} />
+                <NumberInput min={0}
+                  value={Number(String(form.discount_value).replace(",", ".")) || 0}
+                  onValueChange={(n) => setForm((f) => ({ ...f, discount_value: String(n) }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -189,8 +191,9 @@ export default function PhoneeCupons() {
               </div>
               <div>
                 <Label>Limite de usos (opcional)</Label>
-                <Input type="number" min="1" value={form.usage_limit}
-                  onChange={(e) => setForm((f) => ({ ...f, usage_limit: e.target.value }))} />
+                <NumberInput allowDecimal={false} min={0}
+                  value={Number(form.usage_limit) || 0}
+                  onValueChange={(n) => setForm((f) => ({ ...f, usage_limit: n === 0 ? "" : String(n) }))} />
               </div>
             </div>
             <div>
