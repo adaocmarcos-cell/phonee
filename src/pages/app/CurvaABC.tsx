@@ -11,6 +11,7 @@ import {
 import { Info, TrendingUp, TrendingDown, Minus, Trophy, Percent, Wallet, Award, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { FileDown, Printer, Save, Calculator } from "lucide-react";
@@ -611,13 +612,13 @@ export default function CurvaABC() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Histórico (dias)</Label>
-              <Input type="number" min={1} value={histDays}
-                onChange={(e) => { setHistDays(Math.max(1, Number(e.target.value) || 1)); setSuggestEdits({}); }} />
+              <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={histDays}
+                onValueChange={(n) => { setHistDays(n); setSuggestEdits({}); }} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Projeção (dias)</Label>
-              <Input type="number" min={1} value={projDays}
-                onChange={(e) => { setProjDays(Math.max(1, Number(e.target.value) || 1)); setSuggestEdits({}); }} />
+              <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={projDays}
+                onValueChange={(n) => { setProjDays(n); setSuggestEdits({}); }} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Investimento estimado</Label>
@@ -648,11 +649,11 @@ export default function CurvaABC() {
                     <td className="px-3 py-2 text-right metric">{r.stock}</td>
                     <td className="px-3 py-2 text-right metric text-muted-foreground">{r.projected}</td>
                     <td className="px-3 py-2 text-right">
-                      <Input
-                        type="number" min={0}
+                      <NumberInput
+                        allowDecimal={false} min={0} emptyBehavior="zero"
                         value={r.suggested}
-                        onChange={(e) =>
-                          setSuggestEdits((prev) => ({ ...prev, [r.id]: Math.max(0, Number(e.target.value) || 0) }))
+                        onValueChange={(n) =>
+                          setSuggestEdits((prev) => ({ ...prev, [r.id]: n }))
                         }
                         className="h-8 text-right w-24 ml-auto"
                       />
