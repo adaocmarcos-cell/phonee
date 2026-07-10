@@ -4,6 +4,7 @@ import { useAuth, canManageProducts } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -247,11 +248,11 @@ export default function PartsPurchaseCenter() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Quantidade *</Label>
-                <Input type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value))} />
+                <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={qty} onValueChange={setQty} />
               </div>
               <div>
                 <Label>Custo unitário (R$)</Label>
-                <Input type="number" step="0.01" value={unitCost} onChange={(e) => setUnitCost(Number(e.target.value))} />
+                <NumberInput value={unitCost} onValueChange={setUnitCost} />
               </div>
               <div>
                 <Label>Data da compra *</Label>

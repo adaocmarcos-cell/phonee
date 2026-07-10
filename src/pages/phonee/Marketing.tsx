@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1009,15 +1010,15 @@ export default function PhoneeMarketing() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Impressões</Label>
-                <Input type="number" value={editingInv.impressions ?? 0} onChange={(e) => setEditingInv({ ...editingInv, impressions: Number(e.target.value) })} className="bg-slate-950 border-slate-800" />
+                <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={editingInv.impressions ?? 0} onValueChange={(n) => setEditingInv({ ...editingInv, impressions: n })} className="bg-slate-950 border-slate-800" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Alcance</Label>
-                <Input type="number" value={editingInv.reach ?? 0} onChange={(e) => setEditingInv({ ...editingInv, reach: Number(e.target.value) })} className="bg-slate-950 border-slate-800" />
+                <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={editingInv.reach ?? 0} onValueChange={(n) => setEditingInv({ ...editingInv, reach: n })} className="bg-slate-950 border-slate-800" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Cliques</Label>
-                <Input type="number" value={editingInv.clicks ?? 0} onChange={(e) => setEditingInv({ ...editingInv, clicks: Number(e.target.value) })} className="bg-slate-950 border-slate-800" />
+                <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={editingInv.clicks ?? 0} onValueChange={(n) => setEditingInv({ ...editingInv, clicks: n })} className="bg-slate-950 border-slate-800" />
               </div>
               <div className="space-y-1 col-span-2">
                 <Label className="text-xs">Observações</Label>

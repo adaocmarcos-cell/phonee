@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -205,7 +206,7 @@ export default function TransferenciaProdutos() {
             <Input className="pl-9" placeholder="Buscar produto por nome ou SKU…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <div>
-            <Input type="number" min={1} max={selected?.stock_current ?? 1} value={qty} onChange={(e) => setQty(Number(e.target.value))} placeholder="Qtd" />
+            <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={qty} onValueChange={setQty} placeholder="Qtd" />
           </div>
         </div>
 

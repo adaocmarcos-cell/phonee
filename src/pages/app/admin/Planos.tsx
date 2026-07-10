@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -46,13 +47,13 @@ export default function Planos() {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label>Preço (R$)</Label>
-                <Input type="number" step="0.01" value={(p.price_cents / 100).toFixed(2)}
-                  onChange={(e) => setPlans(plans.map(x => x.id === p.id ? { ...x, price_cents: Math.round(parseFloat(e.target.value || "0") * 100) } : x))} />
+                <NumberInput value={p.price_cents / 100}
+                  onValueChange={(n) => setPlans(plans.map(x => x.id === p.id ? { ...x, price_cents: Math.round((n || 0) * 100) } : x))} />
               </div>
               <div className="space-y-2">
                 <Label>Máx. parcelas</Label>
-                <Input type="number" min={1} max={12} value={p.max_installments}
-                  onChange={(e) => setPlans(plans.map(x => x.id === p.id ? { ...x, max_installments: parseInt(e.target.value || "1") } : x))} />
+                <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={p.max_installments}
+                  onValueChange={(n) => setPlans(plans.map(x => x.id === p.id ? { ...x, max_installments: Math.min(12, Math.max(1, n)) } : x))} />
               </div>
             </div>
             <Button onClick={() => save(p)} className="w-full">Salvar</Button>

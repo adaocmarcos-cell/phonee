@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { brl } from "@/lib/format";
@@ -126,10 +127,10 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Preço de venda (R$)">
-              <Input type="number" step="0.01" value={price} onChange={(e) => setPrice(Number(e.target.value))} />
+              <NumberInput value={price} onValueChange={setPrice} />
             </Field>
             <Field label="Desconto (R$)">
-              <Input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} />
+              <NumberInput value={discount} onValueChange={setDiscount} />
             </Field>
           </div>
 

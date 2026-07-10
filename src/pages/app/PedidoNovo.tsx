@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -242,16 +243,13 @@ export default function PedidoNovo() {
             </p>
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <Label htmlFor="coverage-days" className="text-xs text-muted-foreground">Dias de venda desejados:</Label>
-              <Input
+              <NumberInput
                 id="coverage-days"
-                type="number"
+                allowDecimal={false}
                 min={1}
-                max={365}
+                emptyBehavior="min"
                 value={coverageDays}
-                onChange={(e) => {
-                  const n = Math.max(1, Math.min(365, Number(e.target.value) || 0));
-                  setCoverageDays(n);
-                }}
+                onValueChange={(n) => setCoverageDays(Math.min(365, Math.max(1, n)))}
                 className="h-8 w-24 text-center font-mono"
               />
               <span className="text-xs text-muted-foreground">dias</span>
@@ -305,7 +303,7 @@ export default function PedidoNovo() {
               <PackagePlus className="h-3.5 w-3.5" /> Pedir novo produto / encomenda
             </Label>
             <div className="grid grid-cols-12 gap-2">
-              <Input className="col-span-3 font-mono h-10" type="number" min={1} placeholder="Qtd" value={customQty} onChange={(e) => setCustomQty(Math.max(1, Number(e.target.value) || 1))} />
+              <NumberInput className="col-span-3 font-mono h-10" allowDecimal={false} min={1} emptyBehavior="min" placeholder="Qtd" value={customQty} onValueChange={setCustomQty} />
               <Input className="col-span-9 h-10" placeholder="Observação (ex: capa iPhone 15 transparente)" value={customNote} onChange={(e) => setCustomNote(e.target.value)} />
               <Button
                 type="button"
@@ -391,10 +389,10 @@ export default function PedidoNovo() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Input type="number" min={1} value={s.suggested_qty} onChange={(e) => update(i, { suggested_qty: Math.max(1, Number(e.target.value) || 1) })} className="h-8 w-20 ml-auto text-right font-mono" />
+                      <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={s.suggested_qty} onValueChange={(n) => update(i, { suggested_qty: n })} className="h-8 w-20 ml-auto text-right font-mono" />
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Input type="number" step="0.01" value={s.unit_cost} onChange={(e) => update(i, { unit_cost: Number(e.target.value) || 0 })} className="h-8 w-24 ml-auto text-right font-mono" />
+                      <NumberInput value={s.unit_cost} onValueChange={(n) => update(i, { unit_cost: n })} className="h-8 w-24 ml-auto text-right font-mono" />
                     </td>
                     <td className="px-4 py-3 text-right metric font-semibold">{brl(s.suggested_qty * s.unit_cost)}</td>
                     <td className="px-4 py-3 text-right">

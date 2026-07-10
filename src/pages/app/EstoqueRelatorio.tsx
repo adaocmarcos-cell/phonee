@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -612,7 +613,7 @@ export default function EstoqueRelatorio() {
             </div>
             <div>
               <Label>Quantidade (use negativo para baixa)</Label>
-              <Input type="number" value={adjQty} onChange={(e) => setAdjQty(parseInt(e.target.value || "0", 10))} />
+              <NumberInput allowDecimal={false} value={adjQty} onValueChange={setAdjQty} />
             </div>
             <div>
               <Label>Motivo</Label>

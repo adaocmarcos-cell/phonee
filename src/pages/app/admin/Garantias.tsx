@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -150,9 +151,9 @@ export default function Garantias() {
             <div className="space-y-2">
               {s.options.map((o, idx) => (
                 <div key={idx} className="grid grid-cols-[80px_1fr_auto] gap-2">
-                  <Input
-                    type="number" min={1} value={o.days}
-                    onChange={(e) => updateOption(idx, { days: Math.max(1, Number(e.target.value)) })}
+                  <NumberInput
+                    allowDecimal={false} min={1} emptyBehavior="min" value={o.days}
+                    onValueChange={(n) => updateOption(idx, { days: n })}
                     disabled={!canEdit}
                   />
                   <Input
