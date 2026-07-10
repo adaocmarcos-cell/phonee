@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown } from "lucide-react";
@@ -928,11 +929,12 @@ export default function Estoque() {
                "Novo valor"}
             </Label>
             {bulkOp === "price" || bulkOp === "stock_min" ? (
-              <Input
+              <NumberInput
                 autoFocus
-                type="number"
-                value={bulkValue}
-                onChange={(e) => setBulkValue(e.target.value)}
+                allowDecimal={bulkOp === "price"}
+                min={0}
+                value={Number(bulkValue) || 0}
+                onValueChange={(n) => setBulkValue(String(n))}
               />
             ) : (
               <AutocompleteInput
@@ -968,12 +970,12 @@ export default function Estoque() {
           <div className="space-y-3 py-2">
             <div>
               <Label htmlFor="min-stock" className="text-xs text-muted-foreground">Quantidade mínima em estoque</Label>
-              <Input
+              <NumberInput
                 id="min-stock"
-                type="number"
+                allowDecimal={false}
                 min={0}
-                value={minValue}
-                onChange={(e) => setMinValue(e.target.value)}
+                value={Number(minValue) || 0}
+                onValueChange={(n) => setMinValue(String(n))}
                 className="mt-1 h-10"
                 autoFocus
               />

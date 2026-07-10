@@ -493,7 +493,7 @@ Status: ${os.status}`;
               </div>
             </div>
             <Field label="Saúde da bateria (%)">
-              <Input type="number" min={0} max={100} value={os.battery_health ?? ""} onChange={(e) => set("battery_health", e.target.value ? Number(e.target.value) : null)} className="max-w-[160px]" />
+              <NumberInput allowDecimal={false} min={0} value={os.battery_health ?? 0} onValueChange={(n) => set("battery_health", n === 0 ? null : Math.min(100, n))} className="max-w-[160px]" />
             </Field>
             <div>
               <h3 className="font-semibold text-sm mb-3">Acessórios recebidos</h3>
@@ -530,7 +530,7 @@ Status: ${os.status}`;
             <Field label="Peças (R$)"><NumberInput value={os.parts_value ?? 0} onValueChange={(n) => set("parts_value", n)} /></Field>
             <Field label="Mão de obra (R$)"><NumberInput value={os.labor_value ?? 0} onValueChange={(n) => set("labor_value", n)} /></Field>
             <Field label="Total (R$)"><Input readOnly value={(Number(os.parts_value || 0) + Number(os.labor_value || 0)).toFixed(2)} className="bg-primary/10 text-primary font-bold" /></Field>
-            <Field label="Prazo estimado (dias)"><Input type="number" min={0} value={os.estimated_days ?? ""} onChange={(e) => set("estimated_days", e.target.value ? Number(e.target.value) : null)} /></Field>
+            <Field label="Prazo estimado (dias)"><NumberInput allowDecimal={false} min={0} value={os.estimated_days ?? 0} onValueChange={(n) => set("estimated_days", n === 0 ? null : n)} /></Field>
             <Field label="Status do orçamento">
               <Select value={os.budget_status} onValueChange={(v) => set("budget_status", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>

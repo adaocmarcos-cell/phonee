@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
@@ -780,7 +781,7 @@ export default function Vendas() {
             </div>
             <div>
               <Label>Valor líquido recebido (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={adjustNet} onChange={(e) => setAdjustNet(e.target.value)} />
+              <NumberInput min={0} value={Number(adjustNet) || 0} onValueChange={(n) => setAdjustNet(String(n))} />
               <p className="text-[10px] text-muted-foreground mt-1">
                 Será refletido em Financeiro, Dashboard e relatórios automaticamente.
               </p>

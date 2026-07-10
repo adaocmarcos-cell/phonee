@@ -428,7 +428,7 @@ export default function TradeInForm() {
               {form.imei_status === "limpo" && <Badge className="bg-success/15 text-success border-success/30"><ShieldCheck className="h-3 w-3 mr-1" />IMEI limpo</Badge>}
               {form.imei_status === "restrito" && <Badge className="bg-danger/15 text-danger border-danger/30"><ShieldAlert className="h-3 w-3 mr-1" />IMEI com restrição</Badge>}
             </div>
-            <div className="space-y-2"><Label>Saúde da bateria (%)</Label><Input type="number" min={0} max={100} value={form.battery_health} onChange={(e) => update({ battery_health: e.target.value })} className="font-mono" /></div>
+            <div className="space-y-2"><Label>Saúde da bateria (%)</Label><NumberInput allowDecimal={false} min={0} value={Number(form.battery_health) || 0} onValueChange={(n) => update({ battery_health: String(Math.min(100, n)) })} className="font-mono" /></div>
             <div className="space-y-2"><Label>Valor pago ao cliente (R$)</Label><CurrencyBRLInput value={form.entry_value} onChange={(n) => update({ entry_value: n })} className="font-mono" /></div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">

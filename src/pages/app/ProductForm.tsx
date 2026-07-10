@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -309,27 +310,11 @@ export default function ProductForm() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {canSeeCost(role) && (
               <Field label="Preço de custo (R$)">
-                <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={form.cost_price === 0 ? "" : form.cost_price}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => set("cost_price", e.target.value === "" ? 0 : Number(e.target.value))}
-                />
+                <NumberInput placeholder="0,00" value={form.cost_price} onValueChange={(n) => set("cost_price", n)} />
               </Field>
             )}
             <Field label="Preço de venda (R$)">
-              <Input
-                type="number"
-                step="0.01"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={form.sale_price === 0 ? "" : form.sale_price}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => set("sale_price", e.target.value === "" ? 0 : Number(e.target.value))}
-              />
+              <NumberInput placeholder="0,00" value={form.sale_price} onValueChange={(n) => set("sale_price", n)} />
             </Field>
             {canSeeCost(role) && (
               <Field label="Margem">
@@ -338,9 +323,9 @@ export default function ProductForm() {
                 </div>
               </Field>
             )}
-            <Field label="Estoque atual"><Input type="number" placeholder="0" value={form.stock_current === 0 ? "" : form.stock_current} onFocus={(e) => e.target.select()} onChange={(e) => set("stock_current", e.target.value === "" ? 0 : Number(e.target.value))} /></Field>
-            <Field label="Estoque mínimo"><Input type="number" placeholder="0" value={form.stock_min === 0 ? "" : form.stock_min} onFocus={(e) => e.target.select()} onChange={(e) => set("stock_min", e.target.value === "" ? 0 : Number(e.target.value))} /></Field>
-            <Field label="Estoque máximo"><Input type="number" placeholder="0" value={form.stock_max === 0 ? "" : form.stock_max} onFocus={(e) => e.target.select()} onChange={(e) => set("stock_max", e.target.value === "" ? 0 : Number(e.target.value))} /></Field>
+            <Field label="Estoque atual"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_current} onValueChange={(n) => set("stock_current", n)} /></Field>
+            <Field label="Estoque mínimo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_min} onValueChange={(n) => set("stock_min", n)} /></Field>
+            <Field label="Estoque máximo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_max} onValueChange={(n) => set("stock_max", n)} /></Field>
             <Field label="Localização física"><AutocompleteInput options={suggest.locations} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Prateleira A3" /></Field>
           </div>
         </Card>
@@ -359,15 +344,7 @@ export default function ProductForm() {
                 <div className="px-6 pb-6 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Field label="Custo de aquisição (R$)">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        placeholder="Quanto você pagou?"
-                        value={form.cost_price === 0 ? "" : form.cost_price}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => set("cost_price", e.target.value === "" ? 0 : Number(e.target.value))}
-                      />
+                      <NumberInput placeholder="Quanto você pagou?" value={form.cost_price} onValueChange={(n) => set("cost_price", n)} />
                     </Field>
                     <Field label="Fornecedor / Origem">
                       <AutocompleteInput options={suggest.suppliers} value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Nome ou telefone" />
