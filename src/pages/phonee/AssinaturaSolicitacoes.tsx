@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -230,7 +231,7 @@ function NewRequestDialog({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <label className="text-xs text-slate-400">Valor (centavos)</label>
-              <Input type="number" value={amountCents} onChange={(e) => setAmountCents(e.target.value)} placeholder="ex: 19900" />
+              <NumberInput allowDecimal={false} min={0} value={Number(amountCents) || 0} onValueChange={(n) => setAmountCents(n === 0 ? "" : String(n))} placeholder="ex: 19900" />
             </div>
           </div>
           <div>
