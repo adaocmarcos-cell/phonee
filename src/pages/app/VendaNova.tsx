@@ -1792,6 +1792,17 @@ Obrigado pela preferência.`;
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{customer || "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span>{totalsItems} · {totalsQty} un.</span></div>
+            <div className="rounded-md border border-border/60 bg-surface-elevated/40 p-2 space-y-1 font-mono text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto</span><span>{brl(subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Descontos</span><span>− {brl(totalDiscount)}</span></div>
+              {freight > 0 && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>+ {brl(freight)}</span></div>
+              )}
+              {otherExpenses > 0 && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Outras despesas</span><span>+ {brl(otherExpenses)}</span></div>
+              )}
+              <div className="flex justify-between border-t border-border/60 pt-1 font-semibold text-foreground"><span>Total esperado</span><span>{brl(totalSale)}</span></div>
+            </div>
             <div className="border-t border-border/60 pt-2 space-y-1">
               {payments.map((p, i) => (
                 <div key={i} className="flex justify-between font-mono text-xs">
@@ -1803,10 +1814,13 @@ Obrigado pela preferência.`;
             <div className="flex justify-between font-semibold border-t border-border/60 pt-2">
               <span>Total pago</span><span>{brl(paid)}</span>
             </div>
+            <div className={`flex justify-between text-xs ${Math.abs(remaining) < 0.01 ? "text-success" : "text-danger"}`}>
+              <span>Restante</span><span>{brl(remaining)}</span>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
-            <Button onClick={() => submit()} disabled={busy} className="bg-primary text-primary-foreground">
+            <Button onClick={() => submit()} disabled={busy || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
             </Button>
           </DialogFooter>
