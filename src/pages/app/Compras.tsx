@@ -397,7 +397,7 @@ export default function Compras() {
       payment_status: "a_pagar", due_date: "", tags: [],
       received_at: new Date().toISOString().slice(0, 10),
     } as any);
-    setItems([{ product_name: "", quantity: 1, unit_cost: 0 }]);
+    setItems([{ product_name: "", quantity: 0, unit_cost: 0 }]);
     setBulk("");
     setSkuQuery("");
     setTagsInput("");
@@ -455,6 +455,8 @@ export default function Compras() {
   // Antes de salvar, valida cada item: existe no estoque? saldo atual e após entrada
   const buildPreview = async () => {
     if (!store) return;
+    const missingQty = items.find((i) => i.product_name.trim() && (!i.quantity || i.quantity <= 0));
+    if (missingQty) { toast.error(`Informe a quantidade do item ${missingQty.product_name.trim()}`); return; }
     const validItems = items.filter((i) => i.product_name.trim() && i.quantity > 0);
     if (validItems.length === 0) { toast.error("Adicione ao menos um item"); return; }
     const result: Preview[] = [];
@@ -793,7 +795,7 @@ export default function Compras() {
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <Label>Itens</Label>
-              <Button size="sm" variant="outline" onClick={() => setItems((a) => [...a, { product_name: "", quantity: 1, unit_cost: 0 }])}>
+              <Button size="sm" variant="outline" onClick={() => setItems((a) => [...a, { product_name: "", quantity: 0, unit_cost: 0 }])}>
                 <Plus className="h-3 w-3 mr-1" /> Adicionar item
               </Button>
             </div>
@@ -896,10 +898,10 @@ export default function Compras() {
                   </div>
                   <NumberInput
                     ref={(el) => { qtyInputsRef.current[idx] = el; }}
-                    className="col-span-2" allowDecimal={false} min={1} emptyBehavior="min" placeholder="Qtd" value={it.quantity}
+                    className="col-span-2" allowDecimal={false} min={0} emptyBehavior="zero" placeholder="Qtd" value={it.quantity}
                     onValueChange={(n) => setItems((a) => a.map((x, i) => i === idx ? { ...x, quantity: n } : x))}
                   />
-                  <NumberInput className="col-span-2" placeholder="Custo unit." value={it.unit_cost} onValueChange={(n) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: n } : x))} />
+                  <NumberInput className="col-span-2" placeholder="0,00" value={it.unit_cost} onValueChange={(n) => setItems((a) => a.map((x, i) => i === idx ? { ...x, unit_cost: n } : x))} />
                   <Button size="icon" variant="ghost" className="col-span-1 text-danger" onClick={() => setItems((a) => a.filter((_, i) => i !== idx))}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
               ))}
