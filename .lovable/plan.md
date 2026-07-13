@@ -1,57 +1,68 @@
-## Objetivo
-Transformar o Meta Pixel já instalado em um sistema completo de tracking para vender mais assinaturas Phonee: eventos certos disparados nas páginas de venda, envio em paralelo via Meta Conversions API (CAPI) para resistir a bloqueadores, controle de consentimento de cookies (LGPD-friendly), painel de monitoramento no admin master e modo debug.
+# Auditoria, validações e vínculos em lote
 
-## 1. Eventos do Pixel (frontend)
-Disparar eventos padrão Meta nas páginas de venda, ao invés de só `PageView`:
-- `ViewContent` — entrada em `/comprar`, `/?demo=1`, `/testegratis` (com `content_name` do plano)
-- `Lead` — submissão de "Experimente grátis 7 dias" e "Indique e ganhe"
-- `InitiateCheckout` — clique no botão de assinar plano (anual / vitalício / trial)
-- `Purchase` — confirmação em `/comprar/sucesso` (com `value` e `currency=BRL`)
-- `CompleteRegistration` — cadastro de parceiro / signup
+## 1. Página de Audit Log (`/phonee/audit-log`)
 
-Helper único `src/lib/metaPixel.ts` com `track(event, params)` que gera um `event_id` (UUID) por evento — necessário para deduplicar com o envio via CAPI.
+Nova rota admin-master com timeline unificada.
 
-## 2. Consentimento de cookies (LGPD)
-- Novo componente `CookieConsentBanner.tsx`, exibido no rodapé na primeira visita de páginas públicas.
-- Opções: **Aceitar** / **Apenas essenciais**. Estado salvo em `localStorage` (`phn_consent=granted|denied`).
-- `MetaPixel.tsx` passa a só carregar o script e disparar eventos quando `consent === granted`. Se o usuário aceitar depois, o pixel inicializa em runtime sem reload.
-- Botão "Preferências de cookies" no rodapé do site para reabrir o banner.
+**Backend (migration):**
+- RPC `phonee_audit_log(_store_id, _user_id, _action, _from, _to, _limit, _offset)` que retorna registros de `audit_log` com join em `profiles` (nome/email do autor e do alvo) e `stores` (nome).
+- Fontes exibidas: `audit_log` (todas as ações) + resultado atual de `phonee_permission_audit()` como aba separada ("Problemas atuais de vínculo").
+- Apenas admin master pode chamar.
 
-## 3. Meta Conversions API (CAPI) — servidor
-- Nova edge function `meta-capi-track` que recebe `{ event_name, event_id, event_source_url, user_data, custom_data }`, hash SHA-256 de email/telefone, e faz POST para `https://graph.facebook.com/v18.0/<PIXEL_ID>/events` usando o **access token** do Meta (secret).
-- Todo evento disparado no front também é enviado em paralelo para essa função com o mesmo `event_id` — Meta usa o ID para deduplicar Pixel + CAPI.
-- Cada chamada grava uma linha em `meta_pixel_events` (tabela nova) para o painel admin.
+**Frontend `src/pages/phonee/AuditLog.tsx`:**
+- Filtros: loja (select), usuário autor (autocomplete por email), motivo/ação (select com valores distintos: `permission_change`, `checksum_falha`, `role_change`, etc.), período (from/to).
+- Timeline em ordem temporal decrescente, com badge da ação, delta (`old_value` → `new_value`), módulo/tela.
+- Aba "Vínculos inconsistentes" listando `phonee_permission_audit` com badge de motivo.
+- Paginação simples (limit/offset, botão "carregar mais").
+- Link no Layout admin master.
 
-## 4. Painel admin master — Marketing → Meta Pixel
-Em `src/pages/phonee/Marketing.tsx`, nova aba "Meta Pixel" com:
-- **KPIs últimos 30 dias**: total de eventos, eventos por tipo, taxa CAPI vs Pixel, conversões (Lead/Purchase), valor total.
-- **Gráfico diário** de eventos por tipo (Recharts).
-- **Top páginas** que mais geraram eventos.
-- **Tabela de últimos 50 eventos** com tipo, origem (browser/server), página, valor, status do envio CAPI.
-- Botões de configuração: Pixel ID (já existe), **Access Token CAPI** (secret), **Test Event Code** (opcional para debug Meta).
+## 2. Validação na tela de Vínculos
 
-## 5. Painel de debug
-- Aba "Debug" dentro do mesmo módulo: campo para colar o **Test Event Code** do Meta Events Manager.
-- Quando preenchido, o front anexa esse código em `fbq('track', ...)` (via `fbq('set', 'agent', ...)` não — usa o parâmetro `test_event_code` na chamada CAPI) e o backend também envia para CAPI.
-- Stream em tempo real (polling 3s) dos últimos eventos disparados pela sessão atual, mostrando se chegou no Pixel, no CAPI, e o response do Meta.
+**Regras a validar antes de salvar (no submit e via tooltip preventivo):**
+- `dono`: só pode ser atribuído se ainda não houver outro dono na loja (`stores.owner_id`). Caso contrário desabilita a opção com tooltip "Loja já possui dono — remova o dono atual primeiro".
+- `administrador`: só pode ser atribuído por admin master (checar `is_admin_master`); gerente vê a opção desabilitada com tooltip.
+- Não permitir atribuir cargo a `user_id` que não existe em `profiles` (validar via RPC leve `phonee_user_exists`).
+- Não permitir vincular usuário já vinculado com o mesmo cargo (evita duplicação silenciosa).
+- Não permitir remover o próprio cargo do usuário logado se ele é o único gerente/dono ativo.
 
-## 6. Validação do filtro de preço
-Já foi entregue na rodada anterior (bordas vermelhas + mensagem clara quando "De" > "Até") em `TabelasPreco.tsx`. Vou apenas reconferir a UX e ajustar a mensagem se necessário.
+**Implementação:**
+- Nova RPC `phonee_validate_role_assignment(_user_id, _store_id, _role)` retornando `{ ok boolean, reason text }`.
+- No `<Select>` do cargo, envolver cada `SelectItem` em Tooltip mostrando o motivo quando desabilitado (consultar estado local computado a partir de `bindings` + flags do admin).
+- No submit do dialog de "Adicionar vínculo", chamar a RPC de validação e mostrar toast + tooltip inline caso reprove.
 
-## Detalhes técnicos
-- **Tabela nova** `meta_pixel_events`: `event_name`, `event_id` (UUID), `source` (`browser`|`server`), `event_source_url`, `value`, `currency`, `email_hash`, `phone_hash`, `fbp`, `fbc`, `user_agent`, `ip`, `capi_status`, `capi_response`, `test_event_code`, `created_at`. RLS: apenas `admin_master` lê; insert via service role (edge function).
-- **RPC** `phonee_pixel_events_overview(_days int)` retorna KPIs/series/top paths/last 50 — restrita a `is_admin_master`.
-- **Secret necessário**: `META_CAPI_ACCESS_TOKEN` (System User access token do Meta Business com permissão no dataset do pixel). Antes de criar a edge function, vou pedir confirmação para você gerar e colar via formulário seguro do Lovable (passo a passo: Meta Business → Configurações do Evento → seu Pixel → Configurações → "Gerar token de acesso"). Sem esse token a parte CAPI fica desativada, mas todo o resto (Pixel, consentimento, painel, debug) funciona.
-- O Pixel ID `1545906780399824` já está salvo em `marketing_settings` e exposto via `get_meta_pixel_id()`.
+## 3. Vínculo em lote
 
-## Arquivos afetados
-- `src/lib/metaPixel.ts` (novo helper de tracking)
-- `src/components/MetaPixel.tsx` (consent gating + event_id + CAPI dispatch)
-- `src/components/CookieConsentBanner.tsx` (novo)
-- `src/pages/Landing.tsx`, `src/pages/Comprar.tsx`, `src/pages/ComprarSucesso.tsx`, `src/components/FreeTrialSignupDialog.tsx`, `src/components/LandingReferralSignupDialog.tsx`, `src/pages/ParceirosSignup.tsx` (chamadas `track()`)
-- `src/pages/phonee/Marketing.tsx` (abas + KPIs + debug)
-- `supabase/functions/meta-capi-track/index.ts` (nova edge function)
-- Migration: tabela `meta_pixel_events`, RPC `phonee_pixel_events_overview`
+**UI:** botão "Vincular em lote" abre um dialog com:
+- Textarea com um e-mail por linha (ou colar CSV `email,role`).
+- Select global do cargo padrão (usado quando não vier na linha).
+- Botão "Pré-validar": chama nova RPC `phonee_bulk_validate_bindings(_store_id, _rows jsonb)` que retorna, para cada linha, `{ email, user_id, role, status: 'ok'|'user_not_found'|'invalid_role'|'already_bound'|'duplicate_owner', reason }`.
+- Tabela de resultados com badges por status. Botão "Aplicar apenas os OK" só habilita se houver pelo menos 1 OK.
+- Ao aplicar, chama `phonee_bulk_bind(_store_id, _rows jsonb)` que executa em transação, ignora não-OK, grava um `audit_log` por atribuição e retorna resumo `{ inserted, skipped, errors[] }`.
+- Toast final com o resumo.
 
-## Confirmação
-Confirma que posso seguir com este escopo? E me autoriza a já solicitar o **META_CAPI_ACCESS_TOKEN** para ativar o envio server-side? (sem ele, só Pixel + painel + consentimento funcionam — o CAPI fica pronto mas inativo).
+## 4. Teste E2E de RLS via UI
+
+**Seed:** script `tests/e2e/setup/seed-rls.ts` que usa o service role (via edge function dedicada `test-seed-rls`, pois o service role não é acessível no cliente) para criar:
+- 2 lojas (`storeA`, `storeB`).
+- 4 usuários: `owner@a.test` (dono A), `manager@a.test` (gerente A), `seller@a.test` (vendedor A), `outsider@b.test` (dono B).
+- 1 venda e 1 pedido de compra na `storeA`.
+- Retorna credenciais one-time (senhas geradas).
+
+**Teste `tests/e2e/rls-sales-purchases.spec.ts` (Playwright):**
+- Para cada usuário: login pela UI → navega até `/app/vendas` → tenta editar a venda seed → captura resultado (sucesso vs erro).
+- Cenários esperados:
+  - `owner@a.test`: edita venda ✅ e vê compra da loja A ✅.
+  - `manager@a.test`: edita venda ✅ e vê compra ✅.
+  - `seller@a.test`: edita venda ✅ (por padrão liberado) — teste captura o estado como baseline.
+  - `outsider@b.test`: não vê venda nem compra da loja A ❌ (deve aparecer vazio).
+- Cleanup: chama edge function `test-seed-rls?cleanup=1` no `afterAll`.
+
+**Detalhes técnicos (para a persona técnica):**
+- Timeline usa `TZ America/Sao_Paulo` formatado com `date-fns-tz`.
+- Todas as novas RPCs `SECURITY DEFINER`, `GRANT EXECUTE ... TO authenticated`, com checagem inicial de `is_admin_master` ou `is_owner/has_role('gerente')` conforme o escopo.
+- Edge function de seed lê `SUPABASE_SERVICE_ROLE_KEY` do secret já existente no ambiente Lovable Cloud e é protegida por um header `x-test-seed-token` (novo secret que o usuário confirma antes do primeiro run).
+
+## Ordem de execução
+1. Migration: RPCs de audit log, validação e lote.
+2. Frontend: `AuditLog.tsx`, updates em `Vinculos.tsx` (validação + lote), rota + link no Layout.
+3. Edge function `test-seed-rls` + spec Playwright + doc curto em `tests/e2e/README.md`.
