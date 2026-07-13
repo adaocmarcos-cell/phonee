@@ -86,6 +86,7 @@ const PhoneeAssinaturaSolicitacoes = lazy(() => import("./pages/phonee/Assinatur
 const PhoneeAdminMasters = lazy(() => import("./pages/phonee/AdminMasters"));
 const PhoneeContas = lazy(() => import("./pages/phonee/Contas"));
 const PhoneeDiagnostico = lazy(() => import("./pages/phonee/Diagnostico"));
+const PhoneeVinculos = lazy(() => import("./pages/phonee/Vinculos"));
 
 const RouteFallback = () => (
   <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
@@ -197,6 +198,7 @@ const App = () => (
               <Route path="auditoria" element={<PhoneeAuditoria />} />
               <Route path="assinaturas/solicitacoes" element={<PhoneeAssinaturaSolicitacoes />} />
               <Route path="admins" element={<PhoneeAdminMasters />} />
+              <Route path="vinculos" element={<PhoneeVinculos />} />
               <Route path="diagnostico" element={<PhoneeDiagnostico />} />
             </Route>
             <Route path="*" element={<NotFound />} />
