@@ -28,6 +28,7 @@ import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react"
 import { UserCheck } from "lucide-react";
 import { buildLineItemFromProduct } from "@/lib/vendaSearch";
 import { NumberInput } from "@/components/NumberInput";
+import { LastEditFooter } from "@/components/audit/LastEditFooter";
 
 type CustomerLite = {
   id: string;
