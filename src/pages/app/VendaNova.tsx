@@ -298,6 +298,21 @@ export default function VendaNova() {
   };
   useEffect(() => { loadCustomers(); /* eslint-disable-next-line */ }, [store?.id]);
 
+  // Carrega trade-ins disponíveis para uso como meio de pagamento
+  const loadAvailableTradeIns = useCallback(async () => {
+    if (!store) return;
+    const { data } = await (supabase as any)
+      .from("trade_ins")
+      .select("id,brand,model,storage_gb,imei,entry_value,status,product_id")
+      .eq("store_id", store.id)
+      .in("status", ["em_avaliacao", "aprovado"])
+      .is("received_in_sale_id", null)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setAvailableTradeIns((data as TradeInLite[]) ?? []);
+  }, [store]);
+  useEffect(() => { loadAvailableTradeIns(); }, [loadAvailableTradeIns]);
+
   const applyCustomer = (c: CustomerLite) => {
     setCustomerId(c.id);
     setCustomer(c.name);
