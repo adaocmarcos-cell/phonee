@@ -12,7 +12,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comece from "./pages/Comece";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useParams } from "react-router-dom";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { SplashScreen } from "./components/SplashScreen";
@@ -177,6 +177,8 @@ const App = () => (
             <Route path="/reset-password" element={<Navigate to="/redefinir-senha" replace />} />
             <Route path="/app/*" element={<RedirectAppToPainel />} />
             <Route path="/app" element={<Navigate to="/painel" replace />} />
+            {/* Atalho de URL curta e compartilhável para compra */}
+            <Route path="/compras/:id" element={<RedirectCompraShort />} />
 
             {/* Compat: rota antiga /mobileplus/* -> /phonee/* */}
             <Route path="/mobileplus" element={<Navigate to="/phonee" replace />} />
@@ -228,6 +230,12 @@ function RedirectAppToPainel() {
     .replace(/^\/app\/tabelas-preco/, "/painel/tabelas")
     .replace(/^\/app/, "/painel");
   return <Navigate to={remapped + search + hash} replace />;
+}
+
+function RedirectCompraShort() {
+  const { id } = useParams();
+  const { search, hash } = useLocation();
+  return <Navigate to={`/painel/compras/${id}${search}${hash}`} replace />;
 }
 
 function RedirectMobileplusToPhonee() {
