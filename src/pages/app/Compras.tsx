@@ -809,11 +809,11 @@ export default function Compras() {
                   role="button"
                   tabIndex={0}
                   aria-label={`Abrir compra de ${o.supplier ?? "fornecedor"} em ${new Date(o.created_at).toLocaleDateString("pt-BR")}`}
-                  onClick={() => openView(o)}
+                  onClick={() => navigate(`/painel/compras/${o.id}`)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      openView(o);
+                      navigate(`/painel/compras/${o.id}`);
                     }
                   }}
                   className="cursor-pointer hover:bg-surface-elevated/60 focus:bg-surface-elevated/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 transition-colors"
