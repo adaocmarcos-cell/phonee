@@ -1278,6 +1278,7 @@ Obrigado pela preferência.`;
 
                   {payments.map((p, idx) => {
                     const isCard = p.method === "credito" || p.method === "debito" || p.method === "crediario";
+                    const isTroca = p.method === "troca";
                     return (
                       <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
                         <Field label={`Forma ${idx + 1}`}>
@@ -1329,6 +1330,48 @@ Obrigado pela preferência.`;
                             <Trash2 className="h-3.5 w-3.5 text-danger" />
                           </Button>
                         </div>
+                        {isTroca && (
+                          <div className="md:col-span-5 -mt-1 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-[11px] uppercase tracking-widest text-amber-700">
+                                Aparelho recebido na troca
+                              </Label>
+                              <a
+                                href="/painel/troca/novo"
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-[11px] underline text-amber-700 hover:text-amber-800"
+                              >
+                                + Cadastrar novo aparelho de troca
+                              </a>
+                            </div>
+                            {availableTradeIns.length === 0 ? (
+                              <div className="text-[11px] text-muted-foreground">
+                                Nenhum aparelho em avaliação/aprovado. Cadastre em <b>Compra & Troca</b> antes de finalizar a venda.
+                              </div>
+                            ) : (
+                              <Select
+                                value={p.trade_in_id ?? ""}
+                                onValueChange={(v) => {
+                                  const ti = availableTradeIns.find((x) => x.id === v);
+                                  updatePayment(idx, {
+                                    trade_in_id: v || null,
+                                    amount: ti ? Number(ti.entry_value || 0) : p.amount,
+                                    notes: ti ? `${ti.brand ?? ""} ${ti.model ?? ""}${ti.imei ? ` · IMEI ${ti.imei}` : ""}`.trim() : p.notes,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar aparelho…" /></SelectTrigger>
+                                <SelectContent>
+                                  {availableTradeIns.map((ti) => (
+                                    <SelectItem key={ti.id} value={ti.id}>
+                                      {ti.brand} {ti.model} {ti.storage_gb ? `· ${ti.storage_gb}GB` : ""} · {brl(Number(ti.entry_value || 0))}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
