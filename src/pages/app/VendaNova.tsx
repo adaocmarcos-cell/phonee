@@ -1044,6 +1044,12 @@ Obrigado pela preferência.`;
         }
       />
 
+      {isEditingSale && editingSaleId && (
+        <div className="mb-4">
+          <LastEditFooter entity="sale" entityId={editingSaleId} />
+        </div>
+      )}
+
       <form onSubmit={onSubmitClick} className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 space-y-4">
           {/* CLIENTE */}
