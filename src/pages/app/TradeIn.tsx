@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Smartphone, Search, ArrowLeft, CheckCircle2, CircleOff, HelpCircle, AlertTriangle } from "lucide-react";
+import { Plus, Smartphone, Search, ArrowLeft, CheckCircle2, CircleOff, HelpCircle, AlertTriangle, Scale } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { brl } from "@/lib/format";
@@ -80,6 +80,9 @@ export default function TradeIn() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/estoque")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao estoque
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/painel/troca/reconciliacao")}>
+              <Scale className="h-4 w-4 mr-1" /> Reconciliação
             </Button>
             <Button onClick={() => navigate("/painel/troca/novo")} className="bg-gradient-primary shadow-glow">
               <Plus className="h-4 w-4 mr-1" /> Lançar entrada
