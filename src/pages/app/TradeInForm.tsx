@@ -143,7 +143,7 @@ export default function TradeInForm() {
       repair_parts: newParts,
       repair_costs: Number(form.repair_costs || 0) + item.qty * item.unit_cost,
     });
-    setSelPartId(""); setSelPartQty(1); setPartDialogOpen(false);
+    setSelPartId(""); setSelPartQty(0); setPartDialogOpen(false);
   };
 
   const removeRepairPart = (idx: number) => {

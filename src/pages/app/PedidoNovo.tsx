@@ -166,6 +166,7 @@ export default function PedidoNovo() {
 
   const addCustomItem = () => {
     if (!customNote.trim()) return toast.error("Descreva a encomenda na observação.");
+    if (!customQty || customQty < 1) return toast.error("Informe a quantidade da encomenda.");
     setSuggestions((arr) => [{
       product_id: null,
       product_name: customNote.trim(),
@@ -175,12 +176,12 @@ export default function PedidoNovo() {
       cost_price: 0,
       daily_velocity: 0,
       days_to_rupture: null,
-      suggested_qty: Math.max(1, customQty),
+      suggested_qty: customQty,
       unit_cost: 0,
       selected: true,
       custom: true,
     }, ...arr]);
-    setCustomQty(1); setCustomNote("");
+    setCustomQty(0); setCustomNote("");
     toast.success("Encomenda adicionada.");
   };
 

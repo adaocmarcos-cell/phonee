@@ -202,7 +202,7 @@ export default function PartsInventory() {
   const openLinkOS = async (p: Part) => {
     if (!store) return;
     setOsTarget(p);
-    setOsQty(1);
+    setOsQty(0);
     setOsPick("");
     const { data } = await supabase
       .from("service_orders")
