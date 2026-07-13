@@ -580,26 +580,20 @@ function FiltersPanel(props: {
         <div>
           <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preço (R$)</Label>
           <div className="flex items-center gap-1.5 mt-2">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
+            <NumberInput
+              min={0}
               placeholder="De"
               className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
-              value={priceMin}
-              onChange={(e) => setPriceMin(e.target.value)}
+              value={priceMin ?? 0}
+              onValueChange={(n) => setPriceMin(n === 0 ? null : n)}
             />
             <span className="text-xs text-muted-foreground">—</span>
-            <Input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
+            <NumberInput
+              min={0}
               placeholder="Até"
               className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
-              value={priceMax}
-              onChange={(e) => setPriceMax(e.target.value)}
+              value={priceMax ?? 0}
+              onValueChange={(n) => setPriceMax(n === 0 ? null : n)}
             />
           </div>
           {priceError && (
