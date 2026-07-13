@@ -15,6 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { ShieldAlert, UserPlus, Trash2, RefreshCw, Search, Link2 } from "lucide-react";
 
 type Store = { store_id: string; store_name: string; owner_email: string | null };
@@ -25,6 +26,22 @@ type Binding = {
   is_owner: boolean;
   roles: string[];
 };
+type StorePermission = {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  can_view_sales: boolean;
+  can_edit_sales: boolean;
+  can_view_purchases: boolean;
+  can_edit_purchases: boolean;
+};
+type FeatureKey = "view_sales" | "edit_sales" | "view_purchases" | "edit_purchases";
+const PERM_FEATURES: { key: FeatureKey; col: keyof StorePermission; label: string }[] = [
+  { key: "view_sales", col: "can_view_sales", label: "Ver vendas" },
+  { key: "edit_sales", col: "can_edit_sales", label: "Editar vendas" },
+  { key: "view_purchases", col: "can_view_purchases", label: "Ver compras" },
+  { key: "edit_purchases", col: "can_edit_purchases", label: "Editar compras" },
+];
 type AuditRow = {
   user_id: string;
   email: string | null;
@@ -70,6 +87,8 @@ export default function PhoneeVinculos() {
   const [saving, setSaving] = useState(false);
 
   const [confirmDel, setConfirmDel] = useState<Binding | null>(null);
+  const [perms, setPerms] = useState<StorePermission[]>([]);
+  const [loadingPerms, setLoadingPerms] = useState(false);
 
   const loadStores = async () => {
     setLoadingStores(true);
@@ -96,8 +115,17 @@ export default function PhoneeVinculos() {
     setLoadingBindings(false);
   };
 
+  const loadPerms = async (id: string) => {
+    if (!id) { setPerms([]); return; }
+    setLoadingPerms(true);
+    const { data, error } = await (supabase.rpc as any)("phonee_list_store_permissions", { _store_id: id });
+    if (error) toast.error(error.message);
+    else setPerms((data ?? []) as StorePermission[]);
+    setLoadingPerms(false);
+  };
+
   useEffect(() => { loadStores(); loadAudit(); }, []);
-  useEffect(() => { loadBindings(storeId); }, [storeId]);
+  useEffect(() => { loadBindings(storeId); loadPerms(storeId); }, [storeId]);
 
   const filteredStores = useMemo(() => {
     const q = storeQ.trim().toLowerCase();
@@ -148,7 +176,20 @@ export default function PhoneeVinculos() {
     if (error) { toast.error(error.message); return; }
     toast.success("Usuário desvinculado.");
     setConfirmDel(null);
-    loadBindings(storeId); loadAudit();
+    loadBindings(storeId); loadAudit(); loadPerms(storeId);
+  };
+
+  const handleTogglePerm = async (userId: string, feature: FeatureKey, col: keyof StorePermission, allowed: boolean) => {
+    setPerms((prev) => prev.map((p) => p.user_id === userId ? { ...p, [col]: allowed } : p));
+    const { error } = await (supabase.rpc as any)("phonee_set_store_permission", {
+      _user_id: userId, _store_id: storeId, _feature: feature, _allowed: allowed,
+    });
+    if (error) {
+      toast.error(error.message);
+      setPerms((prev) => prev.map((p) => p.user_id === userId ? { ...p, [col]: !allowed } : p));
+      return;
+    }
+    toast.success(allowed ? "Permissão liberada." : "Permissão removida.");
   };
 
   const prefillFromAudit = (userId: string) => {
@@ -228,6 +269,64 @@ export default function PhoneeVinculos() {
               })}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      {/* Permissões de vendas e compras */}
+      <section className="rounded-lg border border-slate-800 bg-slate-900">
+        <header className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold">Permissões de Vendas e Compras</h2>
+            <p className="text-xs text-slate-400">
+              Por padrão, todo membro da loja pode ver e editar. Desligue individualmente quando precisar restringir.
+              Toda mudança fica registrada no log do sistema.
+            </p>
+          </div>
+        </header>
+        <div className="p-4">
+          {!storeId && (
+            <p className="text-sm text-slate-400">Selecione uma loja abaixo para gerenciar permissões.</p>
+          )}
+          {storeId && (
+            <div className="overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs uppercase text-slate-400">
+                  <tr>
+                    <th className="text-left px-3 py-2">Usuário</th>
+                    {PERM_FEATURES.map((f) => (
+                      <th key={f.key} className="text-center px-3 py-2">{f.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingPerms && (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">Carregando…</td></tr>
+                  )}
+                  {!loadingPerms && perms.length === 0 && (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                      Nenhum usuário vinculado a esta loja.
+                    </td></tr>
+                  )}
+                  {perms.map((p) => (
+                    <tr key={p.user_id} className="border-t border-slate-800 hover:bg-slate-800/40">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{p.full_name ?? "—"}</div>
+                        <div className="text-xs text-slate-400">{p.email}</div>
+                      </td>
+                      {PERM_FEATURES.map((f) => (
+                        <td key={f.key} className="px-3 py-2 text-center">
+                          <Switch
+                            checked={Boolean(p[f.col])}
+                            onCheckedChange={(v) => handleTogglePerm(p.user_id, f.key, f.col, v)}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </section>
 
