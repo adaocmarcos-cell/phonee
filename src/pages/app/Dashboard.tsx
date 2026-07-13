@@ -105,9 +105,19 @@ export default function Dashboard() {
         .reverse();
       setSeries(sorted);
 
-      // Payment pie
+      // Payment pie — usa sale_payments (splits) quando disponível para separar
+      // corretamente "troca" e outros métodos; cai para payment_method da venda como legado.
       const payMap: Record<string, number> = {};
+      const { data: splits } = await (supabase as any)
+        .from("sale_payments")
+        .select("method,amount,sale_id")
+        .in("sale_id", safeSales.map((s) => s.id));
+      const salesWithSplits = new Set<string>((splits ?? []).map((r: any) => r.sale_id));
+      (splits ?? []).forEach((r: any) => {
+        payMap[r.method] = (payMap[r.method] || 0) + Number(r.amount || 0);
+      });
       safeSales.forEach((s) => {
+        if (salesWithSplits.has(s.id)) return; // já contabilizado via splits
         payMap[s.payment_method] = (payMap[s.payment_method] || 0) + eff(s);
       });
       setPay(Object.entries(payMap).map(([name, value]) => ({ name, value })));
