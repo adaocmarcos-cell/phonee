@@ -6,17 +6,19 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Smartphone, Search, Inbox, ArrowLeft, CheckCircle2, CircleOff, HelpCircle } from "lucide-react";
+import { Plus, Smartphone, Search, ArrowLeft, CheckCircle2, CircleOff, HelpCircle, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { brl } from "@/lib/format";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP } from "@/lib/tradeInStatus";
+import { evaluateCompleteness } from "@/lib/tradeInCompleteness";
 
 type TI = {
   id: string; customer_name: string; model: string; brand: string | null;
   imei: string | null; condition: string; status: string;
   entry_value: number; intended_sale_value: number; created_at: string;
+  checklist?: any; photos_in?: string[] | null;
 };
 
 export default function TradeIn() {
@@ -44,7 +46,7 @@ export default function TradeIn() {
       setLoading(true);
       const { data } = await supabase
         .from("trade_ins")
-        .select("id, customer_name, model, brand, imei, condition, status, entry_value, intended_sale_value, created_at")
+        .select("id, customer_name, model, brand, imei, condition, status, entry_value, intended_sale_value, created_at, checklist, photos_in")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false });
       setRows((data ?? []) as TI[]);
