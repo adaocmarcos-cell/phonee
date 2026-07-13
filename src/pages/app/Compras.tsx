@@ -618,6 +618,8 @@ export default function Compras() {
       if (form.payment_status === "pago" && orderTotal > 0) toast.message("Despesa lançada no financeiro");
     } else {
       toast.success("Entrada atualizada · estoque recalculado por delta");
+      const summary = buildDeltaSummary(originalItems, items, orderTotal);
+      if (summary) toast.message(summary);
     }
     setSaving(false);
     setPreviewOpen(false);
