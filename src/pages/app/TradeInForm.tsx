@@ -263,14 +263,6 @@ export default function TradeInForm() {
       const { error } = await supabase.from("trade_ins").update(buildPayload(form)).eq("id", id!);
       if (error) return toast.error(error.message);
       await applyRepairSideEffects(form);
-      // If recused, estornar entry expense (zera o valor) para não inconsistir relatório
-      if (form.status === "recusado") {
-        const { data: ti } = await supabase.from("trade_ins").select("entry_expense_id" as any).eq("id", id!).maybeSingle();
-        const expId = (ti as any)?.entry_expense_id as string | null;
-        if (expId) await supabase.from("expenses").update({ amount: 0, notes: "Estornado · entrada recusada" }).eq("id", expId);
-      } else {
-        await syncEntryExpense(id!, form);
-      }
       setBusy(false);
       toast.success("Ficha atualizada");
       navigate("/painel/troca");
@@ -284,8 +276,6 @@ export default function TradeInForm() {
     for (let i = 0; i < all.length; i++) {
       const d = all[i];
       await applyRepairSideEffects(d);
-      const newId = (inserted as any)?.[i]?.id;
-      if (newId && d.status !== "recusado") await syncEntryExpense(newId, d);
     }
     setBusy(false);
     toast.success(`${payloads.length} ficha(s) criada(s)`);
