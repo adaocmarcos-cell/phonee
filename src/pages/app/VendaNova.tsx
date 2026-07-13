@@ -138,10 +138,10 @@ export default function VendaNova() {
 
   // Serviços
   const [serviceDialog, setServiceDialog] = useState<{ open: boolean; description: string; quantity: number; unit_price: number; editing?: string | null }>({
-    open: false, description: "", quantity: 1, unit_price: 0, editing: null,
+    open: false, description: "", quantity: 0, unit_price: 0, editing: null,
   });
   const openNewService = () =>
-    setServiceDialog({ open: true, description: "", quantity: 1, unit_price: 0, editing: null });
+    setServiceDialog({ open: true, description: "", quantity: 0, unit_price: 0, editing: null });
   const openEditService = (i: LineItem) =>
     setServiceDialog({ open: true, description: i.description || i.name, quantity: i.quantity, unit_price: i.unit_price, editing: i.product_id });
   const saveService = () => {
@@ -165,7 +165,7 @@ export default function VendaNova() {
         quantity: qty, list_price: price, discount_pct: 0, discount_brl: 0, unit_price: price,
       }];
     });
-    setServiceDialog({ open: false, description: "", quantity: 1, unit_price: 0, editing: null });
+    setServiceDialog({ open: false, description: "", quantity: 0, unit_price: 0, editing: null });
   };
 
   // Comissões
@@ -1765,7 +1765,7 @@ Obrigado pela preferência.`;
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setServiceDialog({ open: false, description: "", quantity: 1, unit_price: 0, editing: null })}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setServiceDialog({ open: false, description: "", quantity: 0, unit_price: 0, editing: null })}>Cancelar</Button>
             <Button onClick={saveService} className="bg-gradient-primary">{serviceDialog.editing ? "Salvar alterações" : "Adicionar"}</Button>
           </DialogFooter>
         </DialogContent>
