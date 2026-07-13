@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -108,6 +108,8 @@ const CATEGORIES_DEFAULT = [
 
 export default function VendaNova() {
   const navigate = useNavigate();
+  const { id: editingSaleId } = useParams();
+  const isEditingSale = !!editingSaleId;
   const { store, user, role } = useAuth();
 
   // Cliente
@@ -208,6 +210,8 @@ export default function VendaNova() {
   const [allCategories, setAllCategories] = useState(CATEGORIES_DEFAULT);
 
   const [busy, setBusy] = useState(false);
+  const [editHasTradeIn, setEditHasTradeIn] = useState(false);
+  const [editSaleLoaded, setEditSaleLoaded] = useState(false);
 
   // Garantia
   const [warrantyCfg, setWarrantyCfg] = useState<WarrantySettings | null>(null);
@@ -284,6 +288,70 @@ export default function VendaNova() {
       setAllowNegativeStock(data?.allow_negative_stock ?? true);
     })();
   }, [store]);
+
+  // Modo edição: carrega venda existente + itens + pagamentos e preenche o formulário.
+  useEffect(() => {
+    if (!isEditingSale || !store || editSaleLoaded) return;
+    (async () => {
+      const { data: sale } = await supabase
+        .from("sales").select("*").eq("id", editingSaleId).maybeSingle();
+      if (!sale) { toast.error("Venda não encontrada."); navigate("/painel/vendas"); return; }
+      const { data: sItems } = await supabase
+        .from("sale_items").select("*").eq("sale_id", editingSaleId);
+      const { data: sPays } = await supabase
+        .from("sale_payments").select("*").eq("sale_id", editingSaleId);
+
+      setCustomer((sale as any).customer_name ?? "");
+      setCustomerId((sale as any).customer_id ?? null);
+      setDoc((sale as any).customer_doc ?? "");
+      setWhatsapp((sale as any).customer_whatsapp ?? "");
+      // Extras estão em notes (JSON). Tenta preservar.
+      try {
+        const extras = (sale as any).notes ? JSON.parse((sale as any).notes) : null;
+        const ex = extras?.extras;
+        if (ex?.phone) setPhone(ex.phone);
+        if (ex?.city) setCity(ex.city);
+        if (ex?.customer_doc_type === "cpf" || ex?.customer_doc_type === "cnpj") setDocType(ex.customer_doc_type);
+        if (ex?.user_notes) setNotes(ex.user_notes);
+        if (ex?.category) setCategory(ex.category);
+        if (typeof ex?.commission?.percent === "number") setCommissionPct(ex.commission.percent);
+        if (ex?.commission?.status) setCommissionStatus(ex.commission.status);
+        if (ex?.delivery?.sale_date) setSaleDate(ex.delivery.sale_date);
+      } catch { /* noop — notes pode ser texto livre */ }
+
+      const loadedItems: LineItem[] = ((sItems ?? []) as any[]).map((r) => {
+        const price = Number(r.unit_price || 0);
+        const disc = Number(r.discount_amount || 0);
+        const qty = Number(r.quantity || 0);
+        const discPerUnit = qty > 0 ? disc / qty : 0;
+        return {
+          product_id: r.product_id ?? `svc-${r.id}`,
+          is_service: !!r.is_service,
+          description: r.description ?? undefined,
+          name: r.name ?? r.description ?? "",
+          code: r.sku ?? undefined,
+          category: r.category ?? undefined,
+          quantity: qty,
+          list_price: price + discPerUnit,
+          discount_pct: 0,
+          discount_brl: discPerUnit,
+          unit_price: price,
+        };
+      });
+      setItems(loadedItems);
+
+      const loadedPays: SplitPayment[] = ((sPays ?? []) as any[]).map((p) => ({
+        method: p.method,
+        amount: Number(p.amount || 0),
+        notes: p.notes ?? "",
+        installments: p.installments ?? 1,
+        trade_in_id: p.trade_in_id ?? null,
+      }));
+      if (loadedPays.length > 0) setPayments(loadedPays);
+      setEditHasTradeIn(loadedPays.some((p) => !!p.trade_in_id));
+      setEditSaleLoaded(true);
+    })();
+  }, [isEditingSale, store, editingSaleId, editSaleLoaded, navigate]);
 
   // Carrega clientes cadastrados da loja (autocomplete + sincronização)
   const loadCustomers = async () => {
@@ -793,21 +861,44 @@ export default function VendaNova() {
         amount: Number(p.amount),
         installments: p.installments ?? null,
         notes: p.notes || null,
+        trade_in_id: p.trade_in_id ?? null,
       }));
 
-    const { data: rpcData, error } = await (supabase as any).rpc("create_sale", {
-      _store_id: store.id,
-      _customer_id: linkedCustomerId,
-      _customer_name: customer || null,
-      _customer_doc: doc || null,
-      _customer_whatsapp: whatsapp || null,
-      _payment_method: dbMethod,
-      _installments: headInstallments,
-      _discount: totalDiscount,
-      _notes: JSON.stringify(payload),
-      _items: rpcItems,
-      _payments: rpcPayments,
-    });
+    // Bloqueio local: em edição de venda com troca, não permite remover a parcela de troca.
+    if (isEditingSale && editHasTradeIn && !payments.some((p) => p.method === "troca")) {
+      setBusy(false);
+      return toast.error(
+        "Esta venda tem parcela de troca vinculada a um trade-in. Cancele a venda em vez de remover a troca pela edição.",
+      );
+    }
+
+    const { data: rpcData, error } = isEditingSale
+      ? await (supabase as any).rpc("update_sale_with_stock", {
+          _sale_id: editingSaleId,
+          _customer_id: linkedCustomerId,
+          _customer_name: customer || null,
+          _customer_doc: doc || null,
+          _customer_whatsapp: whatsapp || null,
+          _payment_method: dbMethod,
+          _installments: headInstallments,
+          _discount: totalDiscount,
+          _notes: JSON.stringify(payload),
+          _items: rpcItems,
+          _payments: rpcPayments,
+        })
+      : await (supabase as any).rpc("create_sale", {
+          _store_id: store.id,
+          _customer_id: linkedCustomerId,
+          _customer_name: customer || null,
+          _customer_doc: doc || null,
+          _customer_whatsapp: whatsapp || null,
+          _payment_method: dbMethod,
+          _installments: headInstallments,
+          _discount: totalDiscount,
+          _notes: JSON.stringify(payload),
+          _items: rpcItems,
+          _payments: rpcPayments,
+        });
 
     if (error || !rpcData) {
       setBusy(false);
@@ -895,13 +986,18 @@ export default function VendaNova() {
         });
       }
     } catch { /* noop */ }
-    toast.success("Venda registrada!");
-    setPostSave({
-      saleId: sale.id,
-      saleNumber: (sale as any).sale_number ?? null,
-      customerId: linkedCustomerId,
-      customerName: customer.trim() || "—",
-    });
+    if (isEditingSale) {
+      toast.success("Venda atualizada · estoque recalculado");
+      navigate("/painel/vendas");
+    } else {
+      toast.success("Venda registrada!");
+      setPostSave({
+        saleId: sale.id,
+        saleNumber: (sale as any).sale_number ?? null,
+        customerId: linkedCustomerId,
+        customerName: customer.trim() || "—",
+      });
+    }
   };
 
   const buildSummary = () => {
@@ -931,15 +1027,17 @@ Obrigado pela preferência.`;
   return (
     <div className="pb-28 md:pb-6">
       <PageHeader
-        title="Nova venda"
-        description="Cadastro completo de venda, com cliente, itens, pagamento e entrega."
+        title={isEditingSale ? "Editar venda" : "Nova venda"}
+        description={isEditingSale
+          ? "Ajuste itens, quantidades, preços e formas de pagamento. O estoque é recalculado pela diferença e a alteração fica na auditoria."
+          : "Cadastro completo de venda, com cliente, itens, pagamento e entrega."}
         actions={
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
             <Button onClick={onSubmitClick} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
-              <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar venda"}
+              <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : (isEditingSale ? "Salvar alterações" : "Salvar venda")}
             </Button>
           </div>
         }

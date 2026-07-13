@@ -16,7 +16,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw, Pencil } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
@@ -83,6 +83,7 @@ export default function Compras() {
 
   // dialog
   const [open, setOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Order>>({});
   const [items, setItems] = useState<Item[]>([]);
   const [bulk, setBulk] = useState("");
@@ -401,6 +402,36 @@ export default function Compras() {
     setBulk("");
     setSkuQuery("");
     setTagsInput("");
+    setEditingOrderId(null);
+    setOpen(true);
+  };
+
+  const startEdit = async (o: Order) => {
+    const { data: full } = await supabase.from("purchase_orders").select("*").eq("id", o.id).maybeSingle();
+    const { data: its } = await supabase
+      .from("purchase_order_items")
+      .select("id, product_id, product_name, sku, quantity, unit_cost, notes")
+      .eq("order_id", o.id);
+    if (!full) return toast.error("Compra não encontrada.");
+    setForm({
+      ...(full as any),
+      expected_delivery_at: (full as any).expected_delivery_at ? String((full as any).expected_delivery_at).slice(0, 10) : "",
+      due_date: (full as any).due_date ?? "",
+      received_at: (full as any).received_at ? String((full as any).received_at).slice(0, 10) : "",
+    } as any);
+    setItems(((its ?? []) as any[]).map((r) => ({
+      id: r.id,
+      product_id: r.product_id,
+      product_name: r.product_name,
+      sku: r.sku,
+      quantity: Number(r.quantity || 0),
+      unit_cost: Number(r.unit_cost || 0),
+      notes: r.notes,
+    })));
+    setBulk("");
+    setSkuQuery("");
+    setTagsInput((full as any).tags?.join(", ") ?? "");
+    setEditingOrderId(o.id);
     setOpen(true);
   };
 
@@ -508,41 +539,61 @@ export default function Compras() {
       notes: it.notes || null,
     }));
 
-    toast.info("Registrando entrada de mercadorias…");
-    // Gravação atômica: compra + itens + estoque (+ despesa) em uma única transação.
-    const { data, error } = await supabase.rpc("create_purchase_with_stock" as any, {
-      _store_id: store.id,
-      _supplier_id: supplierId,
-      _supplier_name: supplierName,
-      _payment_method: form.payment_method || null,
-      _payment_status: form.payment_status || "a_pagar",
-      _due_date: form.due_date || null,
-      _expected_delivery_at: form.expected_delivery_at || null,
-      _notes: form.notes || null,
-      _tags: tagList,
-      _items: itemsPayload,
-      _create_expense: true,
-    });
+    const isEdit = !!editingOrderId;
+    toast.info(isEdit ? "Atualizando entrada e recalculando estoque…" : "Registrando entrada de mercadorias…");
+    const { data, error } = isEdit
+      ? await supabase.rpc("update_purchase_with_stock" as any, {
+          _order_id: editingOrderId,
+          _supplier_id: supplierId,
+          _supplier_name: supplierName,
+          _payment_method: form.payment_method || null,
+          _payment_status: form.payment_status || "a_pagar",
+          _due_date: form.due_date || null,
+          _expected_delivery_at: form.expected_delivery_at || null,
+          _notes: form.notes || null,
+          _tags: tagList,
+          _items: itemsPayload,
+          _create_expense: true,
+        })
+      : await supabase.rpc("create_purchase_with_stock" as any, {
+          _store_id: store.id,
+          _supplier_id: supplierId,
+          _supplier_name: supplierName,
+          _payment_method: form.payment_method || null,
+          _payment_status: form.payment_status || "a_pagar",
+          _due_date: form.due_date || null,
+          _expected_delivery_at: form.expected_delivery_at || null,
+          _notes: form.notes || null,
+          _tags: tagList,
+          _items: itemsPayload,
+          _create_expense: true,
+        });
     if (error) {
       setSaving(false);
-      toast.error(`Falha na entrada de mercadorias — nada foi gravado: ${error.message}`);
+      const msg = error.message || "";
+      if (/já foram vendidas/i.test(msg)) toast.error(msg);
+      else toast.error(`Falha na entrada de mercadorias — nada foi gravado: ${msg}`);
       return;
     }
     const res = (data ?? {}) as { total_units?: number; created?: number; updated?: number };
-    // Se o usuário informou a data de entrada, sobrescreve o received_at gerado pela RPC.
-    const receivedAt = (form as any).received_at as string | undefined;
-    const orderId = (data as any)?.order_id as string | undefined;
-    if (receivedAt && orderId) {
-      const iso = new Date(`${receivedAt}T12:00:00`).toISOString();
-      await supabase.from("purchase_orders").update({ received_at: iso }).eq("id", orderId);
+    if (!isEdit) {
+      const receivedAt = (form as any).received_at as string | undefined;
+      const orderId = (data as any)?.order_id as string | undefined;
+      if (receivedAt && orderId) {
+        const iso = new Date(`${receivedAt}T12:00:00`).toISOString();
+        await supabase.from("purchase_orders").update({ received_at: iso }).eq("id", orderId);
+      }
+      toast.success(`Entrada concluída · ${res.total_units ?? 0} un. no estoque`);
+      if ((res.created ?? 0) > 0) toast.message(`${res.created} produto(s) novo(s) cadastrado(s)`);
+      if ((res.updated ?? 0) > 0) toast.message(`${res.updated} produto(s) tiveram saldo atualizado`);
+      if (form.payment_status === "pago" && orderTotal > 0) toast.message("Despesa lançada no financeiro");
+    } else {
+      toast.success("Entrada atualizada · estoque recalculado por delta");
     }
-    toast.success(`Entrada concluída · ${res.total_units ?? 0} un. no estoque`);
-    if ((res.created ?? 0) > 0) toast.message(`${res.created} produto(s) novo(s) cadastrado(s)`);
-    if ((res.updated ?? 0) > 0) toast.message(`${res.updated} produto(s) tiveram saldo atualizado`);
-    if (form.payment_status === "pago" && orderTotal > 0) toast.message("Despesa lançada no financeiro");
     setSaving(false);
     setPreviewOpen(false);
     setOpen(false);
+    setEditingOrderId(null);
     load();
   };
 
@@ -699,6 +750,11 @@ export default function Compras() {
                         </Button>
                       )}
                       {can && (
+                        <Button size="icon" variant="ghost" onClick={() => startEdit(o)} title="Editar compra">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {can && (
                         <Button size="icon" variant="ghost" onClick={() => setDelTarget(o)} className="text-danger hover:text-danger">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -714,7 +770,14 @@ export default function Compras() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Entrada de mercadorias</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editingOrderId ? "Editar entrada de mercadorias" : "Entrada de mercadorias"}</DialogTitle>
+            {editingOrderId && (
+              <p className="text-xs text-muted-foreground mt-1">
+                O estoque será recalculado pela diferença entre itens antigos e novos. Se algum produto já foi vendido, a redução é bloqueada.
+              </p>
+            )}
+          </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Fornecedor</Label>

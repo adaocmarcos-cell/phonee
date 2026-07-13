@@ -3467,6 +3467,38 @@ export type Database = {
         Args: { _doc?: string; _email?: string; _user_id?: string }
         Returns: Json
       }
+      update_purchase_with_stock: {
+        Args: {
+          _create_expense: boolean
+          _due_date: string
+          _expected_delivery_at: string
+          _items: Json
+          _notes: string
+          _order_id: string
+          _payment_method: string
+          _payment_status: string
+          _supplier_id: string
+          _supplier_name: string
+          _tags: string[]
+        }
+        Returns: Json
+      }
+      update_sale_with_stock: {
+        Args: {
+          _customer_doc: string
+          _customer_id: string
+          _customer_name: string
+          _customer_whatsapp: string
+          _discount: number
+          _installments: number
+          _items: Json
+          _notes: string
+          _payment_method: Database["public"]["Enums"]["payment_method"]
+          _payments: Json
+          _sale_id: string
+        }
+        Returns: Json
+      }
       use_referral_credit: {
         Args: { _amount_cents: number; _notes?: string }
         Returns: Json
