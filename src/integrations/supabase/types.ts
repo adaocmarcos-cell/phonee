@@ -1887,6 +1887,7 @@ export type Database = {
           notes: string | null
           sale_id: string
           store_id: string
+          trade_in_id: string | null
         }
         Insert: {
           amount: number
@@ -1897,6 +1898,7 @@ export type Database = {
           notes?: string | null
           sale_id: string
           store_id: string
+          trade_in_id?: string | null
         }
         Update: {
           amount?: number
@@ -1907,6 +1909,7 @@ export type Database = {
           notes?: string | null
           sale_id?: string
           store_id?: string
+          trade_in_id?: string | null
         }
         Relationships: [
           {
@@ -1921,6 +1924,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_payments_trade_in_id_fkey"
+            columns: ["trade_in_id"]
+            isOneToOne: false
+            referencedRelation: "trade_ins"
             referencedColumns: ["id"]
           },
         ]
@@ -1940,6 +1950,7 @@ export type Database = {
           net_value: number | null
           net_value_reason: string | null
           notes: string | null
+          payment_breakdown: Json | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: string
           sale_number: number | null
@@ -1962,6 +1973,7 @@ export type Database = {
           net_value?: number | null
           net_value_reason?: string | null
           notes?: string | null
+          payment_breakdown?: Json | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
           sale_number?: number | null
@@ -1984,6 +1996,7 @@ export type Database = {
           net_value?: number | null
           net_value_reason?: string | null
           notes?: string | null
+          payment_breakdown?: Json | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
           sale_number?: number | null
@@ -2814,6 +2827,7 @@ export type Database = {
           photos_in: string[]
           photos_out: string[]
           product_id: string | null
+          received_in_sale_id: string | null
           repair_costs: number
           repair_parts: Json
           scrap_for_parts: boolean
@@ -2845,6 +2859,7 @@ export type Database = {
           photos_in?: string[]
           photos_out?: string[]
           product_id?: string | null
+          received_in_sale_id?: string | null
           repair_costs?: number
           repair_parts?: Json
           scrap_for_parts?: boolean
@@ -2876,6 +2891,7 @@ export type Database = {
           photos_in?: string[]
           photos_out?: string[]
           product_id?: string | null
+          received_in_sale_id?: string | null
           repair_costs?: number
           repair_parts?: Json
           scrap_for_parts?: boolean
@@ -2890,6 +2906,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_ins_received_in_sale_id_fkey"
+            columns: ["received_in_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
             referencedColumns: ["id"]
           },
           {

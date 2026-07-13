@@ -61,7 +61,13 @@ type LineItem = {
   unit_price: number;
 };
 
-type SplitPayment = { method: string; amount: number; notes: string; installments?: number };
+type SplitPayment = { method: string; amount: number; notes: string; installments?: number; trade_in_id?: string | null };
+
+type TradeInLite = {
+  id: string; brand: string | null; model: string | null;
+  storage_gb: number | null; imei: string | null;
+  entry_value: number; status: string; product_id: string | null;
+};
 
 const PAY_METHODS: { value: string; label: string }[] = [
   { value: "dinheiro", label: "Dinheiro" },
@@ -71,6 +77,7 @@ const PAY_METHODS: { value: string; label: string }[] = [
   { value: "crediario",label: "Crediário" },
   { value: "boleto",   label: "Boleto" },
   { value: "transferencia", label: "Transferência" },
+  { value: "troca",    label: "Troca de aparelho" },
 ];
 
 const DEDUCTION_REASONS = [
@@ -174,13 +181,16 @@ export default function VendaNova() {
 
   // Pagamento
   const [payments, setPayments] = useState<SplitPayment[]>([
-    { method: "dinheiro", amount: 0, notes: "", installments: 1 },
+    { method: "dinheiro", amount: 0, notes: "", installments: 1, trade_in_id: null },
   ]);
   const [otherExpenses, setOtherExpenses] = useState(0);
   const [freight, setFreight] = useState(0);
   const [netValue, setNetValue] = useState<number>(0);
   const [deductionReason, setDeductionReason] = useState<string>("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Trade-ins disponíveis para uso como meio de pagamento
+  const [availableTradeIns, setAvailableTradeIns] = useState<TradeInLite[]>([]);
 
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
@@ -287,6 +297,21 @@ export default function VendaNova() {
     setLoadingCustomers(false);
   };
   useEffect(() => { loadCustomers(); /* eslint-disable-next-line */ }, [store?.id]);
+
+  // Carrega trade-ins disponíveis para uso como meio de pagamento
+  const loadAvailableTradeIns = useCallback(async () => {
+    if (!store) return;
+    const { data } = await (supabase as any)
+      .from("trade_ins")
+      .select("id,brand,model,storage_gb,imei,entry_value,status,product_id")
+      .eq("store_id", store.id)
+      .in("status", ["em_avaliacao", "aprovado"])
+      .is("received_in_sale_id", null)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setAvailableTradeIns((data as TradeInLite[]) ?? []);
+  }, [store]);
+  useEffect(() => { loadAvailableTradeIns(); }, [loadAvailableTradeIns]);
 
   const applyCustomer = (c: CustomerLite) => {
     setCustomerId(c.id);
@@ -674,6 +699,20 @@ export default function VendaNova() {
     if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
       return toast.error("Cada forma de pagamento precisa de método e valor > 0");
     }
+    // Trocas: uma por venda, com aparelho selecionado e valor = entry_value.
+    const trocaPays = payments.filter((p) => p.method === "troca");
+    if (trocaPays.length > 1) {
+      return toast.error("Só é possível registrar uma troca de aparelho por venda.");
+    }
+    for (const tp of trocaPays) {
+      if (!tp.trade_in_id) return toast.error("Selecione o aparelho recebido na troca.");
+      const ti = availableTradeIns.find((x) => x.id === tp.trade_in_id);
+      if (!ti) return toast.error("Aparelho de troca não encontrado. Recarregue a lista.");
+      // Amount pode ser ajustado manualmente; se ficar diferente do entry_value, avisa mas segue.
+      if (Number(tp.amount) > totalSale) {
+        return toast.error("Valor da troca não pode exceder o total da venda.");
+      }
+    }
     // Validação do documento antes de abrir confirmação
     if (doc && onlyDigits(doc)) {
       const v = validateDoc(doc, docType);
@@ -703,9 +742,18 @@ export default function VendaNova() {
     const payload = buildPayload();
     // Sincroniza cliente com o CRM antes de gravar a venda
     const linkedCustomerId = await ensureCustomerRecord();
+    // Compat: header payment_method é um enum e não conhece "troca". Usa o primeiro
+    // método monetário; se todos forem troca (sem parte em caixa), grava "dinheiro" como fallback.
+    const monetaryMethods = payments
+      .filter((p) => p.method !== "troca" && Number(p.amount) > 0)
+      .map((p) => p.method);
     const dbMethod = isMulti
       ? "misto"
-      : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
+      : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod)
+          ? primaryMethod
+          : (monetaryMethods[0] && ["dinheiro","pix","debito","credito","crediario"].includes(monetaryMethods[0])
+              ? monetaryMethods[0]
+              : "dinheiro"));
     const headInstallments = payments[0]?.installments ?? 1;
 
     // Atomic sale: cabeçalho + itens + pagamentos + baixa de estoque numa única
@@ -772,6 +820,35 @@ export default function VendaNova() {
       id: (rpcData as any).sale_id as string,
       sale_number: (rpcData as any).sale_number as number | null,
     };
+
+    // Vincula os aparelhos recebidos em troca à venda e move para "em_estoque"
+    // (trigger tg_tradein_to_product cria o produto no inventário com o custo correto).
+    for (const tp of payments.filter((p) => p.method === "troca" && p.trade_in_id)) {
+      await (supabase as any)
+        .from("trade_ins")
+        .update({ received_in_sale_id: sale.id, status: "em_estoque" })
+        .eq("id", tp.trade_in_id);
+      // Marca o pagamento troca desta venda com o vínculo do trade-in
+      await (supabase as any)
+        .from("sale_payments")
+        .update({ trade_in_id: tp.trade_in_id })
+        .eq("sale_id", sale.id)
+        .eq("method", "troca");
+    }
+    // Persiste o breakdown de pagamento na venda (para relatórios de caixa)
+    await (supabase as any)
+      .from("sales")
+      .update({
+        payment_breakdown: payments
+          .filter((p) => Number(p.amount) > 0)
+          .map((p) => ({
+            method: p.method,
+            amount: Number(p.amount),
+            installments: p.installments ?? 1,
+            trade_in_id: p.trade_in_id ?? null,
+          })),
+      })
+      .eq("id", sale.id);
 
     setBusy(false);
     setConfirmOpen(false);
@@ -1201,6 +1278,7 @@ Obrigado pela preferência.`;
 
                   {payments.map((p, idx) => {
                     const isCard = p.method === "credito" || p.method === "debito" || p.method === "crediario";
+                    const isTroca = p.method === "troca";
                     return (
                       <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
                         <Field label={`Forma ${idx + 1}`}>
@@ -1252,6 +1330,48 @@ Obrigado pela preferência.`;
                             <Trash2 className="h-3.5 w-3.5 text-danger" />
                           </Button>
                         </div>
+                        {isTroca && (
+                          <div className="md:col-span-5 -mt-1 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-[11px] uppercase tracking-widest text-amber-700">
+                                Aparelho recebido na troca
+                              </Label>
+                              <a
+                                href="/painel/troca/novo"
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-[11px] underline text-amber-700 hover:text-amber-800"
+                              >
+                                + Cadastrar novo aparelho de troca
+                              </a>
+                            </div>
+                            {availableTradeIns.length === 0 ? (
+                              <div className="text-[11px] text-muted-foreground">
+                                Nenhum aparelho em avaliação/aprovado. Cadastre em <b>Compra & Troca</b> antes de finalizar a venda.
+                              </div>
+                            ) : (
+                              <Select
+                                value={p.trade_in_id ?? ""}
+                                onValueChange={(v) => {
+                                  const ti = availableTradeIns.find((x) => x.id === v);
+                                  updatePayment(idx, {
+                                    trade_in_id: v || null,
+                                    amount: ti ? Number(ti.entry_value || 0) : p.amount,
+                                    notes: ti ? `${ti.brand ?? ""} ${ti.model ?? ""}${ti.imei ? ` · IMEI ${ti.imei}` : ""}`.trim() : p.notes,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar aparelho…" /></SelectTrigger>
+                                <SelectContent>
+                                  {availableTradeIns.map((ti) => (
+                                    <SelectItem key={ti.id} value={ti.id}>
+                                      {ti.brand} {ti.model} {ti.storage_gb ? `· ${ti.storage_gb}GB` : ""} · {brl(Number(ti.entry_value || 0))}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

@@ -53,6 +53,7 @@ export default function Financeiro() {
   const [os, setOs] = useState<ServiceOrder[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [splits, setSplits] = useState<{ method: string; amount: number }[]>([]);
+  const [tradeInInvested, setTradeInInvested] = useState(0);
   const [loading, setLoading] = useState(true);
   const [openReceivables, setOpenReceivables] = useState(false);
   const [openPayables, setOpenPayables] = useState(false);
@@ -79,18 +80,20 @@ export default function Financeiro() {
       setLoading(true);
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
-      const [{ data: s }, { data: ps }, { data: o }, { data: e }, { data: sp }] = await Promise.all([
+      const [{ data: s }, { data: ps }, { data: o }, { data: e }, { data: sp }, { data: ti }] = await Promise.all([
         supabase.from("sales").select("id,sale_number,total,net_value,created_at,payment_status,due_date,customer_name,customer_whatsapp,payment_method").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         supabase.from("parts_sales").select("id,total,net_value,created_at,payment_method,customer_name").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         supabase.from("service_orders").select("id,os_number,total_value,net_value,status,budget_status,created_at,customer_name,customer_whatsapp").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }),
         (supabase as any).from("expenses").select("id,amount,expense_date,description,category_name,payment_method").eq("store_id", store.id).gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: false }),
         (supabase as any).from("sale_payments").select("method,amount,created_at").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso),
+        (supabase as any).from("trade_ins").select("entry_value,created_at,status").eq("store_id", store.id).gte("created_at", fromIso).lte("created_at", toIso).neq("status", "recusado"),
       ]);
       setSales((s as any) ?? []);
       setPartsSales((ps as any) ?? []);
       setOs((o as any) ?? []);
       setExpenses((e as any) ?? []);
       setSplits(((sp as any) ?? []).map((r: any) => ({ method: r.method, amount: Number(r.amount || 0) })));
+      setTradeInInvested(((ti as any) ?? []).reduce((acc: number, r: any) => acc + Number(r.entry_value || 0), 0));
       setLoading(false);
     };
     load();
@@ -145,7 +148,9 @@ export default function Financeiro() {
 
   const totals = useMemo(() => {
     const receita = receivables.reduce((s, r) => s + r.total, 0);
-    const recebido = receivables.filter((r) => r.status === "pago").reduce((s, r) => s + r.total, 0);
+    // Recebido em caixa: exclui a parcela paga em troca de aparelho (não é dinheiro).
+    const trocaAmount = splits.filter((sp) => sp.method === "troca").reduce((s, x) => s + x.amount, 0);
+    const recebido = receivables.filter((r) => r.status === "pago").reduce((s, r) => s + r.total, 0) - trocaAmount;
     const aReceber = receivables.filter((r) => r.status !== "pago").reduce((s, r) => s + r.total, 0);
     const vencidoReceber = receivables.filter((r) => r.status === "vencido").reduce((s, r) => s + r.total, 0);
     const despesa = payables.reduce((s, p) => s + p.total, 0);
@@ -153,7 +158,7 @@ export default function Financeiro() {
     const aPagar = payables.filter((p) => p.status !== "pago").reduce((s, p) => s + p.total, 0);
     const liquido = receita - despesa;
     return { receita, recebido, aReceber, vencidoReceber, despesa, pago, aPagar, liquido };
-  }, [receivables, payables]);
+  }, [receivables, payables, splits]);
 
   // Recebimentos por método (vendas com split + peças)
   const receiptsByMethod = useMemo(() => {
@@ -381,6 +386,11 @@ export default function Financeiro() {
       />
 
       <div className="-mt-2 mb-4 flex justify-end">
+        <div className="mr-auto text-[11px] font-mono text-muted-foreground">
+          Investido em Compra & Troca no período:{" "}
+          <span className="text-foreground font-semibold">{brl(tradeInInvested)}</span>{" "}
+          <span className="opacity-70">(estoque · não abate lucro)</span>
+        </div>
         <button
           type="button"
           onClick={() => setEditingLayout((v) => !v)}

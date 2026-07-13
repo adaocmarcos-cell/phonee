@@ -214,73 +214,22 @@ export default function TradeInForm() {
   const removePending = (idx: number) =>
     setPendingDevices((arr) => arr.filter((_, i) => i !== idx));
 
-  // Apply repair side-effects: decrement parts stock + create expense to sync financials/dashboards
+  // Repair side-effects (regime de competência):
+  //  - Dá baixa das peças usadas no reparo em parts_inventory.
+  //  - Se o aparelho já virou produto (product_id preenchido), soma o custo das
+  //    peças ao products.cost_price. NUNCA cria despesa — o custo entra no CMV
+  //    quando o aparelho for vendido.
   const applyRepairSideEffects = async (src: TradeIn) => {
     if (!store) return;
     const newParts: RepairPart[] = (src.repair_parts || []).filter((p: RepairPart) => p.part_id && !p.applied);
-    // Decrement parts inventory
+    if (newParts.length === 0) return;
     for (const p of newParts) {
       const cur = partsCatalog.find((x) => x.id === p.part_id);
       const newStock = Math.max(0, (cur?.stock_current ?? 0) - (p.qty || 0));
       await supabase.from("parts_inventory").update({ stock_current: newStock }).eq("id", p.part_id);
     }
-    // Create expense entry for the repair (sums in financial + dashboards)
-    const repairTotal = Number(src.repair_costs) || 0;
-    const partsTotal = newParts.reduce((s, p) => s + p.qty * p.unit_cost, 0);
-    const manualExtra = Math.max(0, repairTotal - (src.repair_parts || []).reduce((s: number, p: RepairPart) => s + p.qty * p.unit_cost, 0));
-    const expenseAmount = partsTotal + manualExtra;
-    if (expenseAmount > 0) {
-      await supabase.from("expenses").insert({
-        store_id: store.id,
-        category_name: "Reparos / Compra & Troca",
-        subcategory: src.model || null,
-        description: `Reparo de aparelho recebido em Compra & Troca${src.model ? ` · ${src.model}` : ""}`,
-        amount: expenseAmount,
-        expense_date: new Date().toISOString().slice(0, 10),
-        payment_method: "interno",
-        notes: newParts.length
-          ? `Peças utilizadas: ${newParts.map((p) => `${p.qty}× ${p.name}`).join(", ")}`
-          : null,
-        created_by: user?.id ?? null,
-      });
-    }
-  };
-
-  // Sync the entry value of a Trade-In to Financeiro as an ENTRADA of stock (cost expense, never an income/saída).
-  // Creates the expense once per trade_in (tracked via trade_ins.entry_expense_id) so reports stay consistent on edits.
-  const syncEntryExpense = async (tradeInId: string, src: TradeIn) => {
-    if (!store) return;
-    const amount = Number(src.entry_value) || 0;
-    if (amount <= 0) return;
-    // Check if we already created the expense for this trade-in
-    const { data: ti } = await supabase
-      .from("trade_ins")
-      .select("entry_expense_id" as any)
-      .eq("id", tradeInId)
-      .maybeSingle();
-    const existing = (ti as any)?.entry_expense_id as string | null | undefined;
-    if (existing) {
-      // Keep the financial entry in sync with current entry_value
-      await supabase.from("expenses").update({
-        amount,
-        description: `Compra & Troca · Entrada de aparelho${src.model ? ` · ${src.model}` : ""}`,
-        subcategory: src.model || null,
-      }).eq("id", existing);
-      return;
-    }
-    const { data: exp, error } = await supabase.from("expenses").insert({
-      store_id: store.id,
-      category_name: "Compra & Troca · Entradas",
-      subcategory: src.model || null,
-      description: `Compra & Troca · Entrada de aparelho${src.model ? ` · ${src.model}` : ""}`,
-      amount,
-      expense_date: new Date().toISOString().slice(0, 10),
-      payment_method: "compra_troca",
-      notes: `Entrada vinculada à ficha ${tradeInId}`,
-      created_by: user?.id ?? null,
-    }).select("id").maybeSingle();
-    if (error || !exp) return;
-    await supabase.from("trade_ins").update({ entry_expense_id: exp.id } as any).eq("id", tradeInId);
+    // O trigger tradein_sync_product_cost cuida do custo do produto ao salvar
+    // a ficha com o novo repair_costs, então não precisamos escrever em products aqui.
   };
 
   const save = async (e: FormEvent) => {
@@ -294,8 +243,7 @@ export default function TradeInForm() {
     if (editing && originalStatusRef.current && originalStatusRef.current !== form.status) {
       if (form.status === "recusado") {
         const ok = window.confirm(
-          "Marcar como RECUSADO devolve o aparelho ao cliente e remove a entrada do estoque ativo. " +
-          "O lançamento financeiro de entrada será estornado. Deseja continuar?"
+          "Marcar como RECUSADO devolve o aparelho ao cliente e remove a entrada do estoque ativo. Deseja continuar?"
         );
         if (!ok) return;
       }
@@ -314,14 +262,6 @@ export default function TradeInForm() {
       const { error } = await supabase.from("trade_ins").update(buildPayload(form)).eq("id", id!);
       if (error) return toast.error(error.message);
       await applyRepairSideEffects(form);
-      // If recused, estornar entry expense (zera o valor) para não inconsistir relatório
-      if (form.status === "recusado") {
-        const { data: ti } = await supabase.from("trade_ins").select("entry_expense_id" as any).eq("id", id!).maybeSingle();
-        const expId = (ti as any)?.entry_expense_id as string | null;
-        if (expId) await supabase.from("expenses").update({ amount: 0, notes: "Estornado · entrada recusada" }).eq("id", expId);
-      } else {
-        await syncEntryExpense(id!, form);
-      }
       setBusy(false);
       toast.success("Ficha atualizada");
       navigate("/painel/troca");
@@ -335,8 +275,6 @@ export default function TradeInForm() {
     for (let i = 0; i < all.length; i++) {
       const d = all[i];
       await applyRepairSideEffects(d);
-      const newId = (inserted as any)?.[i]?.id;
-      if (newId && d.status !== "recusado") await syncEntryExpense(newId, d);
     }
     setBusy(false);
     toast.success(`${payloads.length} ficha(s) criada(s)`);
