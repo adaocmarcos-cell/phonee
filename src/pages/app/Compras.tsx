@@ -787,30 +787,43 @@ export default function Compras() {
                   {can && <Button onClick={startNew} className="bg-gradient-primary"><Plus className="h-4 w-4 mr-1" /> Registrar primeira compra</Button>}
                 </td></tr>
               ) : filtered.map((o) => (
-                <tr key={o.id} className="hover:bg-surface-elevated/40 transition-colors">
+                <tr
+                  key={o.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Abrir compra de ${o.supplier ?? "fornecedor"} em ${new Date(o.created_at).toLocaleDateString("pt-BR")}`}
+                  onClick={() => openView(o)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openView(o);
+                    }
+                  }}
+                  className="cursor-pointer hover:bg-surface-elevated/60 focus:bg-surface-elevated/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 transition-colors"
+                >
                   <td className="px-4 py-3 text-[12px] text-muted-foreground">{new Date(o.created_at).toLocaleDateString("pt-BR")}</td>
                   <td className="px-4 py-3"><div className="font-medium">{o.supplier ?? "—"}</div></td>
                   <td className="px-4 py-3 text-[12px]">{o.payment_method ?? "—"}</td>
                   <td className="px-4 py-3 text-[12px]">{o.expected_delivery_at ? new Date(o.expected_delivery_at).toLocaleDateString("pt-BR") : "—"}</td>
                   <td className="px-4 py-3 text-right metric font-semibold">{brl(Number(o.total_cost ?? 0))}</td>
                   <td className="px-4 py-3"><Badge variant="outline" className={STATUS_COLOR[o.status]}>{STATUS_LABEL[o.status]}</Badge></td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
                       {can && o.status !== "recebido" && o.status !== "cancelado" && (
-                        <Button size="sm" variant="ghost" onClick={() => markAsReceived(o)} title="Marcar como recebido">
+                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); markAsReceived(o); }} title="Marcar como recebido">
                           <CheckCircle2 className="h-4 w-4 mr-1 text-success" /> Receber
                         </Button>
                       )}
-                      <Button size="icon" variant="ghost" onClick={() => openView(o)} title="Ver detalhes">
+                      <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openView(o); }} title="Ver detalhes">
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
                       {can && (
-                        <Button size="icon" variant="ghost" onClick={() => startEdit(o)} title="Editar compra">
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); startEdit(o); }} title="Editar compra">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       {can && canDeletePurchase && (
-                        <Button size="icon" variant="ghost" onClick={() => setDelTarget(o)} className="text-danger hover:text-danger" title="Excluir compra">
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDelTarget(o); }} className="text-danger hover:text-danger" title="Excluir compra">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
