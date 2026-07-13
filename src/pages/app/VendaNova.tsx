@@ -713,6 +713,17 @@ export default function VendaNova() {
         return toast.error("Valor da troca não pode exceder o total da venda.");
       }
     }
+    // Validação estrita do payment_breakdown quando há troca: a soma de TODAS
+    // as parcelas (incluindo a troca) precisa ser exatamente o total da venda.
+    if (trocaPays.length > 0) {
+      const sumBreakdown = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      if (Math.abs(sumBreakdown - totalSale) > 0.01) {
+        return toast.error(
+          `Composição do pagamento inconsistente: soma ${brl(sumBreakdown)} ≠ total ${brl(totalSale)}. ` +
+          "Ajuste as parcelas para que a troca + demais métodos batam com o total."
+        );
+      }
+    }
     // Validação do documento antes de abrir confirmação
     if (doc && onlyDigits(doc)) {
       const v = validateDoc(doc, docType);
