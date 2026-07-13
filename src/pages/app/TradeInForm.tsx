@@ -358,10 +358,13 @@ export default function TradeInForm() {
       <form onSubmit={save} className="space-y-6">
         {/* Cliente */}
         <Card className="p-5 bg-card border-border">
-          <h3 className="font-semibold mb-4">Cliente anterior</h3>
+          <h3 className="font-semibold mb-1">Dono anterior (cliente)</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Estes dados ficam registrados como histórico de procedência do aparelho.
+          </p>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Nome *</Label><Input value={form.customer_name} onChange={(e) => update({ customer_name: e.target.value })} /></div>
-            <div className="space-y-2"><Label>CPF</Label><Input value={form.customer_doc} onChange={(e) => update({ customer_doc: e.target.value })} /></div>
+            <div className="space-y-2"><Label>CPF/CNPJ</Label><Input value={form.customer_doc} onChange={(e) => update({ customer_doc: e.target.value })} /></div>
             <div className="space-y-2"><Label>Telefone</Label><Input value={form.customer_phone} onChange={(e) => update({ customer_phone: e.target.value })} /></div>
             <div className="space-y-2"><Label>E-mail</Label><Input type="email" value={form.customer_email} onChange={(e) => update({ customer_email: e.target.value })} /></div>
           </div>
@@ -404,7 +407,7 @@ export default function TradeInForm() {
               {form.imei_status === "restrito" && <Badge className="bg-danger/15 text-danger border-danger/30"><ShieldAlert className="h-3 w-3 mr-1" />IMEI com restrição</Badge>}
             </div>
             <div className="space-y-2"><Label>Saúde da bateria (%)</Label><NumberInput allowDecimal={false} min={0} value={Number(form.battery_health) || 0} onValueChange={(n) => update({ battery_health: String(Math.min(100, n)) })} className="font-mono" /></div>
-            <div className="space-y-2"><Label>Valor pago ao cliente (R$)</Label><CurrencyBRLInput value={form.entry_value} onChange={(n) => update({ entry_value: n })} className="font-mono" /></div>
+            <div className="space-y-2"><Label>Valor pago ao cliente (R$)</Label><NumberInput emptyBehavior="zero" min={0} value={Number(form.entry_value) || 0} onValueChange={(n) => update({ entry_value: n })} placeholder="0,00" className="font-mono" /></div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-1.5"><Wrench className="h-3.5 w-3.5" /> Custos de reparo (R$)</Label>
@@ -412,7 +415,7 @@ export default function TradeInForm() {
                   <Link2 className="h-3 w-3" /> Vincular peça
                 </button>
               </div>
-              <CurrencyBRLInput value={form.repair_costs} onChange={(n) => update({ repair_costs: n })} className="font-mono" />
+              <NumberInput emptyBehavior="zero" min={0} value={Number(form.repair_costs) || 0} onValueChange={(n) => update({ repair_costs: n })} placeholder="0,00" className="font-mono" />
               {form.repair_parts?.length > 0 && (
                 <div className="space-y-1 pt-1">
                   {form.repair_parts.map((p: RepairPart, i: number) => (
@@ -426,7 +429,7 @@ export default function TradeInForm() {
                 </div>
               )}
             </div>
-            <div className="space-y-2"><Label>Valor de venda pretendido (R$)</Label><CurrencyBRLInput value={form.intended_sale_value} onChange={(n) => update({ intended_sale_value: n })} className="font-mono" /></div>
+            <div className="space-y-2"><Label>Valor de venda pretendido (R$)</Label><NumberInput emptyBehavior="zero" min={0} value={Number(form.intended_sale_value) || 0} onValueChange={(n) => update({ intended_sale_value: n })} placeholder="0,00" className="font-mono" /></div>
             <div className="space-y-2"><Label>Margem estimada</Label><div className={`px-3 py-2 rounded-md border border-border bg-surface-elevated font-mono font-semibold ${margin >= 25 ? "text-success" : margin >= 10 ? "text-warning" : "text-danger"}`}>{margin.toFixed(1)}%</div></div>
           </div>
 
