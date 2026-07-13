@@ -986,13 +986,18 @@ export default function VendaNova() {
         });
       }
     } catch { /* noop */ }
-    toast.success("Venda registrada!");
-    setPostSave({
-      saleId: sale.id,
-      saleNumber: (sale as any).sale_number ?? null,
-      customerId: linkedCustomerId,
-      customerName: customer.trim() || "—",
-    });
+    if (isEditingSale) {
+      toast.success("Venda atualizada · estoque recalculado");
+      navigate("/painel/vendas");
+    } else {
+      toast.success("Venda registrada!");
+      setPostSave({
+        saleId: sale.id,
+        saleNumber: (sale as any).sale_number ?? null,
+        customerId: linkedCustomerId,
+        customerName: customer.trim() || "—",
+      });
+    }
   };
 
   const buildSummary = () => {
@@ -1022,15 +1027,17 @@ Obrigado pela preferência.`;
   return (
     <div className="pb-28 md:pb-6">
       <PageHeader
-        title="Nova venda"
-        description="Cadastro completo de venda, com cliente, itens, pagamento e entrega."
+        title={isEditingSale ? "Editar venda" : "Nova venda"}
+        description={isEditingSale
+          ? "Ajuste itens, quantidades, preços e formas de pagamento. O estoque é recalculado pela diferença e a alteração fica na auditoria."
+          : "Cadastro completo de venda, com cliente, itens, pagamento e entrega."}
         actions={
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
             <Button onClick={onSubmitClick} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
-              <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Salvar venda"}
+              <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : (isEditingSale ? "Salvar alterações" : "Salvar venda")}
             </Button>
           </div>
         }
