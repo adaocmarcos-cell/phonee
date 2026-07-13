@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { ShieldAlert, UserPlus, Trash2, RefreshCw, Search, Link2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
+import { ShieldAlert, UserPlus, Trash2, RefreshCw, Search, Link2, Users2, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 
 type Store = { store_id: string; store_name: string; owner_email: string | null };
 type Binding = {
@@ -89,6 +91,27 @@ export default function PhoneeVinculos() {
   const [confirmDel, setConfirmDel] = useState<Binding | null>(null);
   const [perms, setPerms] = useState<StorePermission[]>([]);
   const [loadingPerms, setLoadingPerms] = useState(false);
+  const [isAdminMaster, setIsAdminMaster] = useState(false);
+  const [addValidation, setAddValidation] = useState<{ ok: boolean; reason: string | null } | null>(null);
+
+  // Bulk state
+  const [openBulk, setOpenBulk] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkRole, setBulkRole] = useState("vendedor");
+  const [bulkResults, setBulkResults] = useState<Array<{ email: string; role: string; user_id: string | null; status: string; reason: string | null }>>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkApplying, setBulkApplying] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+      const { data } = await supabase
+        .from("admin_master_profile" as any)
+        .select("user_id").eq("user_id", user.user.id).maybeSingle();
+      setIsAdminMaster(!!data);
+    })();
+  }, []);
 
   const loadStores = async () => {
     setLoadingStores(true);
@@ -196,6 +219,84 @@ export default function PhoneeVinculos() {
     setAddForm({ user_id: userId, role: "vendedor" });
     setOpenAdd(true);
   };
+
+  // Compute disabled reasons for role options in the "Add" dialog
+  const roleDisabledReason = (role: string): string | null => {
+    if (role === "admin_master") return "Cargo Admin Master é gerenciado em outra tela.";
+    if (role === "administrador" && !isAdminMaster) return "Somente Admin Master pode atribuir este cargo.";
+    if (role === "dono") {
+      const already = bindings.find((b) => b.is_owner);
+      if (already && already.user_id !== addForm.user_id.trim())
+        return "A loja já possui dono. Remova o atual antes de atribuir outro.";
+    }
+    if (addForm.user_id.trim()) {
+      const existing = bindings.find((b) => b.user_id === addForm.user_id.trim());
+      if (existing && existing.roles.includes(role))
+        return "Usuário já possui este cargo nesta loja.";
+    }
+    return null;
+  };
+
+  // Server-side pre-validation on submit
+  const validateAndAdd = async () => {
+    if (!addForm.user_id.trim() || !storeId) {
+      toast.error("Informe o user_id e selecione a loja.");
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await (supabase.rpc as any)("phonee_validate_role_assignment", {
+      _user_id: addForm.user_id.trim(), _store_id: storeId, _role: addForm.role,
+    });
+    if (error) { setSaving(false); toast.error(error.message); return; }
+    const v = data as { ok: boolean; reason: string | null };
+    setAddValidation(v);
+    if (!v.ok) {
+      setSaving(false);
+      toast.error(v.reason ?? "Atribuição bloqueada");
+      return;
+    }
+    await handleAdd();
+    setSaving(false);
+  };
+
+  // Bulk actions
+  const parseBulk = () => {
+    return bulkText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((line) => {
+      const [rawEmail, rawRole] = line.split(",").map((s) => s?.trim());
+      return { email: rawEmail ?? "", role: (rawRole || bulkRole).toLowerCase() };
+    });
+  };
+
+  const runBulkValidate = async () => {
+    if (!storeId) { toast.error("Selecione uma loja."); return; }
+    const rows = parseBulk();
+    if (rows.length === 0) { toast.error("Informe pelo menos um e-mail."); return; }
+    setBulkLoading(true);
+    const { data, error } = await (supabase.rpc as any)("phonee_bulk_validate_bindings", {
+      _store_id: storeId, _rows: rows,
+    });
+    setBulkLoading(false);
+    if (error) { toast.error(error.message); return; }
+    setBulkResults((data ?? []) as any);
+  };
+
+  const runBulkApply = async () => {
+    if (!storeId) return;
+    const rows = parseBulk();
+    setBulkApplying(true);
+    const { data, error } = await (supabase.rpc as any)("phonee_bulk_bind_users", {
+      _store_id: storeId, _rows: rows,
+    });
+    setBulkApplying(false);
+    if (error) { toast.error(error.message); return; }
+    const r = data as { inserted: number; skipped: number; errors: any[] };
+    toast.success(`${r.inserted} vinculado(s), ${r.skipped} ignorado(s).`);
+    setOpenBulk(false);
+    setBulkText(""); setBulkResults([]);
+    loadBindings(storeId); loadAudit(); loadPerms(storeId);
+  };
+
+  const bulkOkCount = bulkResults.filter((r) => r.status === "ok").length;
 
   return (
     <div className="p-4 md:p-6 space-y-6 text-slate-100">
@@ -354,9 +455,14 @@ export default function PhoneeVinculos() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => setOpenAdd(true)} disabled={!storeId}>
-            <UserPlus className="h-4 w-4 mr-2" /> Adicionar vínculo
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setOpenBulk(true)} disabled={!storeId}>
+              <Users2 className="h-4 w-4 mr-2" /> Vincular em lote
+            </Button>
+            <Button onClick={() => setOpenAdd(true)} disabled={!storeId}>
+              <UserPlus className="h-4 w-4 mr-2" /> Adicionar vínculo
+            </Button>
+          </div>
         </header>
 
         <div className="p-4">
@@ -403,16 +509,40 @@ export default function PhoneeVinculos() {
                             ))}
                       </td>
                       <td className="px-3 py-2">
-                        <Select onValueChange={(v) => handleSetRole(b, v)}>
-                          <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-slate-100">
-                            <SelectValue placeholder="Definir cargo…" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ROLE_OPTIONS.map((o) => (
-                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <TooltipProvider delayDuration={100}>
+                          <Select onValueChange={async (v) => {
+                            const { data } = await (supabase.rpc as any)("phonee_validate_role_assignment", {
+                              _user_id: b.user_id, _store_id: storeId, _role: v,
+                            });
+                            if (data && !data.ok) { toast.error(data.reason ?? "Bloqueado"); return; }
+                            handleSetRole(b, v);
+                          }}>
+                            <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-slate-100">
+                              <SelectValue placeholder="Definir cargo…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ROLE_OPTIONS.map((o) => {
+                                const dis =
+                                  (o.value === "administrador" && !isAdminMaster && "Só Admin Master pode atribuir") ||
+                                  (o.value === "dono" && bindings.some((x) => x.is_owner && x.user_id !== b.user_id) && "Loja já tem dono") ||
+                                  (b.roles.includes(o.value) && "Usuário já tem este cargo") ||
+                                  null;
+                                return (
+                                  <Tooltip key={o.value}>
+                                    <TooltipTrigger asChild>
+                                      <div>
+                                        <SelectItem value={o.value} disabled={!!dis}>
+                                          {o.label}{dis ? " · bloqueado" : ""}
+                                        </SelectItem>
+                                      </div>
+                                    </TooltipTrigger>
+                                    {dis && <TooltipContent side="left">{dis}</TooltipContent>}
+                                  </Tooltip>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </TooltipProvider>
                       </td>
                       <td className="px-3 py-2 text-right">
                         <Button
@@ -454,20 +584,116 @@ export default function PhoneeVinculos() {
             </div>
             <div className="space-y-1">
               <Label>Cargo</Label>
-              <Select value={addForm.role} onValueChange={(v) => setAddForm((f) => ({ ...f, role: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TooltipProvider delayDuration={100}>
+                <Select value={addForm.role}
+                  onValueChange={(v) => { setAddForm((f) => ({ ...f, role: v })); setAddValidation(null); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLE_OPTIONS.map((o) => {
+                      const reason = roleDisabledReason(o.value);
+                      return (
+                        <Tooltip key={o.value}>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <SelectItem value={o.value} disabled={!!reason}>
+                                {o.label}{reason ? " · bloqueado" : ""}
+                              </SelectItem>
+                            </div>
+                          </TooltipTrigger>
+                          {reason && <TooltipContent side="right">{reason}</TooltipContent>}
+                        </Tooltip>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </TooltipProvider>
+              {addValidation && !addValidation.ok && (
+                <p className="text-xs text-rose-300 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {addValidation.reason}
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenAdd(false)}>Cancelar</Button>
-            <Button onClick={handleAdd} disabled={saving}>
+            <Button onClick={validateAndAdd} disabled={saving}>
               {saving ? "Salvando…" : "Vincular"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: vincular em lote */}
+      <Dialog open={openBulk} onOpenChange={(o) => { setOpenBulk(o); if (!o) { setBulkResults([]); setBulkText(""); } }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Vincular em lote</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Um e-mail por linha. Opcional: adicione o cargo separado por vírgula
+              (<code>email@dominio.com,vendedor</code>). Sem o cargo, usamos o cargo padrão selecionado.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3">
+              <div className="space-y-1">
+                <Label>E-mails</Label>
+                <Textarea rows={8} value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
+                  placeholder={"joao@loja.com\nmaria@loja.com,gerente"} />
+              </div>
+              <div className="space-y-1">
+                <Label>Cargo padrão</Label>
+                <Select value={bulkRole} onValueChange={setBulkRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button className="w-full mt-2" variant="outline"
+                  onClick={runBulkValidate} disabled={bulkLoading}>
+                  {bulkLoading ? "Validando…" : "Pré-validar"}
+                </Button>
+              </div>
+            </div>
+
+            {bulkResults.length > 0 && (
+              <div className="border border-slate-800 rounded max-h-[300px] overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs uppercase text-slate-400 sticky top-0 bg-slate-900">
+                    <tr>
+                      <th className="text-left px-3 py-2">Status</th>
+                      <th className="text-left px-3 py-2">E-mail</th>
+                      <th className="text-left px-3 py-2">Cargo</th>
+                      <th className="text-left px-3 py-2">Motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkResults.map((r, i) => (
+                      <tr key={i} className="border-t border-slate-800">
+                        <td className="px-3 py-2">
+                          {r.status === "ok"
+                            ? <span className="inline-flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-3 w-3" /> OK</span>
+                            : <span className="inline-flex items-center gap-1 text-rose-300"><XCircle className="h-3 w-3" /> {r.status}</span>}
+                        </td>
+                        <td className="px-3 py-2">{r.email}</td>
+                        <td className="px-3 py-2">{r.role}</td>
+                        <td className="px-3 py-2 text-xs text-slate-400">{r.reason ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="px-3 py-2 text-xs text-slate-400 border-t border-slate-800">
+                  {bulkOkCount} OK · {bulkResults.length - bulkOkCount} bloqueado(s)
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenBulk(false)}>Fechar</Button>
+            <Button onClick={runBulkApply} disabled={bulkApplying || bulkOkCount === 0}>
+              {bulkApplying ? "Aplicando…" : `Aplicar ${bulkOkCount} OK`}
             </Button>
           </DialogFooter>
         </DialogContent>

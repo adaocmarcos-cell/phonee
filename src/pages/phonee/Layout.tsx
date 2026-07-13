@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus, Target, Ticket, Handshake, ShieldAlert, ShieldCheck, Crown, Layers, Stethoscope,
-  Megaphone, Link2,
+  Megaphone, Link2, ScrollText,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
@@ -24,6 +24,7 @@ const nav = [
   { to: "/phonee/auditoria",   label: "Auditoria",    icon: ShieldAlert },
   { to: "/phonee/admins",      label: "Admins Master", icon: Crown },
   { to: "/phonee/vinculos",    label: "Vínculos",     icon: Link2 },
+  { to: "/phonee/audit-log",   label: "Audit Log",    icon: ScrollText },
   { to: "/phonee/diagnostico", label: "Diagnóstico",  icon: Stethoscope },
 ];
 
