@@ -246,10 +246,10 @@ export default function PedidoNovo() {
               <NumberInput
                 id="coverage-days"
                 allowDecimal={false}
-                min={1}
+                min={0}
                 emptyBehavior="zero"
                 value={coverageDays}
-                onValueChange={(n) => setCoverageDays(Math.min(365, Math.max(1, n)))}
+                onValueChange={(n) => setCoverageDays(Math.min(365, n))}
                 className="h-8 w-24 text-center font-mono"
               />
               <span className="text-xs text-muted-foreground">dias</span>

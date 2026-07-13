@@ -53,7 +53,7 @@ export default function Planos() {
               <div className="space-y-2">
                 <Label>Máx. parcelas</Label>
                 <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={p.max_installments}
-                  onValueChange={(n) => setPlans(plans.map(x => x.id === p.id ? { ...x, max_installments: Math.min(12, Math.max(1, n)) } : x))} />
+                  onValueChange={(n) => setPlans(plans.map(x => x.id === p.id ? { ...x, max_installments: Math.min(12, n) } : x))} />
               </div>
             </div>
             <Button onClick={() => save(p)} className="w-full">Salvar</Button>

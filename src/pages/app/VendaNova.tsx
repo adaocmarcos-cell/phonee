@@ -1222,7 +1222,7 @@ Obrigado pela preferência.`;
                         <Field label="Parcelas">
                           <NumberInput
                             allowDecimal={false}
-                            min={1}
+                            min={0}
                             max={24}
                             emptyBehavior="zero"
                             value={p.installments ?? 1}
