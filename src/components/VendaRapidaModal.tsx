@@ -88,6 +88,7 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
         quantity: 1,
         unit_price: Number(price) || 0,
         name: product.name,
+        discount_amount: Number(discount) || 0,
       }],
       _payments: [{
         method,
