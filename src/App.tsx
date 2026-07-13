@@ -38,6 +38,7 @@ const CurvaABC = lazy(() => import("./pages/app/CurvaABC"));
 const TradeIn = lazy(() => import("./pages/app/TradeIn"));
 const TradeInForm = lazy(() => import("./pages/app/TradeInForm"));
 const TradeInDetails = lazy(() => import("./pages/app/TradeInDetails"));
+const TradeInReconciliacao = lazy(() => import("./pages/app/TradeInReconciliacao"));
 const Pedidos = lazy(() => import("./pages/app/Pedidos"));
 const PedidoNovo = lazy(() => import("./pages/app/PedidoNovo"));
 const Despesas = lazy(() => import("./pages/app/Despesas"));
