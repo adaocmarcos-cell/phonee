@@ -106,9 +106,6 @@ export default function Comece() {
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-background to-background">
         <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:py-14 md:grid-cols-2 md:py-20">
           <div className="flex flex-col justify-center">
-            <span className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-primary">
-              <ShieldCheck className="h-3.5 w-3.5" /> Feito para o interior de MG
-            </span>
             <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl">
               Sua loja de celular ainda controla o estoque no caderno?
             </h1>
