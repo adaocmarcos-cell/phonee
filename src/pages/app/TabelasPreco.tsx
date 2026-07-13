@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/NumberInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -88,8 +89,8 @@ export default function TabelasPreco() {
   const [filterName, setFilterName] = useState("");
   const [filterSku, setFilterSku] = useState("");
   const [filterAvailable, setFilterAvailable] = useState<"all" | "in" | "out">("all");
-  const [priceMin, setPriceMin] = useState<string>("");
-  const [priceMax, setPriceMax] = useState<string>("");
+  const [priceMin, setPriceMin] = useState<number | null>(null);
+  const [priceMax, setPriceMax] = useState<number | null>(null);
 
   const [showAvailability, setShowAvailability] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -140,8 +141,8 @@ export default function TabelasPreco() {
       if (filterAvailable === "in" && p.stock_current <= 0) return false;
       if (filterAvailable === "out" && p.stock_current > 0) return false;
       const price = Number(p.sale_price) || 0;
-      const minN = priceMin === "" ? null : Number(priceMin);
-      const maxN = priceMax === "" ? null : Number(priceMax);
+      const minN = priceMin;
+      const maxN = priceMax;
       const minInvalid = minN !== null && (isNaN(minN) || minN < 0);
       const maxInvalid = maxN !== null && (isNaN(maxN) || maxN < 0);
       const rangeInvalid =
