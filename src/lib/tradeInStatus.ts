@@ -37,8 +37,14 @@ export const SIMPLE_STATUS_TOOLTIP: Record<TradeInSimpleStatus, string> = {
 };
 
 // Motivos válidos ao DESATIVAR um aparelho que estava no estoque.
-export const DEACTIVATE_REASONS: { value: TradeInRawStatus; label: string }[] = [
-  { value: "recusado", label: "Recusado" },
-  { value: "recusado", label: "Devolvido ao cliente" }, // grava como recusado
-  { value: "em_avaliacao", label: "Sucata para peças" }, // grava como em_avaliacao com scrap flag
+// key = valor interno; label = exibido; targetStatus = enum a gravar.
+export const DEACTIVATE_REASONS: {
+  key: string;
+  label: string;
+  targetStatus: TradeInRawStatus;
+  scrapForParts?: boolean;
+}[] = [
+  { key: "recusado", label: "Recusado", targetStatus: "recusado" },
+  { key: "devolvido", label: "Devolvido ao cliente", targetStatus: "recusado" },
+  { key: "sucata", label: "Sucata para peças", targetStatus: "em_avaliacao", scrapForParts: true },
 ];
