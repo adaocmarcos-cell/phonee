@@ -1070,6 +1070,10 @@ export default function Compras() {
 
       {/* Confirmação com prévia de impacto no estoque */}
       <Dialog open={previewOpen} onOpenChange={(o) => !saving && setPreviewOpen(o)}>
+      </Dialog>
+      {/* Placeholder swap-in fix marker */}
+      <Dialog open={false}><DialogContent /></Dialog>
+      <Dialog open={previewOpen} onOpenChange={(o) => !saving && setPreviewOpen(o)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Confirmar entrada no estoque</DialogTitle>
