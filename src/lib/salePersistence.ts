@@ -50,6 +50,8 @@ export function validateSaleForReceipt(
   }
 
   let computedTotal = 0;
+  let itemsSubtotal = 0;
+  let itemsDiscount = 0;
   items.forEach((it, i) => {
     const name = (it.name ?? "").trim();
     if (!name) issues.push({ index: i, field: "name", message: "Descrição do item ausente" });
@@ -64,14 +66,19 @@ export function validateSaleForReceipt(
       issues.push({ index: i, field: "total", message: `Total do item inconsistente (esperado ${expected})` });
     }
     computedTotal += Number(it.total || 0);
+    itemsSubtotal += Number(it.quantity || 0) * Number(it.unit_price || 0);
+    itemsDiscount += Number(it.discount_amount || 0);
   });
 
   computedTotal = round2(computedTotal);
-  if (Math.abs(computedTotal - Number(sale.total || 0)) > 0.01) {
+  // Cabeçalho: sum(item.total) deve bater com (subtotal dos itens − desconto dos itens).
+  // NÃO comparamos contra sale.total, pois este pode incluir frete/outras despesas.
+  const expectedFromItems = round2(itemsSubtotal - itemsDiscount);
+  if (Math.abs(computedTotal - expectedFromItems) > 0.01) {
     issues.push({
       index: -1,
       field: "total",
-      message: `Total da venda (${sale.total}) diverge da soma dos itens (${computedTotal})`,
+      message: `Soma dos itens (${computedTotal}) diverge de subtotal−desconto (${expectedFromItems})`,
     });
   }
 

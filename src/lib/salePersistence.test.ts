@@ -70,9 +70,11 @@ describe("validateSaleForReceipt", () => {
     expect(r.issues.some((i) => i.field === "total" && i.index === 0)).toBe(true);
   });
 
-  it("flags sale total divergent from items sum", () => {
+  it("ignores sale.total (may include freight/other expenses) — only checks items", () => {
     const r = validateSaleForReceipt({ ...baseSale, total: 500 }, [validItem]);
-    expect(r.issues.some((i) => i.field === "total" && i.index === -1)).toBe(true);
+    // Header total is NOT compared to sale.total anymore; items are internally consistent.
+    expect(r.ok).toBe(true);
+    expect(r.issues).toEqual([]);
   });
 
   it("accepts a multi-item sale with discount and matching totals", () => {
