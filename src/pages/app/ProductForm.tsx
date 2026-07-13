@@ -15,7 +15,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, RefreshCw } from "lucide-react";
+import { ArrowLeft, Save, RefreshCw, ArrowLeftRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { MAIN_CATEGORIES } from "@/lib/categories";
 import { generateUniqueSku } from "@/lib/sku";
@@ -75,6 +76,35 @@ export default function ProductForm() {
   const [suggest, setSuggest] = useState<{
     brands: string[]; models: string[]; suppliers: string[]; locations: string[];
   }>({ brands: [], models: [], suppliers: [], locations: [] });
+  const [tradeInOrigins, setTradeInOrigins] = useState<Array<{ id: string; customer_name: string; imei: string | null; created_at: string }>>([]);
+
+  // Carrega histórico de trade-ins (procedência) vinculados a este produto ou ao mesmo IMEI
+  useEffect(() => {
+    if (isNew || !id || !store) return;
+    (async () => {
+      const { data: direct } = await supabase
+        .from("trade_ins")
+        .select("id, customer_name, imei, created_at")
+        .eq("store_id", store.id)
+        .eq("product_id", id)
+        .order("created_at", { ascending: true });
+      const list = (direct ?? []) as any[];
+      const imei = list[0]?.imei;
+      if (imei) {
+        const { data: byImei } = await supabase
+          .from("trade_ins")
+          .select("id, customer_name, imei, created_at")
+          .eq("store_id", store.id)
+          .eq("imei", imei)
+          .order("created_at", { ascending: true });
+        const map = new Map<string, any>();
+        [...list, ...(byImei ?? [])].forEach((r) => map.set(r.id, r));
+        setTradeInOrigins(Array.from(map.values()).sort((a, b) => a.created_at.localeCompare(b.created_at)));
+      } else {
+        setTradeInOrigins(list);
+      }
+    })();
+  }, [id, isNew, store]);
 
   // Carrega sugestões (marcas, modelos, fornecedores e locais) da loja
   useEffect(() => {
@@ -206,6 +236,40 @@ export default function ProductForm() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {tradeInOrigins.length > 0 && (
+          <Card className="p-4 bg-primary/5 border-primary/30">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/15 text-primary border-primary/30">
+                  <ArrowLeftRight className="h-3 w-3 mr-1" /> Origem: Compra e Troca
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {tradeInOrigins.length === 1 ? "1 dono anterior registrado" : `${tradeInOrigins.length} donos anteriores registrados`}
+                </span>
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/painel/troca/${tradeInOrigins[tradeInOrigins.length - 1].id}/detalhes`)}>
+                Ver ficha mais recente
+              </Button>
+            </div>
+            {tradeInOrigins.length > 1 && (
+              <ol className="mt-3 space-y-1 text-xs">
+                {tradeInOrigins.map((t, i) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2 border-l-2 border-primary/40 pl-2">
+                    <span>
+                      <span className="font-mono text-muted-foreground mr-1">#{i + 1}</span>
+                      {t.customer_name}
+                      {t.imei && <span className="font-mono text-muted-foreground ml-2">IMEI {t.imei}</span>}
+                      <span className="text-muted-foreground ml-2">· {new Date(t.created_at).toLocaleDateString("pt-BR")}</span>
+                    </span>
+                    <button type="button" onClick={() => navigate(`/painel/troca/${t.id}/detalhes`)} className="text-primary hover:underline">
+                      abrir
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+        )}
         <Card className="p-6 bg-card border-border shadow-card">
           <h3 className="font-semibold mb-4">Identificação</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

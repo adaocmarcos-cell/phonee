@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/NumberInput";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -502,6 +502,9 @@ export default function Estoque() {
               </Button>
               <Button variant="outline" onClick={() => navigate("/painel/ajustes-estoque")}>
                 <ClipboardCheck className="h-4 w-4 mr-1" /> Ajustes de Estoque
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/painel/troca")} title="Registrar entrada de aparelho usado (Compra e Troca)">
+                <ArrowLeftRight className="h-4 w-4 mr-1" /> Compra e Troca
               </Button>
               <Button variant="outline" onClick={exportCSV} title="Exportar estoque em CSV">
                 <Download className="h-4 w-4 mr-1" /> Exportar CSV
