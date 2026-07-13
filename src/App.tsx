@@ -12,7 +12,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comece from "./pages/Comece";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useParams } from "react-router-dom";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { SplashScreen } from "./components/SplashScreen";
