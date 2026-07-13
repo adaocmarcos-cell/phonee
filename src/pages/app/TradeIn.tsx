@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Smartphone, Search, History, Inbox } from "lucide-react";
+import { Plus, Smartphone, Search, History, Inbox, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { brl } from "@/lib/format";
@@ -93,6 +93,9 @@ export default function TradeIn() {
         description="Controle de entradas de aparelhos usados. Saídas acontecem sempre por uma Venda."
         actions={
           <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => navigate("/painel/estoque")}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao estoque
+            </Button>
             <Button
               variant={view === "historico" ? "default" : "outline"}
               onClick={() => setView(view === "historico" ? "ativos" : "historico")}
