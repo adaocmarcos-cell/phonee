@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus, Target, Ticket, Handshake, ShieldAlert, ShieldCheck, Crown, Layers, Stethoscope,
-  Megaphone,
+  Megaphone, Link2,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
