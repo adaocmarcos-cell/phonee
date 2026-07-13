@@ -255,13 +255,25 @@ export default function TradeInDetails() {
                   <div className="text-muted-foreground">por {a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema"}</div>
                   {a.action !== "criacao" && a.details && typeof a.details === "object" && (
                     <ul className="mt-1 space-y-0.5">
-                      {Object.entries(a.details).map(([field, change]: [string, any]) => (
-                        <li key={field} className="font-mono">
-                          <span className="text-muted-foreground">{field}:</span>{" "}
-                          <span className="line-through opacity-60">{fmtVal(change?.de)}</span>{" → "}
-                          <span>{fmtVal(change?.para)}</span>
-                        </li>
-                      ))}
+                      {Object.entries(a.details).map(([field, change]: [string, any]) => {
+                        if (field === "motivo") {
+                          return (
+                            <li key={field} className="font-mono">
+                              <span className="text-muted-foreground">motivo:</span>{" "}
+                              <span className="text-warning">{String(change)}</span>
+                            </li>
+                          );
+                        }
+                        const de = REASON_LABEL[change?.de as keyof typeof REASON_LABEL] ?? change?.de;
+                        const para = REASON_LABEL[change?.para as keyof typeof REASON_LABEL] ?? change?.para;
+                        return (
+                          <li key={field} className="font-mono">
+                            <span className="text-muted-foreground">{field}:</span>{" "}
+                            <span className="line-through opacity-60">{fmtVal(de)}</span>{" → "}
+                            <span>{fmtVal(para)}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </li>
