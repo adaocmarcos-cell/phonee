@@ -481,24 +481,12 @@ export default function TradeInForm() {
           )}
         </Card>
 
-        {/* Status + observações */}
-        <Card className="p-5 bg-card border-border">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Status da entrada</Label>
-              <Select value={form.status} onValueChange={(v) => update({ status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="em_avaliacao">Em avaliação</SelectItem>
-                  <SelectItem value="aprovado">Aprovado</SelectItem>
-                  <SelectItem value="em_estoque">Em estoque</SelectItem>
-                  <SelectItem value="vendido">Vendido</SelectItem>
-                  <SelectItem value="recusado">Recusado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </Card>
+        {editing && (
+          <Card className="p-4 bg-surface-elevated/40 border-border text-xs text-muted-foreground">
+            Para mudar o status use os botões <span className="font-medium text-foreground">Dar entrada no estoque</span> ou <span className="font-medium text-foreground">Desativar</span> na tela de detalhes.
+            A venda do aparelho é registrada automaticamente pelo módulo de Vendas.
+          </Card>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => navigate("/painel/troca")}>Cancelar</Button>
