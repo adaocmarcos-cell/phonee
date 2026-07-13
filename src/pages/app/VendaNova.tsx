@@ -861,21 +861,44 @@ export default function VendaNova() {
         amount: Number(p.amount),
         installments: p.installments ?? null,
         notes: p.notes || null,
+        trade_in_id: p.trade_in_id ?? null,
       }));
 
-    const { data: rpcData, error } = await (supabase as any).rpc("create_sale", {
-      _store_id: store.id,
-      _customer_id: linkedCustomerId,
-      _customer_name: customer || null,
-      _customer_doc: doc || null,
-      _customer_whatsapp: whatsapp || null,
-      _payment_method: dbMethod,
-      _installments: headInstallments,
-      _discount: totalDiscount,
-      _notes: JSON.stringify(payload),
-      _items: rpcItems,
-      _payments: rpcPayments,
-    });
+    // Bloqueio local: em edição de venda com troca, não permite remover a parcela de troca.
+    if (isEditingSale && editHasTradeIn && !payments.some((p) => p.method === "troca")) {
+      setBusy(false);
+      return toast.error(
+        "Esta venda tem parcela de troca vinculada a um trade-in. Cancele a venda em vez de remover a troca pela edição.",
+      );
+    }
+
+    const { data: rpcData, error } = isEditingSale
+      ? await (supabase as any).rpc("update_sale_with_stock", {
+          _sale_id: editingSaleId,
+          _customer_id: linkedCustomerId,
+          _customer_name: customer || null,
+          _customer_doc: doc || null,
+          _customer_whatsapp: whatsapp || null,
+          _payment_method: dbMethod,
+          _installments: headInstallments,
+          _discount: totalDiscount,
+          _notes: JSON.stringify(payload),
+          _items: rpcItems,
+          _payments: rpcPayments,
+        })
+      : await (supabase as any).rpc("create_sale", {
+          _store_id: store.id,
+          _customer_id: linkedCustomerId,
+          _customer_name: customer || null,
+          _customer_doc: doc || null,
+          _customer_whatsapp: whatsapp || null,
+          _payment_method: dbMethod,
+          _installments: headInstallments,
+          _discount: totalDiscount,
+          _notes: JSON.stringify(payload),
+          _items: rpcItems,
+          _payments: rpcPayments,
+        });
 
     if (error || !rpcData) {
       setBusy(false);
