@@ -16,31 +16,6 @@ import { ArrowLeft, Upload, Trash2, ShieldCheck, ShieldAlert, Plus, Smartphone, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-function CurrencyBRLInput({
-  value,
-  onChange,
-  className,
-}: {
-  value: number | string;
-  onChange: (n: number) => void;
-  className?: string;
-}) {
-  const num = Number(value) || 0;
-  const display = num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return (
-    <Input
-      inputMode="numeric"
-      value={display}
-      onChange={(e) => {
-        const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
-        const cents = digits === "" ? 0 : parseInt(digits, 10);
-        onChange(cents / 100);
-      }}
-      className={className}
-    />
-  );
-}
-
 const CHECKLIST_ITEMS = [
   { key: "screen_ok", label: "Tela sem trincas ou manchas" },
   { key: "battery_ok", label: "Bateria saudável" },
