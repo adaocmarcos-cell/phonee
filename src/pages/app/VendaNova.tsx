@@ -61,7 +61,13 @@ type LineItem = {
   unit_price: number;
 };
 
-type SplitPayment = { method: string; amount: number; notes: string; installments?: number };
+type SplitPayment = { method: string; amount: number; notes: string; installments?: number; trade_in_id?: string | null };
+
+type TradeInLite = {
+  id: string; brand: string | null; model: string | null;
+  storage_gb: number | null; imei: string | null;
+  entry_value: number; status: string; product_id: string | null;
+};
 
 const PAY_METHODS: { value: string; label: string }[] = [
   { value: "dinheiro", label: "Dinheiro" },
@@ -71,6 +77,7 @@ const PAY_METHODS: { value: string; label: string }[] = [
   { value: "crediario",label: "Crediário" },
   { value: "boleto",   label: "Boleto" },
   { value: "transferencia", label: "Transferência" },
+  { value: "troca",    label: "Troca de aparelho" },
 ];
 
 const DEDUCTION_REASONS = [
