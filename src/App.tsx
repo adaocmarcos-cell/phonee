@@ -66,6 +66,7 @@ const Clientes = lazy(() => import("./pages/app/Clientes"));
 const MinhasLojas = lazy(() => import("./pages/app/MinhasLojas"));
 const TransferenciaProdutos = lazy(() => import("./pages/app/TransferenciaProdutos"));
 const Compras = lazy(() => import("./pages/app/Compras"));
+const CompraDetalhe = lazy(() => import("./pages/app/CompraDetalhe"));
 const Fornecedores = lazy(() => import("./pages/app/Fornecedores"));
 const MeuTeste = lazy(() => import("./pages/app/MeuTeste"));
 
@@ -145,6 +146,7 @@ const App = () => (
               <Route path="lojas" element={<MinhasLojas />} />
               <Route path="estoque/transferencia" element={<TransferenciaProdutos />} />
               <Route path="compras" element={<Compras />} />
+              <Route path="compras/:id" element={<CompraDetalhe />} />
               <Route path="fornecedores" element={<Fornecedores />} />
               <Route path="ordens" element={<OrdensServico />} />
               <Route path="ordens/nova" element={<OrdemServicoForm />} />
