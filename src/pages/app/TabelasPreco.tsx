@@ -413,8 +413,8 @@ function FiltersPanel(props: {
   filterName: string; setFilterName: (v: string) => void;
   filterSku: string; setFilterSku: (v: string) => void;
   filterAvailable: "all" | "in" | "out"; setFilterAvailable: (v: "all" | "in" | "out") => void;
-  priceMin: string; setPriceMin: (v: string) => void;
-  priceMax: string; setPriceMax: (v: string) => void;
+  priceMin: number | null; setPriceMin: (v: number | null) => void;
+  priceMax: number | null; setPriceMax: (v: number | null) => void;
   showAvailability: boolean; setShowAvailability: (v: boolean) => void;
   showNotes: boolean; setShowNotes: (v: boolean) => void;
   phoneBrands: Set<string>; setPhoneBrands: (v: Set<string>) => void;
@@ -453,12 +453,12 @@ function FiltersPanel(props: {
   const showCarr  = !selectedCats.size || selectedCats.has("carregadores") || selectedCats.has("powerbanks");
   const showCab   = !selectedCats.size || selectedCats.has("cabos");
 
-  const minN = priceMin === "" ? null : Number(priceMin);
-  const maxN = priceMax === "" ? null : Number(priceMax);
+  const minN = priceMin;
+  const maxN = priceMax;
   let priceError = "";
-  if (priceMin !== "" && (isNaN(Number(priceMin)) || Number(priceMin) < 0)) {
+  if (minN !== null && (isNaN(minN) || minN < 0)) {
     priceError = "Valor 'De' inválido.";
-  } else if (priceMax !== "" && (isNaN(Number(priceMax)) || Number(priceMax) < 0)) {
+  } else if (maxN !== null && (isNaN(maxN) || maxN < 0)) {
     priceError = "Valor 'Até' inválido.";
   } else if (minN !== null && maxN !== null && minN > maxN) {
     priceError = "O valor 'De' não pode ser maior que 'Até'.";
