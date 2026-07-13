@@ -679,6 +679,7 @@ export default function Compras() {
   };
 
   const can = canManageProducts(role);
+  const { allowed: canDeletePurchase } = useHasPermission("compras", "excluir");
 
   return (
     <div>
