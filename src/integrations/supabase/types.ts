@@ -3245,6 +3245,14 @@ export type Database = {
       }
       phonee_asaas_idempotency_probe: { Args: never; Returns: Json }
       phonee_asaas_index_status: { Args: never; Returns: Json }
+      phonee_bind_user_to_store: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _store_id: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       phonee_coupons_revenue: { Args: { _days?: number }; Returns: Json }
       phonee_growth: {
         Args: never
@@ -3286,6 +3294,19 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      phonee_permission_audit: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          has_role: boolean
+          has_store: boolean
+          is_admin_master: boolean
+          issue: string
+          user_id: string
+        }[]
+      }
       phonee_pixel_events_overview: { Args: { _days?: number }; Returns: Json }
       phonee_plans_list: {
         Args: never
@@ -3307,10 +3328,28 @@ export type Database = {
         Returns: Json
       }
       phonee_security_test: { Args: never; Returns: Json }
+      phonee_set_user_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _store_id: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       phonee_smoke_test: { Args: { _as_admin?: string }; Returns: Json }
       phonee_smoke_test_run_and_log: {
         Args: { _source?: string }
         Returns: string
+      }
+      phonee_store_bindings: {
+        Args: { _store_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          is_owner: boolean
+          roles: Database["public"]["Enums"]["app_role"][]
+          user_id: string
+        }[]
       }
       phonee_stores: {
         Args: never
@@ -3339,6 +3378,10 @@ export type Database = {
           path: string
           visits: number
         }[]
+      }
+      phonee_unbind_user_from_store: {
+        Args: { _store_id: string; _user_id: string }
+        Returns: undefined
       }
       phonee_user_metrics: { Args: never; Returns: Json }
       phonee_user_subscriptions: {
