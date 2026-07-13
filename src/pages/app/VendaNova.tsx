@@ -821,6 +821,35 @@ export default function VendaNova() {
       sale_number: (rpcData as any).sale_number as number | null,
     };
 
+    // Vincula os aparelhos recebidos em troca à venda e move para "em_estoque"
+    // (trigger tg_tradein_to_product cria o produto no inventário com o custo correto).
+    for (const tp of payments.filter((p) => p.method === "troca" && p.trade_in_id)) {
+      await (supabase as any)
+        .from("trade_ins")
+        .update({ received_in_sale_id: sale.id, status: "em_estoque" })
+        .eq("id", tp.trade_in_id);
+      // Marca o pagamento troca desta venda com o vínculo do trade-in
+      await (supabase as any)
+        .from("sale_payments")
+        .update({ trade_in_id: tp.trade_in_id })
+        .eq("sale_id", sale.id)
+        .eq("method", "troca");
+    }
+    // Persiste o breakdown de pagamento na venda (para relatórios de caixa)
+    await (supabase as any)
+      .from("sales")
+      .update({
+        payment_breakdown: payments
+          .filter((p) => Number(p.amount) > 0)
+          .map((p) => ({
+            method: p.method,
+            amount: Number(p.amount),
+            installments: p.installments ?? 1,
+            trade_in_id: p.trade_in_id ?? null,
+          })),
+      })
+      .eq("id", sale.id);
+
     setBusy(false);
     setConfirmOpen(false);
     // Dispara evento Purchase para o Meta Pixel com detalhamento por forma de pagamento
