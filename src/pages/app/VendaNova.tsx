@@ -845,7 +845,7 @@ export default function VendaNova() {
       is_service: !!i.is_service,
       description: i.is_service ? (i.description || i.name) : null,
       quantity: i.quantity,
-      unit_price: i.unit_price,
+      unit_price: i.list_price,
       name: i.name || null,
       sku: i.is_service ? "SERVIÇO" : (i.code || null),
       category: i.category || null,
