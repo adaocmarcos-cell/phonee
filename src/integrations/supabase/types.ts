@@ -3289,6 +3289,45 @@ export type Database = {
       }
       phonee_asaas_idempotency_probe: { Args: never; Returns: Json }
       phonee_asaas_index_status: { Args: never; Returns: Json }
+      phonee_audit_log_actions: {
+        Args: never
+        Returns: {
+          action: string
+          qtd: number
+        }[]
+      }
+      phonee_audit_log_search: {
+        Args: {
+          _action?: string
+          _actor_id?: string
+          _from?: string
+          _limit?: number
+          _offset?: number
+          _store_id?: string
+          _to?: string
+        }
+        Returns: {
+          action: string
+          actor_email: string
+          actor_id: string
+          actor_name: string
+          created_at: string
+          details: Json
+          entity: string
+          entity_id: string
+          id: string
+          module: string
+          new_value: Json
+          old_value: Json
+          screen: string
+          status: string
+          store_id: string
+          store_name: string
+          target_email: string
+          target_id: string
+          target_name: string
+        }[]
+      }
       phonee_bind_user_to_store: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3296,6 +3335,20 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      phonee_bulk_bind_users: {
+        Args: { _rows: Json; _store_id: string }
+        Returns: Json
+      }
+      phonee_bulk_validate_bindings: {
+        Args: { _rows: Json; _store_id: string }
+        Returns: {
+          email: string
+          reason: string
+          role: string
+          status: string
+          user_id: string
+        }[]
       }
       phonee_coupons_revenue: { Args: { _days?: number }; Returns: Json }
       phonee_growth: {
@@ -3480,6 +3533,14 @@ export type Database = {
           subscription_status: string
           user_id: string
         }[]
+      }
+      phonee_validate_role_assignment: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _store_id: string
+          _user_id: string
+        }
+        Returns: Json
       }
       product_stock_filter_options: {
         Args: { _store_id: string }
