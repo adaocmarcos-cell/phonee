@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { LastEditFooter } from "@/components/audit/LastEditFooter";
 
 type PO = {
   id: string; supplier: string; status: string; total_cost: number;
@@ -215,6 +216,10 @@ export default function Pedidos() {
                 : "Ajuste fornecedor, itens, quantidades e custos. Alterações são registradas na auditoria."}
             </DialogDescription>
           </DialogHeader>
+
+          {editOrder?.id && (
+            <LastEditFooter entity="purchase_order" entityId={editOrder.id} className="mb-3" />
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>

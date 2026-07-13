@@ -28,6 +28,7 @@ import { Pencil, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react"
 import { UserCheck } from "lucide-react";
 import { buildLineItemFromProduct } from "@/lib/vendaSearch";
 import { NumberInput } from "@/components/NumberInput";
+import { LastEditFooter } from "@/components/audit/LastEditFooter";
 
 type CustomerLite = {
   id: string;
@@ -1042,6 +1043,12 @@ Obrigado pela preferência.`;
           </div>
         }
       />
+
+      {isEditingSale && editingSaleId && (
+        <div className="mb-4">
+          <LastEditFooter entity="sale" entityId={editingSaleId} />
+        </div>
+      )}
 
       <form onSubmit={onSubmitClick} className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 space-y-4">

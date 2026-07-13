@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
 import { generateUniqueSku } from "@/lib/sku";
 import { NONE_SUBCATEGORY } from "@/lib/productCategory";
+import { LastEditFooter } from "@/components/audit/LastEditFooter";
 
 type Supplier = { id: string; company_name: string; brands: string[]; avg_delivery_days: number | null };
 type Item = { id?: string; product_id?: string | null; product_name: string; sku?: string | null; quantity: number; unit_cost: number; notes?: string | null };
@@ -778,6 +779,9 @@ export default function Compras() {
               </p>
             )}
           </DialogHeader>
+          {editingOrderId && (
+            <LastEditFooter entity="purchase_order" entityId={editingOrderId} className="mb-3" />
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Fornecedor</Label>
