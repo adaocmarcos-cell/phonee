@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canManageProducts } from "@/contexts/AuthContext";
+import { useHasPermission } from "@/hooks/useHasPermission";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -678,6 +679,7 @@ export default function Compras() {
   };
 
   const can = canManageProducts(role);
+  const { allowed: canDeletePurchase } = useHasPermission("compras", "excluir");
 
   return (
     <div>
@@ -807,8 +809,8 @@ export default function Compras() {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      {can && (
-                        <Button size="icon" variant="ghost" onClick={() => setDelTarget(o)} className="text-danger hover:text-danger">
+                      {can && canDeletePurchase && (
+                        <Button size="icon" variant="ghost" onClick={() => setDelTarget(o)} className="text-danger hover:text-danger" title="Excluir compra">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}

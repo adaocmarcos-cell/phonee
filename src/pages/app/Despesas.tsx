@@ -23,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar as CalendarComp } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
+import { useHasPermission } from "@/hooks/useHasPermission";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
@@ -53,6 +54,7 @@ const sb = supabase as any;
 export default function Despesas() {
   const { store, role } = useAuth();
   const isAdmin = role === "dono" || role === "gerente";
+  const { allowed: canDeleteExpense } = useHasPermission("financeiro", "excluir");
   const [categories, setCategories] = useState<Category[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,7 +376,7 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
                       </TableCell>
                       <TableCell className="text-right metric font-semibold">{brl(Number(e.amount))}</TableCell>
                       <TableCell className="text-right">
-                        {isAdmin && (
+                        {isAdmin && canDeleteExpense && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-8 w-8 text-danger"><Trash2 className="h-4 w-4" /></Button>

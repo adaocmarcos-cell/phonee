@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canRegisterSale } from "@/contexts/AuthContext";
+import { useHasPermission } from "@/hooks/useHasPermission";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ const eff = (s: any) => Number(s?.net_value ?? s?.total ?? 0);
 
 export default function Vendas() {
   const { store, role } = useAuth();
+  const { allowed: canDeleteSale } = useHasPermission("vendas", "excluir");
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
   const [period, setPeriod] = useState<PeriodValue>("30d");
@@ -531,7 +533,7 @@ export default function Vendas() {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
-                      {canRegisterSale(role) && (
+                      {canRegisterSale(role) && canDeleteSale && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="icon" variant="ghost" title="Estornar venda">
