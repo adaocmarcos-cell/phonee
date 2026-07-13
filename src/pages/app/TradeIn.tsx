@@ -161,6 +161,22 @@ export default function TradeIn() {
                     <td className="px-4 py-3">
                       <div className="font-medium">{r.model}</div>
                       {r.brand && <div className="text-[11px] text-muted-foreground">{r.brand}</div>}
+                      {(() => {
+                        const c = evaluateCompleteness(r);
+                        if (c.complete) return null;
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-warning">
+                                <AlertTriangle className="h-3 w-3" /> ficha incompleta
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {c.missing.join(" · ")}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{r.imei || "—"}</td>
                     <td className="px-4 py-3 capitalize text-xs">{r.condition.replace("_", " ")}</td>
