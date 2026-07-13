@@ -181,13 +181,16 @@ export default function VendaNova() {
 
   // Pagamento
   const [payments, setPayments] = useState<SplitPayment[]>([
-    { method: "dinheiro", amount: 0, notes: "", installments: 1 },
+    { method: "dinheiro", amount: 0, notes: "", installments: 1, trade_in_id: null },
   ]);
   const [otherExpenses, setOtherExpenses] = useState(0);
   const [freight, setFreight] = useState(0);
   const [netValue, setNetValue] = useState<number>(0);
   const [deductionReason, setDeductionReason] = useState<string>("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Trade-ins disponíveis para uso como meio de pagamento
+  const [availableTradeIns, setAvailableTradeIns] = useState<TradeInLite[]>([]);
 
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
