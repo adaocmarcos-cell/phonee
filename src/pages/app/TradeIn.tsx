@@ -6,30 +6,18 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Smartphone, Search, History, Inbox, ArrowLeft } from "lucide-react";
+import { Plus, Smartphone, Search, Inbox, ArrowLeft, CheckCircle2, CircleOff, HelpCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { brl } from "@/lib/format";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP } from "@/lib/tradeInStatus";
 
 type TI = {
   id: string; customer_name: string; model: string; brand: string | null;
   imei: string | null; condition: string; status: string;
   entry_value: number; intended_sale_value: number; created_at: string;
 };
-
-const statusBadge: Record<string, string> = {
-  em_avaliacao: "bg-warning/15 text-warning border-warning/30",
-  aprovado: "bg-primary/15 text-primary border-primary/30",
-  em_estoque: "bg-success/15 text-success border-success/30",
-  vendido: "bg-muted text-muted-foreground border-border",
-  recusado: "bg-danger/15 text-danger border-danger/30",
-};
-const statusLabel: Record<string, string> = {
-  em_avaliacao: "Em avaliação", aprovado: "Aprovado", em_estoque: "Em estoque",
-  vendido: "Vendido", recusado: "Recusado",
-};
-
-const HISTORIC_STATUSES = new Set(["vendido", "recusado"]);
 
 export default function TradeIn() {
   const { store } = useAuth();
@@ -41,14 +29,14 @@ export default function TradeIn() {
   const saved = (() => {
     try { return JSON.parse(sessionStorage.getItem(FK) || "{}"); } catch { return {}; }
   })();
-  const [view, setView] = useState<"ativos" | "historico">(saved.view ?? "ativos");
   const [q, setQ] = useState<string>(saved.q ?? "");
+  // simple filter: "todos" | "em_estoque" | "desativado"
   const [status, setStatus] = useState<string>(saved.status ?? "todos");
   const [periodo, setPeriodo] = useState<string>(saved.periodo ?? "90");
 
   useEffect(() => {
-    sessionStorage.setItem(FK, JSON.stringify({ view, q, status, periodo }));
-  }, [view, q, status, periodo]);
+    sessionStorage.setItem(FK, JSON.stringify({ q, status, periodo }));
+  }, [q, status, periodo]);
 
   useEffect(() => {
     if (!store) return;
@@ -69,10 +57,8 @@ export default function TradeIn() {
     const days = parseInt(periodo, 10);
     const cutoff = isNaN(days) ? null : Date.now() - days * 86400_000;
     return rows.filter((r) => {
-      const isHist = HISTORIC_STATUSES.has(r.status);
-      if (view === "ativos" && isHist) return false;
-      if (view === "historico" && !isHist) return false;
-      if (status !== "todos" && r.status !== status) return false;
+      const simple = toSimpleStatus(r.status);
+      if (status !== "todos" && simple !== status) return false;
       if (cutoff && new Date(r.created_at).getTime() < cutoff) return false;
       if (term) {
         const hay = `${r.customer_name} ${r.model} ${r.brand ?? ""} ${r.imei ?? ""}`.toLowerCase();
@@ -80,13 +66,10 @@ export default function TradeIn() {
       }
       return true;
     });
-  }, [rows, q, status, periodo, view]);
-
-  const activeStatuses = view === "historico"
-    ? ["vendido", "recusado"]
-    : ["em_avaliacao", "aprovado", "em_estoque"];
+  }, [rows, q, status, periodo]);
 
   return (
+    <TooltipProvider>
     <div>
       <PageHeader
         title="Compra & Troca · Entradas"
@@ -95,12 +78,6 @@ export default function TradeIn() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/estoque")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao estoque
-            </Button>
-            <Button
-              variant={view === "historico" ? "default" : "outline"}
-              onClick={() => setView(view === "historico" ? "ativos" : "historico")}
-            >
-              <History className="h-4 w-4 mr-1" /> {view === "historico" ? "Ver ativos" : "Histórico"}
             </Button>
             <Button onClick={() => navigate("/painel/troca/novo")} className="bg-gradient-primary shadow-glow">
               <Plus className="h-4 w-4 mr-1" /> Lançar entrada
@@ -119,10 +96,9 @@ export default function TradeIn() {
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              {activeStatuses.map((s) => (
-                <SelectItem key={s} value={s}>{statusLabel[s] ?? s}</SelectItem>
-              ))}
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="em_estoque">Em estoque</SelectItem>
+              <SelectItem value="desativado">Desativado</SelectItem>
             </SelectContent>
           </Select>
           <Select value={periodo} onValueChange={setPeriodo}>
@@ -158,11 +134,7 @@ export default function TradeIn() {
                 <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-16 text-center">
-                  {view === "historico" ? (
-                    <Inbox className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-                  ) : (
-                    <Smartphone className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
-                  )}
+                  <Smartphone className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">
                     {rows.length === 0
                       ? "Nenhuma entrada registrada ainda."
@@ -176,6 +148,8 @@ export default function TradeIn() {
                 </td></tr>
               ) : filtered.map((r) => {
                 const margin = r.intended_sale_value > 0 ? ((r.intended_sale_value - r.entry_value) / r.intended_sale_value) * 100 : 0;
+                const simple = toSimpleStatus(r.status);
+                const reason = reasonSubtext(r.status);
                 return (
                   <tr key={r.id} className="hover:bg-surface-elevated/40 cursor-pointer" onClick={() => navigate(`/painel/troca/${r.id}/detalhes`)}>
                     <td className="px-4 py-3">
@@ -194,7 +168,25 @@ export default function TradeIn() {
                       <span className={`metric text-xs ${margin >= 25 ? "text-success" : margin >= 10 ? "text-warning" : "text-danger"}`}>{margin.toFixed(0)}%</span>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={statusBadge[r.status] ?? ""}>{statusLabel[r.status] ?? r.status}</Badge>
+                      <div className="flex flex-col items-start gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <Badge className={simple === "em_estoque"
+                            ? "bg-success/15 text-success border-success/30"
+                            : "bg-muted text-muted-foreground border-border"}>
+                            {simple === "em_estoque"
+                              ? <CheckCircle2 className="h-3 w-3 mr-1" />
+                              : <CircleOff className="h-3 w-3 mr-1" />}
+                            {simple === "em_estoque" ? "Em estoque" : "Desativado"}
+                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <HelpCircle className="h-3 w-3 text-muted-foreground/60" />
+                            </TooltipTrigger>
+                            <TooltipContent>{SIMPLE_STATUS_TOOLTIP[simple]}</TooltipContent>
+                          </Tooltip>
+                        </div>
+                        {reason && <span className="text-[10px] text-muted-foreground">{reason}</span>}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -204,5 +196,6 @@ export default function TradeIn() {
         </div>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }
