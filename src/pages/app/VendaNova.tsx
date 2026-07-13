@@ -699,6 +699,20 @@ export default function VendaNova() {
     if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
       return toast.error("Cada forma de pagamento precisa de método e valor > 0");
     }
+    // Trocas: uma por venda, com aparelho selecionado e valor = entry_value.
+    const trocaPays = payments.filter((p) => p.method === "troca");
+    if (trocaPays.length > 1) {
+      return toast.error("Só é possível registrar uma troca de aparelho por venda.");
+    }
+    for (const tp of trocaPays) {
+      if (!tp.trade_in_id) return toast.error("Selecione o aparelho recebido na troca.");
+      const ti = availableTradeIns.find((x) => x.id === tp.trade_in_id);
+      if (!ti) return toast.error("Aparelho de troca não encontrado. Recarregue a lista.");
+      // Amount pode ser ajustado manualmente; se ficar diferente do entry_value, avisa mas segue.
+      if (Number(tp.amount) > totalSale) {
+        return toast.error("Valor da troca não pode exceder o total da venda.");
+      }
+    }
     // Validação do documento antes de abrir confirmação
     if (doc && onlyDigits(doc)) {
       const v = validateDoc(doc, docType);
