@@ -72,6 +72,25 @@ const STATUS_COLOR: Record<Order["status"], string> = {
   cancelado: "bg-danger/15 text-danger border-danger/30",
 };
 
+// Resumo textual do delta entre itens originais e atuais para o toast final.
+function buildDeltaSummary(before: Item[], after: Item[], newTotal: number): string | null {
+  const key = (it: Item) => it.id ?? `new:${it.product_id ?? ""}:${it.product_name}`;
+  const beforeMap = new Map<string, Item>();
+  before.forEach((b) => beforeMap.set(key(b), b));
+  const parts: string[] = [];
+  after.forEach((a) => {
+    const b = beforeMap.get(key(a));
+    const diff = Number(a.quantity || 0) - Number(b?.quantity || 0);
+    if (diff !== 0) parts.push(`${diff > 0 ? "+" : ""}${diff} ${a.product_name || "item"}`);
+    if (b) beforeMap.delete(key(a));
+  });
+  beforeMap.forEach((b) => parts.push(`−${Number(b.quantity || 0)} ${b.product_name || "item"}`));
+  if (parts.length === 0) return `total ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(newTotal)}`;
+  const shown = parts.slice(0, 4).join(" · ");
+  const extra = parts.length > 4 ? ` · +${parts.length - 4} alteraç${parts.length - 4 === 1 ? "ão" : "ões"}` : "";
+  return `${shown}${extra} · total ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(newTotal)}`;
+}
+
 export default function Compras() {
   const { store, role } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
