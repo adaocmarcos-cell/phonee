@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { ShieldAlert, UserPlus, Trash2, RefreshCw, Search, Link2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
+import { ShieldAlert, UserPlus, Trash2, RefreshCw, Search, Link2, Users2, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 
 type Store = { store_id: string; store_name: string; owner_email: string | null };
 type Binding = {
@@ -89,6 +91,27 @@ export default function PhoneeVinculos() {
   const [confirmDel, setConfirmDel] = useState<Binding | null>(null);
   const [perms, setPerms] = useState<StorePermission[]>([]);
   const [loadingPerms, setLoadingPerms] = useState(false);
+  const [isAdminMaster, setIsAdminMaster] = useState(false);
+  const [addValidation, setAddValidation] = useState<{ ok: boolean; reason: string | null } | null>(null);
+
+  // Bulk state
+  const [openBulk, setOpenBulk] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkRole, setBulkRole] = useState("vendedor");
+  const [bulkResults, setBulkResults] = useState<Array<{ email: string; role: string; user_id: string | null; status: string; reason: string | null }>>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkApplying, setBulkApplying] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+      const { data } = await supabase
+        .from("admin_master_profile" as any)
+        .select("user_id").eq("user_id", user.user.id).maybeSingle();
+      setIsAdminMaster(!!data);
+    })();
+  }, []);
 
   const loadStores = async () => {
     setLoadingStores(true);
@@ -196,6 +219,84 @@ export default function PhoneeVinculos() {
     setAddForm({ user_id: userId, role: "vendedor" });
     setOpenAdd(true);
   };
+
+  // Compute disabled reasons for role options in the "Add" dialog
+  const roleDisabledReason = (role: string): string | null => {
+    if (role === "admin_master") return "Cargo Admin Master é gerenciado em outra tela.";
+    if (role === "administrador" && !isAdminMaster) return "Somente Admin Master pode atribuir este cargo.";
+    if (role === "dono") {
+      const already = bindings.find((b) => b.is_owner);
+      if (already && already.user_id !== addForm.user_id.trim())
+        return "A loja já possui dono. Remova o atual antes de atribuir outro.";
+    }
+    if (addForm.user_id.trim()) {
+      const existing = bindings.find((b) => b.user_id === addForm.user_id.trim());
+      if (existing && existing.roles.includes(role))
+        return "Usuário já possui este cargo nesta loja.";
+    }
+    return null;
+  };
+
+  // Server-side pre-validation on submit
+  const validateAndAdd = async () => {
+    if (!addForm.user_id.trim() || !storeId) {
+      toast.error("Informe o user_id e selecione a loja.");
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await (supabase.rpc as any)("phonee_validate_role_assignment", {
+      _user_id: addForm.user_id.trim(), _store_id: storeId, _role: addForm.role,
+    });
+    if (error) { setSaving(false); toast.error(error.message); return; }
+    const v = data as { ok: boolean; reason: string | null };
+    setAddValidation(v);
+    if (!v.ok) {
+      setSaving(false);
+      toast.error(v.reason ?? "Atribuição bloqueada");
+      return;
+    }
+    await handleAdd();
+    setSaving(false);
+  };
+
+  // Bulk actions
+  const parseBulk = () => {
+    return bulkText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((line) => {
+      const [rawEmail, rawRole] = line.split(",").map((s) => s?.trim());
+      return { email: rawEmail ?? "", role: (rawRole || bulkRole).toLowerCase() };
+    });
+  };
+
+  const runBulkValidate = async () => {
+    if (!storeId) { toast.error("Selecione uma loja."); return; }
+    const rows = parseBulk();
+    if (rows.length === 0) { toast.error("Informe pelo menos um e-mail."); return; }
+    setBulkLoading(true);
+    const { data, error } = await (supabase.rpc as any)("phonee_bulk_validate_bindings", {
+      _store_id: storeId, _rows: rows,
+    });
+    setBulkLoading(false);
+    if (error) { toast.error(error.message); return; }
+    setBulkResults((data ?? []) as any);
+  };
+
+  const runBulkApply = async () => {
+    if (!storeId) return;
+    const rows = parseBulk();
+    setBulkApplying(true);
+    const { data, error } = await (supabase.rpc as any)("phonee_bulk_bind_users", {
+      _store_id: storeId, _rows: rows,
+    });
+    setBulkApplying(false);
+    if (error) { toast.error(error.message); return; }
+    const r = data as { inserted: number; skipped: number; errors: any[] };
+    toast.success(`${r.inserted} vinculado(s), ${r.skipped} ignorado(s).`);
+    setOpenBulk(false);
+    setBulkText(""); setBulkResults([]);
+    loadBindings(storeId); loadAudit(); loadPerms(storeId);
+  };
+
+  const bulkOkCount = bulkResults.filter((r) => r.status === "ok").length;
 
   return (
     <div className="p-4 md:p-6 space-y-6 text-slate-100">
