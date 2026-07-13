@@ -139,6 +139,8 @@ export function printSaleReceipt(opts: {
   const totalItemsQty = items.reduce((a, i) => a + Number(i.quantity || 0), 0);
   const totalItemsDiscount = items.reduce((a, i) => a + Number(i.discount_amount || 0), 0);
   const grossTotal = items.reduce((a, i) => a + Number(i.total || 0), 0) + totalItemsDiscount;
+  const freight = Number(ex?.payment?.freight || 0);
+  const otherExpenses = Number(ex?.payment?.other_expenses || 0);
 
   const css = `
     *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#0f172a}
@@ -257,6 +259,8 @@ export function printSaleReceipt(opts: {
         <div><span>Total de itens</span><span>${items.length} (${totalItemsQty} un.)</span></div>
         <div><span>Subtotal produtos/serviços</span><span>${brl(grossTotal || Number(sale.subtotal || 0))}</span></div>
         <div><span>Descontos</span><span>- ${brl(totalItemsDiscount || Number(sale.discount || 0))}</span></div>
+        ${freight > 0 ? `<div><span>Frete</span><span>+ ${brl(freight)}</span></div>` : ""}
+        ${otherExpenses > 0 ? `<div><span>Outras despesas</span><span>+ ${brl(otherExpenses)}</span></div>` : ""}
         <div class="tot"><span>TOTAL</span><span>${brl(Number(sale.total || 0))}</span></div>
       </div>
 

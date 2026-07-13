@@ -103,6 +103,29 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
         return toast.error("Estoque insuficiente para este produto. Recarregue a lista.");
       }
       if (/soma dos pagamentos/i.test(raw)) {
+        try {
+          await (supabase as any).from("audit_log").insert({
+            user_id: user.id,
+            store_id: store.id,
+            action: "checksum_falha",
+            entity: "sale",
+            module: "vendas",
+            screen: "venda_rapida",
+            status: "erro",
+            details: {
+              origem: "VendaRapidaModal",
+              subtotal_bruto: Number(price) || 0,
+              desconto_total: discountNumber,
+              frete: 0,
+              outras_despesas: 0,
+              total_esperado: (Number(price) || 0) - discountNumber,
+              soma_pagamentos: received,
+              divergencia: +(received - ((Number(price) || 0) - discountNumber)).toFixed(2),
+              produto: { id: product.id, name: product.name },
+              db_error: raw,
+            },
+          });
+        } catch {/* silencia */}
         return toast.error("Valor recebido não fecha com o total da venda.");
       }
       if (/sem acesso a esta loja/i.test(raw)) {
@@ -189,10 +212,11 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
           </Field>
 
           <div className="rounded-md border border-border bg-surface-elevated/40 p-3 text-sm space-y-1">
-            <div className="flex justify-between"><span className="text-muted-foreground">Preço:</span><span className="metric">{brl(Number(price))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Desconto:</span><span className="metric text-muted-foreground">− {brl(Number(discount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto:</span><span className="metric">{brl(Number(price))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Descontos:</span><span className="metric text-muted-foreground">− {brl(Number(discount))}</span></div>
             <div className="border-t border-border my-1" />
-            <div className="flex justify-between text-base"><span className="font-medium">Recebido:</span><span className="metric font-semibold">{brl(received)}</span></div>
+            <div className="flex justify-between text-base"><span className="font-medium">Total esperado:</span><span className="metric font-semibold">{brl(received)}</span></div>
+            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Valor recebido:</span><span className="metric">{brl(received)}</span></div>
             <div className="flex justify-between text-xs"><span className="text-muted-foreground">Lucro:</span><span className={`metric ${profit > 0 ? "text-success" : profit < 0 ? "text-danger" : ""}`}>{brl(profit)}</span></div>
           </div>
         </div>
