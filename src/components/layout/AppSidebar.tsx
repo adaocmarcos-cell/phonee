@@ -22,7 +22,6 @@ type Item = { title: string; url: string; icon: any; end?: boolean; children?: I
 
 const main: Item[] = [
   { title: "Curva ABC", url: "/painel/curva-abc", icon: BarChart3 },
-  { title: "Compra & Troca", url: "/painel/troca", icon: ArrowRightLeft },
   { title: "Pedidos de compra", url: "/painel/pedidos", icon: ShoppingCart },
   { title: "Logs", url: "/painel/logs", icon: FileSearch },
   { title: "Alertas", url: "/painel/alertas", icon: AlertTriangle, badgeKey: "alerts" },
