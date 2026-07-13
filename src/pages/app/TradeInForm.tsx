@@ -243,8 +243,7 @@ export default function TradeInForm() {
     if (editing && originalStatusRef.current && originalStatusRef.current !== form.status) {
       if (form.status === "recusado") {
         const ok = window.confirm(
-          "Marcar como RECUSADO devolve o aparelho ao cliente e remove a entrada do estoque ativo. " +
-          "O lançamento financeiro de entrada será estornado. Deseja continuar?"
+          "Marcar como RECUSADO devolve o aparelho ao cliente e remove a entrada do estoque ativo. Deseja continuar?"
         );
         if (!ok) return;
       }
