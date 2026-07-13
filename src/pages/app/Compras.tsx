@@ -16,7 +16,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw, Pencil } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw, Pencil, Eye } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
@@ -87,6 +87,10 @@ export default function Compras() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Order>>({});
   const [items, setItems] = useState<Item[]>([]);
+  const [originalItems, setOriginalItems] = useState<Item[]>([]);
+  // Read-only "Ver detalhes"
+  const [viewOrder, setViewOrder] = useState<Order | null>(null);
+  const [viewItems, setViewItems] = useState<Item[]>([]);
   const [bulk, setBulk] = useState("");
   const [delTarget, setDelTarget] = useState<Order | null>(null);
   const [skuQuery, setSkuQuery] = useState("");
