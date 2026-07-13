@@ -799,6 +799,9 @@ export default function Compras() {
                           <CheckCircle2 className="h-4 w-4 mr-1 text-success" /> Receber
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" onClick={() => openView(o)} title="Ver detalhes">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
                       {can && (
                         <Button size="icon" variant="ghost" onClick={() => startEdit(o)} title="Editar compra">
                           <Pencil className="h-3.5 w-3.5" />
