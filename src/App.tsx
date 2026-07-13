@@ -232,6 +232,12 @@ function RedirectAppToPainel() {
   return <Navigate to={remapped + search + hash} replace />;
 }
 
+function RedirectCompraShort() {
+  const { id } = useParams();
+  const { search, hash } = useLocation();
+  return <Navigate to={`/painel/compras/${id}${search}${hash}`} replace />;
+}
+
 function RedirectMobileplusToPhonee() {
   const { pathname, search, hash } = useLocation();
   const remapped = pathname.replace(/^\/mobileplus/, "/phonee");
