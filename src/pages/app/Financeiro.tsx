@@ -386,6 +386,11 @@ export default function Financeiro() {
       />
 
       <div className="-mt-2 mb-4 flex justify-end">
+        <div className="mr-auto text-[11px] font-mono text-muted-foreground">
+          Investido em Compra & Troca no período:{" "}
+          <span className="text-foreground font-semibold">{brl(tradeInInvested)}</span>{" "}
+          <span className="opacity-70">(estoque · não abate lucro)</span>
+        </div>
         <button
           type="button"
           onClick={() => setEditingLayout((v) => !v)}
