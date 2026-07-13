@@ -404,6 +404,7 @@ export default function Compras() {
       received_at: new Date().toISOString().slice(0, 10),
     } as any);
     setItems([{ product_name: "", quantity: 0, unit_cost: 0 }]);
+    setOriginalItems([]);
     setBulk("");
     setSkuQuery("");
     setTagsInput("");
@@ -416,7 +417,9 @@ export default function Compras() {
     const { data: its } = await supabase
       .from("purchase_order_items")
       .select("id, product_id, product_name, sku, quantity, unit_cost, notes")
-      .eq("order_id", o.id);
+      .eq("order_id", o.id)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     if (!full) return toast.error("Compra não encontrada.");
     setForm({
       ...(full as any),
@@ -424,7 +427,32 @@ export default function Compras() {
       due_date: (full as any).due_date ?? "",
       received_at: (full as any).received_at ? String((full as any).received_at).slice(0, 10) : "",
     } as any);
-    setItems(((its ?? []) as any[]).map((r) => ({
+    const loaded: Item[] = ((its ?? []) as any[]).map((r) => ({
+      id: r.id,
+      product_id: r.product_id,
+      product_name: r.product_name,
+      sku: r.sku,
+      quantity: Number(r.quantity || 0),
+      unit_cost: Number(r.unit_cost || 0),
+      notes: r.notes,
+    }));
+    setItems(loaded);
+    setOriginalItems(loaded);
+    setBulk("");
+    setSkuQuery("");
+    setTagsInput((full as any).tags?.join(", ") ?? "");
+    setEditingOrderId(o.id);
+    setOpen(true);
+  };
+
+  const openView = async (o: Order) => {
+    const { data: its } = await supabase
+      .from("purchase_order_items")
+      .select("id, product_id, product_name, sku, quantity, unit_cost, notes")
+      .eq("order_id", o.id)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
+    setViewItems(((its ?? []) as any[]).map((r) => ({
       id: r.id,
       product_id: r.product_id,
       product_name: r.product_name,
@@ -433,11 +461,7 @@ export default function Compras() {
       unit_cost: Number(r.unit_cost || 0),
       notes: r.notes,
     })));
-    setBulk("");
-    setSkuQuery("");
-    setTagsInput((full as any).tags?.join(", ") ?? "");
-    setEditingOrderId(o.id);
-    setOpen(true);
+    setViewOrder(o);
   };
 
   const orderTotal = useMemo(() => items.reduce((s, it) => s + Number(it.quantity || 0) * Number(it.unit_cost || 0), 0), [items]);
