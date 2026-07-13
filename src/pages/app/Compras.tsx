@@ -916,7 +916,7 @@ export default function Compras() {
               </Button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
                   <div className="col-span-7 relative">
