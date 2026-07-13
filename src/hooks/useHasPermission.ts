@@ -40,7 +40,7 @@ async function fetchPermission(userId: string, storeId: string, module: string, 
 export function useHasPermission(module: PermModule, action: PermAction, storeIdOverride?: string | null) {
   const { user, store, role } = useAuth();
   const storeId = storeIdOverride ?? store?.id ?? null;
-  const isSuper = role === "dono" || role === "admin_master";
+  const isSuper = role === "dono" || (role as string) === "admin_master";
   const [allowed, setAllowed] = useState<boolean>(isSuper);
   const [loading, setLoading] = useState<boolean>(!isSuper && !!(user?.id && storeId));
 
