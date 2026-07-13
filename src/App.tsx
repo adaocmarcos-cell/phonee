@@ -178,7 +178,7 @@ const App = () => (
             <Route path="/app/*" element={<RedirectAppToPainel />} />
             <Route path="/app" element={<Navigate to="/painel" replace />} />
             {/* Atalho de URL curta e compartilhável para compra */}
-            <Route path="/compras/:id" element={<Navigate to="/painel/compras/:id" replace />} />
+            <Route path="/compras/:id" element={<RedirectCompraShort />} />
 
             {/* Compat: rota antiga /mobileplus/* -> /phonee/* */}
             <Route path="/mobileplus" element={<Navigate to="/phonee" replace />} />
