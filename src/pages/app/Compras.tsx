@@ -1068,11 +1068,79 @@ export default function Compras() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmação com prévia de impacto no estoque */}
-      <Dialog open={previewOpen} onOpenChange={(o) => !saving && setPreviewOpen(o)}>
+      {/* Ver detalhes (leitura) — ficha completa sem risco de alterar */}
+      <Dialog open={!!viewOrder} onOpenChange={(o) => !o && setViewOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da entrada</DialogTitle>
+          </DialogHeader>
+          {viewOrder && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Data</div><div>{new Date(viewOrder.created_at).toLocaleDateString("pt-BR")}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Fornecedor</div><div>{viewOrder.supplier ?? "—"}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Status</div><Badge variant="outline" className={STATUS_COLOR[viewOrder.status]}>{STATUS_LABEL[viewOrder.status]}</Badge></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Pagamento</div><div>{viewOrder.payment_method ?? "—"}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Vencimento</div><div>{viewOrder.due_date ? new Date(viewOrder.due_date).toLocaleDateString("pt-BR") : "—"}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Previsão</div><div>{viewOrder.expected_delivery_at ? new Date(viewOrder.expected_delivery_at).toLocaleDateString("pt-BR") : "—"}</div></div>
+              </div>
+
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Itens ({viewItems.length})</div>
+                <div className="border border-border rounded-md overflow-hidden">
+                  <div className="max-h-[45vh] overflow-y-auto">
+                    <table className="w-full text-[13px]">
+                      <thead className="bg-surface-elevated text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">Produto</th>
+                          <th className="text-right px-3 py-2 font-medium">Qtd</th>
+                          <th className="text-right px-3 py-2 font-medium">Custo unit.</th>
+                          <th className="text-right px-3 py-2 font-medium">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {viewItems.length === 0 ? (
+                          <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Sem itens.</td></tr>
+                        ) : viewItems.map((it, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-2">
+                              <div className="font-medium">{it.product_name}</div>
+                              {it.sku && <div className="text-[10px] font-mono text-muted-foreground">SKU {it.sku}</div>}
+                            </td>
+                            <td className="px-3 py-2 text-right metric">{it.quantity}</td>
+                            <td className="px-3 py-2 text-right metric">{brl(Number(it.unit_cost || 0))}</td>
+                            <td className="px-3 py-2 text-right metric font-semibold">{brl(Number(it.quantity || 0) * Number(it.unit_cost || 0))}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="mt-2 text-right">Total: <span className="font-semibold metric">{brl(Number(viewOrder.total_cost ?? 0))}</span></div>
+              </div>
+
+              {viewOrder.notes && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Observações</div>
+                  <div className="whitespace-pre-wrap">{viewOrder.notes}</div>
+                </div>
+              )}
+
+              <LastEditFooter entity="purchase_order" entityId={viewOrder.id} />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewOrder(null)}>Fechar</Button>
+            {can && viewOrder && (
+              <Button onClick={() => { const o = viewOrder; setViewOrder(null); startEdit(o); }} className="bg-gradient-primary">
+                <Pencil className="h-4 w-4 mr-1" /> Editar
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-      {/* Placeholder swap-in fix marker */}
-      <Dialog open={false}><DialogContent /></Dialog>
+
+      {/* Confirmação com prévia de impacto no estoque */}
       <Dialog open={previewOpen} onOpenChange={(o) => !saving && setPreviewOpen(o)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
