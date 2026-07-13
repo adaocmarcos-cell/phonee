@@ -23,6 +23,7 @@ const nav = [
   { to: "/phonee/suporte",     label: "Suporte",      icon: Inbox },
   { to: "/phonee/auditoria",   label: "Auditoria",    icon: ShieldAlert },
   { to: "/phonee/admins",      label: "Admins Master", icon: Crown },
+  { to: "/phonee/vinculos",    label: "Vínculos",     icon: Link2 },
   { to: "/phonee/diagnostico", label: "Diagnóstico",  icon: Stethoscope },
 ];
 
