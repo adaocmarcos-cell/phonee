@@ -612,12 +612,12 @@ export default function CurvaABC() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Histórico (dias)</Label>
-              <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={histDays}
+              <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={histDays}
                 onValueChange={(n) => { setHistDays(n); setSuggestEdits({}); }} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Projeção (dias)</Label>
-              <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={projDays}
+              <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={projDays}
                 onValueChange={(n) => { setProjDays(n); setSuggestEdits({}); }} />
             </div>
             <div className="space-y-1.5">

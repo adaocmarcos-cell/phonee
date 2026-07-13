@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/NumberInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -88,8 +89,8 @@ export default function TabelasPreco() {
   const [filterName, setFilterName] = useState("");
   const [filterSku, setFilterSku] = useState("");
   const [filterAvailable, setFilterAvailable] = useState<"all" | "in" | "out">("all");
-  const [priceMin, setPriceMin] = useState<string>("");
-  const [priceMax, setPriceMax] = useState<string>("");
+  const [priceMin, setPriceMin] = useState<number | null>(null);
+  const [priceMax, setPriceMax] = useState<number | null>(null);
 
   const [showAvailability, setShowAvailability] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -140,8 +141,8 @@ export default function TabelasPreco() {
       if (filterAvailable === "in" && p.stock_current <= 0) return false;
       if (filterAvailable === "out" && p.stock_current > 0) return false;
       const price = Number(p.sale_price) || 0;
-      const minN = priceMin === "" ? null : Number(priceMin);
-      const maxN = priceMax === "" ? null : Number(priceMax);
+      const minN = priceMin;
+      const maxN = priceMax;
       const minInvalid = minN !== null && (isNaN(minN) || minN < 0);
       const maxInvalid = maxN !== null && (isNaN(maxN) || maxN < 0);
       const rangeInvalid =
@@ -412,8 +413,8 @@ function FiltersPanel(props: {
   filterName: string; setFilterName: (v: string) => void;
   filterSku: string; setFilterSku: (v: string) => void;
   filterAvailable: "all" | "in" | "out"; setFilterAvailable: (v: "all" | "in" | "out") => void;
-  priceMin: string; setPriceMin: (v: string) => void;
-  priceMax: string; setPriceMax: (v: string) => void;
+  priceMin: number | null; setPriceMin: (v: number | null) => void;
+  priceMax: number | null; setPriceMax: (v: number | null) => void;
   showAvailability: boolean; setShowAvailability: (v: boolean) => void;
   showNotes: boolean; setShowNotes: (v: boolean) => void;
   phoneBrands: Set<string>; setPhoneBrands: (v: Set<string>) => void;
@@ -452,12 +453,12 @@ function FiltersPanel(props: {
   const showCarr  = !selectedCats.size || selectedCats.has("carregadores") || selectedCats.has("powerbanks");
   const showCab   = !selectedCats.size || selectedCats.has("cabos");
 
-  const minN = priceMin === "" ? null : Number(priceMin);
-  const maxN = priceMax === "" ? null : Number(priceMax);
+  const minN = priceMin;
+  const maxN = priceMax;
   let priceError = "";
-  if (priceMin !== "" && (isNaN(Number(priceMin)) || Number(priceMin) < 0)) {
+  if (minN !== null && (isNaN(minN) || minN < 0)) {
     priceError = "Valor 'De' inválido.";
-  } else if (priceMax !== "" && (isNaN(Number(priceMax)) || Number(priceMax) < 0)) {
+  } else if (maxN !== null && (isNaN(maxN) || maxN < 0)) {
     priceError = "Valor 'Até' inválido.";
   } else if (minN !== null && maxN !== null && minN > maxN) {
     priceError = "O valor 'De' não pode ser maior que 'Até'.";
@@ -579,26 +580,20 @@ function FiltersPanel(props: {
         <div>
           <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preço (R$)</Label>
           <div className="flex items-center gap-1.5 mt-2">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
+            <NumberInput
+              min={0}
               placeholder="De"
               className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
-              value={priceMin}
-              onChange={(e) => setPriceMin(e.target.value)}
+              value={priceMin ?? 0}
+              onValueChange={(n) => setPriceMin(n === 0 ? null : n)}
             />
             <span className="text-xs text-muted-foreground">—</span>
-            <Input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
+            <NumberInput
+              min={0}
               placeholder="Até"
               className={`h-9 ${priceError ? "border-destructive focus-visible:ring-destructive" : ""}`}
-              value={priceMax}
-              onChange={(e) => setPriceMax(e.target.value)}
+              value={priceMax ?? 0}
+              onValueChange={(n) => setPriceMax(n === 0 ? null : n)}
             />
           </div>
           {priceError && (

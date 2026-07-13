@@ -138,17 +138,18 @@ export default function VendaNova() {
 
   // Serviços
   const [serviceDialog, setServiceDialog] = useState<{ open: boolean; description: string; quantity: number; unit_price: number; editing?: string | null }>({
-    open: false, description: "", quantity: 1, unit_price: 0, editing: null,
+    open: false, description: "", quantity: 0, unit_price: 0, editing: null,
   });
   const openNewService = () =>
-    setServiceDialog({ open: true, description: "", quantity: 1, unit_price: 0, editing: null });
+    setServiceDialog({ open: true, description: "", quantity: 0, unit_price: 0, editing: null });
   const openEditService = (i: LineItem) =>
     setServiceDialog({ open: true, description: i.description || i.name, quantity: i.quantity, unit_price: i.unit_price, editing: i.product_id });
   const saveService = () => {
     const desc = serviceDialog.description.trim();
-    const qty = Math.max(1, Number(serviceDialog.quantity) || 1);
+    const qty = Number(serviceDialog.quantity) || 0;
     const price = Number(serviceDialog.unit_price) || 0;
     if (!desc) return toast.error("Descreva o serviço");
+    if (qty < 1) return toast.error("Informe a quantidade do serviço (mínimo 1)");
     if (price <= 0) return toast.error("Informe um valor maior que zero");
     setItems((arr) => {
       if (serviceDialog.editing) {
@@ -164,7 +165,7 @@ export default function VendaNova() {
         quantity: qty, list_price: price, discount_pct: 0, discount_brl: 0, unit_price: price,
       }];
     });
-    setServiceDialog({ open: false, description: "", quantity: 1, unit_price: 0, editing: null });
+    setServiceDialog({ open: false, description: "", quantity: 0, unit_price: 0, editing: null });
   };
 
   // Comissões
@@ -1109,7 +1110,7 @@ Obrigado pela preferência.`;
                       <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{i.code}</td>
                       <td className="px-3 py-2.5 text-xs">{i.color || "—"}</td>
                       <td className="px-3 py-2.5 text-xs">{i.storage || "—"}</td>
-                     <td className="px-2 py-1.5"><NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} className="h-8 text-right" /></td>
+                     <td className="px-2 py-1.5"><NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} className="h-8 text-right" /></td>
                      <td className="px-2 py-1.5"><NumberInput value={i.list_price} onValueChange={(n) => updateItem(i.product_id, { list_price: n })} className="h-8 text-right" /></td>
                      <td className="px-2 py-1.5"><NumberInput value={i.discount_pct} onValueChange={(n) => updateItem(i.product_id, { discount_pct: n })} className="h-8 text-right" /></td>
                      <td className="px-2 py-1.5"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} className="h-8 text-right" /></td>
@@ -1136,7 +1137,7 @@ Obrigado pela preferência.`;
                     <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <Field label="Qtd"><NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} /></Field>
+                    <Field label="Qtd"><NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} /></Field>
                     <Field label="P. lista"><NumberInput value={i.list_price} onValueChange={(n) => updateItem(i.product_id, { list_price: n })} /></Field>
                     <Field label="Desc %"><NumberInput value={i.discount_pct} onValueChange={(n) => updateItem(i.product_id, { discount_pct: n })} /></Field>
                     <Field label="Desc R$"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} /></Field>
@@ -1222,9 +1223,9 @@ Obrigado pela preferência.`;
                         <Field label="Parcelas">
                           <NumberInput
                             allowDecimal={false}
-                            min={1}
+                            min={0}
                             max={24}
-                            emptyBehavior="min"
+                            emptyBehavior="zero"
                             value={p.installments ?? 1}
                             disabled={!isCard}
                             onValueChange={(n) => updatePayment(idx, { installments: n })}
@@ -1750,7 +1751,7 @@ Obrigado pela preferência.`;
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Quantidade</Label>
-                <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={serviceDialog.quantity}
+                <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={serviceDialog.quantity}
                   onValueChange={(n) => setServiceDialog((s) => ({ ...s, quantity: n }))} />
               </div>
               <div>
@@ -1764,7 +1765,7 @@ Obrigado pela preferência.`;
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setServiceDialog({ open: false, description: "", quantity: 1, unit_price: 0, editing: null })}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setServiceDialog({ open: false, description: "", quantity: 0, unit_price: 0, editing: null })}>Cancelar</Button>
             <Button onClick={saveService} className="bg-gradient-primary">{serviceDialog.editing ? "Salvar alterações" : "Adicionar"}</Button>
           </DialogFooter>
         </DialogContent>

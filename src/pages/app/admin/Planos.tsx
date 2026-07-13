@@ -20,6 +20,8 @@ export default function Planos() {
   useEffect(() => { load(); }, []);
 
   const save = async (p: Plan) => {
+    if (!p.max_installments || p.max_installments < 1) return toast.error("Informe o máximo de parcelas (mínimo 1).");
+    if (p.max_installments > 12) return toast.error("Máximo de 12 parcelas.");
     const { error } = await supabase.from("plans").update({
       name: p.name, description: p.description, price_cents: p.price_cents,
       max_installments: p.max_installments, active: p.active,
@@ -52,8 +54,8 @@ export default function Planos() {
               </div>
               <div className="space-y-2">
                 <Label>Máx. parcelas</Label>
-                <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={p.max_installments}
-                  onValueChange={(n) => setPlans(plans.map(x => x.id === p.id ? { ...x, max_installments: Math.min(12, Math.max(1, n)) } : x))} />
+                <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={p.max_installments}
+                  onValueChange={(n) => setPlans(plans.map(x => x.id === p.id ? { ...x, max_installments: Math.min(12, n) } : x))} />
               </div>
             </div>
             <Button onClick={() => save(p)} className="w-full">Salvar</Button>

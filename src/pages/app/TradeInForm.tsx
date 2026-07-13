@@ -92,7 +92,7 @@ export default function TradeInForm() {
   const [partsCatalog, setPartsCatalog] = useState<any[]>([]);
   const [partDialogOpen, setPartDialogOpen] = useState(false);
   const [selPartId, setSelPartId] = useState<string>("");
-  const [selPartQty, setSelPartQty] = useState<number>(1);
+  const [selPartQty, setSelPartQty] = useState<number>(0);
   const originalStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export default function TradeInForm() {
       repair_parts: newParts,
       repair_costs: Number(form.repair_costs || 0) + item.qty * item.unit_cost,
     });
-    setSelPartId(""); setSelPartQty(1); setPartDialogOpen(false);
+    setSelPartId(""); setSelPartQty(0); setPartDialogOpen(false);
   };
 
   const removeRepairPart = (idx: number) => {
@@ -615,7 +615,7 @@ export default function TradeInForm() {
             </div>
             <div className="space-y-2">
               <Label>Quantidade</Label>
-              <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={selPartQty} onValueChange={setSelPartQty} className="font-mono" />
+              <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={selPartQty} onValueChange={setSelPartQty} className="font-mono" />
             </div>
             <p className="text-[11px] text-muted-foreground">O custo da peça (qtd × custo) será somado aos custos de reparo. Ao salvar, o estoque é baixado e uma despesa é lançada no financeiro.</p>
           </div>

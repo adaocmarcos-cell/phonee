@@ -87,7 +87,7 @@ export default function PartsPurchaseCenter() {
   }, [rows]);
 
   const openNew = () => {
-    setPartId(""); setQty(1); setUnitCost(0); setSupplier(""); setNote("");
+    setPartId(""); setQty(0); setUnitCost(0); setSupplier(""); setNote("");
     setPurchaseDate(toInputDate(new Date()));
     setOpen(true);
   };
@@ -248,7 +248,7 @@ export default function PartsPurchaseCenter() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Quantidade *</Label>
-                <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={qty} onValueChange={setQty} />
+                <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={qty} onValueChange={setQty} />
               </div>
               <div>
                 <Label>Custo unitário (R$)</Label>

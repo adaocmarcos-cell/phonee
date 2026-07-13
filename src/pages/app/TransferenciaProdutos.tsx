@@ -33,7 +33,7 @@ export default function TransferenciaProdutos() {
   const [products, setProducts] = useState<Product[]>([]);
   const [q, setQ] = useState("");
   const [pick, setPick] = useState<string>("");
-  const [qty, setQty] = useState<number>(1);
+  const [qty, setQty] = useState<number>(0);
   const [note, setNote] = useState<string>("");
   const [history, setHistory] = useState<TransferRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -206,7 +206,7 @@ export default function TransferenciaProdutos() {
             <Input className="pl-9" placeholder="Buscar produto por nome ou SKU…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <div>
-            <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={qty} onValueChange={setQty} placeholder="Qtd" />
+            <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={qty} onValueChange={setQty} placeholder="Qtd" />
           </div>
         </div>
 
@@ -215,7 +215,7 @@ export default function TransferenciaProdutos() {
             <div className="p-6 text-center text-sm text-muted-foreground">Nenhum produto disponível na loja de origem.</div>
           ) : filtered.map((p) => (
             <button
-              key={p.id} onClick={() => { setPick(p.id); setQty(1); }}
+              key={p.id} onClick={() => { setPick(p.id); setQty(0); }}
               className={`w-full text-left flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/40 ${pick === p.id ? "bg-primary/10" : ""}`}
             >
               <div className="min-w-0">
