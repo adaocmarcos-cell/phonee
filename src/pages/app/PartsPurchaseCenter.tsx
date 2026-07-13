@@ -87,7 +87,7 @@ export default function PartsPurchaseCenter() {
   }, [rows]);
 
   const openNew = () => {
-    setPartId(""); setQty(1); setUnitCost(0); setSupplier(""); setNote("");
+    setPartId(""); setQty(0); setUnitCost(0); setSupplier(""); setNote("");
     setPurchaseDate(toInputDate(new Date()));
     setOpen(true);
   };

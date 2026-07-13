@@ -45,6 +45,8 @@ export default function Garantias() {
   const onSave = async () => {
     if (!canEdit) return toast.error("Sem permissão");
     if (s.options.length === 0) return toast.error("Adicione ao menos uma opção de prazo");
+    const invalidDays = s.options.find((o) => !o.days || o.days < 1);
+    if (invalidDays) return toast.error("Todas as opções de garantia precisam ter dias > 0.");
     if (!s.options.find((o) => o.days === s.default_days))
       return toast.error("O prazo padrão deve estar entre as opções");
     setBusy(true);

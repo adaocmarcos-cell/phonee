@@ -96,7 +96,7 @@ export default function PartsInventory() {
   const [osTarget, setOsTarget] = useState<Part | null>(null);
   const [osList, setOsList] = useState<{ id: string; os_number: number; customer_name: string | null }[]>([]);
   const [osPick, setOsPick] = useState<string>("");
-  const [osQty, setOsQty] = useState<number>(1);
+  const [osQty, setOsQty] = useState<number>(0);
   const [modelInput, setModelInput] = useState("");
 
   const load = async () => {

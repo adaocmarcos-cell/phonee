@@ -20,6 +20,8 @@ export default function Planos() {
   useEffect(() => { load(); }, []);
 
   const save = async (p: Plan) => {
+    if (!p.max_installments || p.max_installments < 1) return toast.error("Informe o máximo de parcelas (mínimo 1).");
+    if (p.max_installments > 12) return toast.error("Máximo de 12 parcelas.");
     const { error } = await supabase.from("plans").update({
       name: p.name, description: p.description, price_cents: p.price_cents,
       max_installments: p.max_installments, active: p.active,
