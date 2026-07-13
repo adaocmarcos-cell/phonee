@@ -911,6 +911,33 @@ export default function VendaNova() {
         msg = "Você não tem permissão para registrar vendas nesta loja.";
       } else if (/soma dos pagamentos/i.test(raw)) {
         msg = "A soma das formas de pagamento não fecha com o total. Revise antes de salvar.";
+        // Auditoria de checksum: registra os valores divergentes para diagnóstico.
+        try {
+          await (supabase as any).from("audit_log").insert({
+            user_id: user.id,
+            store_id: store.id,
+            action: "checksum_falha",
+            entity: "sale",
+            module: "vendas",
+            screen: isEditingSale ? "venda_editar" : "venda_nova",
+            status: "erro",
+            details: {
+              origem: "VendaNova",
+              subtotal_bruto: subtotal,
+              desconto_total: totalDiscount,
+              frete: freight,
+              outras_despesas: otherExpenses,
+              total_esperado: totalSale,
+              soma_pagamentos: paid,
+              divergencia: +(paid - totalSale).toFixed(2),
+              itens: rpcItems.map((it) => ({
+                name: it.name, qty: it.quantity, unit_price: it.unit_price, discount: it.discount_amount,
+              })),
+              pagamentos: rpcPayments,
+              db_error: raw,
+            },
+          });
+        } catch {/* silencia falha do log */}
       } else if (/venda precisa de ao menos um item/i.test(raw)) {
         msg = "Adicione ao menos um item antes de salvar.";
       } else if (/desconto maior que o subtotal/i.test(raw)) {
