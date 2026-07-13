@@ -750,6 +750,11 @@ export default function Compras() {
                         </Button>
                       )}
                       {can && (
+                        <Button size="icon" variant="ghost" onClick={() => startEdit(o)} title="Editar compra">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {can && (
                         <Button size="icon" variant="ghost" onClick={() => setDelTarget(o)} className="text-danger hover:text-danger">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -765,7 +770,14 @@ export default function Compras() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Entrada de mercadorias</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editingOrderId ? "Editar entrada de mercadorias" : "Entrada de mercadorias"}</DialogTitle>
+            {editingOrderId && (
+              <p className="text-xs text-muted-foreground mt-1">
+                O estoque será recalculado pela diferença entre itens antigos e novos. Se algum produto já foi vendido, a redução é bloqueada.
+              </p>
+            )}
+          </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Fornecedor</Label>
