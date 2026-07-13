@@ -527,6 +527,11 @@ export default function Vendas() {
                         <Eye className="h-4 w-4 text-info" />
                       </Button>
                       {canRegisterSale(role) && (
+                        <Button size="icon" variant="ghost" title="Editar venda" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canRegisterSale(role) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="icon" variant="ghost" title="Estornar venda">
