@@ -809,8 +809,8 @@ export default function Compras() {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      {can && (
-                        <Button size="icon" variant="ghost" onClick={() => setDelTarget(o)} className="text-danger hover:text-danger">
+                      {can && canDeletePurchase && (
+                        <Button size="icon" variant="ghost" onClick={() => setDelTarget(o)} className="text-danger hover:text-danger" title="Excluir compra">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
