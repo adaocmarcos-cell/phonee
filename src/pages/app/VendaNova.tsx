@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -108,6 +108,8 @@ const CATEGORIES_DEFAULT = [
 
 export default function VendaNova() {
   const navigate = useNavigate();
+  const { id: editingSaleId } = useParams();
+  const isEditingSale = !!editingSaleId;
   const { store, user, role } = useAuth();
 
   // Cliente
@@ -208,6 +210,8 @@ export default function VendaNova() {
   const [allCategories, setAllCategories] = useState(CATEGORIES_DEFAULT);
 
   const [busy, setBusy] = useState(false);
+  const [editHasTradeIn, setEditHasTradeIn] = useState(false);
+  const [editSaleLoaded, setEditSaleLoaded] = useState(false);
 
   // Garantia
   const [warrantyCfg, setWarrantyCfg] = useState<WarrantySettings | null>(null);
