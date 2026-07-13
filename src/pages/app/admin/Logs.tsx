@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileSearch, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EditDiffDialog } from "@/components/audit/EditDiffDialog";
 
 type LogRow = {
   id: string;
@@ -42,6 +43,7 @@ export default function LogsPage() {
   const [q, setQ] = useState("");
   const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [diffRow, setDiffRow] = useState<LogRow | null>(null);
 
   const load = async () => {
     if (!store) return;
@@ -166,7 +168,11 @@ export default function LogsPage() {
                       {r.entity && <div className="text-[11px] text-muted-foreground mt-1">{r.entity}</div>}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground max-w-md">
-                      {r.details ? (
+                      {isEditWithDiff(r) ? (
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDiffRow(r)}>
+                          Comparar antes × depois
+                        </Button>
+                      ) : r.details ? (
                         <pre className="whitespace-pre-wrap font-mono text-[11px]">{
                           Object.entries(r.details as Record<string, any>)
                             .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
@@ -181,6 +187,24 @@ export default function LogsPage() {
           </table>
         </div>
       </Card>
+
+      <EditDiffDialog
+        open={!!diffRow}
+        onOpenChange={(o) => !o && setDiffRow(null)}
+        title={
+          diffRow?.entity === "sale" ? "Comparativo da edição — Venda"
+          : diffRow?.entity === "purchase_order" ? "Comparativo da edição — Compra"
+          : "Comparativo da edição"
+        }
+        unitLabel={diffRow?.entity === "sale" ? "Preço unit." : "Custo unit."}
+        details={diffRow?.details}
+      />
     </div>
   );
+}
+
+function isEditWithDiff(r: LogRow): boolean {
+  if (r.action !== "edicao") return false;
+  const d = r.details as any;
+  return !!(d && d.antes && d.depois);
 }
