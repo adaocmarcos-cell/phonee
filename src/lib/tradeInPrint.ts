@@ -50,7 +50,7 @@ const CHECK_LABEL: Record<string, string> = {
   speaker_ok: "Alto-falante/microfone",
 };
 
-export function printTradeInFicha(ti: any, store: Store) {
+export function buildTradeInFichaHtml(ti: any, store: Store, opts: { autoPrint?: boolean } = {}) {
   const logo = store.pdf_logo_url || store.logo_url || "";
   const primary = store.pdf_primary_color || "#0f172a";
   const totalCost = Number(ti.entry_value || 0) + Number(ti.repair_costs || 0);
@@ -189,9 +189,13 @@ ${ti.notes ? `<h2>Observações</h2><div>${esc(ti.notes).replace(/\n/g, "<br>")}
 
 <div class="foot">${esc(store.pdf_footer_text || "Emitido pelo Phonee")}</div>
 
-<script>window.onload=()=>{setTimeout(()=>window.print(),200)}</script>
+${opts.autoPrint ? '<script>window.onload=()=>{setTimeout(()=>window.print(),200)}</script>' : ""}
 </body></html>`;
+  return html;
+}
 
+export function printTradeInFicha(ti: any, store: Store) {
+  const html = buildTradeInFichaHtml(ti, store, { autoPrint: true });
   const w = window.open("", "_blank", "width=900,height=1100");
   if (!w) {
     alert("Habilite pop-ups para emitir o PDF da ficha.");
