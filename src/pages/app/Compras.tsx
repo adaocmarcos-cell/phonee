@@ -16,7 +16,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw, Pencil } from "lucide-react";
+import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw, Pencil, Eye } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
@@ -72,6 +72,25 @@ const STATUS_COLOR: Record<Order["status"], string> = {
   cancelado: "bg-danger/15 text-danger border-danger/30",
 };
 
+// Resumo textual do delta entre itens originais e atuais para o toast final.
+function buildDeltaSummary(before: Item[], after: Item[], newTotal: number): string | null {
+  const key = (it: Item) => it.id ?? `new:${it.product_id ?? ""}:${it.product_name}`;
+  const beforeMap = new Map<string, Item>();
+  before.forEach((b) => beforeMap.set(key(b), b));
+  const parts: string[] = [];
+  after.forEach((a) => {
+    const b = beforeMap.get(key(a));
+    const diff = Number(a.quantity || 0) - Number(b?.quantity || 0);
+    if (diff !== 0) parts.push(`${diff > 0 ? "+" : ""}${diff} ${a.product_name || "item"}`);
+    if (b) beforeMap.delete(key(a));
+  });
+  beforeMap.forEach((b) => parts.push(`−${Number(b.quantity || 0)} ${b.product_name || "item"}`));
+  if (parts.length === 0) return `total ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(newTotal)}`;
+  const shown = parts.slice(0, 4).join(" · ");
+  const extra = parts.length > 4 ? ` · +${parts.length - 4} alteraç${parts.length - 4 === 1 ? "ão" : "ões"}` : "";
+  return `${shown}${extra} · total ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(newTotal)}`;
+}
+
 export default function Compras() {
   const { store, role } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -87,6 +106,10 @@ export default function Compras() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Order>>({});
   const [items, setItems] = useState<Item[]>([]);
+  const [originalItems, setOriginalItems] = useState<Item[]>([]);
+  // Read-only "Ver detalhes"
+  const [viewOrder, setViewOrder] = useState<Order | null>(null);
+  const [viewItems, setViewItems] = useState<Item[]>([]);
   const [bulk, setBulk] = useState("");
   const [delTarget, setDelTarget] = useState<Order | null>(null);
   const [skuQuery, setSkuQuery] = useState("");
@@ -400,6 +423,7 @@ export default function Compras() {
       received_at: new Date().toISOString().slice(0, 10),
     } as any);
     setItems([{ product_name: "", quantity: 0, unit_cost: 0 }]);
+    setOriginalItems([]);
     setBulk("");
     setSkuQuery("");
     setTagsInput("");
@@ -412,7 +436,9 @@ export default function Compras() {
     const { data: its } = await supabase
       .from("purchase_order_items")
       .select("id, product_id, product_name, sku, quantity, unit_cost, notes")
-      .eq("order_id", o.id);
+      .eq("order_id", o.id)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
     if (!full) return toast.error("Compra não encontrada.");
     setForm({
       ...(full as any),
@@ -420,7 +446,32 @@ export default function Compras() {
       due_date: (full as any).due_date ?? "",
       received_at: (full as any).received_at ? String((full as any).received_at).slice(0, 10) : "",
     } as any);
-    setItems(((its ?? []) as any[]).map((r) => ({
+    const loaded: Item[] = ((its ?? []) as any[]).map((r) => ({
+      id: r.id,
+      product_id: r.product_id,
+      product_name: r.product_name,
+      sku: r.sku,
+      quantity: Number(r.quantity || 0),
+      unit_cost: Number(r.unit_cost || 0),
+      notes: r.notes,
+    }));
+    setItems(loaded);
+    setOriginalItems(loaded);
+    setBulk("");
+    setSkuQuery("");
+    setTagsInput((full as any).tags?.join(", ") ?? "");
+    setEditingOrderId(o.id);
+    setOpen(true);
+  };
+
+  const openView = async (o: Order) => {
+    const { data: its } = await supabase
+      .from("purchase_order_items")
+      .select("id, product_id, product_name, sku, quantity, unit_cost, notes")
+      .eq("order_id", o.id)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
+    setViewItems(((its ?? []) as any[]).map((r) => ({
       id: r.id,
       product_id: r.product_id,
       product_name: r.product_name,
@@ -429,11 +480,7 @@ export default function Compras() {
       unit_cost: Number(r.unit_cost || 0),
       notes: r.notes,
     })));
-    setBulk("");
-    setSkuQuery("");
-    setTagsInput((full as any).tags?.join(", ") ?? "");
-    setEditingOrderId(o.id);
-    setOpen(true);
+    setViewOrder(o);
   };
 
   const orderTotal = useMemo(() => items.reduce((s, it) => s + Number(it.quantity || 0) * Number(it.unit_cost || 0), 0), [items]);
@@ -590,6 +637,8 @@ export default function Compras() {
       if (form.payment_status === "pago" && orderTotal > 0) toast.message("Despesa lançada no financeiro");
     } else {
       toast.success("Entrada atualizada · estoque recalculado por delta");
+      const summary = buildDeltaSummary(originalItems, items, orderTotal);
+      if (summary) toast.message(summary);
     }
     setSaving(false);
     setPreviewOpen(false);
@@ -750,6 +799,9 @@ export default function Compras() {
                           <CheckCircle2 className="h-4 w-4 mr-1 text-success" /> Receber
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" onClick={() => openView(o)} title="Ver detalhes">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
                       {can && (
                         <Button size="icon" variant="ghost" onClick={() => startEdit(o)} title="Editar compra">
                           <Pencil className="h-3.5 w-3.5" />
@@ -867,7 +919,7 @@ export default function Compras() {
               </Button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
               {items.map((it, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 items-start">
                   <div className="col-span-7 relative">
@@ -1012,6 +1064,78 @@ export default function Compras() {
             <Button onClick={buildPreview} className="bg-gradient-primary">
               <CheckCircle2 className="h-4 w-4 mr-1" /> Salvar compra e adicionar ao estoque
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ver detalhes (leitura) — ficha completa sem risco de alterar */}
+      <Dialog open={!!viewOrder} onOpenChange={(o) => !o && setViewOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da entrada</DialogTitle>
+          </DialogHeader>
+          {viewOrder && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Data</div><div>{new Date(viewOrder.created_at).toLocaleDateString("pt-BR")}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Fornecedor</div><div>{viewOrder.supplier ?? "—"}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Status</div><Badge variant="outline" className={STATUS_COLOR[viewOrder.status]}>{STATUS_LABEL[viewOrder.status]}</Badge></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Pagamento</div><div>{viewOrder.payment_method ?? "—"}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Vencimento</div><div>{viewOrder.due_date ? new Date(viewOrder.due_date).toLocaleDateString("pt-BR") : "—"}</div></div>
+                <div><div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Previsão</div><div>{viewOrder.expected_delivery_at ? new Date(viewOrder.expected_delivery_at).toLocaleDateString("pt-BR") : "—"}</div></div>
+              </div>
+
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Itens ({viewItems.length})</div>
+                <div className="border border-border rounded-md overflow-hidden">
+                  <div className="max-h-[45vh] overflow-y-auto">
+                    <table className="w-full text-[13px]">
+                      <thead className="bg-surface-elevated text-[10px] uppercase tracking-widest font-mono text-muted-foreground">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">Produto</th>
+                          <th className="text-right px-3 py-2 font-medium">Qtd</th>
+                          <th className="text-right px-3 py-2 font-medium">Custo unit.</th>
+                          <th className="text-right px-3 py-2 font-medium">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {viewItems.length === 0 ? (
+                          <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Sem itens.</td></tr>
+                        ) : viewItems.map((it, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-2">
+                              <div className="font-medium">{it.product_name}</div>
+                              {it.sku && <div className="text-[10px] font-mono text-muted-foreground">SKU {it.sku}</div>}
+                            </td>
+                            <td className="px-3 py-2 text-right metric">{it.quantity}</td>
+                            <td className="px-3 py-2 text-right metric">{brl(Number(it.unit_cost || 0))}</td>
+                            <td className="px-3 py-2 text-right metric font-semibold">{brl(Number(it.quantity || 0) * Number(it.unit_cost || 0))}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="mt-2 text-right">Total: <span className="font-semibold metric">{brl(Number(viewOrder.total_cost ?? 0))}</span></div>
+              </div>
+
+              {viewOrder.notes && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-muted-foreground font-mono">Observações</div>
+                  <div className="whitespace-pre-wrap">{viewOrder.notes}</div>
+                </div>
+              )}
+
+              <LastEditFooter entity="purchase_order" entityId={viewOrder.id} />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewOrder(null)}>Fechar</Button>
+            {can && viewOrder && (
+              <Button onClick={() => { const o = viewOrder; setViewOrder(null); startEdit(o); }} className="bg-gradient-primary">
+                <Pencil className="h-4 w-4 mr-1" /> Editar
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
