@@ -3030,6 +3030,50 @@ export type Database = {
           },
         ]
       }
+      user_store_permissions: {
+        Row: {
+          can_edit_purchases: boolean
+          can_edit_sales: boolean
+          can_view_purchases: boolean
+          can_view_sales: boolean
+          created_at: string
+          id: string
+          store_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_edit_purchases?: boolean
+          can_edit_sales?: boolean
+          can_view_purchases?: boolean
+          can_view_sales?: boolean
+          created_at?: string
+          id?: string
+          store_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_edit_purchases?: boolean
+          can_edit_sales?: boolean
+          can_view_purchases?: boolean
+          can_view_sales?: boolean
+          created_at?: string
+          id?: string
+          store_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_store_permissions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_stores: {
         Row: {
           store_id: string
@@ -3263,6 +3307,18 @@ export type Database = {
           new_subscriptions: number
         }[]
       }
+      phonee_list_store_permissions: {
+        Args: { _store_id: string }
+        Returns: {
+          can_edit_purchases: boolean
+          can_edit_sales: boolean
+          can_view_purchases: boolean
+          can_view_sales: boolean
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       phonee_marketing_dashboard: {
         Args: { _from?: string; _to?: string }
         Returns: Json
@@ -3328,6 +3384,15 @@ export type Database = {
         Returns: Json
       }
       phonee_security_test: { Args: never; Returns: Json }
+      phonee_set_store_permission: {
+        Args: {
+          _allowed: boolean
+          _feature: string
+          _store_id: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       phonee_set_user_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3548,6 +3613,10 @@ export type Database = {
       }
       user_has_store_access: {
         Args: { _store_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_store_can: {
+        Args: { _feature: string; _store_id: string; _user_id: string }
         Returns: boolean
       }
     }
