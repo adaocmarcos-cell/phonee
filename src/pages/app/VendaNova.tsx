@@ -742,9 +742,18 @@ export default function VendaNova() {
     const payload = buildPayload();
     // Sincroniza cliente com o CRM antes de gravar a venda
     const linkedCustomerId = await ensureCustomerRecord();
+    // Compat: header payment_method é um enum e não conhece "troca". Usa o primeiro
+    // método monetário; se todos forem troca (sem parte em caixa), grava "dinheiro" como fallback.
+    const monetaryMethods = payments
+      .filter((p) => p.method !== "troca" && Number(p.amount) > 0)
+      .map((p) => p.method);
     const dbMethod = isMulti
       ? "misto"
-      : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod) ? primaryMethod : "dinheiro");
+      : (["dinheiro", "pix", "debito", "credito", "crediario"].includes(primaryMethod)
+          ? primaryMethod
+          : (monetaryMethods[0] && ["dinheiro","pix","debito","credito","crediario"].includes(monetaryMethods[0])
+              ? monetaryMethods[0]
+              : "dinheiro"));
     const headInstallments = payments[0]?.installments ?? 1;
 
     // Atomic sale: cabeçalho + itens + pagamentos + baixa de estoque numa única
