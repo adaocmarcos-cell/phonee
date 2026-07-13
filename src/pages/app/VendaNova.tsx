@@ -146,9 +146,10 @@ export default function VendaNova() {
     setServiceDialog({ open: true, description: i.description || i.name, quantity: i.quantity, unit_price: i.unit_price, editing: i.product_id });
   const saveService = () => {
     const desc = serviceDialog.description.trim();
-    const qty = Math.max(1, Number(serviceDialog.quantity) || 1);
+    const qty = Number(serviceDialog.quantity) || 0;
     const price = Number(serviceDialog.unit_price) || 0;
     if (!desc) return toast.error("Descreva o serviço");
+    if (qty < 1) return toast.error("Informe a quantidade do serviço (mínimo 1)");
     if (price <= 0) return toast.error("Informe um valor maior que zero");
     setItems((arr) => {
       if (serviceDialog.editing) {
