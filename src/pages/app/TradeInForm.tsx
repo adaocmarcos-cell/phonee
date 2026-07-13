@@ -92,7 +92,7 @@ export default function TradeInForm() {
   const [partsCatalog, setPartsCatalog] = useState<any[]>([]);
   const [partDialogOpen, setPartDialogOpen] = useState(false);
   const [selPartId, setSelPartId] = useState<string>("");
-  const [selPartQty, setSelPartQty] = useState<number>(1);
+  const [selPartQty, setSelPartQty] = useState<number>(0);
   const originalStatusRef = useRef<string | null>(null);
 
   useEffect(() => {

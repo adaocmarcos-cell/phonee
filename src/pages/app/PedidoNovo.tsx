@@ -59,7 +59,7 @@ export default function PedidoNovo() {
   const [coverageDays, setCoverageDays] = useState<number>(DEFAULT_COVERAGE_DAYS);
   const [allProducts, setAllProducts] = useState<ProductLite[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [customQty, setCustomQty] = useState(1);
+  const [customQty, setCustomQty] = useState(0);
   const [customNote, setCustomNote] = useState("");
 
   useEffect(() => {
