@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canManageProducts } from "@/contexts/AuthContext";
 import { useHasPermission } from "@/hooks/useHasPermission";
@@ -94,6 +95,8 @@ function buildDeltaSummary(before: Item[], after: Item[], newTotal: number): str
 
 export default function Compras() {
   const { store, role } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [q, setQ] = useState("");
@@ -238,6 +241,20 @@ export default function Compras() {
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store]);
+
+  // Auto-abre o diálogo de edição quando a URL vem com ?edit=<id> (ex.: vindo de /painel/compras/:id).
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (!editId || orders.length === 0) return;
+    const target = orders.find((o) => o.id === editId);
+    if (!target) return;
+    startEdit(target);
+    // limpa o param para não reabrir ao fechar o diálogo
+    const next = new URLSearchParams(searchParams);
+    next.delete("edit");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, searchParams]);
 
   // Carrega catálogo leve quando abre o diálogo (para autocomplete por nome/SKU)
   useEffect(() => {
@@ -792,11 +809,11 @@ export default function Compras() {
                   role="button"
                   tabIndex={0}
                   aria-label={`Abrir compra de ${o.supplier ?? "fornecedor"} em ${new Date(o.created_at).toLocaleDateString("pt-BR")}`}
-                  onClick={() => openView(o)}
+                  onClick={() => navigate(`/painel/compras/${o.id}`)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      openView(o);
+                      navigate(`/painel/compras/${o.id}`);
                     }
                   }}
                   className="cursor-pointer hover:bg-surface-elevated/60 focus:bg-surface-elevated/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 transition-colors"
