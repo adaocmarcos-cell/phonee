@@ -289,6 +289,70 @@ export default function VendaNova() {
     })();
   }, [store]);
 
+  // Modo edição: carrega venda existente + itens + pagamentos e preenche o formulário.
+  useEffect(() => {
+    if (!isEditingSale || !store || editSaleLoaded) return;
+    (async () => {
+      const { data: sale } = await supabase
+        .from("sales").select("*").eq("id", editingSaleId).maybeSingle();
+      if (!sale) { toast.error("Venda não encontrada."); navigate("/painel/vendas"); return; }
+      const { data: sItems } = await supabase
+        .from("sale_items").select("*").eq("sale_id", editingSaleId);
+      const { data: sPays } = await supabase
+        .from("sale_payments").select("*").eq("sale_id", editingSaleId);
+
+      setCustomer((sale as any).customer_name ?? "");
+      setCustomerId((sale as any).customer_id ?? null);
+      setDoc((sale as any).customer_doc ?? "");
+      setWhatsapp((sale as any).customer_whatsapp ?? "");
+      // Extras estão em notes (JSON). Tenta preservar.
+      try {
+        const extras = (sale as any).notes ? JSON.parse((sale as any).notes) : null;
+        const ex = extras?.extras;
+        if (ex?.phone) setPhone(ex.phone);
+        if (ex?.city) setCity(ex.city);
+        if (ex?.customer_doc_type === "cpf" || ex?.customer_doc_type === "cnpj") setDocType(ex.customer_doc_type);
+        if (ex?.user_notes) setNotes(ex.user_notes);
+        if (ex?.category) setCategory(ex.category);
+        if (typeof ex?.commission?.percent === "number") setCommissionPct(ex.commission.percent);
+        if (ex?.commission?.status) setCommissionStatus(ex.commission.status);
+        if (ex?.delivery?.sale_date) setSaleDate(ex.delivery.sale_date);
+      } catch { /* noop — notes pode ser texto livre */ }
+
+      const loadedItems: LineItem[] = ((sItems ?? []) as any[]).map((r) => {
+        const price = Number(r.unit_price || 0);
+        const disc = Number(r.discount_amount || 0);
+        const qty = Number(r.quantity || 0);
+        const discPerUnit = qty > 0 ? disc / qty : 0;
+        return {
+          product_id: r.product_id ?? `svc-${r.id}`,
+          is_service: !!r.is_service,
+          description: r.description ?? undefined,
+          name: r.name ?? r.description ?? "",
+          code: r.sku ?? undefined,
+          category: r.category ?? undefined,
+          quantity: qty,
+          list_price: price + discPerUnit,
+          discount_pct: 0,
+          discount_brl: discPerUnit,
+          unit_price: price,
+        };
+      });
+      setItems(loadedItems);
+
+      const loadedPays: SplitPayment[] = ((sPays ?? []) as any[]).map((p) => ({
+        method: p.method,
+        amount: Number(p.amount || 0),
+        notes: p.notes ?? "",
+        installments: p.installments ?? 1,
+        trade_in_id: p.trade_in_id ?? null,
+      }));
+      if (loadedPays.length > 0) setPayments(loadedPays);
+      setEditHasTradeIn(loadedPays.some((p) => !!p.trade_in_id));
+      setEditSaleLoaded(true);
+    })();
+  }, [isEditingSale, store, editingSaleId, editSaleLoaded, navigate]);
+
   // Carrega clientes cadastrados da loja (autocomplete + sincronização)
   const loadCustomers = async () => {
     if (!store) return;
