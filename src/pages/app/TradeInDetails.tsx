@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, History } from "lucide-react";
+import { ArrowLeft, Pencil, History, Package } from "lucide-react";
 import { brl } from "@/lib/format";
 
 type TI = any;
@@ -81,6 +81,11 @@ export default function TradeInDetails() {
         actions={
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/troca")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>
+            {item.product_id && (
+              <Button variant="outline" onClick={() => navigate(`/painel/estoque/${item.product_id}`)}>
+                <Package className="h-4 w-4 mr-1" /> Ver produto no estoque
+              </Button>
+            )}
             <Button onClick={() => navigate(`/painel/troca/${id}`)}><Pencil className="h-4 w-4 mr-1" /> Editar</Button>
           </div>
         }
