@@ -6,14 +6,15 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff } from "lucide-react";
+import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle } from "lucide-react";
 import { brl } from "@/lib/format";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP, DEACTIVATE_REASONS, REASON_LABEL } from "@/lib/tradeInStatus";
-import { printTradeInFicha } from "@/lib/tradeInPrint";
+import { printTradeInFicha, buildTradeInFichaHtml } from "@/lib/tradeInPrint";
+import { evaluateCompleteness } from "@/lib/tradeInCompleteness";
 import { toast } from "sonner";
 
 type TI = any;
@@ -46,6 +47,7 @@ export default function TradeInDetails() {
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const [reasonKey, setReasonKey] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!id || !store) return;
@@ -85,20 +87,35 @@ export default function TradeInDetails() {
   const activateToStock = async () => {
     if (!item) return;
     setSaving(true);
+    const de = item.status;
     const { error } = await supabase
       .from("trade_ins")
       .update({ status: "em_estoque" })
       .eq("id", item.id);
+    if (!error) {
+      await supabase.from("audit_log").insert({
+        user_id: (await supabase.auth.getUser()).data.user?.id ?? null,
+        store_id: store?.id ?? null,
+        action: "mudanca_status",
+        entity: "trade_in",
+        entity_id: item.id,
+        module: "trade_in",
+        details: { status: { de, para: "em_estoque" }, motivo: "Ativação para estoque" },
+      });
+    }
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Aparelho enviado ao estoque.");
     setItem({ ...item, status: "em_estoque" });
+    // recarrega audit trail
+    reloadAudits();
   };
 
   const confirmDeactivate = async () => {
     const opt = DEACTIVATE_REASONS.find((r) => r.key === reasonKey);
     if (!opt) return toast.error("Selecione um motivo.");
     setSaving(true);
+    const de = item.status;
     const notePrefix = `[desativado: ${opt.label}]`;
     const newNotes = item.notes ? `${notePrefix} ${item.notes}` : notePrefix;
     const patch: any = { status: opt.targetStatus, notes: newNotes };
@@ -109,11 +126,32 @@ export default function TradeInDetails() {
     if (item.product_id) {
       await supabase.from("products").update({ status: "inativo" }).eq("id", item.product_id);
     }
+    await supabase.from("audit_log").insert({
+      user_id: (await supabase.auth.getUser()).data.user?.id ?? null,
+      store_id: store?.id ?? null,
+      action: "mudanca_status",
+      entity: "trade_in",
+      entity_id: item.id,
+      module: "trade_in",
+      details: { status: { de, para: opt.targetStatus }, motivo: opt.label },
+    });
     setSaving(false);
     setDeactivateOpen(false);
     toast.success(`Aparelho desativado: ${opt.label}`);
     setItem({ ...item, ...patch });
+    reloadAudits();
   };
+
+  async function reloadAudits() {
+    if (!id) return;
+    const { data: log } = await supabase.from("audit_log")
+      .select("id,created_at,action,user_id,details")
+      .eq("entity", "trade_in").eq("entity_id", id)
+      .order("created_at", { ascending: false });
+    setAudits((log ?? []) as Audit[]);
+  }
+
+  const completeness = evaluateCompleteness(item);
 
   return (
     <TooltipProvider>
@@ -124,8 +162,8 @@ export default function TradeInDetails() {
         actions={
           <div className="flex gap-2 flex-wrap">
             <Button variant="ghost" onClick={() => navigate("/painel/troca")}><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Button>
-            <Button variant="outline" onClick={() => store && printTradeInFicha(item, store as any)}>
-              <FileDown className="h-4 w-4 mr-1" /> Emitir PDF
+            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+              <Eye className="h-4 w-4 mr-1" /> Pré-visualizar PDF
             </Button>
             {item.product_id && (
               <Button variant="outline" onClick={() => navigate(`/painel/estoque/${item.product_id}`)}>
@@ -146,6 +184,24 @@ export default function TradeInDetails() {
           </div>
         }
       />
+
+      {!completeness.complete && (
+        <Card className="p-3 mb-4 bg-warning/10 border-warning/40">
+          <div className="flex items-start gap-2 text-xs">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="font-medium text-warning">Ficha incompleta (opcional)</div>
+              <div className="text-muted-foreground mt-1">
+                A entrada está válida, mas recomendamos completar:
+                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                  {completeness.missing.map((m) => <li key={m}>{m}</li>)}
+                </ul>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/painel/troca/${id}`)}>Completar ficha</Button>
+          </div>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="p-5 bg-card border-border lg:col-span-2 space-y-3">
@@ -199,13 +255,25 @@ export default function TradeInDetails() {
                   <div className="text-muted-foreground">por {a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema"}</div>
                   {a.action !== "criacao" && a.details && typeof a.details === "object" && (
                     <ul className="mt-1 space-y-0.5">
-                      {Object.entries(a.details).map(([field, change]: [string, any]) => (
-                        <li key={field} className="font-mono">
-                          <span className="text-muted-foreground">{field}:</span>{" "}
-                          <span className="line-through opacity-60">{fmtVal(change?.de)}</span>{" → "}
-                          <span>{fmtVal(change?.para)}</span>
-                        </li>
-                      ))}
+                      {Object.entries(a.details).map(([field, change]: [string, any]) => {
+                        if (field === "motivo") {
+                          return (
+                            <li key={field} className="font-mono">
+                              <span className="text-muted-foreground">motivo:</span>{" "}
+                              <span className="text-warning">{String(change)}</span>
+                            </li>
+                          );
+                        }
+                        const de = REASON_LABEL[change?.de as keyof typeof REASON_LABEL] ?? change?.de;
+                        const para = REASON_LABEL[change?.para as keyof typeof REASON_LABEL] ?? change?.para;
+                        return (
+                          <li key={field} className="font-mono">
+                            <span className="text-muted-foreground">{field}:</span>{" "}
+                            <span className="line-through opacity-60">{fmtVal(de)}</span>{" → "}
+                            <span>{fmtVal(para)}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </li>
@@ -240,6 +308,29 @@ export default function TradeInDetails() {
             <Button variant="ghost" onClick={() => setDeactivateOpen(false)}>Cancelar</Button>
             <Button onClick={confirmDeactivate} disabled={saving || !reasonKey}>
               {saving ? "Salvando…" : "Confirmar desativação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização · Ficha de Compra & Troca</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 rounded-md border border-border overflow-hidden bg-white">
+            {store && (
+              <iframe
+                title="preview-ficha"
+                srcDoc={buildTradeInFichaHtml(item, store as any, { autoPrint: false })}
+                className="w-full h-full"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Fechar</Button>
+            <Button onClick={() => { setPreviewOpen(false); store && printTradeInFicha(item, store as any); }}>
+              <FileDown className="h-4 w-4 mr-1" /> Emitir PDF / Imprimir
             </Button>
           </DialogFooter>
         </DialogContent>

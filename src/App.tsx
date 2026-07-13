@@ -38,6 +38,7 @@ const CurvaABC = lazy(() => import("./pages/app/CurvaABC"));
 const TradeIn = lazy(() => import("./pages/app/TradeIn"));
 const TradeInForm = lazy(() => import("./pages/app/TradeInForm"));
 const TradeInDetails = lazy(() => import("./pages/app/TradeInDetails"));
+const TradeInReconciliacao = lazy(() => import("./pages/app/TradeInReconciliacao"));
 const Pedidos = lazy(() => import("./pages/app/Pedidos"));
 const PedidoNovo = lazy(() => import("./pages/app/PedidoNovo"));
 const Despesas = lazy(() => import("./pages/app/Despesas"));
@@ -130,6 +131,7 @@ const App = () => (
               <Route path="troca/novo" element={<TradeInForm />} />
               <Route path="troca/:id/detalhes" element={<TradeInDetails />} />
               <Route path="troca/:id" element={<TradeInForm />} />
+              <Route path="troca/reconciliacao" element={<TradeInReconciliacao />} />
               <Route path="pedidos" element={<Pedidos />} />
               <Route path="pedidos/novo" element={<PedidoNovo />} />
               <Route path="vendas" element={<Vendas />} />

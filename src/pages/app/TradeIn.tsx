@@ -6,17 +6,19 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Smartphone, Search, Inbox, ArrowLeft, CheckCircle2, CircleOff, HelpCircle } from "lucide-react";
+import { Plus, Smartphone, Search, ArrowLeft, CheckCircle2, CircleOff, HelpCircle, AlertTriangle, Scale } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { brl } from "@/lib/format";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP } from "@/lib/tradeInStatus";
+import { evaluateCompleteness } from "@/lib/tradeInCompleteness";
 
 type TI = {
   id: string; customer_name: string; model: string; brand: string | null;
   imei: string | null; condition: string; status: string;
   entry_value: number; intended_sale_value: number; created_at: string;
+  checklist?: any; photos_in?: string[] | null;
 };
 
 export default function TradeIn() {
@@ -44,7 +46,7 @@ export default function TradeIn() {
       setLoading(true);
       const { data } = await supabase
         .from("trade_ins")
-        .select("id, customer_name, model, brand, imei, condition, status, entry_value, intended_sale_value, created_at")
+        .select("id, customer_name, model, brand, imei, condition, status, entry_value, intended_sale_value, created_at, checklist, photos_in")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false });
       setRows((data ?? []) as TI[]);
@@ -78,6 +80,9 @@ export default function TradeIn() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/estoque")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao estoque
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/painel/troca/reconciliacao")}>
+              <Scale className="h-4 w-4 mr-1" /> Reconciliação
             </Button>
             <Button onClick={() => navigate("/painel/troca/novo")} className="bg-gradient-primary shadow-glow">
               <Plus className="h-4 w-4 mr-1" /> Lançar entrada
@@ -159,6 +164,22 @@ export default function TradeIn() {
                     <td className="px-4 py-3">
                       <div className="font-medium">{r.model}</div>
                       {r.brand && <div className="text-[11px] text-muted-foreground">{r.brand}</div>}
+                      {(() => {
+                        const c = evaluateCompleteness(r);
+                        if (c.complete) return null;
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-warning">
+                                <AlertTriangle className="h-3 w-3" /> ficha incompleta
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {c.missing.join(" · ")}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{r.imei || "—"}</td>
                     <td className="px-4 py-3 capitalize text-xs">{r.condition.replace("_", " ")}</td>
