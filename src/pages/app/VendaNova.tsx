@@ -1109,7 +1109,7 @@ Obrigado pela preferência.`;
                       <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{i.code}</td>
                       <td className="px-3 py-2.5 text-xs">{i.color || "—"}</td>
                       <td className="px-3 py-2.5 text-xs">{i.storage || "—"}</td>
-                     <td className="px-2 py-1.5"><NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} className="h-8 text-right" /></td>
+                     <td className="px-2 py-1.5"><NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} className="h-8 text-right" /></td>
                      <td className="px-2 py-1.5"><NumberInput value={i.list_price} onValueChange={(n) => updateItem(i.product_id, { list_price: n })} className="h-8 text-right" /></td>
                      <td className="px-2 py-1.5"><NumberInput value={i.discount_pct} onValueChange={(n) => updateItem(i.product_id, { discount_pct: n })} className="h-8 text-right" /></td>
                      <td className="px-2 py-1.5"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} className="h-8 text-right" /></td>
@@ -1136,7 +1136,7 @@ Obrigado pela preferência.`;
                     <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <Field label="Qtd"><NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} /></Field>
+                    <Field label="Qtd"><NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={i.quantity} onValueChange={(n) => updateItem(i.product_id, { quantity: n })} /></Field>
                     <Field label="P. lista"><NumberInput value={i.list_price} onValueChange={(n) => updateItem(i.product_id, { list_price: n })} /></Field>
                     <Field label="Desc %"><NumberInput value={i.discount_pct} onValueChange={(n) => updateItem(i.product_id, { discount_pct: n })} /></Field>
                     <Field label="Desc R$"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} /></Field>
@@ -1224,7 +1224,7 @@ Obrigado pela preferência.`;
                             allowDecimal={false}
                             min={1}
                             max={24}
-                            emptyBehavior="min"
+                            emptyBehavior="zero"
                             value={p.installments ?? 1}
                             disabled={!isCard}
                             onValueChange={(n) => updatePayment(idx, { installments: n })}
@@ -1750,7 +1750,7 @@ Obrigado pela preferência.`;
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Quantidade</Label>
-                <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={serviceDialog.quantity}
+                <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={serviceDialog.quantity}
                   onValueChange={(n) => setServiceDialog((s) => ({ ...s, quantity: n }))} />
               </div>
               <div>

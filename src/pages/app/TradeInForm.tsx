@@ -615,7 +615,7 @@ export default function TradeInForm() {
             </div>
             <div className="space-y-2">
               <Label>Quantidade</Label>
-              <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={selPartQty} onValueChange={setSelPartQty} className="font-mono" />
+              <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={selPartQty} onValueChange={setSelPartQty} className="font-mono" />
             </div>
             <p className="text-[11px] text-muted-foreground">O custo da peça (qtd × custo) será somado aos custos de reparo. Ao salvar, o estoque é baixado e uma despesa é lançada no financeiro.</p>
           </div>

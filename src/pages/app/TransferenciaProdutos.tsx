@@ -206,7 +206,7 @@ export default function TransferenciaProdutos() {
             <Input className="pl-9" placeholder="Buscar produto por nome ou SKU…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <div>
-            <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={qty} onValueChange={setQty} placeholder="Qtd" />
+            <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={qty} onValueChange={setQty} placeholder="Qtd" />
           </div>
         </div>
 

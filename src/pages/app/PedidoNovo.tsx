@@ -247,7 +247,7 @@ export default function PedidoNovo() {
                 id="coverage-days"
                 allowDecimal={false}
                 min={1}
-                emptyBehavior="min"
+                emptyBehavior="zero"
                 value={coverageDays}
                 onValueChange={(n) => setCoverageDays(Math.min(365, Math.max(1, n)))}
                 className="h-8 w-24 text-center font-mono"
@@ -303,7 +303,7 @@ export default function PedidoNovo() {
               <PackagePlus className="h-3.5 w-3.5" /> Pedir novo produto / encomenda
             </Label>
             <div className="grid grid-cols-12 gap-2">
-              <NumberInput className="col-span-3 font-mono h-10" allowDecimal={false} min={1} emptyBehavior="min" placeholder="Qtd" value={customQty} onValueChange={setCustomQty} />
+              <NumberInput className="col-span-3 font-mono h-10" allowDecimal={false} min={0} emptyBehavior="zero" placeholder="Qtd" value={customQty} onValueChange={setCustomQty} />
               <Input className="col-span-9 h-10" placeholder="Observação (ex: capa iPhone 15 transparente)" value={customNote} onChange={(e) => setCustomNote(e.target.value)} />
               <Button
                 type="button"
@@ -389,7 +389,7 @@ export default function PedidoNovo() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <NumberInput allowDecimal={false} min={1} emptyBehavior="min" value={s.suggested_qty} onValueChange={(n) => update(i, { suggested_qty: n })} className="h-8 w-20 ml-auto text-right font-mono" />
+                      <NumberInput allowDecimal={false} min={0} emptyBehavior="zero" value={s.suggested_qty} onValueChange={(n) => update(i, { suggested_qty: n })} className="h-8 w-20 ml-auto text-right font-mono" />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <NumberInput value={s.unit_cost} onValueChange={(n) => update(i, { unit_cost: n })} className="h-8 w-24 ml-auto text-right font-mono" />

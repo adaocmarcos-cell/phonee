@@ -528,7 +528,7 @@ export default function PartsInventory() {
               <div>
                 <Label>Quantidade</Label>
                 <NumberInput allowDecimal={false} min={1} max={osTarget.stock_current}
-                  emptyBehavior="min" value={osQty}
+                  emptyBehavior="zero" value={osQty}
                   onValueChange={setOsQty} />
               </div>
             </div>

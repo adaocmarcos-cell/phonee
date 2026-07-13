@@ -152,7 +152,7 @@ export default function Garantias() {
               {s.options.map((o, idx) => (
                 <div key={idx} className="grid grid-cols-[80px_1fr_auto] gap-2">
                   <NumberInput
-                    allowDecimal={false} min={1} emptyBehavior="min" value={o.days}
+                    allowDecimal={false} min={0} emptyBehavior="zero" value={o.days}
                     onValueChange={(n) => updateOption(idx, { days: n })}
                     disabled={!canEdit}
                   />
