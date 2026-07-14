@@ -36,15 +36,15 @@ import { ChevronDown } from "lucide-react";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Nome muito curto").max(120),
-  sku: z.string().trim().max(60).optional(),
-  brand: z.string().trim().max(60).optional(),
-  compatible_model: z.string().trim().max(80).optional(),
+  sku: z.string().trim().max(60).nullish(),
+  brand: z.string().trim().max(60).nullish(),
+  compatible_model: z.string().trim().max(80).nullish(),
   cost_price: z.number().min(0),
   sale_price: z.number().min(0),
   stock_current: z.number().int().min(0),
   stock_min: z.number().int().min(0),
   stock_max: z.number().int().min(0),
-  location: z.string().trim().max(60).optional(),
+  location: z.string().trim().max(60).nullish(),
 });
 
 type FormState = {
@@ -158,7 +158,16 @@ export default function ProductForm() {
         setForm({
           ...empty,
           ...raw,
-          // Garante que "— Sem subcategoria —" seja respeitado quando o banco não tem valor salvo.
+          name: raw.name ?? "",
+          sku: raw.sku ?? "",
+          ean: raw.ean ?? "",
+          brand: raw.brand ?? "",
+          compatible_model: raw.compatible_model ?? "",
+          category: raw.category ?? "",
+          condition: raw.condition ?? empty.condition,
+          supplier: raw.supplier ?? "",
+          location: raw.location ?? "",
+          status: raw.status ?? empty.status,
           subcategory: prefillSubcategoryFromDb(raw.subcategory),
           cost_price: Number(data.cost_price),
           sale_price: Number(data.sale_price),
