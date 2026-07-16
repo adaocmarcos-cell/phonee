@@ -3283,6 +3283,7 @@ export type Database = {
         Returns: Json
       }
       assert_sale_has_items: { Args: { _sale_id: string }; Returns: boolean }
+      backfill_trial_orphans: { Args: never; Returns: Json }
       create_purchase_with_stock: {
         Args: {
           _create_expense: boolean
