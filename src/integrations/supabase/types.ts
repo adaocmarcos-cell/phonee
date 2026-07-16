@@ -1546,32 +1546,38 @@ export type Database = {
       }
       purchase_order_items: {
         Row: {
+          created_at: string
           id: string
           notes: string | null
           order_id: string
           product_id: string | null
           product_name: string
           quantity: number
+          sku: string | null
           total: number
           unit_cost: number
         }
         Insert: {
+          created_at?: string
           id?: string
           notes?: string | null
           order_id: string
           product_id?: string | null
           product_name: string
           quantity?: number
+          sku?: string | null
           total?: number
           unit_cost?: number
         }
         Update: {
+          created_at?: string
           id?: string
           notes?: string | null
           order_id?: string
           product_id?: string | null
           product_name?: string
           quantity?: number
+          sku?: string | null
           total?: number
           unit_cost?: number
         }
