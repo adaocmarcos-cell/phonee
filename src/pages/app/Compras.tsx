@@ -450,14 +450,16 @@ export default function Compras() {
   };
 
   const startEdit = async (o: Order) => {
-    const { data: full } = await supabase.from("purchase_orders").select("*").eq("id", o.id).maybeSingle();
-    const { data: its } = await supabase
+    const { data: full, error: fullErr } = await supabase.from("purchase_orders").select("*").eq("id", o.id).maybeSingle();
+    if (fullErr) return toast.error(`Erro ao carregar compra: ${fullErr.message}`);
+    if (!full) return toast.error("Compra não encontrada.");
+    const { data: its, error: itsErr } = await supabase
       .from("purchase_order_items")
       .select("id, product_id, product_name, sku, quantity, unit_cost, notes")
       .eq("order_id", o.id)
       .order("created_at", { ascending: true })
       .order("id", { ascending: true });
-    if (!full) return toast.error("Compra não encontrada.");
+    if (itsErr) return toast.error(`Erro ao carregar itens: ${itsErr.message}`);
     setForm({
       ...(full as any),
       expected_delivery_at: (full as any).expected_delivery_at ? String((full as any).expected_delivery_at).slice(0, 10) : "",
@@ -483,12 +485,16 @@ export default function Compras() {
   };
 
   const openView = async (o: Order) => {
-    const { data: its } = await supabase
+    const { data: its, error: itsErr } = await supabase
       .from("purchase_order_items")
       .select("id, product_id, product_name, sku, quantity, unit_cost, notes")
       .eq("order_id", o.id)
       .order("created_at", { ascending: true })
       .order("id", { ascending: true });
+    if (itsErr) {
+      toast.error(`Erro ao carregar itens: ${itsErr.message}`);
+      return;
+    }
     setViewItems(((its ?? []) as any[]).map((r) => ({
       id: r.id,
       product_id: r.product_id,

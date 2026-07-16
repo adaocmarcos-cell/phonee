@@ -70,13 +70,15 @@ export default function CompraDetalhe() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [itemsError, setItemsError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     if (!id) return;
     setLoading(true);
     setNotFound(false);
-    const [{ data: o, error: oErr }, { data: its }] = await Promise.all([
+    setItemsError(null);
+    const [{ data: o, error: oErr }, { data: its, error: itsErr }] = await Promise.all([
       supabase.from("purchase_orders").select("*").eq("id", id).maybeSingle(),
       supabase
         .from("purchase_order_items")
@@ -93,6 +95,13 @@ export default function CompraDetalhe() {
       return;
     }
     setOrder(o as Order);
+    if (itsErr) {
+      setItems([]);
+      setItemsError(itsErr.message);
+      toast.error(`Erro ao carregar itens: ${itsErr.message}`);
+      setLoading(false);
+      return;
+    }
     setItems(
       ((its ?? []) as any[]).map((r) => ({
         id: r.id,
@@ -235,7 +244,15 @@ export default function CompraDetalhe() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {items.length === 0 ? (
+              {itemsError ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-xs">
+                    <div className="text-danger font-mono mb-2">FALHA AO CARREGAR ITENS</div>
+                    <div className="text-muted-foreground mb-3">{itemsError}</div>
+                    <Button size="sm" variant="outline" onClick={load}>Tentar novamente</Button>
+                  </td>
+                </tr>
+              ) : items.length === 0 ? (
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-xs font-mono">SEM ITENS</td></tr>
               ) : items.map((it) => (
                 <tr key={it.id} className="hover:bg-surface-elevated/40">
