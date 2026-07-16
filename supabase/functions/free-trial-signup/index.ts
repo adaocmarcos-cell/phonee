@@ -209,9 +209,22 @@ Deno.serve(async (req) => {
     };
     let row: any = null;
     if (existingTrial?.id) {
+      // Reaproveita registro existente: NÃO altera trial_ends_at, status,
+      // kind, activated_at, trial_days ou full_access_months. Atualiza só
+      // campos de contato/loja e user_id se estava ausente.
+      const reusePayload = {
+        user_id: existingTrial.user_id ?? uid,
+        full_name,
+        whatsapp: whatsapp || null,
+        instagram: instagram || null,
+        store_name: store_name || null,
+        city: city || null,
+        state: state || null,
+        notes: noteParts.join(" · ") || "Cadastro público · Teste grátis de 7 dias",
+      };
       const { data: updated, error: uErr } = await admin
         .from("partner_trials")
-        .update(ptPayload)
+        .update(reusePayload)
         .eq("id", existingTrial.id)
         .select()
         .single();
@@ -227,7 +240,9 @@ Deno.serve(async (req) => {
       row = inserted;
     }
 
-    if (uid) {
+    // Só atualiza janela de acesso para novos trials, para não estender
+    // acidentalmente contas já expiradas via reaproveitamento.
+    if (uid && !existingTrial?.id) {
       await admin.from("user_profile_extras").upsert(
         { user_id: uid, expires_at: trialEnds.toISOString(), status: "ativo" },
         { onConflict: "user_id" },
@@ -238,7 +253,7 @@ Deno.serve(async (req) => {
       user_id: uid,
       module: "admin_master",
       screen: "/teste-gratis",
-      action: "free_trial_signup",
+      action: existingTrial?.id ? "free_trial_signup_reused" : "free_trial_signup",
       entity: "partner_trials",
       entity_id: (row as any)?.id ?? null,
       role: "public",
@@ -248,7 +263,8 @@ Deno.serve(async (req) => {
       details: { email, full_name, store_name, whatsapp, instagram, city, state },
     });
 
-    return json({ ok: true, email, trial_ends_at: trialEnds.toISOString() });
+    const finalEnds = (row as any)?.trial_ends_at ?? trialEnds.toISOString();
+    return json({ ok: true, email, trial_ends_at: finalEnds, reused: !!existingTrial?.id });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
