@@ -60,18 +60,13 @@ Deno.serve(async (req) => {
     if (!state || state.length !== 2) return json({ error: "Informe o estado (UF).", code: "validation" });
     if (password.length < 8) return json({ error: "Senha mínima de 8 caracteres.", code: "validation" });
 
-    // Block duplicates by email
-    const { data: existing } = await admin
+    // Dedup: reuse existing partner_trials row for the same email instead of
+    // inserting a duplicate. Cadastros com o mesmo e-mail são atualizados.
+    const { data: existingTrial } = await admin
       .from("partner_trials")
-      .select("id, status, kind")
-      .eq("email", email)
+      .select("id, user_id, status")
+      .ilike("email", email)
       .maybeSingle();
-    if (existing) {
-      return json({
-        error: "Você já tem um teste ativo nesse e-mail. Faça login em /entrar (use 'Esqueceu a senha?' se precisar).",
-        code: "already_exists",
-      });
-    }
 
     // Create auth user
     let uid: string | null = null;
@@ -175,28 +170,42 @@ Deno.serve(async (req) => {
       city || state ? `Local: ${city}${city && state ? " / " : ""}${state}` : "",
     ].filter(Boolean);
 
-    const { data: row, error: ptErr } = await admin
-      .from("partner_trials")
-      .insert({
-        user_id: uid,
-        email,
-        full_name,
-        whatsapp: whatsapp || null,
-        instagram: instagram || null,
-        store_name: store_name || null,
-        city: city || null,
-        state: state || null,
-        kind: "free_trial",
-        notes: noteParts.join(" · ") || "Cadastro público · Teste grátis de 7 dias",
-        activated_at: now.toISOString(),
-        trial_days: 7,
-        trial_ends_at: trialEnds.toISOString(),
-        full_access_months: 12,
-        status: "em_teste",
-      })
-      .select()
-      .single();
-    if (ptErr) return json({ error: ptErr.message }, 500);
+    const ptPayload = {
+      user_id: uid,
+      email,
+      full_name,
+      whatsapp: whatsapp || null,
+      instagram: instagram || null,
+      store_name: store_name || null,
+      city: city || null,
+      state: state || null,
+      kind: "free_trial",
+      notes: noteParts.join(" · ") || "Cadastro público · Teste grátis de 7 dias",
+      activated_at: now.toISOString(),
+      trial_days: 7,
+      trial_ends_at: trialEnds.toISOString(),
+      full_access_months: 12,
+      status: "em_teste",
+    };
+    let row: any = null;
+    if (existingTrial?.id) {
+      const { data: updated, error: uErr } = await admin
+        .from("partner_trials")
+        .update(ptPayload)
+        .eq("id", existingTrial.id)
+        .select()
+        .single();
+      if (uErr) return json({ error: uErr.message }, 500);
+      row = updated;
+    } else {
+      const { data: inserted, error: ptErr } = await admin
+        .from("partner_trials")
+        .insert(ptPayload)
+        .select()
+        .single();
+      if (ptErr) return json({ error: ptErr.message }, 500);
+      row = inserted;
+    }
 
     if (uid) {
       await admin.from("user_profile_extras").upsert(
