@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
     // the app can be used during the trial period). Idempotent: skip if the
     // user already owns a store.
     if (uid) {
+      const backfillCreated: { store?: string; user_stores?: boolean; user_roles?: boolean } = {};
       const { data: existingStore } = await admin
         .from("stores")
         .select("id")
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
           if (!taken) break;
           slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
         }
-        await admin.from("stores").insert({
+        const { data: newStore } = await admin.from("stores").insert({
           owner_id: uid,
           name: store_name || full_name || "Minha Loja",
           slug,
@@ -130,7 +131,8 @@ Deno.serve(async (req) => {
           instagram: instagram || null,
           address_city: city || null,
           address_uf: state || null,
-        });
+        }).select("id").single();
+        if (newStore?.id) backfillCreated.store = newStore.id as string;
       }
 
       // Ensure user_stores + user_roles link exists (idempotent) so the owner
@@ -150,6 +152,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (!usLink) {
           await admin.from("user_stores").insert({ user_id: uid, store_id: ownerStoreId });
+          backfillCreated.user_stores = true;
         }
         const { data: roleLink } = await admin
           .from("user_roles")
@@ -160,7 +163,24 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (!roleLink) {
           await admin.from("user_roles").insert({ user_id: uid, store_id: ownerStoreId, role: "dono" });
+          backfillCreated.user_roles = true;
         }
+      }
+
+      // Register backfill activity when we corrected missing links for a
+      // returning trial user (idempotent path). Also fires on first signup
+      // as a normal record of what was created.
+      if (Object.keys(backfillCreated).length > 0) {
+        await admin.from("audit_log").insert({
+          user_id: uid,
+          module: "admin_master",
+          screen: "/teste-gratis",
+          action: "trial_signup_backfill",
+          entity: "partner_trials",
+          role: existingTrial ? "system" : "public",
+          status: "concluido",
+          new_value: { email, ...backfillCreated, reused_trial: !!existingTrial },
+        });
       }
     }
 
