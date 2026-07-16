@@ -144,7 +144,7 @@ export default function PhoneeUsuarios() {
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return rows;
+    if (!t) return rows.filter((r) => (r.stores?.length ?? 0) === 0);
     return rows.filter((r) =>
       r.email?.toLowerCase().includes(t) ||
       r.full_name?.toLowerCase().includes(t) ||
@@ -278,7 +278,9 @@ export default function PhoneeUsuarios() {
         <div>
           <h1 className="text-2xl font-bold">Usuários da plataforma</h1>
           <p className="text-sm text-slate-400">
-            {filtered.length} de {rows.length} usuário(s).
+            {q.trim() === ""
+              ? <>Mostrando <b>{filtered.length}</b> usuário(s) <span className="text-amber-300">sem loja vinculada</span> (órfãos). Use a busca para encontrar qualquer usuário e ver a loja dele.</>
+              : <>{filtered.length} resultado(s) para "{q}".</>}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">

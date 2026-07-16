@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, ChevronDown, ChevronRight, Users as UsersIcon, Gift } from "lucide-react";
+import { BonusDialog } from "@/components/phonee/BonusDialog";
 
 type Row = {
   store_id: string; store_name: string;
@@ -16,12 +17,21 @@ type Row = {
   total_sales: number; sales_count: number; avg_ticket: number;
 };
 
+type UserStore = { id: string; name: string; is_owner: boolean };
+type UserRow = {
+  user_id: string; email: string | null; full_name: string | null;
+  roles: string[]; stores: UserStore[]; is_admin_master: boolean;
+};
+
 const brl = (n: number) =>
   (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function PhoneeLojas() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [users, setUsers] = useState<UserRow[]>([]);
   const [q, setQ] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [bonusTarget, setBonusTarget] = useState<{ email: string; store?: string | null } | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
   const [form, setForm] = useState({ store_name: "", owner_name: "", owner_email: "", new_password: "" });
   const [saving, setSaving] = useState(false);
@@ -64,10 +74,34 @@ export default function PhoneeLojas() {
   };
 
   const load = async () => {
-    const { data } = await supabase.rpc("phonee_stores");
-    setRows((data ?? []) as unknown as Row[]);
+    const [s, u] = await Promise.all([
+      supabase.rpc("phonee_stores"),
+      supabase.rpc("phonee_users"),
+    ]);
+    setRows((s.data ?? []) as unknown as Row[]);
+    setUsers(((u.data ?? []) as unknown as UserRow[]).map((r) => ({
+      ...r, stores: Array.isArray(r.stores) ? r.stores : [],
+    })));
   };
   useEffect(() => { load(); }, []);
+
+  const usersByStore = useMemo(() => {
+    const m = new Map<string, UserRow[]>();
+    users.forEach((u) => {
+      u.stores.forEach((s) => {
+        const arr = m.get(s.id) ?? [];
+        arr.push(u);
+        m.set(s.id, arr);
+      });
+    });
+    return m;
+  }, [users]);
+
+  const toggle = (id: string) => {
+    const next = new Set(expanded);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setExpanded(next);
+  };
 
   const openEdit = (r: Row) => {
     setEditing(r);
@@ -214,6 +248,7 @@ export default function PhoneeLojas() {
         <table className="w-full text-sm">
           <thead className="text-left text-[11px] uppercase tracking-widest text-slate-500 border-b border-slate-800">
             <tr>
+              <th className="px-2 py-3 w-8"></th>
               <th className="px-4 py-3">Loja</th>
               <th className="px-4 py-3">Dono</th>
               <th className="px-4 py-3">Plano</th>
@@ -226,8 +261,15 @@ export default function PhoneeLojas() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
-              <tr key={r.store_id} className="border-b border-slate-800/60 hover:bg-slate-800/40">
+            {filtered.map((r) => {
+              const isOpen = expanded.has(r.store_id);
+              const members = usersByStore.get(r.store_id) ?? [];
+              return (
+              <Fragment key={r.store_id}>
+              <tr className="border-b border-slate-800/60 hover:bg-slate-800/40 cursor-pointer" onClick={() => toggle(r.store_id)}>
+                <td className="px-2 py-3 text-slate-400">
+                  {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </td>
                 <td className="px-4 py-3 font-medium">{r.store_name}</td>
                 <td className="px-4 py-3 text-slate-300">
                   <div>{r.owner_name ?? "—"}</div>
@@ -243,8 +285,16 @@ export default function PhoneeLojas() {
                 <td className="px-4 py-3 text-right">{r.sales_count}</td>
                 <td className="px-4 py-3 text-right">{brl(Number(r.total_sales))}</td>
                 <td className="px-4 py-3 text-right">{brl(Number(r.avg_ticket))}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="inline-flex items-center gap-3">
+                    {r.owner_email && (
+                      <button
+                        onClick={() => setBonusTarget({ email: r.owner_email!, store: r.store_name })}
+                        className="inline-flex items-center gap-1 text-emerald-300 hover:underline text-xs"
+                      >
+                        <Gift className="h-3 w-3" /> Bonificar
+                      </button>
+                    )}
                     <button
                       onClick={() => openEdit(r)}
                       className="inline-flex items-center gap-1 text-[#00abfb] hover:underline text-xs"
@@ -260,9 +310,40 @@ export default function PhoneeLojas() {
                   </div>
                 </td>
               </tr>
-            ))}
+              {isOpen && (
+                <tr className="bg-slate-950/40 border-b border-slate-800/60">
+                  <td colSpan={10} className="px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-1.5">
+                      <UsersIcon className="h-3 w-3" /> Usuários da loja ({members.length})
+                    </div>
+                    {members.length === 0 ? (
+                      <div className="text-xs text-slate-500">Nenhum usuário vinculado.</div>
+                    ) : (
+                      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                        {members.map((u) => (
+                          <div key={u.user_id} className="text-xs rounded-md border border-slate-800 bg-slate-900 px-2.5 py-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-slate-100">{u.full_name ?? "—"}</span>
+                              {u.user_id === r.owner_id && (
+                                <span className="text-[9px] uppercase tracking-widest text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded px-1 py-0.5">Dono</span>
+                              )}
+                              {(u.roles ?? []).map((role) => (
+                                <span key={role} className="text-[9px] uppercase tracking-widest text-slate-300 bg-slate-800 border border-slate-700 rounded px-1 py-0.5">{role}</span>
+                              ))}
+                            </div>
+                            <div className="text-[11px] text-slate-500 truncate">{u.email}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )}
+              </Fragment>
+              );
+            })}
             {filtered.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-500">Nenhuma loja encontrada.</td></tr>
+              <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">Nenhuma loja encontrada.</td></tr>
             )}
           </tbody>
         </table>
@@ -416,6 +497,12 @@ export default function PhoneeLojas() {
           )}
         </DialogContent>
       </Dialog>
+      <BonusDialog
+        open={!!bonusTarget}
+        onOpenChange={(o) => !o && setBonusTarget(null)}
+        email={bonusTarget?.email ?? ""}
+        storeLabel={bonusTarget?.store}
+      />
     </div>
   );
 }

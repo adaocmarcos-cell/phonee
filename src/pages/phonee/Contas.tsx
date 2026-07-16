@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, Handshake, CheckCircle2, Clock, XCircle, DollarSign,
-  ChevronDown, ChevronRight, Search, Pencil, ExternalLink, CreditCard, Package, ShoppingCart, HardDrive,
+  ChevronDown, ChevronRight, Search, Pencil, ExternalLink, CreditCard, Package, ShoppingCart, HardDrive, Gift,
 } from "lucide-react";
+import { BonusDialog } from "@/components/phonee/BonusDialog";
 
 type StoreRow = {
   store_id: string; store_name: string;
@@ -59,6 +60,7 @@ export default function PhoneeContas() {
   const [tab, setTab] = useState<TabKey>("todos");
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [bonusTarget, setBonusTarget] = useState<{ email: string; store?: string | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -295,6 +297,14 @@ export default function PhoneeContas() {
                       <Link to="/phonee/assinaturas" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-200 hover:bg-slate-800">
                         <CreditCard className="h-3 w-3" /> Assinatura
                       </Link>
+                      {s.owner_email && (
+                        <button
+                          onClick={() => setBonusTarget({ email: s.owner_email!, store: s.store_name })}
+                          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10"
+                        >
+                          <Gift className="h-3 w-3" /> Bonificar acesso
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -326,6 +336,12 @@ export default function PhoneeContas() {
           )}
         </div>
       )}
+      <BonusDialog
+        open={!!bonusTarget}
+        onOpenChange={(o) => !o && setBonusTarget(null)}
+        email={bonusTarget?.email ?? ""}
+        storeLabel={bonusTarget?.store}
+      />
     </div>
   );
 }

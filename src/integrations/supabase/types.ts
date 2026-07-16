@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_bonuses: {
+        Row: {
+          bonus_type: string
+          created_at: string
+          days_granted: number
+          granted_by: string | null
+          id: string
+          partner_trial_id: string | null
+          period_end: string
+          period_start: string
+          previous_ends_at: string | null
+          reason: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          store_id: string | null
+          subscription_id: string | null
+          target_email: string
+          user_id: string | null
+        }
+        Insert: {
+          bonus_type: string
+          created_at?: string
+          days_granted: number
+          granted_by?: string | null
+          id?: string
+          partner_trial_id?: string | null
+          period_end: string
+          period_start: string
+          previous_ends_at?: string | null
+          reason: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          store_id?: string | null
+          subscription_id?: string | null
+          target_email: string
+          user_id?: string | null
+        }
+        Update: {
+          bonus_type?: string
+          created_at?: string
+          days_granted?: number
+          granted_by?: string | null
+          id?: string
+          partner_trial_id?: string | null
+          period_end?: string
+          period_start?: string
+          previous_ends_at?: string | null
+          reason?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          store_id?: string | null
+          subscription_id?: string | null
+          target_email?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_bonuses_partner_trial_id_fkey"
+            columns: ["partner_trial_id"]
+            isOneToOne: false
+            referencedRelation: "partner_trials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_bonuses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_bonuses_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_master_profile: {
         Row: {
           granted_at: string
@@ -3248,6 +3330,39 @@ export type Database = {
           user_id: string
         }[]
       }
+      grant_access_bonus: {
+        Args: {
+          p_bonus_type: string
+          p_days: number
+          p_email: string
+          p_reason: string
+        }
+        Returns: {
+          bonus_type: string
+          created_at: string
+          days_granted: number
+          granted_by: string | null
+          id: string
+          partner_trial_id: string | null
+          period_end: string
+          period_start: string
+          previous_ends_at: string | null
+          reason: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          store_id: string | null
+          subscription_id: string | null
+          target_email: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "access_bonuses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_permission: {
         Args: {
           _action: string
@@ -3595,6 +3710,34 @@ export type Database = {
       request_subscription_change: {
         Args: { _changes: Json; _reason: string; _subscription_id: string }
         Returns: string
+      }
+      revoke_access_bonus: {
+        Args: { p_bonus_id: string; p_reason: string }
+        Returns: {
+          bonus_type: string
+          created_at: string
+          days_granted: number
+          granted_by: string | null
+          id: string
+          partner_trial_id: string | null
+          period_end: string
+          period_start: string
+          previous_ends_at: string | null
+          reason: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          store_id: string | null
+          subscription_id: string | null
+          target_email: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "access_bonuses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       search_sale_products: {
         Args: { _limit?: number; _query?: string; _store_id: string }
