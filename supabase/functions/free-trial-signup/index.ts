@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
     // the app can be used during the trial period). Idempotent: skip if the
     // user already owns a store.
     if (uid) {
+      const backfillCreated: { store?: string; user_stores?: boolean; user_roles?: boolean } = {};
       const { data: existingStore } = await admin
         .from("stores")
         .select("id")
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
           if (!taken) break;
           slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
         }
-        await admin.from("stores").insert({
+        const { data: newStore } = await admin.from("stores").insert({
           owner_id: uid,
           name: store_name || full_name || "Minha Loja",
           slug,
@@ -130,7 +131,8 @@ Deno.serve(async (req) => {
           instagram: instagram || null,
           address_city: city || null,
           address_uf: state || null,
-        });
+        }).select("id").single();
+        if (newStore?.id) backfillCreated.store = newStore.id as string;
       }
 
       // Ensure user_stores + user_roles link exists (idempotent) so the owner
@@ -150,6 +152,7 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (!usLink) {
           await admin.from("user_stores").insert({ user_id: uid, store_id: ownerStoreId });
+          backfillCreated.user_stores = true;
         }
         const { data: roleLink } = await admin
           .from("user_roles")
@@ -160,7 +163,24 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (!roleLink) {
           await admin.from("user_roles").insert({ user_id: uid, store_id: ownerStoreId, role: "dono" });
+          backfillCreated.user_roles = true;
         }
+      }
+
+      // Register backfill activity when we corrected missing links for a
+      // returning trial user (idempotent path). Also fires on first signup
+      // as a normal record of what was created.
+      if (Object.keys(backfillCreated).length > 0) {
+        await admin.from("audit_log").insert({
+          user_id: uid,
+          module: "admin_master",
+          screen: "/teste-gratis",
+          action: "trial_signup_backfill",
+          entity: "partner_trials",
+          role: existingTrial ? "system" : "public",
+          status: "concluido",
+          new_value: { email, ...backfillCreated, reused_trial: !!existingTrial },
+        });
       }
     }
 
@@ -189,9 +209,22 @@ Deno.serve(async (req) => {
     };
     let row: any = null;
     if (existingTrial?.id) {
+      // Reaproveita registro existente: NÃO altera trial_ends_at, status,
+      // kind, activated_at, trial_days ou full_access_months. Atualiza só
+      // campos de contato/loja e user_id se estava ausente.
+      const reusePayload = {
+        user_id: existingTrial.user_id ?? uid,
+        full_name,
+        whatsapp: whatsapp || null,
+        instagram: instagram || null,
+        store_name: store_name || null,
+        city: city || null,
+        state: state || null,
+        notes: noteParts.join(" · ") || "Cadastro público · Teste grátis de 7 dias",
+      };
       const { data: updated, error: uErr } = await admin
         .from("partner_trials")
-        .update(ptPayload)
+        .update(reusePayload)
         .eq("id", existingTrial.id)
         .select()
         .single();
@@ -207,7 +240,9 @@ Deno.serve(async (req) => {
       row = inserted;
     }
 
-    if (uid) {
+    // Só atualiza janela de acesso para novos trials, para não estender
+    // acidentalmente contas já expiradas via reaproveitamento.
+    if (uid && !existingTrial?.id) {
       await admin.from("user_profile_extras").upsert(
         { user_id: uid, expires_at: trialEnds.toISOString(), status: "ativo" },
         { onConflict: "user_id" },
@@ -218,7 +253,7 @@ Deno.serve(async (req) => {
       user_id: uid,
       module: "admin_master",
       screen: "/teste-gratis",
-      action: "free_trial_signup",
+      action: existingTrial?.id ? "free_trial_signup_reused" : "free_trial_signup",
       entity: "partner_trials",
       entity_id: (row as any)?.id ?? null,
       role: "public",
@@ -228,7 +263,8 @@ Deno.serve(async (req) => {
       details: { email, full_name, store_name, whatsapp, instagram, city, state },
     });
 
-    return json({ ok: true, email, trial_ends_at: trialEnds.toISOString() });
+    const finalEnds = (row as any)?.trial_ends_at ?? trialEnds.toISOString();
+    return json({ ok: true, email, trial_ends_at: finalEnds, reused: !!existingTrial?.id });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
