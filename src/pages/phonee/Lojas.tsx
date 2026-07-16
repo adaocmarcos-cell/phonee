@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -265,8 +265,8 @@ export default function PhoneeLojas() {
               const isOpen = expanded.has(r.store_id);
               const members = usersByStore.get(r.store_id) ?? [];
               return (
-              <>
-              <tr key={r.store_id} className="border-b border-slate-800/60 hover:bg-slate-800/40 cursor-pointer" onClick={() => toggle(r.store_id)}>
+              <Fragment key={r.store_id}>
+              <tr className="border-b border-slate-800/60 hover:bg-slate-800/40 cursor-pointer" onClick={() => toggle(r.store_id)}>
                 <td className="px-2 py-3 text-slate-400">
                   {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </td>
@@ -311,7 +311,7 @@ export default function PhoneeLojas() {
                 </td>
               </tr>
               {isOpen && (
-                <tr key={r.store_id + ":members"} className="bg-slate-950/40 border-b border-slate-800/60">
+                <tr className="bg-slate-950/40 border-b border-slate-800/60">
                   <td colSpan={10} className="px-4 py-3">
                     <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-1.5">
                       <UsersIcon className="h-3 w-3" /> Usuários da loja ({members.length})
@@ -339,7 +339,7 @@ export default function PhoneeLojas() {
                   </td>
                 </tr>
               )}
-              </>
+              </Fragment>
               );
             })}
             {filtered.length === 0 && (
