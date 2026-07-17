@@ -12,7 +12,7 @@ import { NumberInput } from "@/components/NumberInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Eye } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Eye } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
