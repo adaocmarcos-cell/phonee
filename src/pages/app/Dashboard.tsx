@@ -331,6 +331,28 @@ export default function Dashboard() {
         </div>
       )}
 
+      {arCrediario > 0 && (
+        <div className="grid grid-cols-1 gap-4 mb-4">
+          <button
+            type="button"
+            onClick={() => navigate("/painel/crediario")}
+            className="text-left"
+          >
+            <MetricCard
+              label="A receber (crediário)"
+              value={brl(arCrediario)}
+              delta={
+                arVencido > 0
+                  ? `${brl(arVencido)} vencido · ${num(arVencidasCount)} parcela(s)`
+                  : "Parcelas em aberto"
+              }
+              icon={Wallet}
+              tone={arVencido > 0 ? "warning" : "info"}
+            />
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 mb-6">
         {canSeeCost(role) ? (
           <MetricCard
