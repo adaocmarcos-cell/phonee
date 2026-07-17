@@ -24,7 +24,7 @@ import {
   Save, X, FileDown, MessageCircle, Mail, Camera, Trash2, Printer, ArrowLeft,
   ChevronLeft, ChevronRight, FileEdit, User, Smartphone as SmartphoneIcon,
   AlertCircle, ClipboardCheck, Image as ImageIcon, Calculator, Wrench as WrenchIcon,
-  PackageCheck, PenSquare, Check, FileText,
+  PackageCheck, PenSquare, Check, FileText, Link2,
 } from "lucide-react";
 
 const CATEGORIES = ["iPhone","Xiaomi","Samsung","Motorola","Apple Watch","Smartwatch","Tablet","Notebook","Outro"];
@@ -213,6 +213,9 @@ Status: ${os.status}`;
     const prazo = days > 0 ? `${days} dia(s) úteis` : "a definir";
     const base = os.end_date ? new Date(os.end_date) : new Date();
     const garantia = new Date(base.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const trackingUrl = os.public_token
+      ? `${window.location.origin}/os/${os.public_token}`
+      : "";
     return {
       cliente: os.customer_name || "cliente",
       loja: storeName,
@@ -221,9 +224,20 @@ Status: ${os.status}`;
       valor: brl(Number(os.total_value || 0)),
       prazo,
       garantia_ate: garantia.toLocaleDateString("pt-BR"),
-      link_acompanhamento: `${window.location.origin}/painel/ordens/${os.id ?? ""}`,
+      link_acompanhamento: trackingUrl,
     };
   }, [os, store]);
+
+  const copyTrackingLink = async () => {
+    if (!os.public_token) return toast.error("Salve a OS para gerar o link público.");
+    const url = `${window.location.origin}/os/${os.public_token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link de acompanhamento copiado!");
+    } catch {
+      window.prompt("Copie o link de acompanhamento:", url);
+    }
+  };
 
   const sendMail = () => {
     if (!os.customer_email) return toast.error("Informe o e-mail do cliente");
