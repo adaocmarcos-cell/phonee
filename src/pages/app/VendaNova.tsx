@@ -177,6 +177,8 @@ export default function VendaNova() {
   const [showProductList, setShowProductList] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [skuInput, setSkuInput] = useState("");
+  const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
 
