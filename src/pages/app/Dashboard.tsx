@@ -224,6 +224,9 @@ export default function Dashboard() {
   const ticketMedio    = metrics?.ticket_medio      ?? 0;
   const pay            = (metrics?.formas_pagamento ?? []).map((p) => ({ ...p, name: PAY_LABEL[p.name] ?? p.name }));
   const topProducts    = metrics?.top_produtos ?? [];
+  const arCrediario    = metrics?.crediario_a_receber ?? 0;
+  const arVencido      = metrics?.crediario_vencido ?? 0;
+  const arVencidasCount= metrics?.crediario_vencidas_count ?? 0;
   const margin         = revenueTotal > 0 ? ((revenueTotal - costMonth) / revenueTotal) * 100 : 0;
   const itensAlerta    = productsLow + stalled;
 
