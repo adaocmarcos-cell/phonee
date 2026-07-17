@@ -170,7 +170,6 @@ export const HELP_MODULES: HelpModule[] = [
       { title: "Comissão do técnico", detail: "Se houver regra de comissão cadastrada, o valor é gerado automaticamente ao fechar e estornado se a OS for cancelada." },
     ],
     tips: [
-      "Etapas customizáveis são definidas em Configurações → Etapas da OS.",
       "OS paradas por muito tempo geram alerta automático no sino.",
     ],
   },
@@ -380,7 +379,6 @@ export const HELP_MODULES: HelpModule[] = [
       { title: "Aparência", detail: "Tema (claro/escuro), tamanho da fonte e texto institucional que aparece em pedidos e garantia." },
       { title: "Estoque", detail: "Switch 'Permitir venda com estoque negativo' libera a venda mesmo sem saldo (para casos específicos)." },
       { title: "Mensagens WhatsApp", detail: "Edite os templates: comprovante, lembrete de OS, cobrança pendente, cobrança vencida. Use variáveis {cliente}, {loja}, {valor}, {vencimento}, etc." },
-      { title: "Etapas da OS", detail: "Crie/renomeie/reordene as etapas do fluxo de assistência." },
       { title: "Comissões", detail: "Cadastre regras por pessoa e por origem (venda/OS)." },
     ],
   },
