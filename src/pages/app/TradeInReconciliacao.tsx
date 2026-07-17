@@ -47,13 +47,15 @@ export default function TradeInReconciliacao() {
     if (!store) return;
     (async () => {
       setLoading(true);
+      const { handleSupabaseError } = await import("@/lib/supabaseFetch");
       // Carrega trade-ins + produto vinculado + item de venda (se vendido)
-      const { data: tis } = await supabase
+      const { data: tis, error: tisErr } = await supabase
         .from("trade_ins")
         .select("id, model, customer_name, status, entry_value, repair_costs, product_id, received_in_sale_id")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false })
         .limit(500);
+      if (tisErr) { handleSupabaseError(tisErr, "Erro ao carregar reconciliação"); setLoading(false); return; }
 
       const trades = tis ?? [];
       const productIds = trades.map((t: any) => t.product_id).filter(Boolean) as string[];

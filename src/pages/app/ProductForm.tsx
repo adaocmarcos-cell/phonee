@@ -152,7 +152,8 @@ export default function ProductForm() {
   useEffect(() => {
     if (isNew || !store) return;
     (async () => {
-      const { data } = await supabase.from("products").select("*").eq("id", id!).single();
+      const { data, error } = await supabase.from("products").select("*").eq("id", id!).single();
+      if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar produto"); return; }
       if (data) {
         const raw = data as any;
         setForm({

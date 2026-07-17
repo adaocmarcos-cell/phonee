@@ -103,18 +103,21 @@ export default function TabelasPreco() {
     if (!store) return;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
+      const { handleSupabaseError } = await import("@/lib/supabaseFetch");
+      const { data, error } = await supabase
         .from("products")
         .select("id,name,sku,category,brand,sale_price,stock_current,status")
         .eq("store_id", store.id)
         .neq("status", "inativo")
         .order("name");
+      if (error) { handleSupabaseError(error, "Erro ao carregar produtos"); setLoading(false); return; }
       setProducts((data ?? []) as any);
       setLoading(false);
-      const { data: br } = await (supabase as any)
+      const { data: br, error: brErr } = await (supabase as any)
         .from("store_brands")
         .select("brand")
         .eq("store_id", store.id);
+      if (brErr) { handleSupabaseError(brErr, "Erro ao carregar marcas"); return; }
       const uniq = Array.from(new Set(((br ?? []) as { brand: string }[]).map((r) => r.brand))).sort();
       setStoreBrands(uniq);
     })();
