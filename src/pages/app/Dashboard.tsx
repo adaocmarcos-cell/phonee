@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/MetricCard";
@@ -49,10 +50,15 @@ type DashboardMetrics = {
   formas_pagamento: { name: string; value: number }[];
   serie_diaria: { day: string; total: number }[];
   top_produtos: { name: string; qty: number; revenue: number }[];
+  crediario_a_receber?: number;
+  crediario_vencido?: number;
+  crediario_recebido_hoje?: number;
+  crediario_vencidas_count?: number;
 };
 
 export default function Dashboard() {
   const { store, role } = useAuth();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodValue>("month");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [editingLayout, setEditingLayout] = useState(false);
@@ -220,6 +226,9 @@ export default function Dashboard() {
   const ticketMedio    = metrics?.ticket_medio      ?? 0;
   const pay            = (metrics?.formas_pagamento ?? []).map((p) => ({ ...p, name: PAY_LABEL[p.name] ?? p.name }));
   const topProducts    = metrics?.top_produtos ?? [];
+  const arCrediario    = metrics?.crediario_a_receber ?? 0;
+  const arVencido      = metrics?.crediario_vencido ?? 0;
+  const arVencidasCount= metrics?.crediario_vencidas_count ?? 0;
   const margin         = revenueTotal > 0 ? ((revenueTotal - costMonth) / revenueTotal) * 100 : 0;
   const itensAlerta    = productsLow + stalled;
 
@@ -321,6 +330,28 @@ export default function Dashboard() {
             icon={Smartphone}
             tone="info"
           />
+        </div>
+      )}
+
+      {arCrediario > 0 && (
+        <div className="grid grid-cols-1 gap-4 mb-4">
+          <button
+            type="button"
+            onClick={() => navigate("/painel/crediario")}
+            className="text-left"
+          >
+            <MetricCard
+              label="A receber (crediário)"
+              value={brl(arCrediario)}
+              delta={
+                arVencido > 0
+                  ? `${brl(arVencido)} vencido · ${num(arVencidasCount)} parcela(s)`
+                  : "Parcelas em aberto"
+              }
+              icon={Wallet}
+              tone={arVencido > 0 ? "warning" : "info"}
+            />
+          </button>
         </div>
       )}
 

@@ -92,6 +92,9 @@ type SplitPayment = {
   store_credit_code?: string;
   store_credit_id?: string | null;
   store_credit_balance?: number | null;
+  /** Crediário: data do 1º vencimento (YYYY-MM-DD) e intervalo em dias. */
+  first_due?: string;
+  interval_days?: number;
 };
 
 type TradeInLite = {
@@ -1103,6 +1106,27 @@ export default function VendaNova() {
       }
     }
 
+    // Gera parcelas de crediário (uma chamada por split de crediário)
+    for (const cp of payments.filter((p) => p.method === "crediario" && Number(p.amount) > 0)) {
+      if (!linkedCustomerId) {
+        toast.error("Crediário exige cliente identificado. Cadastre e vincule o cliente.");
+        continue;
+      }
+      try {
+        const { error: rErr } = await (supabase as any).rpc("register_credit_installments", {
+          _sale_id: sale.id,
+          _customer_id: linkedCustomerId,
+          _total_amount: Number(cp.amount),
+          _installments: Math.max(1, Number(cp.installments ?? 1)),
+          _first_due: cp.first_due ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+          _interval_days: Number(cp.interval_days ?? 30),
+        });
+        if (rErr) throw rErr;
+      } catch (err: any) {
+        toast.error(`Falha ao gerar parcelas do crediário: ${err.message ?? err}`);
+      }
+    }
+
     setBusy(false);
     setConfirmOpen(false);
     // Dispara evento Purchase para o Meta Pixel com detalhamento por forma de pagamento
@@ -1597,12 +1621,35 @@ Obrigado pela preferência.`;
                             <Trash2 className="h-3.5 w-3.5 text-danger" />
                           </Button>
                         </div>
-                        {isTroca && (
-                          <div className="md:col-span-5 -mt-1 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-[11px] uppercase tracking-widest text-amber-700">
-                                Aparelho recebido na troca
-                              </Label>
+                        {p.method === "crediario" && (
+                          <div className="md:col-span-5 -mt-1 rounded-md border border-indigo-500/30 bg-indigo-500/5 p-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div>
+                              <Label className="text-[11px] uppercase tracking-widest text-indigo-700">1º vencimento</Label>
+                              <Input
+                                type="date"
+                                value={p.first_due ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)}
+                                onChange={(e) => updatePayment(idx, { first_due: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[11px] uppercase tracking-widest text-indigo-700">Intervalo (dias)</Label>
+                              <NumberInput
+                                allowDecimal={false}
+                                min={1}
+                                max={90}
+                                value={p.interval_days ?? 30}
+                                onValueChange={(n) => updatePayment(idx, { interval_days: n })}
+                              />
+                            </div>
+                            <div className="text-[11px] text-indigo-800/80 self-end pb-1">
+                              Exige cliente com WhatsApp cadastrado. Serão geradas {p.installments ?? 1} parcela(s) do valor do crediário após concluir a venda.
+                            </div>
+                          </div>
+                        )}
+                        {isTroca && false && (
+                          <div>
+                            <div>
+                              <Label>_</Label>
                               <button
                                 type="button"
                                 onClick={() => {
