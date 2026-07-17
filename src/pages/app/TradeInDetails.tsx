@@ -519,8 +519,95 @@ export default function TradeInDetails() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRepairOpen(false)}>Cancelar</Button>
-            <Button onClick={submitRepair} disabled={saving} className="bg-success text-success-foreground hover:bg-success/90">
-              {saving ? "Salvando…" : "Concluir preparo e enviar ao estoque"}
+            <Button
+              onClick={() => setRepairPreviewOpen(true)}
+              disabled={saving || rows.length === 0 && (Number(manualCost) || 0) === 0}
+              className="bg-success text-success-foreground hover:bg-success/90"
+            >
+              Revisar e concluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={repairPreviewOpen} onOpenChange={setRepairPreviewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Confirmar preparo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            {missingParts.length > 0 ? (
+              <div className="rounded-md border border-danger/40 bg-danger/10 p-3 space-y-1">
+                <div className="flex items-center gap-2 font-medium text-danger">
+                  <AlertTriangle className="h-4 w-4" /> Estoque insuficiente
+                </div>
+                <ul className="text-xs text-danger/90 list-disc list-inside">
+                  {missingParts.map((m, i) => (
+                    <li key={i}>
+                      <strong>{m.name}</strong> — precisa {m.need}, disponível {m.available} (faltam {m.need - m.available})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="rounded-md border border-success/40 bg-success/10 p-3 text-success text-xs">
+                Estoque disponível para todas as peças selecionadas.
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Peças do estoque</div>
+              {rows.filter((r) => r.part_id).length === 0 ? (
+                <div className="text-xs text-muted-foreground italic">Nenhuma peça do estoque será consumida.</div>
+              ) : (
+                <ul className="text-xs space-y-0.5">
+                  {rows.filter((r) => r.part_id).map((r, i) => (
+                    <li key={i} className="flex justify-between font-mono">
+                      <span>{r.name} × {r.qty}</span>
+                      <span>{brl(r.qty * r.unit_cost)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {externalParts.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Peças externas</div>
+                <ul className="text-xs space-y-0.5">
+                  {externalParts.map((r, i) => (
+                    <li key={i} className="flex justify-between font-mono">
+                      <span>{r.name || "—"} × {r.qty}</span>
+                      <span>{brl(r.qty * r.unit_cost)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="border-t border-border pt-2 space-y-1 text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Custo peças</span><span className="font-mono">{brl(partsCost)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Custo manual</span><span className="font-mono">{brl(Number(manualCost) || 0)}</span></div>
+              <div className="flex justify-between text-base pt-1 border-t border-border">
+                <span className="font-medium">Total estimado</span>
+                <span className="font-mono text-primary font-semibold">{brl(totalCost)}</span>
+              </div>
+            </div>
+
+            {manualNotes && (
+              <div className="text-xs text-muted-foreground">
+                <span className="font-medium">Notas:</span> {manualNotes}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRepairPreviewOpen(false)}>Voltar</Button>
+            <Button
+              onClick={submitRepair}
+              disabled={saving || missingParts.length > 0}
+              className="bg-success text-success-foreground hover:bg-success/90"
+            >
+              {saving ? "Salvando…" : "Confirmar e enviar ao estoque"}
             </Button>
           </DialogFooter>
         </DialogContent>
