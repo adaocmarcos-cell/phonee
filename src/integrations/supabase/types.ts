@@ -2982,6 +2982,87 @@ export type Database = {
           },
         ]
       }
+      stock_daily_snapshots: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          product_id: string
+          snapshot_date: string
+          store_id: string
+          unit_cost: number | null
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          product_id: string
+          snapshot_date: string
+          store_id: string
+          unit_cost?: number | null
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          product_id?: string
+          snapshot_date?: string
+          store_id?: string
+          unit_cost?: number | null
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          balance_after: number | null
+          balance_before: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          occurred_at: string
+          origin_id: string | null
+          origin_table: string | null
+          product_id: string
+          quantity: number
+          store_id: string
+          type: string
+          unit_cost: number | null
+        }
+        Insert: {
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          origin_id?: string | null
+          origin_table?: string | null
+          product_id: string
+          quantity: number
+          store_id: string
+          type: string
+          unit_cost?: number | null
+        }
+        Update: {
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          origin_id?: string | null
+          origin_table?: string | null
+          product_id?: string
+          quantity?: number
+          store_id?: string
+          type?: string
+          unit_cost?: number | null
+        }
+        Relationships: []
+      }
       store_brands: {
         Row: {
           brand: string
@@ -4192,6 +4273,37 @@ export type Database = {
         }
       }
       get_public_os: { Args: { _token: string }; Returns: Json }
+      get_stock_movement_report: {
+        Args: {
+          p_brand?: string
+          p_category?: string
+          p_end: string
+          p_start: string
+          p_store_id: string
+          p_supplier?: string
+        }
+        Returns: {
+          ajuste_negativo: number
+          ajuste_positivo: number
+          brand: string
+          category: string
+          divergencia: number
+          entrada_compra: number
+          entrada_devolucao: number
+          entrada_troca: number
+          product_id: string
+          product_name: string
+          saida_os: number
+          saida_transferencia: number
+          saida_venda: number
+          saldo_atual: number
+          saldo_calculado: number
+          saldo_inicial: number
+          sku: string
+          supplier: string
+          unit_cost: number
+        }[]
+      }
       get_store_sellers: {
         Args: { _store_id: string }
         Returns: {
@@ -4725,6 +4837,7 @@ export type Database = {
           total_count: number
         }[]
       }
+      take_stock_snapshot: { Args: { p_date?: string }; Returns: number }
       trial_eligibility: {
         Args: { _doc?: string; _email?: string; _user_id?: string }
         Returns: Json
