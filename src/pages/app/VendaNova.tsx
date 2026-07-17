@@ -811,9 +811,19 @@ export default function VendaNova() {
       return toast.error("Só é possível registrar uma troca de aparelho por venda.");
     }
     for (const tp of trocaPays) {
-      if (!tp.trade_in_id) return toast.error("Selecione o aparelho recebido na troca.");
-      const ti = availableTradeIns.find((x) => x.id === tp.trade_in_id);
-      if (!ti) return toast.error("Aparelho de troca não encontrado. Recarregue a lista.");
+      if (!tp.trade_in_id && !tp.new_trade_in) {
+        return toast.error("Selecione o aparelho recebido na troca ou cadastre um novo.");
+      }
+      if (tp.new_trade_in) {
+        const d = tp.new_trade_in;
+        if (!d.model.trim()) return toast.error("Informe o modelo do aparelho da troca.");
+        if (Number(d.entry_value) <= 0) {
+          return toast.error("Valor de entrada do aparelho de troca deve ser maior que zero.");
+        }
+      } else {
+        const ti = availableTradeIns.find((x) => x.id === tp.trade_in_id);
+        if (!ti) return toast.error("Aparelho de troca não encontrado. Recarregue a lista.");
+      }
       // Amount pode ser ajustado manualmente; se ficar diferente do entry_value, avisa mas segue.
       if (Number(tp.amount) > totalSale) {
         return toast.error("Valor da troca não pode exceder o total da venda.");
