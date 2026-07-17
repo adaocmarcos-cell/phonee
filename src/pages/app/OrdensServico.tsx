@@ -232,9 +232,21 @@ export default function OrdensServico() {
                       {[r.device_brand, r.device_model].filter(Boolean).join(" ")}{r.device_color ? ` · ${r.device_color}` : ""}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap align-middle">
-                      <Badge variant="outline" className={`${STATUS_COLOR[r.status] ?? ""} whitespace-nowrap`}>
-                        {STATUS_LABEL[r.status] ?? r.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className={`${STATUS_COLOR[r.status] ?? ""} whitespace-nowrap`}>
+                          {STATUS_LABEL[r.status] ?? r.status}
+                        </Badge>
+                        {stalledMap[r.id] && stalledMap[r.id].days >= stalledLimit && (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-700 border-amber-300 whitespace-nowrap"
+                            title={`Parada há ${stalledMap[r.id].days.toFixed(1)} dia(s) — limite ${stalledLimit}d`}
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            {Math.floor(stalledMap[r.id].days)}d parada
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap tabular-nums align-middle">
                       {new Date(r.created_at).toLocaleDateString("pt-BR")}
