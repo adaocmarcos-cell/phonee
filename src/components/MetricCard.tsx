@@ -15,10 +15,10 @@ interface Props {
 }
 
 const accentBg: Record<NonNullable<Props["accent"]>, string> = {
-  primary: "bg-primary/10 text-primary",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-  danger: "bg-danger/10 text-danger",
+  primary: "text-primary",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-danger",
 };
 
 const toneGradient: Record<NonNullable<Props["tone"]>, string> = {
@@ -45,7 +45,7 @@ export function MetricCard({ label, value, delta, trend = "flat", icon: Icon, ac
     : "bg-card border-border shadow-card hover:border-primary/40 transition-colors";
 
   const iconCls = tone || filled
-    ? "bg-white/20 text-white backdrop-blur-sm"
+    ? "text-white"
     : accentBg[accent];
 
   const labelCls = tone || filled
@@ -56,7 +56,7 @@ export function MetricCard({ label, value, delta, trend = "flat", icon: Icon, ac
     <Card className={cn("p-4 sm:p-5 min-w-0 overflow-hidden", cardCls, highlight && "sm:p-6", className)}>
       <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
         <span className={cn("text-[10px] sm:text-xs uppercase tracking-widest font-mono font-semibold truncate min-w-0", labelCls)}>{label}</span>
-        <div className={cn("shrink-0 rounded-md flex items-center justify-center", highlight ? "h-9 w-9 sm:h-10 sm:w-10" : "h-7 w-7 sm:h-8 sm:w-8", iconCls)}>
+        <div className={cn("shrink-0 flex items-center justify-center", highlight ? "h-9 w-9 sm:h-10 sm:w-10" : "h-7 w-7 sm:h-8 sm:w-8", iconCls)}>
           <Icon className={cn(highlight ? "h-4 w-4 sm:h-5 sm:w-5" : "h-3.5 w-3.5 sm:h-4 sm:w-4")} />
         </div>
       </div>
