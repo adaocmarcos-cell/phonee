@@ -49,10 +49,10 @@ export default function RelatoriosOS() {
   const [to, setTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [tech, setTech] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [stalledDays, setStalledDays] = useState<number>(store?.os_stalled_days ?? 3);
+  const [stalledDays, setStalledDays] = useState<number>((store as any)?.os_stalled_days ?? 3);
   const [savingStalled, setSavingStalled] = useState(false);
 
-  useEffect(() => { setStalledDays(store?.os_stalled_days ?? 3); }, [store?.os_stalled_days, store?.id]);
+  useEffect(() => { setStalledDays((store as any)?.os_stalled_days ?? 3); }, [(store as any)?.os_stalled_days, store?.id]);
 
   useEffect(() => {
     if (!store) return;
@@ -281,9 +281,8 @@ export default function RelatoriosOS() {
   return (
     <div className="space-y-4">
       <PageHeader
-        icon={Wrench}
         title="Relatórios de Ordens de Serviço"
-        subtitle="Tempo por etapa, produtividade por técnico e lucro por OS"
+        description="Tempo por etapa, produtividade por técnico e lucro por OS"
       />
 
       {/* Filtros */}
@@ -337,8 +336,8 @@ export default function RelatoriosOS() {
         <MetricCard label="OSs no período" value={String(filtered.length)} icon={Wrench} />
         <MetricCard label="Entregues" value={String(cycle.deliveredCount)} icon={CheckCircle2} />
         <MetricCard label="Ciclo médio" value={fmtHours(cycle.avgHours)} icon={Timer} />
-        <MetricCard label="Aprovação de orçamento" value={`${budgetRate.rate.toFixed(0)}%`} icon={TrendingUp} hint={`${budgetRate.approved}/${budgetRate.decided}`} />
-        <MetricCard label="Lucro no período" value={brl(profitTotal.profit)} icon={TrendingUp} hint={`Receita ${brl(profitTotal.revenue)} · Peças ${brl(profitTotal.parts)}`} />
+        <MetricCard label="Aprovação de orçamento" value={`${budgetRate.rate.toFixed(0)}%`} icon={TrendingUp} delta={`${budgetRate.approved}/${budgetRate.decided}`} />
+        <MetricCard label="Lucro no período" value={brl(profitTotal.profit)} icon={TrendingUp} delta={`Receita ${brl(profitTotal.revenue)}`} />
       </div>
 
       {/* Destaques: OS paradas */}
