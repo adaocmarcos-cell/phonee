@@ -627,6 +627,191 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_order_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          order_id: string
+          reason: string | null
+          store_id: string
+          to_status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          order_id: string
+          reason?: string | null
+          store_id: string
+          to_status: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          order_id?: string
+          reason?: string | null
+          store_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "customer_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_order_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_orders: {
+        Row: {
+          agreed_price: number
+          cancel_reason: string | null
+          cancel_refund_mode: string | null
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          customer_name: string
+          customer_notified_at: string | null
+          customer_whatsapp: string | null
+          deposit_amount: number | null
+          deposit_cash_session_id: string | null
+          deposit_consumed: boolean
+          deposit_method: string | null
+          description: string
+          expected_at: string | null
+          has_deposit: boolean
+          id: string
+          notes: string | null
+          product_id: string | null
+          purchase_order_id: string | null
+          quantity: number
+          sale_id: string | null
+          status: string
+          store_credit_id: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          agreed_price: number
+          cancel_reason?: string | null
+          cancel_refund_mode?: string | null
+          created_at?: string
+          created_by: string
+          customer_id?: string | null
+          customer_name: string
+          customer_notified_at?: string | null
+          customer_whatsapp?: string | null
+          deposit_amount?: number | null
+          deposit_cash_session_id?: string | null
+          deposit_consumed?: boolean
+          deposit_method?: string | null
+          description: string
+          expected_at?: string | null
+          has_deposit?: boolean
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          purchase_order_id?: string | null
+          quantity?: number
+          sale_id?: string | null
+          status?: string
+          store_credit_id?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          agreed_price?: number
+          cancel_reason?: string | null
+          cancel_refund_mode?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_notified_at?: string | null
+          customer_whatsapp?: string | null
+          deposit_amount?: number | null
+          deposit_cash_session_id?: string | null
+          deposit_consumed?: boolean
+          deposit_method?: string | null
+          description?: string
+          expected_at?: string | null
+          has_deposit?: boolean
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          purchase_order_id?: string | null
+          quantity?: number
+          sale_id?: string | null
+          status?: string
+          store_credit_id?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_orders_deposit_cash_session_id_fkey"
+            columns: ["deposit_cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_orders_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_orders_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_orders_store_credit_id_fkey"
+            columns: ["store_credit_id"]
+            isOneToOne: false
+            referencedRelation: "store_credits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address_city: string | null
@@ -4168,12 +4353,38 @@ export type Database = {
         Args: { _store_id: string; _uid: string }
         Returns: boolean
       }
+      cancel_customer_order: {
+        Args: { _order_id: string; _reason: string; _refund_mode: string }
+        Returns: Json
+      }
       cancel_trade_in_repair: {
         Args: { _reason?: string; _trade_in_id: string }
         Returns: string
       }
       close_cash_session: {
         Args: { _counted_cash: number; _notes?: string; _session_id: string }
+        Returns: Json
+      }
+      consume_customer_order_deposit: {
+        Args: { _order_id: string; _sale_id: string }
+        Returns: undefined
+      }
+      create_customer_order: {
+        Args: {
+          _agreed_price: number
+          _customer_id: string
+          _customer_name: string
+          _customer_whatsapp: string
+          _deposit_amount: number
+          _deposit_method: string
+          _description: string
+          _expected_at: string
+          _has_deposit: boolean
+          _notes: string
+          _product_id: string
+          _quantity: number
+          _store_id: string
+        }
         Returns: Json
       }
       create_purchase_with_stock: {
@@ -4273,6 +4484,10 @@ export type Database = {
         }
       }
       get_public_os: { Args: { _token: string }; Returns: Json }
+      get_reserved_qty: {
+        Args: { _product_id: string; _store_id: string }
+        Returns: number
+      }
       get_stock_movement_report: {
         Args: {
           p_brand?: string
@@ -4377,8 +4592,16 @@ export type Database = {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
+      link_customer_order_to_purchase: {
+        Args: { _order_id: string; _purchase_order_id: string }
+        Returns: undefined
+      }
       link_orphan_subscription: {
         Args: { _email: string; _user_id: string }
+        Returns: undefined
+      }
+      mark_customer_order_arrived: {
+        Args: { _order_id: string }
         Returns: undefined
       }
       my_stores: {
@@ -4396,6 +4619,7 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      notify_customer_order: { Args: { _order_id: string }; Returns: undefined }
       open_cash_session: {
         Args: { _notes?: string; _opening_amount: number; _store_id: string }
         Returns: string

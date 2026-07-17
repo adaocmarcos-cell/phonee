@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -145,6 +145,13 @@ export default function VendaNova() {
   const navigate = useNavigate();
   const { id: editingSaleId } = useParams();
   const isEditingSale = !!editingSaleId;
+  const [encomendaSp] = useSearchParams();
+  const encomendaId = encomendaSp.get("encomenda");
+  const [encomenda, setEncomenda] = useState<{
+    id: string; customer_name: string; customer_whatsapp: string | null;
+    description: string; agreed_price: number; quantity: number;
+    has_deposit: boolean; deposit_amount: number | null;
+  } | null>(null);
   const { store, user, role } = useAuth();
 
   // Cliente
@@ -404,6 +411,31 @@ export default function VendaNova() {
       setEditSaleLoaded(true);
     })();
   }, [isEditingSale, store, editingSaleId, editSaleLoaded, navigate]);
+
+  // Encomenda vinculada: carrega dados e pré-preenche cliente
+  useEffect(() => {
+    if (!encomendaId || !store || isEditingSale) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("customer_orders")
+        .select("id, customer_name, customer_whatsapp, description, agreed_price, quantity, has_deposit, deposit_amount, status, sale_id")
+        .eq("id", encomendaId)
+        .maybeSingle();
+      if (error || !data) return;
+      if ((data as any).status === "entregue" || (data as any).sale_id) {
+        toast.info("Esta encomenda já foi convertida em venda.");
+        return;
+      }
+      setEncomenda(data as any);
+      setCustomer((data as any).customer_name ?? "");
+      if ((data as any).customer_whatsapp) setWhatsapp((data as any).customer_whatsapp);
+      toast.info(
+        (data as any).has_deposit
+          ? `Encomenda carregada. Sinal de R$ ${Number((data as any).deposit_amount).toFixed(2)} será abatido ao finalizar.`
+          : "Encomenda carregada. Adicione o produto e finalize normalmente.",
+      );
+    })();
+  }, [encomendaId, store, isEditingSale]);
 
   // Carrega clientes cadastrados da loja (autocomplete + sincronização)
   const loadCustomers = async () => {
@@ -1208,6 +1240,16 @@ export default function VendaNova() {
       toast.success("Venda atualizada · estoque recalculado");
       navigate("/painel/vendas");
     } else {
+      // Se veio de uma encomenda, consome o sinal e fecha a encomenda
+      if (encomenda?.id) {
+        try {
+          const { error: consErr } = await (supabase as any).rpc("consume_customer_order_deposit", {
+            _order_id: encomenda.id, _sale_id: sale.id,
+          });
+          if (consErr) toast.error(`Sinal não abatido: ${consErr.message}`);
+          else if (encomenda.has_deposit) toast.success("Sinal da encomenda abatido.");
+        } catch { /* noop */ }
+      }
       toast.success("Venda registrada!");
       setPostSave({
         saleId: sale.id,
