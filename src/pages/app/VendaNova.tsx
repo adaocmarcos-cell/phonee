@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -145,6 +145,13 @@ export default function VendaNova() {
   const navigate = useNavigate();
   const { id: editingSaleId } = useParams();
   const isEditingSale = !!editingSaleId;
+  const [encomendaSp] = useSearchParams();
+  const encomendaId = encomendaSp.get("encomenda");
+  const [encomenda, setEncomenda] = useState<{
+    id: string; customer_name: string; customer_whatsapp: string | null;
+    description: string; agreed_price: number; quantity: number;
+    has_deposit: boolean; deposit_amount: number | null;
+  } | null>(null);
   const { store, user, role } = useAuth();
 
   // Cliente
