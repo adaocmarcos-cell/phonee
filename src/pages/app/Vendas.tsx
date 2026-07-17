@@ -46,7 +46,7 @@ const NET_REASONS = [
 const eff = (s: any) => Number(s?.net_value ?? s?.total ?? 0);
 
 export default function Vendas() {
-  const { store, role } = useAuth();
+  const { store, role, user } = useAuth();
   const { allowed: canDeleteSale } = useHasPermission("vendas", "excluir");
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
