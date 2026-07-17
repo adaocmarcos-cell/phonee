@@ -38,6 +38,14 @@ function fmtVal(v: any) {
   return String(v);
 }
 
+const STATUS_META: Record<string, { label: string; className: string }> = {
+  em_avaliacao:  { label: "Em avaliação",       className: "bg-muted text-muted-foreground border-border" },
+  aprovado:      { label: "Aguardando preparo", className: "bg-warning/15 text-warning border-warning/30" },
+  em_estoque:    { label: "Em estoque",         className: "bg-success/15 text-success border-success/30" },
+  vendido:       { label: "Vendido",            className: "bg-primary/15 text-primary border-primary/30" },
+  recusado:      { label: "Recusado",           className: "bg-muted text-muted-foreground border-border" },
+};
+
 export default function TradeInDetails() {
   const { id } = useParams();
   const { store } = useAuth();
@@ -51,6 +59,7 @@ export default function TradeInDetails() {
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
+  const [repairPreviewOpen, setRepairPreviewOpen] = useState(false);
   const [invParts, setInvParts] = useState<{ id: string; name: string; stock_current: number; cost_price: number }[]>([]);
   const [rows, setRows] = useState<{ part_id: string | null; name: string; qty: number; unit_cost: number }[]>([]);
   const [manualCost, setManualCost] = useState(0);
@@ -121,15 +130,25 @@ export default function TradeInDetails() {
   const partsCost = rows.reduce((s, r) => s + r.qty * r.unit_cost, 0);
   const totalCost = partsCost + Number(manualCost || 0);
 
+  // Prévia: peças com estoque insuficiente
+  const missingParts = rows
+    .map((r) => {
+      if (!r.part_id) return null;
+      const inv = invParts.find((p) => p.id === r.part_id);
+      if (!inv) return { name: r.name || "?", need: r.qty, available: 0 };
+      if (inv.stock_current < r.qty)
+        return { name: inv.name, need: r.qty, available: inv.stock_current };
+      return null;
+    })
+    .filter(Boolean) as { name: string; need: number; available: number }[];
+  const externalParts = rows.filter((r) => !r.part_id && (r.name || r.unit_cost > 0));
+
   const submitRepair = async () => {
-    // Client-side stock validation
     for (const r of rows) {
-      if (r.part_id) {
-        const p = invParts.find((x) => x.id === r.part_id);
-        if (!p) return toast.error(`Peça inválida: ${r.name}`);
-        if (p.stock_current < r.qty) return toast.error(`Estoque insuficiente de "${p.name}" (${p.stock_current} disponível).`);
-      }
       if (r.qty <= 0) return toast.error("Quantidade da peça deve ser maior que zero.");
+    }
+    if (missingParts.length > 0) {
+      return toast.error("Há peças com estoque insuficiente. Ajuste antes de continuar.");
     }
     setSaving(true);
     const payloadParts = rows.map((r) => ({
@@ -147,6 +166,7 @@ export default function TradeInDetails() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Preparo concluído. Aparelho no estoque.");
+    setRepairPreviewOpen(false);
     setRepairOpen(false);
     // Reload
     const { data: ti } = await supabase.from("trade_ins").select("*").eq("id", item.id).maybeSingle();
@@ -318,43 +338,97 @@ export default function TradeInDetails() {
         </Card>
 
         <Card className="p-5 bg-card border-border">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" /> Trilha de auditoria</h3>
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" /> Linha do tempo</h3>
           {audits.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sem alterações registradas ainda.</p>
           ) : (
-            <ol className="space-y-3">
-              {audits.map((a) => (
-                <li key={a.id} className="text-xs border-l-2 border-border pl-3">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">{actionLabel[a.action] ?? a.action}</span>
-                    <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString("pt-BR")}</span>
-                  </div>
-                  <div className="text-muted-foreground">por {a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema"}</div>
-                  {a.action !== "criacao" && a.details && typeof a.details === "object" && (
-                    <ul className="mt-1 space-y-0.5">
-                      {Object.entries(a.details).map(([field, change]: [string, any]) => {
-                        if (field === "motivo") {
-                          return (
-                            <li key={field} className="font-mono">
-                              <span className="text-muted-foreground">motivo:</span>{" "}
-                              <span className="text-warning">{String(change)}</span>
-                            </li>
-                          );
-                        }
-                        const de = REASON_LABEL[change?.de as keyof typeof REASON_LABEL] ?? change?.de;
-                        const para = REASON_LABEL[change?.para as keyof typeof REASON_LABEL] ?? change?.para;
-                        return (
-                          <li key={field} className="font-mono">
-                            <span className="text-muted-foreground">{field}:</span>{" "}
-                            <span className="line-through opacity-60">{fmtVal(de)}</span>{" → "}
-                            <span>{fmtVal(para)}</span>
+            <ol className="relative border-l-2 border-border ml-1 space-y-4 pl-4">
+              {audits.map((a) => {
+                const d = a.details || {};
+                const statusChange = d.status && typeof d.status === "object" ? d.status : null;
+                const de = statusChange?.de as string | undefined;
+                const para = statusChange?.para as string | undefined;
+                const isStatus = a.action === "mudanca_status" && !!statusChange;
+                const dotClass = isStatus
+                  ? para === "em_estoque"
+                    ? "bg-success"
+                    : para === "aprovado"
+                    ? "bg-warning"
+                    : "bg-muted-foreground"
+                  : "bg-primary";
+                return (
+                  <li key={a.id} className="text-xs relative">
+                    <span
+                      className={`absolute -left-[22px] top-1 h-3 w-3 rounded-full ring-2 ring-background ${dotClass}`}
+                    />
+                    <div className="flex justify-between gap-2 items-start">
+                      <span className="font-medium">{actionLabel[a.action] ?? a.action}</span>
+                      <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString("pt-BR")}</span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      por {a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema"}
+                    </div>
+
+                    {isStatus && (
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        {de && (
+                          <Badge variant="outline" className={STATUS_META[de]?.className}>
+                            {STATUS_META[de]?.label ?? de}
+                          </Badge>
+                        )}
+                        <span className="text-muted-foreground">→</span>
+                        {para && (
+                          <Badge variant="outline" className={STATUS_META[para]?.className}>
+                            {STATUS_META[para]?.label ?? para}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {d.motivo && (
+                      <div className="mt-1 text-muted-foreground">
+                        <span className="font-medium">Motivo:</span> {String(d.motivo)}
+                      </div>
+                    )}
+                    {d.notas_preparo && (
+                      <div className="mt-1 text-muted-foreground italic">"{String(d.notas_preparo)}"</div>
+                    )}
+                    {(d.parts_cost !== undefined || d.manual_cost !== undefined) && (
+                      <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                        peças {brl(Number(d.parts_cost || 0))} · manual {brl(Number(d.manual_cost || 0))}
+                        {d.total_cost !== undefined && <> · total <strong>{brl(Number(d.total_cost))}</strong></>}
+                      </div>
+                    )}
+                    {Array.isArray(d.parts) && d.parts.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-[11px] font-mono">
+                        {d.parts.map((p: any, i: number) => (
+                          <li key={i} className="text-muted-foreground">
+                            • {p.name} × {p.qty} ({p.source === "estoque" ? "estoque" : "externa"})
                           </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </li>
-              ))}
+                        ))}
+                      </ul>
+                    )}
+
+                    {!isStatus && a.action !== "criacao" && d && typeof d === "object" && (
+                      <ul className="mt-1 space-y-0.5">
+                        {Object.entries(d)
+                          .filter(([f]) => !["status", "motivo", "notas_preparo", "parts", "parts_cost", "manual_cost", "total_cost"].includes(f))
+                          .map(([field, change]: [string, any]) => {
+                            const dv = REASON_LABEL[change?.de as keyof typeof REASON_LABEL] ?? change?.de;
+                            const pv = REASON_LABEL[change?.para as keyof typeof REASON_LABEL] ?? change?.para;
+                            return (
+                              <li key={field} className="font-mono">
+                                <span className="text-muted-foreground">{field}:</span>{" "}
+                                <span className="line-through opacity-60">{fmtVal(dv)}</span>{" → "}
+                                <span>{fmtVal(pv)}</span>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           )}
         </Card>
@@ -499,8 +573,95 @@ export default function TradeInDetails() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRepairOpen(false)}>Cancelar</Button>
-            <Button onClick={submitRepair} disabled={saving} className="bg-success text-success-foreground hover:bg-success/90">
-              {saving ? "Salvando…" : "Concluir preparo e enviar ao estoque"}
+            <Button
+              onClick={() => setRepairPreviewOpen(true)}
+              disabled={saving || (rows.length === 0 && (Number(manualCost) || 0) === 0)}
+              className="bg-success text-success-foreground hover:bg-success/90"
+            >
+              Revisar e concluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={repairPreviewOpen} onOpenChange={setRepairPreviewOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Confirmar preparo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            {missingParts.length > 0 ? (
+              <div className="rounded-md border border-danger/40 bg-danger/10 p-3 space-y-1">
+                <div className="flex items-center gap-2 font-medium text-danger">
+                  <AlertTriangle className="h-4 w-4" /> Estoque insuficiente
+                </div>
+                <ul className="text-xs text-danger/90 list-disc list-inside">
+                  {missingParts.map((m, i) => (
+                    <li key={i}>
+                      <strong>{m.name}</strong> — precisa {m.need}, disponível {m.available} (faltam {m.need - m.available})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="rounded-md border border-success/40 bg-success/10 p-3 text-success text-xs">
+                Estoque disponível para todas as peças selecionadas.
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Peças do estoque</div>
+              {rows.filter((r) => r.part_id).length === 0 ? (
+                <div className="text-xs text-muted-foreground italic">Nenhuma peça do estoque será consumida.</div>
+              ) : (
+                <ul className="text-xs space-y-0.5">
+                  {rows.filter((r) => r.part_id).map((r, i) => (
+                    <li key={i} className="flex justify-between font-mono">
+                      <span>{r.name} × {r.qty}</span>
+                      <span>{brl(r.qty * r.unit_cost)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {externalParts.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Peças externas</div>
+                <ul className="text-xs space-y-0.5">
+                  {externalParts.map((r, i) => (
+                    <li key={i} className="flex justify-between font-mono">
+                      <span>{r.name || "—"} × {r.qty}</span>
+                      <span>{brl(r.qty * r.unit_cost)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="border-t border-border pt-2 space-y-1 text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Custo peças</span><span className="font-mono">{brl(partsCost)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Custo manual</span><span className="font-mono">{brl(Number(manualCost) || 0)}</span></div>
+              <div className="flex justify-between text-base pt-1 border-t border-border">
+                <span className="font-medium">Total estimado</span>
+                <span className="font-mono text-primary font-semibold">{brl(totalCost)}</span>
+              </div>
+            </div>
+
+            {manualNotes && (
+              <div className="text-xs text-muted-foreground">
+                <span className="font-medium">Notas:</span> {manualNotes}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRepairPreviewOpen(false)}>Voltar</Button>
+            <Button
+              onClick={submitRepair}
+              disabled={saving || missingParts.length > 0}
+              className="bg-success text-success-foreground hover:bg-success/90"
+            >
+              {saving ? "Salvando…" : "Confirmar e enviar ao estoque"}
             </Button>
           </DialogFooter>
         </DialogContent>
