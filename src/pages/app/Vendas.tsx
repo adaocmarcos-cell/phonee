@@ -49,6 +49,7 @@ export default function Vendas() {
   const { allowed: canDeleteSale } = useHasPermission("vendas", "excluir");
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
+  const [trocaSplits, setTrocaSplits] = useState<{ amount: number }[]>([]);
   const [period, setPeriod] = useState<PeriodValue>("30d");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [payment, setPayment] = useState<string>("all");
@@ -105,11 +106,17 @@ export default function Vendas() {
     if (!store) return;
     let query = supabase.from("sales").select("*").eq("store_id", store.id).order("created_at", { ascending: false }).limit(500);
     const { from, to } = resolvePeriod(period, periodCustom);
-    if (period === "custom" && (!from || !to)) { setSales([]); return; }
+    if (period === "custom" && (!from || !to)) { setSales([]); setTrocaSplits([]); return; }
     if (from) query = query.gte("created_at", from.toISOString());
     if (period !== "all" && to) query = query.lte("created_at", to.toISOString());
     const { data: s } = await query;
     setSales(s ?? []);
+    // Recebido em aparelhos (troca) — soma de sale_payments.method='troca' no período
+    let tq = (supabase as any).from("sale_payments").select("amount,created_at").eq("store_id", store.id).eq("method", "troca");
+    if (from) tq = tq.gte("created_at", from.toISOString());
+    if (period !== "all" && to) tq = tq.lte("created_at", to.toISOString());
+    const { data: tp } = await tq;
+    setTrocaSplits(((tp as any[]) ?? []).map((r) => ({ amount: Number(r.amount || 0) })));
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store, period, periodCustom]);
@@ -133,6 +140,8 @@ export default function Vendas() {
 
   const total = filtered.reduce((a, b) => a + Number(b.total || 0), 0);
   const totalLiquido = filtered.reduce((a, b) => a + eff(b), 0);
+  const trocaTotal = trocaSplits.reduce((a, b) => a + b.amount, 0);
+  const cashTotal = Math.max(0, totalLiquido - trocaTotal);
   const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente"), [sales]);
   const pendingTotal = pendingSales.reduce((a, b) => a + eff(b), 0);
   const overdueCount = useMemo(() => {
