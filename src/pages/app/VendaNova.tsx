@@ -725,6 +725,34 @@ export default function VendaNova() {
     }
   };
 
+  // PDV: campo dedicado de SKU (scanner de código de barras + digitação).
+  // Enter tenta match exato (case-insensitive) na lista já carregada;
+  // se não encontrar, consulta a RPC search_sale_products (que já ranqueia
+  // match exato de SKU em primeiro lugar). Adiciona direto e limpa o campo.
+  const submitSku = async () => {
+    const raw = skuInput.trim();
+    if (!raw || !store || skuBusy) return;
+    setSkuBusy(true);
+    try {
+      const norm = raw.toLowerCase();
+      let match: any = products.find((p) => (p.sku ?? "").toLowerCase() === norm);
+      if (!match) {
+        const { data, error } = await (supabase as any).rpc("search_sale_products", {
+          _store_id: store.id, _query: raw, _limit: 5,
+        });
+        if (error) { toast.error("Falha ao consultar SKU."); return; }
+        const list = (data ?? []) as any[];
+        match = list.find((p) => (p.sku ?? "").toLowerCase() === norm)
+          ?? (list.length === 1 ? list[0] : null);
+      }
+      if (!match) { toast.warning(`SKU "${raw}" não encontrado.`); return; }
+      addItem(match);
+      setSkuInput("");
+    } finally {
+      setSkuBusy(false);
+    }
+  };
+
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     setItems((arr) => arr.map((i) => {
       if (i.product_id !== id) return i;
