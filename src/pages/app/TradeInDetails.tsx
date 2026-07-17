@@ -338,43 +338,97 @@ export default function TradeInDetails() {
         </Card>
 
         <Card className="p-5 bg-card border-border">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" /> Trilha de auditoria</h3>
+          <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" /> Linha do tempo</h3>
           {audits.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sem alterações registradas ainda.</p>
           ) : (
-            <ol className="space-y-3">
-              {audits.map((a) => (
-                <li key={a.id} className="text-xs border-l-2 border-border pl-3">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">{actionLabel[a.action] ?? a.action}</span>
-                    <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString("pt-BR")}</span>
-                  </div>
-                  <div className="text-muted-foreground">por {a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema"}</div>
-                  {a.action !== "criacao" && a.details && typeof a.details === "object" && (
-                    <ul className="mt-1 space-y-0.5">
-                      {Object.entries(a.details).map(([field, change]: [string, any]) => {
-                        if (field === "motivo") {
-                          return (
-                            <li key={field} className="font-mono">
-                              <span className="text-muted-foreground">motivo:</span>{" "}
-                              <span className="text-warning">{String(change)}</span>
-                            </li>
-                          );
-                        }
-                        const de = REASON_LABEL[change?.de as keyof typeof REASON_LABEL] ?? change?.de;
-                        const para = REASON_LABEL[change?.para as keyof typeof REASON_LABEL] ?? change?.para;
-                        return (
-                          <li key={field} className="font-mono">
-                            <span className="text-muted-foreground">{field}:</span>{" "}
-                            <span className="line-through opacity-60">{fmtVal(de)}</span>{" → "}
-                            <span>{fmtVal(para)}</span>
+            <ol className="relative border-l-2 border-border ml-1 space-y-4 pl-4">
+              {audits.map((a) => {
+                const d = a.details || {};
+                const statusChange = d.status && typeof d.status === "object" ? d.status : null;
+                const de = statusChange?.de as string | undefined;
+                const para = statusChange?.para as string | undefined;
+                const isStatus = a.action === "mudanca_status" && !!statusChange;
+                const dotClass = isStatus
+                  ? para === "em_estoque"
+                    ? "bg-success"
+                    : para === "aprovado"
+                    ? "bg-warning"
+                    : "bg-muted-foreground"
+                  : "bg-primary";
+                return (
+                  <li key={a.id} className="text-xs relative">
+                    <span
+                      className={`absolute -left-[22px] top-1 h-3 w-3 rounded-full ring-2 ring-background ${dotClass}`}
+                    />
+                    <div className="flex justify-between gap-2 items-start">
+                      <span className="font-medium">{actionLabel[a.action] ?? a.action}</span>
+                      <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString("pt-BR")}</span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      por {a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema"}
+                    </div>
+
+                    {isStatus && (
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        {de && (
+                          <Badge variant="outline" className={STATUS_META[de]?.className}>
+                            {STATUS_META[de]?.label ?? de}
+                          </Badge>
+                        )}
+                        <span className="text-muted-foreground">→</span>
+                        {para && (
+                          <Badge variant="outline" className={STATUS_META[para]?.className}>
+                            {STATUS_META[para]?.label ?? para}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {d.motivo && (
+                      <div className="mt-1 text-muted-foreground">
+                        <span className="font-medium">Motivo:</span> {String(d.motivo)}
+                      </div>
+                    )}
+                    {d.notas_preparo && (
+                      <div className="mt-1 text-muted-foreground italic">"{String(d.notas_preparo)}"</div>
+                    )}
+                    {(d.parts_cost !== undefined || d.manual_cost !== undefined) && (
+                      <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                        peças {brl(Number(d.parts_cost || 0))} · manual {brl(Number(d.manual_cost || 0))}
+                        {d.total_cost !== undefined && <> · total <strong>{brl(Number(d.total_cost))}</strong></>}
+                      </div>
+                    )}
+                    {Array.isArray(d.parts) && d.parts.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-[11px] font-mono">
+                        {d.parts.map((p: any, i: number) => (
+                          <li key={i} className="text-muted-foreground">
+                            • {p.name} × {p.qty} ({p.source === "estoque" ? "estoque" : "externa"})
                           </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </li>
-              ))}
+                        ))}
+                      </ul>
+                    )}
+
+                    {!isStatus && a.action !== "criacao" && d && typeof d === "object" && (
+                      <ul className="mt-1 space-y-0.5">
+                        {Object.entries(d)
+                          .filter(([f]) => !["status", "motivo", "notas_preparo", "parts", "parts_cost", "manual_cost", "total_cost"].includes(f))
+                          .map(([field, change]: [string, any]) => {
+                            const dv = REASON_LABEL[change?.de as keyof typeof REASON_LABEL] ?? change?.de;
+                            const pv = REASON_LABEL[change?.para as keyof typeof REASON_LABEL] ?? change?.para;
+                            return (
+                              <li key={field} className="font-mono">
+                                <span className="text-muted-foreground">{field}:</span>{" "}
+                                <span className="line-through opacity-60">{fmtVal(dv)}</span>{" → "}
+                                <span>{fmtVal(pv)}</span>
+                              </li>
+                            );
+                          })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           )}
         </Card>
