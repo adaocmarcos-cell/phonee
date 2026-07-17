@@ -38,6 +38,14 @@ function fmtVal(v: any) {
   return String(v);
 }
 
+const STATUS_META: Record<string, { label: string; className: string }> = {
+  em_avaliacao:  { label: "Em avaliação",       className: "bg-muted text-muted-foreground border-border" },
+  aprovado:      { label: "Aguardando preparo", className: "bg-warning/15 text-warning border-warning/30" },
+  em_estoque:    { label: "Em estoque",         className: "bg-success/15 text-success border-success/30" },
+  vendido:       { label: "Vendido",            className: "bg-primary/15 text-primary border-primary/30" },
+  recusado:      { label: "Recusado",           className: "bg-muted text-muted-foreground border-border" },
+};
+
 export default function TradeInDetails() {
   const { id } = useParams();
   const { store } = useAuth();
