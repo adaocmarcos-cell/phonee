@@ -708,6 +708,34 @@ export default function TradeInDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar preparo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              O aparelho voltará para <strong>"Em avaliação"</strong>. Nenhuma peça é reservada nesta etapa, então nada será devolvido ao estoque. A ação fica registrada na linha do tempo com seu usuário.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo (opcional)</Label>
+              <Textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Ex.: cliente desistiu do reparo / peça indisponível no mercado"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCancelOpen(false)}>Voltar</Button>
+            <Button variant="destructive" onClick={submitCancelRepair} disabled={saving}>
+              {saving ? "Cancelando…" : "Confirmar cancelamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </TooltipProvider>
   );
