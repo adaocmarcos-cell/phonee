@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronRight, Loader2, Download, FileText, Pencil } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Row = {
   product_id: string;
@@ -258,6 +260,15 @@ export default function MovimentacaoLedger({
             ) : timeline.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">Sem movimentos registrados no período.</div>
             ) : (
+              <>
+              <div className="flex justify-end gap-2 mb-2">
+                <Button size="sm" variant="outline" onClick={() => exportTimelineCsv(selected!, timeline, periodStart, periodEnd)}>
+                  <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => exportTimelinePdf(selected!, timeline, periodStart, periodEnd)}>
+                  <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                </Button>
+              </div>
               <table className="w-full text-xs">
                 <thead className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground border-b">
                   <tr>
@@ -271,16 +282,24 @@ export default function MovimentacaoLedger({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {timeline.map((t) => (
-                    <tr key={t.id} className={t.type === "edicao_manual" ? "bg-warning/10" : ""}>
+                    <tr
+                      key={t.id}
+                      className={
+                        t.type === "edicao_manual"
+                          ? "border-l-2 border-warning"
+                          : ""
+                      }
+                    >
                       <td className="py-1.5 font-mono text-muted-foreground">{new Date(t.occurred_at).toLocaleString("pt-BR")}</td>
                       <td className="py-1.5">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${t.type === "edicao_manual" ? "border-warning/60 text-warning font-semibold" : ""}`}
-                        >
-                          {t.type === "edicao_manual" && "✎ "}
-                          {TYPE_LABEL[t.type] ?? t.type}
-                        </Badge>
+                        {t.type === "edicao_manual" ? (
+                          <span className="inline-flex items-center gap-1 text-warning font-semibold text-[11px]">
+                            <Pencil className="h-3 w-3" />
+                            {TYPE_LABEL[t.type]}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-foreground/80">{TYPE_LABEL[t.type] ?? t.type}</span>
+                        )}
                       </td>
                       <td className={`py-1.5 text-right metric font-semibold ${Number(t.quantity) >= 0 ? "text-success" : "text-danger"}`}>
                         {Number(t.quantity) > 0 ? "+" : ""}{num(Number(t.quantity))}
@@ -292,6 +311,7 @@ export default function MovimentacaoLedger({
                   ))}
                 </tbody>
               </table>
+              </>
             )}
           </div>
         </DialogContent>
@@ -309,4 +329,66 @@ function KPI({ label, value, sub, tone }: { label: string; value: string; sub?: 
       {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
     </Card>
   );
+}
+
+function exportTimelineCsv(row: Row, timeline: Timeline[], from: Date, to: Date) {
+  const header = ["Quando", "Tipo", "Quantidade", "Saldo depois", "Origem", "Nota", "Divergencia"];
+  const lines = [header.join(";")];
+  timeline.forEach((t) => {
+    const isEdit = t.type === "edicao_manual";
+    lines.push([
+      new Date(t.occurred_at).toLocaleString("pt-BR"),
+      TYPE_LABEL[t.type] ?? t.type,
+      String(t.quantity),
+      t.balance_after != null ? String(t.balance_after) : "",
+      t.origin_table ?? "",
+      (t.notes ?? "").replace(/[\n;]+/g, " "),
+      isEdit ? "EDICAO_MANUAL" : "",
+    ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"));
+  });
+  const bom = "\uFEFF";
+  const blob = new Blob([bom + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `movimentacao_${(row.sku ?? row.product_id).replace(/\W+/g, "_")}_${from.toISOString().slice(0,10)}_${to.toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportTimelinePdf(row: Row, timeline: Timeline[], from: Date, to: Date) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  doc.setFontSize(14);
+  doc.text(`Movimentação de estoque — ${row.product_name}`, 40, 40);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(
+    `SKU: ${row.sku ?? "—"}   Período: ${from.toLocaleDateString("pt-BR")} a ${to.toLocaleDateString("pt-BR")}   Saldo atual: ${row.saldo_atual}   Divergência: ${row.divergencia}`,
+    40, 58,
+  );
+  autoTable(doc, {
+    startY: 78,
+    head: [["Quando", "Tipo", "Qtd", "Saldo", "Origem", "Nota"]],
+    body: timeline.map((t) => [
+      new Date(t.occurred_at).toLocaleString("pt-BR"),
+      (t.type === "edicao_manual" ? "* " : "") + (TYPE_LABEL[t.type] ?? t.type),
+      String(t.quantity),
+      t.balance_after != null ? String(t.balance_after) : "—",
+      t.origin_table ?? "—",
+      t.notes ?? "—",
+    ]),
+    styles: { fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+    didParseCell: (data) => {
+      if (data.section === "body") {
+        const t = timeline[data.row.index];
+        if (t && t.type === "edicao_manual") {
+          data.cell.styles.fillColor = [255, 243, 205];
+          data.cell.styles.textColor = [120, 53, 15];
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+    },
+  });
+  doc.save(`movimentacao_${(row.sku ?? row.product_id).replace(/\W+/g, "_")}.pdf`);
 }
