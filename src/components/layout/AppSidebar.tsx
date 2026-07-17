@@ -42,8 +42,9 @@ const ops: Item[] = [
     { title: "Comissões", url: "/painel/comissoes", icon: Wallet },
     { title: "Custos & Despesas", url: "/painel/despesas", icon: Wallet },
   ] },
-  { title: "Assistência & Serviços", url: "/painel/ordens", icon: Wrench },
-  { title: "Relatórios de OS", url: "/painel/ordens/relatorios", icon: BarChart3 },
+  { title: "Assistência & Serviços", url: "/painel/ordens", icon: Wrench, children: [
+    { title: "Relatórios de OS", url: "/painel/ordens/relatorios", icon: BarChart3 },
+  ] },
   { title: "Tabelas de Preço", url: "/painel/tabelas", icon: Tags },
   { title: "Garantias", url: "/painel/garantias", icon: ShieldCheck },
 ];

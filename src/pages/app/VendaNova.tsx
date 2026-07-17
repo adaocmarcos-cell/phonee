@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import {
-  Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt,
+  Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt, Barcode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
@@ -177,6 +177,8 @@ export default function VendaNova() {
   const [showProductList, setShowProductList] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [skuInput, setSkuInput] = useState("");
+  const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
 
@@ -720,6 +722,34 @@ export default function VendaNova() {
       if (p) addItem(p);
     } else if (e.key === "Escape") {
       setShowProductList(false);
+    }
+  };
+
+  // PDV: campo dedicado de SKU (scanner de código de barras + digitação).
+  // Enter tenta match exato (case-insensitive) na lista já carregada;
+  // se não encontrar, consulta a RPC search_sale_products (que já ranqueia
+  // match exato de SKU em primeiro lugar). Adiciona direto e limpa o campo.
+  const submitSku = async () => {
+    const raw = skuInput.trim();
+    if (!raw || !store || skuBusy) return;
+    setSkuBusy(true);
+    try {
+      const norm = raw.toLowerCase();
+      let match: any = products.find((p) => (p.sku ?? "").toLowerCase() === norm);
+      if (!match) {
+        const { data, error } = await (supabase as any).rpc("search_sale_products", {
+          _store_id: store.id, _query: raw, _limit: 5,
+        });
+        if (error) { toast.error("Falha ao consultar SKU."); return; }
+        const list = (data ?? []) as any[];
+        match = list.find((p) => (p.sku ?? "").toLowerCase() === norm)
+          ?? (list.length === 1 ? list[0] : null);
+      }
+      if (!match) { toast.warning(`SKU "${raw}" não encontrado.`); return; }
+      addItem(match);
+      setSkuInput("");
+    } finally {
+      setSkuBusy(false);
     }
   };
 
@@ -1365,22 +1395,40 @@ Obrigado pela preferência.`;
           <Card className="p-5">
             <h3 className="font-semibold mb-4">Itens da Venda</h3>
 
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={productQuery}
-                onChange={(e) => setProductQuery(e.target.value)}
-                onFocus={() => setShowProductList(true)}
-                onBlur={() => setTimeout(() => setShowProductList(false), 150)}
-                onKeyDown={onSearchKeyDown}
-                placeholder="Buscar por nome, SKU, EAN, categoria, marca ou modelo…"
-                className="pl-9"
-                role="combobox"
-                aria-expanded={showProductList}
-                aria-controls="produtos-listbox"
-                aria-activedescendant={visibleProducts[activeIdx] ? `produto-opt-${visibleProducts[activeIdx].id}` : undefined}
-                autoComplete="off"
-              />
+            <div className="relative flex flex-col md:flex-row gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={productQuery}
+                  onChange={(e) => setProductQuery(e.target.value)}
+                  onFocus={() => setShowProductList(true)}
+                  onBlur={() => setTimeout(() => setShowProductList(false), 150)}
+                  onKeyDown={onSearchKeyDown}
+                  placeholder="Buscar por nome, SKU, EAN, categoria, marca ou modelo…"
+                  className="pl-9"
+                  role="combobox"
+                  aria-expanded={showProductList}
+                  aria-controls="produtos-listbox"
+                  aria-activedescendant={visibleProducts[activeIdx] ? `produto-opt-${visibleProducts[activeIdx].id}` : undefined}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="relative w-full md:w-56">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={skuInput}
+                  onChange={(e) => setSkuInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); submitSku(); }
+                  }}
+                  placeholder="SKU / código de barras"
+                  className="pl-9 font-mono text-xs uppercase"
+                  autoFocus
+                  autoComplete="off"
+                  aria-label="Adicionar por SKU"
+                  disabled={skuBusy}
+                />
+              </div>
               {showProductList && searchState.kind === "empty-table" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
                   Nenhum produto cadastrado.{" "}

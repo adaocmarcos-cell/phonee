@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/NumberInput";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight, Copy } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -63,6 +63,7 @@ export default function Estoque() {
   });
   const [filterOptions, setFilterOptions] = useState<{ brands: string[]; categories: string[]; suppliers: string[] }>({ brands: [], categories: [], suppliers: [] });
   const [q, setQ] = useState("");
+  const [skuQ, setSkuQ] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "stalled">("all");
   const [delTarget, setDelTarget] = useState<Product | null>(null);
   const [saleTarget, setSaleTarget] = useState<Product | null>(null);
@@ -89,10 +90,11 @@ export default function Estoque() {
   const load = useCallback(async () => {
     if (!store) return;
     setLoading(true);
+    const activeQuery = skuQ.trim() ? skuQ.trim() : q;
     const [{ data: pData, error: pErr }, { data: metrics }, { data: options }] = await Promise.all([
       (supabase as any).rpc("stock_products_page", {
         _store_id: store.id,
-        _query: q,
+        _query: activeQuery,
         _filter: filter,
         _brand: brandFilter,
         _category: categoryFilter,
@@ -114,7 +116,7 @@ export default function Estoque() {
       });
     }
     setLoading(false);
-  }, [store, q, filter, brandFilter, categoryFilter, page, pageSize]);
+  }, [store, q, skuQ, filter, brandFilter, categoryFilter, page, pageSize]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -130,11 +132,19 @@ export default function Estoque() {
   }, [store?.id, load]);
 
   const filtered = useMemo(() => {
-    return products;
-  }, [products]);
+    const s = skuQ.trim().toLowerCase();
+    if (!s) return products;
+    const matches = products.filter((p) => (p.sku ?? "").toLowerCase().includes(s));
+    // exact match first, then partial (case-insensitive)
+    return matches.slice().sort((a, b) => {
+      const ea = (a.sku ?? "").toLowerCase() === s ? 0 : 1;
+      const eb = (b.sku ?? "").toLowerCase() === s ? 0 : 1;
+      return ea - eb;
+    });
+  }, [products, skuQ]);
 
   // Reset page when filter changes
-  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, filter, brandFilter, categoryFilter, pageSize]);
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, skuQ, filter, brandFilter, categoryFilter, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -627,6 +637,16 @@ export default function Estoque() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, SKU ou marca…" className="pl-9 h-10 bg-card border-border" />
         </div>
+        <div className="relative w-full md:w-52">
+          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={skuQ}
+            onChange={(e) => setSkuQ(e.target.value)}
+            placeholder="SKU (exato/parcial)"
+            className="pl-9 h-10 bg-card border-border font-mono text-xs uppercase"
+            aria-label="Filtrar por SKU"
+          />
+        </div>
         <Select value={brandFilter} onValueChange={setBrandFilter}>
           <SelectTrigger className="w-full md:w-44 h-10 bg-card border-border">
             <SelectValue placeholder="Marca" />
@@ -708,6 +728,7 @@ export default function Estoque() {
                   />
                 </th>
                 <th className="text-left px-4 py-3 font-medium min-w-[180px]">Produto</th>
+                <th className="text-left px-4 py-3 font-medium min-w-[130px]">SKU</th>
                 <th className="text-left px-4 py-3 font-medium min-w-[110px]">Categoria</th>
                 <th className="text-right px-4 py-3 font-medium min-w-[80px]">Estoque</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground/70 min-w-[70px]">Mín</th>
@@ -721,9 +742,9 @@ export default function Estoque() {
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
+                <tr><td colSpan={12} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
               ) : products.length === 0 ? (
-                <tr><td colSpan={11} className="px-4 py-16 text-center">
+                <tr><td colSpan={12} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
                   <div className="flex flex-col items-center gap-2">
@@ -758,7 +779,31 @@ export default function Estoque() {
                     </td>
                     <td className="px-4 py-3 min-w-[180px] max-w-[280px]">
                       <div className="font-medium truncate" title={p.name}>{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono truncate">{p.sku || "—"}{p.brand ? ` · ${p.brand}` : ""}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{p.brand || "—"}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.sku ? (
+                        <div className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated/60 px-2 py-1">
+                          <span className="font-mono text-[11px] tracking-tight">{p.sku}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard?.writeText(p.sku!).then(
+                                () => toast.success(`SKU ${p.sku} copiado`),
+                                () => toast.error("Não foi possível copiar"),
+                              );
+                            }}
+                            title="Copiar SKU"
+                            aria-label={`Copiar SKU ${p.sku}`}
+                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="outline" className="border-border text-xs">{categoryLabel[p.category] ?? p.category}</Badge>
