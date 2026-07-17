@@ -2092,6 +2092,7 @@ export type Database = {
           sku: string | null
           total: number
           unit: string | null
+          unit_cost: number
           unit_price: number
           warranty_days: number | null
         }
@@ -2112,6 +2113,7 @@ export type Database = {
           sku?: string | null
           total: number
           unit?: string | null
+          unit_cost?: number
           unit_price: number
           warranty_days?: number | null
         }
@@ -2132,6 +2134,7 @@ export type Database = {
           sku?: string | null
           total?: number
           unit?: string | null
+          unit_cost?: number
           unit_price?: number
           warranty_days?: number | null
         }
@@ -3872,6 +3875,10 @@ export type Database = {
       generate_store_credit_code: {
         Args: { _store_id: string }
         Returns: string
+      }
+      get_dashboard_metrics: {
+        Args: { _from: string; _store_id: string; _to: string }
+        Returns: Json
       }
       get_meta_pixel_id: { Args: never; Returns: string }
       get_public_os: { Args: { _token: string }; Returns: Json }

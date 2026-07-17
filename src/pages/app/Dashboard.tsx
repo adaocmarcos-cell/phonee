@@ -9,48 +9,79 @@ import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
 import { loadProductStockMetrics } from "@/lib/stockMetrics";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Users, Wrench, LayoutGrid, Check } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Wrench, LayoutGrid, Check, Banknote, RefreshCw, Smartphone } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
 } from "recharts";
 
 const PAY_COLORS = ["hsl(var(--primary))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--danger))", "hsl(var(--muted-foreground))"];
+
+const PAY_LABEL: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "PIX",
+  credito: "Cartão de crédito",
+  debito: "Cartão de débito",
+  boleto: "Boleto",
+  transferencia: "Transferência",
+  troca: "Aparelho (troca)",
+  vale_troca: "Vale-troca",
+  cheque: "Cheque",
+  os: "Ordem de serviço",
+  outro: "Outro",
+};
+
+type DashboardMetrics = {
+  faturamento_total: number;
+  faturamento_vendas: number;
+  faturamento_os: number;
+  faturamento_hoje: number;
+  recebido_caixa: number;
+  recebido_em_troca: number;
+  custo: number;
+  custo_produtos: number;
+  custo_os: number;
+  despesas: number;
+  lucro: number;
+  qtd_vendas: number;
+  ticket_medio: number;
+  formas_pagamento: { name: string; value: number }[];
+  serie_diaria: { day: string; total: number }[];
+  top_produtos: { name: string; qty: number; revenue: number }[];
+};
 
 export default function Dashboard() {
   const { store, role } = useAuth();
   const [period, setPeriod] = useState<PeriodValue>("month");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [editingLayout, setEditingLayout] = useState(false);
-  const [revenueToday, setRevenueToday] = useState(0);
-  const [revenueMonth, setRevenueMonth] = useState(0);
-  const [salesCount, setSalesCount] = useState(0);
-  const [margin, setMargin] = useState(0);
-  const [costMonth, setCostMonth] = useState(0);
-  const [costToday, setCostToday] = useState(0);
-  const [expensesMonth, setExpensesMonth] = useState(0);
+
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+
   const [productsTotal, setProductsTotal] = useState(0);
   const [productsLow, setProductsLow] = useState(0);
   const [stalled, setStalled] = useState(0);
-  const [series, setSeries] = useState<{ day: string; total: number }[]>([]);
-  const [pay, setPay] = useState<{ name: string; value: number }[]>([]);
-  const [topProducts, setTopProducts] = useState<{ name: string; qty: number; revenue: number }[]>([]);
+
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [alertsError, setAlertsError] = useState<string | null>(null);
   const [recentSales, setRecentSales] = useState<any[]>([]);
+
+  // Único gráfico de evolução, com filtro próprio
   const [evoPeriod, setEvoPeriod] = useState<PeriodValue>("1y");
   const [evoCustom, setEvoCustom] = useState<CustomRange>({});
-  const [evoSeries, setEvoSeries] = useState<{ label: string; total: number }[]>([]);
-  const [trendPeriod, setTrendPeriod] = useState<PeriodValue>("1y");
-  const [trendSeries, setTrendSeries] = useState<{ label: string; total: number; count: number }[]>([]);
+  const [evoSeries, setEvoSeries] = useState<{ label: string; total: number; count: number }[]>([]);
+  const [evoError, setEvoError] = useState<string | null>(null);
 
   const loadStockMetrics = useCallback(async () => {
     if (!store) return;
     try {
-      const metrics = await loadProductStockMetrics(supabase, store.id);
-      setProductsTotal(metrics.product_count);
-      setProductsLow(metrics.low_count);
-      setStalled(metrics.stalled_count);
+      const m = await loadProductStockMetrics(supabase, store.id);
+      setProductsTotal(m.product_count);
+      setProductsLow(m.low_count);
+      setStalled(m.stalled_count);
     } catch (error) {
       console.error("[Dashboard] falha ao carregar métricas de estoque:", error);
     }
@@ -69,186 +100,81 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!store) return;
+    let cancelled = false;
     (async () => {
-      const todayISO = new Date(); todayISO.setHours(0, 0, 0, 0);
       const { from, to } = resolvePeriod(period, periodCustom);
       if (period === "custom" && (!from || !to)) return;
-      const monthISO = from ?? new Date(0);
+      const fromIso = (from ?? new Date(0)).toISOString();
+      const toIso   = (to   ?? new Date()).toISOString();
 
-      const { data: sales } = await supabase
+      setMetricsError(null);
+      const { data, error } = await (supabase as any).rpc("get_dashboard_metrics", {
+        _store_id: store.id, _from: fromIso, _to: toIso,
+      });
+      if (cancelled) return;
+      if (error) {
+        console.error("[Dashboard] get_dashboard_metrics falhou:", error);
+        setMetrics(null);
+        setMetricsError(error.message || "Falha ao carregar métricas");
+      } else {
+        setMetrics(data as DashboardMetrics);
+      }
+
+      const { data: recent, error: recentErr } = await supabase
         .from("sales")
         .select("id, total, net_value, payment_method, created_at, customer_name")
         .eq("store_id", store.id)
-        .gte("created_at", monthISO.toISOString())
-        .lte("created_at", (to ?? new Date()).toISOString())
-        .order("created_at", { ascending: false });
-
-      const safeSales = sales ?? [];
-      const eff = (x: any) => Number(x?.net_value ?? x?.total ?? 0);
-      setSalesCount(safeSales.length);
-      setRevenueMonth(safeSales.reduce((s, x) => s + eff(x), 0));
-      setRevenueToday(
-        safeSales
-          .filter((s) => new Date(s.created_at) >= todayISO)
-          .reduce((s, x) => s + eff(x), 0)
-      );
-
-      // Daily series for the month
-      const buckets: Record<string, number> = {};
-      safeSales.forEach((s) => {
-        const d = new Date(s.created_at);
-        const k = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-        buckets[k] = (buckets[k] || 0) + eff(s);
-      });
-      const sorted = Object.entries(buckets)
-        .map(([day, total]) => ({ day, total }))
-        .reverse();
-      setSeries(sorted);
-
-      // Payment pie — usa sale_payments (splits) quando disponível para separar
-      // corretamente "troca" e outros métodos; cai para payment_method da venda como legado.
-      const payMap: Record<string, number> = {};
-      const { data: splits } = await (supabase as any)
-        .from("sale_payments")
-        .select("method,amount,sale_id")
-        .in("sale_id", safeSales.map((s) => s.id));
-      const salesWithSplits = new Set<string>((splits ?? []).map((r: any) => r.sale_id));
-      (splits ?? []).forEach((r: any) => {
-        payMap[r.method] = (payMap[r.method] || 0) + Number(r.amount || 0);
-      });
-      safeSales.forEach((s) => {
-        if (salesWithSplits.has(s.id)) return; // já contabilizado via splits
-        payMap[s.payment_method] = (payMap[s.payment_method] || 0) + eff(s);
-      });
-      setPay(Object.entries(payMap).map(([name, value]) => ({ name, value })));
-
-      setRecentSales(safeSales.slice(0, 6));
-
-      // Margin (approx, owner only) — load items + product cost
-      if (canSeeCost(role) && safeSales.length > 0) {
-        const { data: items } = await supabase
-          .from("sale_items")
-          .select("quantity, unit_price, product_id, sale_id, products(cost_price, name)")
-          .in("sale_id", safeSales.map((s) => s.id));
-        let rev = 0, cost = 0, costT = 0;
-        const todaySalesIds = new Set(
-          safeSales.filter((s) => new Date(s.created_at) >= todayISO).map((s) => s.id)
-        );
-        const prodMap: Record<string, { name: string; qty: number; revenue: number }> = {};
-        (items ?? []).forEach((it: any) => {
-          const r = Number(it.unit_price) * Number(it.quantity);
-          const c = Number(it.products?.cost_price ?? 0) * Number(it.quantity);
-          rev += r; cost += c;
-          if (todaySalesIds.has(it.sale_id)) costT += c;
-          const pid = it.product_id;
-          if (!prodMap[pid]) prodMap[pid] = { name: it.products?.name ?? "—", qty: 0, revenue: 0 };
-          prodMap[pid].qty += it.quantity;
-          prodMap[pid].revenue += r;
-        });
-        setMargin(rev > 0 ? ((rev - cost) / rev) * 100 : 0);
-        setCostMonth(cost);
-        setCostToday(costT);
-        setTopProducts(Object.values(prodMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5));
+        .order("created_at", { ascending: false })
+        .limit(6);
+      if (!cancelled) {
+        if (recentErr) console.error("[Dashboard] últimas vendas:", recentErr);
+        setRecentSales(recent ?? []);
       }
 
-      // Despesas do mês
-      const { data: exps } = await (supabase as any)
-        .from("expenses")
-        .select("amount")
-        .eq("store_id", store.id)
-        .gte("expense_date", monthISO.toISOString().slice(0, 10));
-      setExpensesMonth((exps ?? []).reduce((s: number, x: any) => s + Number(x.amount || 0), 0));
-
-      // Ordens de serviço (sincroniza faturamento e custo de assistência técnica)
-      const { data: osList } = await (supabase as any)
-        .from("service_orders")
-        .select("total_value, parts_value, status, created_at, delivered_at")
-        .eq("store_id", store.id)
-        .gte("created_at", monthISO.toISOString())
-        .lte("created_at", (to ?? new Date()).toISOString());
-      const osRevenue = (osList ?? [])
-        .filter((o: any) => ["entregue", "pronto", "em_execucao", "concluido"].includes(String(o.status)))
-        .reduce((s: number, o: any) => s + Number(o.total_value || 0), 0);
-      const osCost = (osList ?? []).reduce((s: number, o: any) => s + Number(o.parts_value || 0), 0);
-      if (osRevenue > 0) {
-        setRevenueMonth((v) => v + osRevenue);
-      }
-      if (osCost > 0 && canSeeCost(role)) {
-        setCostMonth((v) => v + osCost);
-      }
-
-      const { data: al } = await supabase
+      const { data: al, error: alErr } = await supabase
         .from("alerts")
         .select("id, title, severity, message, created_at")
         .eq("store_id", store.id)
         .eq("is_read", false)
         .order("created_at", { ascending: false })
         .limit(5);
-      setAlerts(al ?? []);
+      if (!cancelled) {
+        if (alErr) {
+          console.error("[Dashboard] alertas:", alErr);
+          setAlertsError(alErr.message);
+        } else {
+          setAlertsError(null);
+        }
+        setAlerts(al ?? []);
+      }
     })();
-  }, [store, role, period, periodCustom]);
+    return () => { cancelled = true; };
+  }, [store, role, period, periodCustom, reloadTick]);
 
-  // Evolução das vendas (gráfico independente)
+  // Evolução unificada
   useEffect(() => {
     if (!store) return;
+    let cancelled = false;
     (async () => {
       const { from, to } = resolvePeriod(evoPeriod, evoCustom);
-      if (!from) return;
+      if (!from) { setEvoSeries([]); return; }
       const since = new Date(from); since.setHours(0, 0, 0, 0);
       const until = to ?? new Date();
       const days = Math.max(1, Math.round((until.getTime() - since.getTime()) / 86400_000));
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("sales")
-        .select("total, created_at")
+        .select("total, net_value, returned_total, created_at")
         .eq("store_id", store.id)
         .gte("created_at", since.toISOString())
         .lte("created_at", until.toISOString());
-      const groupByMonth = days > 60;
-      const buckets: Record<string, number> = {};
-      (data ?? []).forEach((s: any) => {
-        const d = new Date(s.created_at);
-        const k = groupByMonth
-          ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`
-          : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-        buckets[k] = (buckets[k] || 0) + Number(s.total || 0);
-      });
-      // Build ordered timeline
-      const out: { label: string; total: number }[] = [];
-      const cursor = new Date(since);
-      const end = new Date(until);
-      if (groupByMonth) {
-        cursor.setDate(1);
-        while (cursor <= end) {
-          const k = `${String(cursor.getMonth() + 1).padStart(2, "0")}/${String(cursor.getFullYear()).slice(2)}`;
-          out.push({ label: k, total: buckets[k] || 0 });
-          cursor.setMonth(cursor.getMonth() + 1);
-        }
-      } else {
-        while (cursor <= end) {
-          const k = `${String(cursor.getDate()).padStart(2, "0")}/${String(cursor.getMonth() + 1).padStart(2, "0")}`;
-          out.push({ label: k, total: buckets[k] || 0 });
-          cursor.setDate(cursor.getDate() + 1);
-        }
+      if (cancelled) return;
+      if (error) {
+        console.error("[Dashboard] evolução vendas:", error);
+        setEvoError(error.message);
+        setEvoSeries([]);
+        return;
       }
-      setEvoSeries(out);
-    })();
-  }, [store, evoPeriod, evoCustom]);
-
-  // Mini gráfico de evolução (abaixo dos cards de destaque)
-  useEffect(() => {
-    if (!store) return;
-    (async () => {
-      const { from, to } = resolvePeriod(trendPeriod, {});
-      if (!from) return;
-      const since = new Date(from); since.setHours(0, 0, 0, 0);
-      const until = to ?? new Date();
-      const days = Math.max(1, Math.round((until.getTime() - since.getTime()) / 86400_000));
-      const { data } = await supabase
-        .from("sales")
-        .select("total, created_at")
-        .eq("store_id", store.id)
-        .gte("created_at", since.toISOString())
-        .lte("created_at", until.toISOString());
+      setEvoError(null);
       const groupByMonth = days > 60;
       const buckets: Record<string, { total: number; count: number }> = {};
       (data ?? []).forEach((s: any) => {
@@ -257,7 +183,8 @@ export default function Dashboard() {
           ? `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`
           : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
         if (!buckets[k]) buckets[k] = { total: 0, count: 0 };
-        buckets[k].total += Number(s.total || 0);
+        const eff = Number(s.net_value ?? s.total ?? 0) - Number(s.returned_total ?? 0);
+        buckets[k].total += eff;
         buckets[k].count += 1;
       });
       const out: { label: string; total: number; count: number }[] = [];
@@ -277,14 +204,25 @@ export default function Dashboard() {
           cursor.setDate(cursor.getDate() + 1);
         }
       }
-      setTrendSeries(out);
+      setEvoSeries(out);
     })();
-  }, [store, trendPeriod]);
+    return () => { cancelled = true; };
+  }, [store, evoPeriod, evoCustom]);
 
-  const lucroMes = revenueMonth - costMonth - expensesMonth;
-  const lucroBrutoHoje = revenueToday - costToday;
-  const ticketMedio = salesCount > 0 ? revenueMonth / salesCount : 0;
-  const itensAlerta = productsLow + stalled;
+  const revenueTotal   = metrics?.faturamento_total ?? 0;
+  const revenueToday   = metrics?.faturamento_hoje  ?? 0;
+  const recebidoCaixa  = metrics?.recebido_caixa    ?? 0;
+  const recebidoTroca  = metrics?.recebido_em_troca ?? 0;
+  const costMonth      = metrics?.custo             ?? 0;
+  const expensesMonth  = metrics?.despesas          ?? 0;
+  const lucroMes       = metrics?.lucro             ?? 0;
+  const salesCount     = metrics?.qtd_vendas        ?? 0;
+  const ticketMedio    = metrics?.ticket_medio      ?? 0;
+  const pay            = (metrics?.formas_pagamento ?? []).map((p) => ({ ...p, name: PAY_LABEL[p.name] ?? p.name }));
+  const topProducts    = metrics?.top_produtos ?? [];
+  const margin         = revenueTotal > 0 ? ((revenueTotal - costMonth) / revenueTotal) * 100 : 0;
+  const itensAlerta    = productsLow + stalled;
+
   const periodLabel =
     period === "today" ? "hoje" :
     period === "7d" ? "últimos 7 dias" :
@@ -300,6 +238,22 @@ export default function Dashboard() {
         description="Tudo que importa na sua loja, em um só lugar."
       />
 
+      {metricsError && (
+        <Card className="p-4 mb-4 border-danger/40 bg-danger/5 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <div className="font-medium text-danger">Não foi possível carregar as métricas</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{metricsError}</div>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setReloadTick((v) => v + 1)}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            Tentar novamente
+          </Button>
+        </Card>
+      )}
+
       <SortableCards
         storageKey="dashboard.kpis.top"
         editing={editingLayout}
@@ -311,9 +265,22 @@ export default function Dashboard() {
               <MetricCard
                 label="Faturamento hoje"
                 value={brl(revenueToday)}
-                delta={canSeeCost(role) ? `Lucro bruto hoje: ${brl(lucroBrutoHoje)}` : undefined}
+                delta="Vendas + OS entregues"
                 icon={DollarSign}
                 tone="info"
+              />
+            ),
+          },
+          {
+            id: "recebido-caixa",
+            node: (
+              <MetricCard
+                label="Recebido em caixa"
+                value={brl(recebidoCaixa)}
+                delta="Exclui aparelhos em troca"
+                icon={Banknote}
+                tone="success"
+                variant="highlight"
               />
             ),
           },
@@ -322,7 +289,7 @@ export default function Dashboard() {
             node: (
               <MetricCard
                 label={`Faturamento — ${periodLabel}`}
-                value={brl(revenueMonth)}
+                value={brl(revenueTotal)}
                 delta={`${num(salesCount)} vendas`}
                 icon={TrendingUp}
                 tone="primary"
@@ -337,26 +304,25 @@ export default function Dashboard() {
                 value={canSeeCost(role) ? pct(margin) : num(productsLow)}
                 icon={canSeeCost(role) ? Percent : AlertTriangle}
                 tone={canSeeCost(role) ? "violet" : "warning"}
-                delta={canSeeCost(role) ? "Lucro / receita do período" : `${num(productsTotal)} produtos no estoque`}
+                delta={canSeeCost(role) ? "(Receita − custo) / receita" : `${num(productsTotal)} produtos no estoque`}
                 className="h-full"
-              />
-            ),
-          },
-          {
-            id: "estoque-encalhado",
-            node: (
-              <MetricCard
-                label="Estoque encalhado"
-                value={num(stalled)}
-                delta={`+30 dias sem venda · ${num(productsTotal)} produtos`}
-                trend="down"
-                icon={Package}
-                tone="danger"
               />
             ),
           },
         ]}
       />
+
+      {recebidoTroca > 0 && (
+        <div className="grid grid-cols-1 gap-4 mb-4">
+          <MetricCard
+            label="Recebido em aparelhos (troca)"
+            value={brl(recebidoTroca)}
+            delta="Valor de aparelhos aceitos como pagamento no período — não entra no caixa"
+            icon={Smartphone}
+            tone="info"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 mb-6">
         {canSeeCost(role) ? (
@@ -424,6 +390,19 @@ export default function Dashboard() {
             ),
           },
           {
+            id: "estoque-encalhado",
+            node: (
+              <MetricCard
+                label="Estoque encalhado"
+                value={num(stalled)}
+                delta={`+30 dias sem venda · ${num(productsTotal)} produtos`}
+                trend="down"
+                icon={Package}
+                tone="danger"
+              />
+            ),
+          },
+          {
             id: "itens-alerta",
             node: (
               <MetricCard
@@ -460,54 +439,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <Card className="p-5 mb-6 bg-card border-border shadow-card">
-        <div className="mb-3">
-          <h3 className="font-semibold">Evolução das vendas</h3>
-          <p className="text-xs text-muted-foreground">Faturamento no período selecionado</p>
-        </div>
-        <div className="h-56">
-          {trendSeries.every((p) => p.total === 0) ? (
-            <EmptyChart label="Sem vendas no período" />
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendSeries}>
-                <defs>
-                  <linearGradient id="trendRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
-                <Tooltip content={<TrendTooltip series={trendSeries} />} />
-                <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="url(#trendRev)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        <div className="mt-2 flex items-center justify-center gap-1 text-[11px]">
-          {([
-            { v: "30d", l: "30 dias" },
-            { v: "3m", l: "3 meses" },
-            { v: "6m", l: "6 meses" },
-            { v: "1y", l: "12 meses" },
-          ] as { v: PeriodValue; l: string }[]).map((opt) => (
-            <button
-              key={opt.v}
-              onClick={() => setTrendPeriod(opt.v)}
-              className={`px-2.5 py-1 rounded-md transition ${
-                trendPeriod === opt.v
-                  ? "bg-muted text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {opt.l}
-            </button>
-          ))}
-        </div>
-      </Card>
-
       <div className="flex items-center justify-end mb-6">
         <PeriodFilter
           value={period}
@@ -525,7 +456,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold">Evolução das vendas</h3>
-              <p className="text-xs text-muted-foreground">Faturamento por período</p>
+              <p className="text-xs text-muted-foreground">Faturamento e ticket médio no período</p>
             </div>
             <PeriodFilter
               value={evoPeriod}
@@ -538,7 +469,9 @@ export default function Dashboard() {
             />
           </div>
           <div className="h-64">
-            {evoSeries.every((p) => p.total === 0) ? (
+            {evoError ? (
+              <EmptyChart label="ERRO AO CARREGAR" />
+            ) : evoSeries.every((p) => p.total === 0) ? (
               <EmptyChart label="Sem vendas no período" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -552,10 +485,7 @@ export default function Dashboard() {
                   <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
-                  <Tooltip
-                    contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                    formatter={(v: number) => brl(v)}
-                  />
+                  <Tooltip content={<TrendTooltip series={evoSeries} />} />
                   <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" fill="url(#rev)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -589,7 +519,9 @@ export default function Dashboard() {
             <h3 className="font-semibold">Alertas prioritários</h3>
             <Badge variant="outline" className="text-[10px] font-mono">{alerts.length}</Badge>
           </div>
-          {alerts.length === 0 ? (
+          {alertsError ? (
+            <p className="text-sm text-danger text-center py-8">Falha ao carregar alertas.</p>
+          ) : alerts.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Nenhum alerta — tudo em ordem.</p>
           ) : (
             <ul className="space-y-2">
