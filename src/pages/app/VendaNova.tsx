@@ -980,6 +980,7 @@ export default function VendaNova() {
           _notes: JSON.stringify(payload),
           _items: rpcItems,
           _payments: rpcPayments,
+          _trade_in: tradeInPayload,
         });
 
     if (error || !rpcData) {
