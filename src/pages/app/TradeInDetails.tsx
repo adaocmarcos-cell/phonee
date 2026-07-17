@@ -412,6 +412,99 @@ export default function TradeInDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={repairOpen} onOpenChange={setRepairOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Registrar preparo · consumo de peças</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              As peças escolhidas do estoque terão baixa automática. Se comprou peça fora do estoque, use "custo manual".
+            </p>
+            <div className="space-y-2">
+              {rows.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Nenhuma peça adicionada.</p>
+              )}
+              {rows.map((r, i) => {
+                const inv = r.part_id ? invParts.find((p) => p.id === r.part_id) : null;
+                const insufficient = inv && inv.stock_current < r.qty;
+                return (
+                  <div key={i} className="grid grid-cols-[1fr_80px_100px_32px] gap-2 items-end">
+                    <div>
+                      <Label className="text-[10px]">Peça</Label>
+                      <Select
+                        value={r.part_id ?? "__manual__"}
+                        onValueChange={(v) => {
+                          if (v === "__manual__") {
+                            updateRow(i, { part_id: null });
+                          } else {
+                            const p = invParts.find((x) => x.id === v);
+                            updateRow(i, { part_id: v, name: p?.name || "", unit_cost: Number(p?.cost_price || 0) });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar peça" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__manual__">— Peça externa (livre) —</SelectItem>
+                          {invParts.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} · estoque {p.stock_current}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!r.part_id && (
+                        <Input
+                          className="h-8 mt-1 text-xs"
+                          placeholder="Nome da peça"
+                          value={r.name}
+                          onChange={(e) => updateRow(i, { name: e.target.value })}
+                        />
+                      )}
+                      {insufficient && (
+                        <div className="text-[10px] text-danger mt-1">Estoque insuficiente ({inv?.stock_current} disponível)</div>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Qtd</Label>
+                      <NumberInput allowDecimal={false} min={1} value={r.qty} onValueChange={(n) => updateRow(i, { qty: n })} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Custo un.</Label>
+                      <NumberInput value={r.unit_cost} onValueChange={(n) => updateRow(i, { unit_cost: n })} />
+                    </div>
+                    <Button size="icon" variant="ghost" onClick={() => removeRow(i)}>
+                      <Trash2 className="h-4 w-4 text-danger" />
+                    </Button>
+                  </div>
+                );
+              })}
+              <Button size="sm" variant="outline" onClick={addRow}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar peça
+              </Button>
+            </div>
+
+            <div className="border-t border-border pt-3 space-y-2">
+              <Label className="text-xs">Custo manual adicional (peça externa, mão-de-obra terceirizada, etc.)</Label>
+              <NumberInput value={manualCost} onValueChange={setManualCost} />
+              <Label className="text-xs">Notas do preparo (opcional)</Label>
+              <Input value={manualNotes} onChange={(e) => setManualNotes(e.target.value)} placeholder="Ex.: troca de tela + polimento" />
+            </div>
+
+            <div className="rounded-md bg-muted/40 p-2 text-xs flex justify-between">
+              <span>Custo em peças: <strong>{brl(partsCost)}</strong> · Manual: <strong>{brl(Number(manualCost) || 0)}</strong></span>
+              <span>Total do reparo: <strong className="text-primary">{brl(totalCost)}</strong></span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRepairOpen(false)}>Cancelar</Button>
+            <Button onClick={submitRepair} disabled={saving} className="bg-success text-success-foreground hover:bg-success/90">
+              {saving ? "Salvando…" : "Concluir preparo e enviar ao estoque"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </TooltipProvider>
   );
