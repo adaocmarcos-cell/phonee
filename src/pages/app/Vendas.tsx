@@ -221,7 +221,30 @@ export default function Vendas() {
       unit_price: Number(it.unit_price),
       total: Number(it.total),
     }));
-    printSaleReceipt({ sale, items: list, store, warranty });
+    // Carrega trade-ins vinculados a esta venda (troca como pagamento)
+    let tradeIns: any[] = [];
+    try {
+      const { data: pays } = await (supabase as any)
+        .from("sale_payments")
+        .select("amount, trade_in_id")
+        .eq("sale_id", sale.id)
+        .eq("method", "troca");
+      const ids = (pays ?? []).map((p: any) => p.trade_in_id).filter(Boolean);
+      if (ids.length > 0) {
+        const { data: tis } = await supabase
+          .from("trade_ins")
+          .select("id, brand, model, imei, storage_gb, entry_value")
+          .in("id", ids);
+        tradeIns = (tis ?? []).map((t: any) => {
+          const pay = (pays ?? []).find((p: any) => p.trade_in_id === t.id);
+          return {
+            brand: t.brand, model: t.model, imei: t.imei, storage_gb: t.storage_gb,
+            value: Number(pay?.amount || t.entry_value || 0),
+          };
+        });
+      }
+    } catch { /* noop */ }
+    printSaleReceipt({ sale, items: list, store, warranty, tradeIns });
   };
 
   const openReminder = (sale: any) => {
