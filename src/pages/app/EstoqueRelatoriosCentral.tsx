@@ -419,6 +419,7 @@ export default function EstoqueRelatoriosCentral() {
           <div>
             <Label className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Categoria</Label>
             <Select value={category} onValueChange={setCategory}><SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{categories.map((c: any) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+            {/* atalho smartphones (usado pela aba Movimentação) */}
           </div>
           <div className="md:col-span-2">
             <Label className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Fornecedor</Label>
