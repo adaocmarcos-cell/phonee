@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
 import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Eye } from "lucide-react";
+import { Undo2 } from "lucide-react";
+import { SaleReturnDialog } from "@/components/sales/SaleReturnDialog";
 import { WhatsappSendButton } from "@/components/WhatsappSendButton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -69,6 +71,19 @@ export default function Vendas() {
   const [detailsSale, setDetailsSale] = useState<any | null>(null);
   const [detailsItems, setDetailsItems] = useState<any[] | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [returnSale, setReturnSale] = useState<any | null>(null);
+
+  const reloadSales = () => {
+    // simplest: refetch by toggling a state through window event; but we can just re-run the query below
+    // via a state bump
+    setQ((q) => q); // no-op; the parent useEffect already refetches on store change
+    // Force re-fetch
+    (async () => {
+      if (!store) return;
+      const { data } = await supabase.from("sales").select("*").eq("store_id", store.id).order("created_at", { ascending: false }).limit(500);
+      if (data) setSales(data as any);
+    })();
+  };
 
   const openDetails = async (sale: any) => {
     setDetailsSale(sale);
@@ -574,6 +589,11 @@ export default function Vendas() {
                         líq. {brl(Number(s.net_value))}
                       </div>
                     )}
+                    {Number((s as any).returned_total || 0) > 0 && (
+                      <div className="text-[10px] font-mono text-warning">
+                        devolvido: {brl(Number((s as any).returned_total))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-2 py-3 text-right">
                     <div className="flex justify-end gap-1">
@@ -614,6 +634,11 @@ export default function Vendas() {
                       <Button size="icon" variant="ghost" title="Ver itens da venda" onClick={() => openDetails(s)}>
                         <Eye className="h-4 w-4 text-info" />
                       </Button>
+                      {canRegisterSale(role) && (
+                        <Button size="icon" variant="ghost" title="Devolver / trocar itens" onClick={() => setReturnSale(s)}>
+                          <Undo2 className="h-4 w-4 text-warning" />
+                        </Button>
+                      )}
                       {canRegisterSale(role) && (
                         <Button size="icon" variant="ghost" title="Editar venda" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
                           <Pencil className="h-4 w-4" />
