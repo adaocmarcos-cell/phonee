@@ -221,6 +221,17 @@ export default function VendaNova() {
   // Trade-ins disponíveis para uso como meio de pagamento
   const [availableTradeIns, setAvailableTradeIns] = useState<TradeInLite[]>([]);
 
+  // Dialog inline para cadastrar aparelho de troca DENTRO da venda (Fatia 1).
+  const emptyTradeInDraft: NewTradeInDraft = {
+    brand: "", model: "", storage_gb: "", color: "", imei: "",
+    condition: "bom", battery_health: 100,
+    entry_value: 0, intended_sale_value: 0,
+    needs_repair: false, repair_desc: "", repair_cost_est: 0,
+    charger_included: false, accessories: "", notes: "",
+  };
+  const [tradeInDialogIdx, setTradeInDialogIdx] = useState<number | null>(null);
+  const [tradeInDraft, setTradeInDraft] = useState<NewTradeInDraft>(emptyTradeInDraft);
+
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
   const [shipDate, setShipDate] = useState("");
