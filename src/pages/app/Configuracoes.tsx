@@ -615,3 +615,51 @@ export default function Configuracoes() {
     </div>
   );
 }
+
+function StockJobsStatus({ storeId }: { storeId?: string }) {
+  const [state, setState] = useState<{ snapshot: string | null; alert: string | null; loading: boolean }>({
+    snapshot: null, alert: null, loading: true,
+  });
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!storeId) { setState({ snapshot: null, alert: null, loading: false }); return; }
+      const [snap, alr] = await Promise.all([
+        supabase.from("stock_daily_snapshots").select("created_at").eq("store_id", storeId)
+          .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("alerts").select("created_at").eq("store_id", storeId)
+          .eq("type", "divergencia_estoque").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (!alive) return;
+      setState({
+        snapshot: (snap.data as any)?.created_at ?? null,
+        alert: (alr.data as any)?.created_at ?? null,
+        loading: false,
+      });
+    })();
+    return () => { alive = false; };
+  }, [storeId]);
+
+  const fmt = (iso: string | null) => iso ? new Date(iso).toLocaleString("pt-BR") : "—";
+  return (
+    <div className="pt-2 mt-2 border-t border-border/60">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1.5">Últimas execuções</div>
+      {state.loading ? (
+        <div className="text-xs text-muted-foreground">Carregando…</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <div className="rounded-md border bg-card px-2.5 py-2">
+            <div className="text-muted-foreground">Snapshot diário</div>
+            <div className="font-mono mt-0.5">{fmt(state.snapshot)}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Agendado 03:05 (UTC)</div>
+          </div>
+          <div className="rounded-md border bg-card px-2.5 py-2">
+            <div className="text-muted-foreground">Última divergência detectada</div>
+            <div className="font-mono mt-0.5">{fmt(state.alert)}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Verificação agendada 03:10 (UTC)</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
