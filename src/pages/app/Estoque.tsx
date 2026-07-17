@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/NumberInput";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight, Copy } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -728,6 +728,7 @@ export default function Estoque() {
                   />
                 </th>
                 <th className="text-left px-4 py-3 font-medium min-w-[180px]">Produto</th>
+                <th className="text-left px-4 py-3 font-medium min-w-[130px]">SKU</th>
                 <th className="text-left px-4 py-3 font-medium min-w-[110px]">Categoria</th>
                 <th className="text-right px-4 py-3 font-medium min-w-[80px]">Estoque</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground/70 min-w-[70px]">Mín</th>
