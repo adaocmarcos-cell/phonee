@@ -148,9 +148,8 @@ export function CommissionRulesSettings() {
           <NumberInput
             value={r.value}
             onValueChange={(v) => updateRule(idx, { value: Number(v || 0) })}
-            decimals={r.type === "percentual" ? 2 : 2}
+            allowDecimal
             disabled={!canEdit}
-            format={r.type === "percentual" ? "number" : "brl"}
           />
         </div>
         <div className="md:col-span-1 flex items-center gap-2">
