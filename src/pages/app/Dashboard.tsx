@@ -49,6 +49,10 @@ type DashboardMetrics = {
   formas_pagamento: { name: string; value: number }[];
   serie_diaria: { day: string; total: number }[];
   top_produtos: { name: string; qty: number; revenue: number }[];
+  crediario_a_receber?: number;
+  crediario_vencido?: number;
+  crediario_recebido_hoje?: number;
+  crediario_vencidas_count?: number;
 };
 
 export default function Dashboard() {
