@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CreditCard, MessageCircle, RefreshCw, Wallet, AlertTriangle, Calendar } from "lucide-react";
+import { MessageCircle, RefreshCw, Wallet, AlertTriangle, Calendar } from "lucide-react";
 import { handleSupabaseError } from "@/lib/supabaseFetch";
 import {
   buildWaMeUrl, normalizeWhatsappPhone, renderWhatsappTemplate,
@@ -254,8 +254,7 @@ export default function Crediario() {
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
       <PageHeader
         title="Crediário"
-        subtitle="Parcelas em aberto, vencidas e abatimentos"
-        icon={CreditCard}
+        description="Parcelas em aberto, vencidas e abatimentos"
       />
 
       {/* Totais */}
