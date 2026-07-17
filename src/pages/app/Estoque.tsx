@@ -742,9 +742,9 @@ export default function Estoque() {
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                <tr><td colSpan={11} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
+                <tr><td colSpan={12} className="px-4 py-12 text-center text-muted-foreground text-xs font-mono tracking-widest">CARREGANDO…</td></tr>
               ) : products.length === 0 ? (
-                <tr><td colSpan={11} className="px-4 py-16 text-center">
+                <tr><td colSpan={12} className="px-4 py-16 text-center">
                   <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-sm text-muted-foreground mb-3">Nenhum produto encontrado.</p>
                   <div className="flex flex-col items-center gap-2">
