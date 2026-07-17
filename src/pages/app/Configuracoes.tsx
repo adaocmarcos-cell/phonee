@@ -394,6 +394,25 @@ export default function Configuracoes() {
                   disabled={!canEdit}
                 />
               </div>
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/60">
+                <div className="flex-1">
+                  <div className="text-sm">Tolerância de divergência de estoque</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Ignora divergências menores ou iguais a este valor (em unidades) ao gerar o alerta diário.
+                    Use <b>0</b> para alertar qualquer diferença.
+                  </div>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  step="1"
+                  className="w-24 text-right"
+                  value={storeForm.stock_divergence_threshold}
+                  onChange={(e) => setSF("stock_divergence_threshold", e.target.value === "" ? 0 : Number(e.target.value))}
+                  disabled={!canEdit}
+                />
+              </div>
+              <StockJobsStatus storeId={store?.id} />
             </div>
             {/* Caixa */}
             <div className="md:col-span-2 space-y-2 rounded-md border p-3 bg-muted/20">
