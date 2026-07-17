@@ -8,7 +8,8 @@ export type WhatsappEventKey =
   | "aparelho_pronto"
   | "os_entregue_garantia"
   | "venda_concluida"
-  | "cobranca_pendente";
+  | "cobranca_pendente"
+  | "cobranca_vencida";
 
 export const WHATSAPP_EVENTS: {
   key: WhatsappEventKey;
@@ -23,6 +24,7 @@ export const WHATSAPP_EVENTS: {
   { key: "os_entregue_garantia",  label: "Entrega e garantia",           context: "os",    hint: "Agradecimento + garantia após entrega." },
   { key: "venda_concluida",       label: "Venda concluída",              context: "venda", hint: "Agradecimento após finalizar a venda." },
   { key: "cobranca_pendente",     label: "Cobrança pendente",            context: "venda", hint: "Lembrete de valor em aberto." },
+  { key: "cobranca_vencida",      label: "Cobrança de parcela vencida",  context: "venda", hint: "Cobrança educada para parcelas atrasadas." },
 ];
 
 export const WHATSAPP_VARIABLES = [
@@ -34,6 +36,9 @@ export const WHATSAPP_VARIABLES = [
   "prazo",
   "garantia_ate",
   "link_acompanhamento",
+  "vencimento",
+  "dias_atraso",
+  "parcela",
 ] as const;
 
 export type WhatsappVars = Partial<Record<(typeof WHATSAPP_VARIABLES)[number], string | number | null | undefined>>;

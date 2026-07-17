@@ -45,6 +45,7 @@ const PedidoNovo = lazy(() => import("./pages/app/PedidoNovo"));
 const Despesas = lazy(() => import("./pages/app/Despesas"));
 const Financeiro = lazy(() => import("./pages/app/Financeiro"));
 const Comissoes = lazy(() => import("./pages/app/Comissoes"));
+const Crediario = lazy(() => import("./pages/app/Crediario"));
 const OrdensServico = lazy(() => import("./pages/app/OrdensServico"));
 const OrdemServicoForm = lazy(() => import("./pages/app/OrdemServicoForm"));
 const RelatoriosOS = lazy(() => import("./pages/app/RelatoriosOS"));
@@ -149,6 +150,7 @@ const App = () => (
               <Route path="despesas" element={<Despesas />} />
               <Route path="financeiro" element={<Financeiro />} />
               <Route path="comissoes" element={<Comissoes />} />
+              <Route path="crediario" element={<Crediario />} />
               <Route path="clientes" element={<Clientes />} />
               <Route path="lojas" element={<MinhasLojas />} />
               <Route path="estoque/transferencia" element={<TransferenciaProdutos />} />
