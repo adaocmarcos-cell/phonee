@@ -3374,6 +3374,7 @@ export type Database = {
           show_non_fiscal_notice: boolean
           show_tax_id_on_docs: boolean
           slug: string
+          stock_divergence_threshold: number
           store_credit_default_days: number
           tax_id: string | null
           trade_name: string | null
@@ -3409,6 +3410,7 @@ export type Database = {
           show_non_fiscal_notice?: boolean
           show_tax_id_on_docs?: boolean
           slug: string
+          stock_divergence_threshold?: number
           store_credit_default_days?: number
           tax_id?: string | null
           trade_name?: string | null
@@ -3444,6 +3446,7 @@ export type Database = {
           show_non_fiscal_notice?: boolean
           show_tax_id_on_docs?: boolean
           slug?: string
+          stock_divergence_threshold?: number
           store_credit_default_days?: number
           tax_id?: string | null
           trade_name?: string | null
@@ -5012,6 +5015,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      run_daily_stock_snapshot: { Args: never; Returns: undefined }
+      run_stock_divergence_check: { Args: never; Returns: undefined }
       search_sale_products: {
         Args: { _limit?: number; _query?: string; _store_id: string }
         Returns: {
