@@ -159,8 +159,7 @@ export default function Auth() {
             <div className="mt-2 text-[10px] font-mono text-muted-foreground tracking-[0.35em] uppercase">Gestão inteligente</div>
           </div>
 
-          <h2 className="text-xl font-semibold mb-1 text-center">Acesse sua conta</h2>
-          <p className="text-sm text-muted-foreground mb-6 text-center">Apenas clientes com plano ativo.</p>
+          <h2 className="text-xl font-semibold mb-6 text-center">Acesse sua conta</h2>
 
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
