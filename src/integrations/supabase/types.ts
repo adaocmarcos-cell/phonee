@@ -3229,6 +3229,118 @@ export type Database = {
           },
         ]
       }
+      whatsapp_messages_log: {
+        Row: {
+          created_at: string
+          event_key: string
+          id: string
+          message_text: string
+          os_id: string | null
+          phone: string | null
+          sale_id: string | null
+          sent_by: string | null
+          store_id: string
+          template_id: string | null
+          template_title: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          id?: string
+          message_text: string
+          os_id?: string | null
+          phone?: string | null
+          sale_id?: string | null
+          sent_by?: string | null
+          store_id: string
+          template_id?: string | null
+          template_title?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          id?: string
+          message_text?: string
+          os_id?: string | null
+          phone?: string | null
+          sale_id?: string | null
+          sent_by?: string | null
+          store_id?: string
+          template_id?: string | null
+          template_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_log_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_log_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_log_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates: {
+        Row: {
+          body: string
+          created_at: string
+          event_key: string
+          id: string
+          is_active: boolean
+          store_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          event_key: string
+          id?: string
+          is_active?: boolean
+          store_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          event_key?: string
+          id?: string
+          is_active?: boolean
+          store_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3777,6 +3889,10 @@ export type Database = {
           storage: string
           subcategory: string
         }[]
+      }
+      seed_whatsapp_templates_for_store: {
+        Args: { _store_id: string }
+        Returns: undefined
       }
       stock_products_page: {
         Args: {

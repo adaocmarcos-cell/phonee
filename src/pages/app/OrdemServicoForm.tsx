@@ -18,6 +18,8 @@ import { PatternLock } from "@/components/PatternLock";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
+import { WhatsappSendButton } from "@/components/WhatsappSendButton";
+import { OsWhatsappHistory } from "@/components/OsWhatsappHistory";
 import {
   Save, X, FileDown, MessageCircle, Mail, Camera, Trash2, Printer, ArrowLeft,
   ChevronLeft, ChevronRight, FileEdit, User, Smartphone as SmartphoneIcon,
@@ -202,6 +204,27 @@ Status: ${os.status}`;
     if (!phone) return toast.error("Informe o WhatsApp do cliente");
     window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(text)}`, "_blank");
   };
+
+  // Variáveis padrão para os templates de WhatsApp desta OS.
+  const waVars = useMemo(() => {
+    const storeName = (store as any)?.trade_name || store?.name || "Phonee";
+    const device = [os.device_brand, os.device_model].filter(Boolean).join(" ");
+    const days = Number(os.estimated_days || 0);
+    const prazo = days > 0 ? `${days} dia(s) úteis` : "a definir";
+    const base = os.end_date ? new Date(os.end_date) : new Date();
+    const garantia = new Date(base.getTime() + 90 * 24 * 60 * 60 * 1000);
+    return {
+      cliente: os.customer_name || "cliente",
+      loja: storeName,
+      os_numero: String(os.os_number ?? "").padStart(4, "0"),
+      aparelho: device,
+      valor: brl(Number(os.total_value || 0)),
+      prazo,
+      garantia_ate: garantia.toLocaleDateString("pt-BR"),
+      link_acompanhamento: `${window.location.origin}/painel/ordens/${os.id ?? ""}`,
+    };
+  }, [os, store]);
+
   const sendMail = () => {
     if (!os.customer_email) return toast.error("Informe o e-mail do cliente");
     const storeName = (store as any)?.trade_name || store?.name || "Phonee";
@@ -364,7 +387,16 @@ Status: ${os.status}`;
             <Button variant="ghost" onClick={() => navigate("/painel/ordens")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
             {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo Técnico</Button>}
-            {editing && <Button variant="outline" onClick={() => sendWhats(summary)}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>}
+            {editing && store && (
+              <WhatsappSendButton
+                storeId={store.id}
+                phone={os.customer_whatsapp}
+                osId={os.id}
+                osStatus={os.status}
+                budgetStatus={os.budget_status}
+                vars={waVars}
+              />
+            )}
             {editing && <Button variant="outline" onClick={sendMail}><Mail className="h-4 w-4 mr-1" />E-mail</Button>}
             <Button variant="outline" onClick={saveDraft} disabled={busy}>
               <FileEdit className="h-4 w-4 mr-1" />Salvar rascunho
@@ -542,9 +574,17 @@ Status: ${os.status}`;
               </Select>
             </Field>
             <div className="sm:col-span-2 lg:col-span-4">
-              <Button type="button" variant="outline" onClick={() => sendWhats(summary)}>
-                <MessageCircle className="h-4 w-4 mr-1" />Enviar orçamento por WhatsApp
-              </Button>
+              {editing && store && (
+                <WhatsappSendButton
+                  storeId={store.id}
+                  phone={os.customer_whatsapp}
+                  osId={os.id}
+                  osStatus={os.status}
+                  budgetStatus={os.budget_status}
+                  vars={waVars}
+                  allowedEvents={["orcamento_pronto", "orcamento_aprovado"]}
+                />
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -601,6 +641,11 @@ Status: ${os.status}`;
               <p className="mt-2 italic">{TERMS}</p>
             </div>
           </Card>
+          {editing && os.id && (
+            <div className="mt-4">
+              <OsWhatsappHistory osId={os.id} />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
             </div>

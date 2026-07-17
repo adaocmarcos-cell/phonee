@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
 import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Eye } from "lucide-react";
+import { WhatsappSendButton } from "@/components/WhatsappSendButton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -45,7 +46,7 @@ const NET_REASONS = [
 const eff = (s: any) => Number(s?.net_value ?? s?.total ?? 0);
 
 export default function Vendas() {
-  const { store, role } = useAuth();
+  const { store, role, user } = useAuth();
   const { allowed: canDeleteSale } = useHasPermission("vendas", "excluir");
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
@@ -272,6 +273,19 @@ export default function Vendas() {
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(reminderText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
     await supabase.from("sales").update({ last_reminder_sent_at: new Date().toISOString() }).eq("id", reminderSale.id);
+    // Registra no histórico centralizado de mensagens.
+    if (store?.id) {
+      await (supabase as any).from("whatsapp_messages_log").insert({
+        store_id: store.id,
+        sale_id: reminderSale.id,
+        event_key: "cobranca_pendente",
+        template_id: null,
+        template_title: "Lembrete de cobrança",
+        phone: phone.startsWith("55") ? phone : "55" + phone,
+        message_text: reminderText,
+        sent_by: user?.id ?? null,
+      });
+    }
     toast.success("Lembrete aberto no WhatsApp");
     setReminderOpen(false);
     setReminderSale(null);
@@ -577,6 +591,22 @@ export default function Vendas() {
                             <CheckCircle2 className="h-4 w-4 text-primary" />
                           </Button>
                         </>
+                      )}
+                      {s.payment_status !== "pendente" && s.customer_whatsapp && store?.id && (
+                        <WhatsappSendButton
+                          storeId={store.id}
+                          phone={s.customer_whatsapp}
+                          saleId={s.id}
+                          vars={{
+                            cliente: s.customer_name || "cliente",
+                            loja: (store as any)?.trade_name || store?.name || "",
+                            valor: brl(Number(s.total || 0)),
+                            prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
+                          }}
+                          allowedEvents={["venda_concluida"]}
+                          className="h-8 w-8 p-0"
+                          size="sm"
+                        />
                       )}
                       <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
                         <Printer className="h-4 w-4" />
