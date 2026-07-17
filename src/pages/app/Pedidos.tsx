@@ -59,11 +59,12 @@ export default function Pedidos() {
     if (!store) return;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("purchase_orders")
         .select("id, supplier, status, total_cost, created_at, sent_at")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false });
+      if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar pedidos"); setLoading(false); return; }
       setRows((data ?? []) as PO[]);
       setLoading(false);
     })();
@@ -71,25 +72,29 @@ export default function Pedidos() {
 
   const reload = async () => {
     if (!store) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("purchase_orders")
       .select("id, supplier, status, total_cost, created_at, sent_at")
       .eq("store_id", store.id)
       .order("created_at", { ascending: false });
+    if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao recarregar pedidos"); return; }
     setRows((data ?? []) as PO[]);
   };
 
   const openEdit = async (o: PO) => {
-    const { data: full } = await supabase
+    const { handleSupabaseError } = await import("@/lib/supabaseFetch");
+    const { data: full, error: fullErr } = await supabase
       .from("purchase_orders")
       .select("*")
       .eq("id", o.id)
       .maybeSingle();
+    if (fullErr) { handleSupabaseError(fullErr, "Erro ao carregar pedido"); return; }
     if (!full) return toast.error("Pedido não encontrado.");
-    const { data: its } = await supabase
+    const { data: its, error: itsErr } = await supabase
       .from("purchase_order_items")
       .select("id, product_id, product_name, quantity, unit_cost, notes")
       .eq("order_id", o.id);
+    if (itsErr) { handleSupabaseError(itsErr, "Erro ao carregar itens do pedido"); return; }
     setEditOrder(full);
     setEditSupplier((full as any).supplier ?? "");
     setEditNotes((full as any).notes ?? "");

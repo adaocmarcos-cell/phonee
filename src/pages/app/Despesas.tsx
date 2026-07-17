@@ -50,6 +50,7 @@ type Expense = {
 };
 
 const sb = supabase as any;
+import { handleSupabaseError } from "@/lib/supabaseFetch";
 
 export default function Despesas() {
   const { store, role } = useAuth();
@@ -87,7 +88,7 @@ export default function Despesas() {
   const reload = async () => {
     if (!store) return;
     setLoading(true);
-    const [{ data: cats }, { data: exps }] = await Promise.all([
+    const [{ data: cats, error: cErr }, { data: exps, error: eErr }] = await Promise.all([
       sb.from("expense_categories")
         .select("*")
         .or(`is_system.eq.true,store_id.eq.${store.id}`)
@@ -98,6 +99,11 @@ export default function Despesas() {
         .order("expense_date", { ascending: false })
         .limit(500),
     ]);
+    if (cErr || eErr) {
+      handleSupabaseError(cErr || eErr, "Erro ao carregar despesas");
+      setLoading(false);
+      return;
+    }
     setCategories(cats ?? []);
     setExpenses(exps ?? []);
     setLoading(false);

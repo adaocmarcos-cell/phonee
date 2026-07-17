@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { SESSION_EXPIRED_EVENT } from "@/lib/supabaseFetch";
 
 export type AppRole = "dono" | "gerente" | "vendedor" | "estoquista";
 
@@ -80,6 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSummary | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [stores, setStores] = useState<MyStore[]>([]);
+  // Marca desconexões intencionais (clique em "Sair") para não exibir toast de
+  // "Sessão expirada" nem preservar rota de retorno.
+  const intentionalSignOutRef = { current: false } as { current: boolean };
 
   const STORE_COLS = "id, name, slug, trade_name, tax_id, phone, address, email, instagram, price_table_note, logo_url, address_street, address_number, address_complement, address_neighborhood, address_city, address_uf, show_tax_id_on_docs, show_legal_name_on_docs, show_non_fiscal_notice, pdf_primary_color, pdf_accent_color, pdf_logo_url, pdf_footer_text";
 
@@ -204,6 +209,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setStore(null);
         setRole(null);
+        // Se a sessão sumiu sem ter sido um logout intencional (ex.: token
+        // expirado / refresh inválido), dispara o fluxo de sessão expirada.
+        if (_event === "SIGNED_OUT" && !intentionalSignOutRef.current && typeof window !== "undefined") {
+          const path = window.location.pathname + window.location.search;
+          const shouldRedirect = !path.startsWith("/entrar") && !path.startsWith("/comprar") && !path.startsWith("/esqueci-senha") && !path.startsWith("/redefinir-senha") && path !== "/";
+          if (shouldRedirect) {
+            try { sessionStorage.setItem("phonee.returnTo", path); } catch {}
+            toast.error("Sessão expirada. Faça login novamente.");
+            window.location.assign(`/entrar?returnTo=${encodeURIComponent(path)}`);
+          }
+        }
+        intentionalSignOutRef.current = false;
       }
     });
 
@@ -218,6 +235,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // Listener global do helper runQuery/loadQuery: quando qualquer chamada
+  // detecta JWT expirado / 401, esse evento é disparado e nós encerramos a
+  // sessão do lado do cliente para acionar o fluxo acima.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onExpired = () => {
+      // signOut vai emitir SIGNED_OUT — deixamos o handler acima cuidar do
+      // redirecionamento e do toast (evita mensagens duplicadas).
+      intentionalSignOutRef.current = false;
+      supabase.auth.signOut().catch(() => {
+        // fallback bruto se por algum motivo não conseguir sair
+        window.location.assign("/entrar");
+      });
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
   }, []);
 
   // Realtime: quando o webhook (ou qualquer atualização) mudar a assinatura
@@ -236,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.id]);
 
   const signOut = async () => {
+    intentionalSignOutRef.current = true;
     await supabase.auth.signOut();
   };
 

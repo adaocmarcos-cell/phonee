@@ -144,15 +144,18 @@ export default function CurvaABC() {
     (async () => {
       setLoading(true);
       const since = new Date(Date.now() - 365 * 86400_000).toISOString();
-      const { data: products } = await supabase
+      const { handleSupabaseError } = await import("@/lib/supabaseFetch");
+      const { data: products, error: pErr } = await supabase
         .from("products")
         .select("id, name, stock_current, last_sold_at, cost_price")
         .eq("store_id", store.id);
-      const { data: sales } = await supabase
+      if (pErr) { handleSupabaseError(pErr, "Erro ao carregar produtos"); setLoading(false); return; }
+      const { data: sales, error: sErr } = await supabase
         .from("sales")
         .select("id, created_at, sale_items(product_id, quantity, total, unit_price)")
         .eq("store_id", store.id)
         .gte("created_at", since);
+      if (sErr) { handleSupabaseError(sErr, "Erro ao carregar vendas"); setLoading(false); return; }
       setAllSales(sales ?? []);
       setAllProducts(products ?? []);
       setLoading(false);

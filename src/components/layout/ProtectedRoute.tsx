@@ -39,7 +39,12 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       </div>
     );
   }
-  if (!user) return <Navigate to="/entrar" replace />;
+  if (!user) {
+    const returnTo = location.pathname + location.search;
+    const skip = returnTo === "/" || returnTo.startsWith("/entrar");
+    const to = skip ? "/entrar" : `/entrar?returnTo=${encodeURIComponent(returnTo)}`;
+    return <Navigate to={to} replace state={{ from: returnTo }} />;
+  }
   const mustChange = (user.user_metadata as any)?.must_change_password === true;
   if (mustChange && location.pathname !== "/redefinir-senha") {
     return <Navigate to="/redefinir-senha" replace />;

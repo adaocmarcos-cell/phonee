@@ -130,10 +130,11 @@ export default function EstoqueRelatorio() {
   const load = async () => {
     if (!store) return;
     setLoading(true);
+    const { handleSupabaseError } = await import("@/lib/supabaseFetch");
     const startIso = periodStart.toISOString();
     const endIso = periodEnd.toISOString();
 
-    const [{ data: prods }, { data: parts }] = await Promise.all([
+    const [{ data: prods, error: prodsErr }, { data: parts, error: partsErr }] = await Promise.all([
       supabase.from("products")
         .select("id, name, sku, category, stock_current, stock_min, cost_price, sale_price")
         .eq("store_id", store.id),
@@ -141,26 +142,30 @@ export default function EstoqueRelatorio() {
         .select("id, name, sku, category, stock_current, stock_min, cost_price, sale_price")
         .eq("store_id", store.id),
     ]);
+    if (prodsErr || partsErr) { handleSupabaseError(prodsErr || partsErr, "Erro ao carregar inventário"); setLoading(false); return; }
 
     // Outflows in period
-    const { data: saleItems } = await supabase
+    const { data: saleItems, error: siErr } = await supabase
       .from("sale_items")
       .select("product_id, qty, sales!inner(store_id, created_at)")
       .eq("sales.store_id", store.id)
       .gte("sales.created_at", startIso)
       .lte("sales.created_at", endIso);
-    const { data: osParts } = await supabase
+    if (siErr) { handleSupabaseError(siErr, "Erro ao carregar saídas por venda"); setLoading(false); return; }
+    const { data: osParts, error: opErr } = await supabase
       .from("service_order_parts")
       .select("part_id, qty, created_at")
       .eq("store_id", store.id)
       .gte("created_at", startIso)
       .lte("created_at", endIso);
-    const { data: adjustments } = await supabase
+    if (opErr) { handleSupabaseError(opErr, "Erro ao carregar peças de OS"); setLoading(false); return; }
+    const { data: adjustments, error: adjErr } = await supabase
       .from("stock_adjustments")
       .select("item_kind, product_id, part_id, qty_change")
       .eq("store_id", store.id)
       .gte("created_at", startIso)
       .lte("created_at", endIso);
+    if (adjErr) { handleSupabaseError(adjErr, "Erro ao carregar ajustes de estoque"); setLoading(false); return; }
 
     const movMap = new Map<string, { in: number; out: number }>();
     const bump = (key: string, delta: number) => {

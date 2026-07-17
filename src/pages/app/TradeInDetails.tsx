@@ -72,12 +72,14 @@ export default function TradeInDetails() {
     if (!id || !store) return;
     (async () => {
       setLoading(true);
-      const [{ data: ti }, { data: log }] = await Promise.all([
+      const { handleSupabaseError } = await import("@/lib/supabaseFetch");
+      const [{ data: ti, error: tiErr }, { data: log, error: logErr }] = await Promise.all([
         supabase.from("trade_ins").select("*").eq("id", id).maybeSingle(),
         supabase.from("audit_log").select("id,created_at,action,user_id,details")
           .eq("entity", "trade_in").eq("entity_id", id)
           .order("created_at", { ascending: false }),
       ]);
+      if (tiErr || logErr) { handleSupabaseError(tiErr || logErr, "Erro ao carregar entrada de troca"); setLoading(false); return; }
       setItem(ti);
       const a = (log ?? []) as Audit[];
       setAudits(a);

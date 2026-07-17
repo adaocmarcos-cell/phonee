@@ -44,11 +44,12 @@ export default function TradeIn() {
     if (!store) return;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("trade_ins")
         .select("id, customer_name, model, brand, imei, condition, status, entry_value, intended_sale_value, created_at, checklist, photos_in")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false });
+      if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar entradas de troca"); setLoading(false); return; }
       setRows((data ?? []) as TI[]);
       setLoading(false);
     })();

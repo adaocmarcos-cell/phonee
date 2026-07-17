@@ -67,7 +67,7 @@ export default function PedidoNovo() {
     (async () => {
       setLoading(true);
       const since = new Date(Date.now() - WINDOW_DAYS * 86400_000).toISOString();
-      const [{ data: products }, { data: sales }] = await Promise.all([
+      const [{ data: products, error: pErr }, { data: sales, error: sErr }] = await Promise.all([
         supabase.from("products")
           .select("id, name, supplier, cost_price, stock_current, stock_min, status")
           .eq("store_id", store.id)
@@ -77,6 +77,7 @@ export default function PedidoNovo() {
           .eq("store_id", store.id)
           .gte("created_at", since),
       ]);
+      if (pErr || sErr) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(pErr || sErr, "Erro ao carregar sugestões"); setLoading(false); return; }
 
       const sold = new Map<string, number>();
       (sales ?? []).forEach((s: any) =>

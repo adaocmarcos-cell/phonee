@@ -48,16 +48,20 @@ export default function TransferenciaProdutos() {
       .eq("store_id", fromId)
       .gt("stock_current", 0)
       .order("name")
-      .then(({ data }) => setProducts((data ?? []) as Product[]));
+      .then(async ({ data, error }) => {
+        if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar produtos"); return; }
+        setProducts((data ?? []) as Product[]);
+      });
     setPick("");
   }, [fromId]);
 
   // load history
   const loadHistory = async () => {
-    const { data } = await (supabase.from("product_transfers") as any)
+    const { data, error } = await (supabase.from("product_transfers") as any)
       .select("id,created_at,quantity,note, from_store:stores!product_transfers_from_store_id_fkey(name), to_store:stores!product_transfers_to_store_id_fkey(name), from_product:products!product_transfers_from_product_id_fkey(name,sku)")
       .order("created_at", { ascending: false })
       .limit(100);
+    if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar histórico de transferências"); return; }
     setHistory((data ?? []) as TransferRow[]);
   };
   useEffect(() => { loadHistory(); }, []);

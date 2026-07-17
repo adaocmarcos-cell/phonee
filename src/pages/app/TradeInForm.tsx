@@ -73,7 +73,9 @@ export default function TradeInForm() {
   useEffect(() => {
     if (!editing || !store) return;
     (async () => {
-      const { data } = await supabase.from("trade_ins").select("*").eq("id", id).maybeSingle();
+      const { handleSupabaseError } = await import("@/lib/supabaseFetch");
+      const { data, error } = await supabase.from("trade_ins").select("*").eq("id", id).maybeSingle();
+      if (error) { handleSupabaseError(error, "Erro ao carregar entrada de troca"); return; }
       if (data) setForm({
         ...data,
         checklist: data.checklist ?? {},

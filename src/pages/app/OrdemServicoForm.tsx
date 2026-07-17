@@ -126,7 +126,8 @@ export default function OrdemServicoForm() {
   useEffect(() => {
     if (!editing || !store) return;
     (async () => {
-      const { data } = await (supabase as any).from("service_orders").select("*").eq("id", id).maybeSingle();
+      const { data, error } = await (supabase as any).from("service_orders").select("*").eq("id", id).maybeSingle();
+      if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar OS"); return; }
       if (data) setOs(data);
       setLoaded(true);
     })();
@@ -135,7 +136,8 @@ export default function OrdemServicoForm() {
   useEffect(() => {
     if (!store) return;
     (async () => {
-      const { data } = await (supabase as any).rpc("get_store_technicians", { _store_id: store.id });
+      const { data, error } = await (supabase as any).rpc("get_store_technicians", { _store_id: store.id });
+      if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar técnicos"); return; }
       setTechnicians((data as any[]) ?? []);
     })();
   }, [store?.id]);
