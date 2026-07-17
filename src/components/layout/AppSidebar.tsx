@@ -36,6 +36,7 @@ const ops: Item[] = [
   { title: "Financeiro", url: "/painel/financeiro", icon: DollarSign },
   { title: "Comissões", url: "/painel/comissoes", icon: Wallet },
   { title: "Assistência & Serviços", url: "/painel/ordens", icon: Wrench },
+  { title: "Relatórios de OS", url: "/painel/ordens/relatorios", icon: BarChart3 },
   { title: "Tabelas de Preço", url: "/painel/tabelas", icon: Tags },
   { title: "Garantias", url: "/painel/garantias", icon: ShieldCheck },
 ];

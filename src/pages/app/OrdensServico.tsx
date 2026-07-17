@@ -11,8 +11,9 @@ import { MetricCard } from "@/components/MetricCard";
 import { brl, num } from "@/lib/format";
 import {
   Plus, Wrench, Search, Clock, CheckCircle2, AlertCircle, PackageCheck, Timer, TrendingUp,
-  Hammer, Receipt, ShoppingCart,
+  Hammer, Receipt, ShoppingCart, BarChart3, AlertTriangle,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const STATUS_LABEL: Record<string, string> = {
   recebido: "Recebido",
@@ -48,6 +49,8 @@ export default function OrdensServico() {
   const [rows, setRows] = useState<any[]>([]);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [stalledMap, setStalledMap] = useState<Record<string, { days: number }>>({});
+  const stalledLimit = (store as any)?.os_stalled_days ?? 3;
 
   useEffect(() => {
     if (!store) return;
@@ -58,7 +61,28 @@ export default function OrdensServico() {
         .eq("store_id", store.id)
         .order("created_at", { ascending: false })
         .limit(500);
-      setRows(data ?? []);
+      const list = data ?? [];
+      setRows(list);
+      const openIds = list.filter((r: any) => !["entregue", "cancelado"].includes(r.status)).map((r: any) => r.id);
+      if (openIds.length > 0) {
+        const { data: hist } = await (supabase as any)
+          .from("os_status_history")
+          .select("os_id, changed_at")
+          .in("os_id", openIds)
+          .order("changed_at", { ascending: false });
+        const latest = new Map<string, string>();
+        (hist ?? []).forEach((h: any) => { if (!latest.has(h.os_id)) latest.set(h.os_id, h.changed_at); });
+        const now = Date.now();
+        const m: Record<string, { days: number }> = {};
+        list.forEach((r: any) => {
+          if (["entregue", "cancelado"].includes(r.status)) return;
+          const last = latest.get(r.id) || r.created_at;
+          m[r.id] = { days: (now - new Date(last).getTime()) / 86_400_000 };
+        });
+        setStalledMap(m);
+      } else {
+        setStalledMap({});
+      }
     })();
   }, [store]);
 
@@ -123,6 +147,9 @@ export default function OrdensServico() {
             </Button>
             <Button variant="outline" onClick={() => navigate("/painel/pecas?tab=compras")}>
               <ShoppingCart className="h-4 w-4 mr-1" />Centro de compras
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/painel/ordens/relatorios")}>
+              <BarChart3 className="h-4 w-4 mr-1" />Relatórios
             </Button>
             <Button onClick={() => navigate("/painel/ordens/nova")} className="bg-primary text-primary-foreground shadow-glow">
               <Plus className="h-4 w-4 mr-1" />Nova ordem de serviço
@@ -205,9 +232,21 @@ export default function OrdensServico() {
                       {[r.device_brand, r.device_model].filter(Boolean).join(" ")}{r.device_color ? ` · ${r.device_color}` : ""}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap align-middle">
-                      <Badge variant="outline" className={`${STATUS_COLOR[r.status] ?? ""} whitespace-nowrap`}>
-                        {STATUS_LABEL[r.status] ?? r.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className={`${STATUS_COLOR[r.status] ?? ""} whitespace-nowrap`}>
+                          {STATUS_LABEL[r.status] ?? r.status}
+                        </Badge>
+                        {stalledMap[r.id] && stalledMap[r.id].days >= stalledLimit && (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-700 border-amber-300 whitespace-nowrap"
+                            title={`Parada há ${stalledMap[r.id].days.toFixed(1)} dia(s) — limite ${stalledLimit}d`}
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            {Math.floor(stalledMap[r.id].days)}d parada
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap tabular-nums align-middle">
                       {new Date(r.created_at).toLocaleDateString("pt-BR")}

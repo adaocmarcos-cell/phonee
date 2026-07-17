@@ -1051,6 +1051,50 @@ export type Database = {
           },
         ]
       }
+      os_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_custom_status_id: string | null
+          from_status: Database["public"]["Enums"]["os_status"] | null
+          id: string
+          os_id: string
+          store_id: string
+          to_custom_status_id: string | null
+          to_status: Database["public"]["Enums"]["os_status"] | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_custom_status_id?: string | null
+          from_status?: Database["public"]["Enums"]["os_status"] | null
+          id?: string
+          os_id: string
+          store_id: string
+          to_custom_status_id?: string | null
+          to_status?: Database["public"]["Enums"]["os_status"] | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_custom_status_id?: string | null
+          from_status?: Database["public"]["Enums"]["os_status"] | null
+          id?: string
+          os_id?: string
+          store_id?: string
+          to_custom_status_id?: string | null
+          to_status?: Database["public"]["Enums"]["os_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_status_history_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_visits: {
         Row: {
           created_at: string
@@ -2783,6 +2827,7 @@ export type Database = {
           instagram: string | null
           logo_url: string | null
           name: string
+          os_stalled_days: number
           owner_id: string
           pdf_accent_color: string | null
           pdf_footer_text: string | null
@@ -2816,6 +2861,7 @@ export type Database = {
           instagram?: string | null
           logo_url?: string | null
           name: string
+          os_stalled_days?: number
           owner_id: string
           pdf_accent_color?: string | null
           pdf_footer_text?: string | null
@@ -2849,6 +2895,7 @@ export type Database = {
           instagram?: string | null
           logo_url?: string | null
           name?: string
+          os_stalled_days?: number
           owner_id?: string
           pdf_accent_color?: string | null
           pdf_footer_text?: string | null
