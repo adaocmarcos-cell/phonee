@@ -387,7 +387,16 @@ Status: ${os.status}`;
             <Button variant="ghost" onClick={() => navigate("/painel/ordens")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
             {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo Técnico</Button>}
-            {editing && <Button variant="outline" onClick={() => sendWhats(summary)}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>}
+            {editing && store && (
+              <WhatsappSendButton
+                storeId={store.id}
+                phone={os.customer_whatsapp}
+                osId={os.id}
+                osStatus={os.status}
+                budgetStatus={os.budget_status}
+                vars={waVars}
+              />
+            )}
             {editing && <Button variant="outline" onClick={sendMail}><Mail className="h-4 w-4 mr-1" />E-mail</Button>}
             <Button variant="outline" onClick={saveDraft} disabled={busy}>
               <FileEdit className="h-4 w-4 mr-1" />Salvar rascunho
@@ -565,9 +574,17 @@ Status: ${os.status}`;
               </Select>
             </Field>
             <div className="sm:col-span-2 lg:col-span-4">
-              <Button type="button" variant="outline" onClick={() => sendWhats(summary)}>
-                <MessageCircle className="h-4 w-4 mr-1" />Enviar orçamento por WhatsApp
-              </Button>
+              {editing && store && (
+                <WhatsappSendButton
+                  storeId={store.id}
+                  phone={os.customer_whatsapp}
+                  osId={os.id}
+                  osStatus={os.status}
+                  budgetStatus={os.budget_status}
+                  vars={waVars}
+                  allowedEvents={["orcamento_pronto", "orcamento_aprovado"]}
+                />
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -624,6 +641,11 @@ Status: ${os.status}`;
               <p className="mt-2 italic">{TERMS}</p>
             </div>
           </Card>
+          {editing && os.id && (
+            <div className="mt-4">
+              <OsWhatsappHistory osId={os.id} />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
             </div>
