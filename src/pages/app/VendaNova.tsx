@@ -1625,7 +1625,7 @@ Obrigado pela preferência.`;
                             </div>
                           </div>
                         )}
-                        {isTroca && (
+                        {isTroca && false && (
                           <div>
                             <div>
                               <Label>_</Label>
