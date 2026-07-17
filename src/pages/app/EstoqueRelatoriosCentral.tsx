@@ -456,6 +456,17 @@ export default function EstoqueRelatoriosCentral() {
           })}
         </TabsList>
 
+        <TabsContent value="movement">
+          <MovimentacaoLedger
+            storeId={store?.id}
+            periodStart={periodStart}
+            periodEnd={periodEnd}
+            category={category}
+            brand={brand}
+            supplier={supplier}
+            showCost={showCost}
+          />
+        </TabsContent>
         <TabsContent value="in_out"><MovChart data={movByDay} /><MovTable rows={filteredMovs} loading={loading} /></TabsContent>
         <TabsContent value="transfers"><TransfersTable rows={transfers} loading={loading} /></TabsContent>
         <TabsContent value="balances"><BalancesTable rows={filteredProds} loading={loading} /></TabsContent>
