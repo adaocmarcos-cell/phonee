@@ -18,7 +18,7 @@ import { canManageUsers, isAdminMaster } from "@/lib/roles";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 import { StoreSwitcher } from "./StoreSwitcher";
 
-type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" | "notifications" };
+type Item = { title: string; url: string; icon: any; end?: boolean; children?: Item[]; badgeKey?: "alerts" | "notifications" | "overdue" };
 
 const main: Item[] = [
   { title: "Curva ABC", url: "/painel/curva-abc", icon: BarChart3 },
@@ -31,11 +31,17 @@ const main: Item[] = [
 const ops: Item[] = [
   { title: "Dashboard", url: "/painel", icon: LayoutDashboard, end: true },
   { title: "Vendas", url: "/painel/vendas", icon: Receipt },
-  { title: "Estoque", url: "/painel/estoque", icon: Boxes },
+  { title: "Estoque", url: "/painel/estoque", icon: Boxes, children: [
+    { title: "Compras/Entradas", url: "/painel/compras", icon: ShoppingCart },
+    { title: "Peças", url: "/painel/pecas", icon: Hammer },
+    { title: "Compra e Troca", url: "/painel/troca", icon: Smartphone },
+  ] },
   { title: "Clientes", url: "/painel/clientes", icon: Users },
-  { title: "Financeiro", url: "/painel/financeiro", icon: DollarSign },
-  { title: "Crediário", url: "/painel/crediario", icon: CreditCard },
-  { title: "Comissões", url: "/painel/comissoes", icon: Wallet },
+  { title: "Financeiro", url: "/painel/financeiro", icon: DollarSign, badgeKey: "overdue", children: [
+    { title: "Crediário", url: "/painel/crediario", icon: CreditCard },
+    { title: "Comissões", url: "/painel/comissoes", icon: Wallet },
+    { title: "Custos & Despesas", url: "/painel/despesas", icon: Wallet },
+  ] },
   { title: "Assistência & Serviços", url: "/painel/ordens", icon: Wrench },
   { title: "Relatórios de OS", url: "/painel/ordens/relatorios", icon: BarChart3 },
   { title: "Tabelas de Preço", url: "/painel/tabelas", icon: Tags },
@@ -58,13 +64,14 @@ const adminMasterItems: Item[] = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpen } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
   const { role, store } = useAuth();
   const showAdmin = canManageUsers(role as any);
   const showLogsOnly = isAdminMaster(role as any) || role === "dono";
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [overdueReceivables, setOverdueReceivables] = useState(0);
   const [hasNewNotification, setHasNewNotification] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("phonee:new_notification") === "1";
@@ -114,6 +121,27 @@ export function AppSidebar() {
     return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [store, pathname]);
 
+  useEffect(() => {
+    if (!store) return;
+    let cancelled = false;
+    const fetchOverdue = async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { count } = await (supabase as any)
+        .from("sale_receivables")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", store.id)
+        .lt("due_date", today)
+        .in("status", ["aberto", "parcial"]);
+      if (!cancelled) setOverdueReceivables(count ?? 0);
+    };
+    fetchOverdue();
+    const channel = supabase
+      .channel(`sidebar-overdue-${store.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "sale_receivables", filter: `store_id=eq.${store.id}` }, fetchOverdue)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
+  }, [store, pathname]);
+
   const renderGroup = (label: string, items: typeof main, opts?: { hideLabel?: boolean }) => (
     <SidebarGroup>
       {!collapsed && !opts?.hideLabel && label && (
@@ -125,6 +153,9 @@ export function AppSidebar() {
             const active = item.end ? pathname === item.url : pathname.startsWith(item.url);
             const isDashboard = item.url === "/painel";
             const childActive = item.children?.some((c) => pathname.startsWith(c.url));
+            const badgeCount =
+              item.badgeKey === "alerts" ? unreadAlerts :
+              item.badgeKey === "overdue" ? overdueReceivables : 0;
             return (
               <SidebarMenuItem key={item.url}>
                 <SidebarMenuButton
@@ -132,15 +163,27 @@ export function AppSidebar() {
                   isActive={active && !childActive}
                   className="data-[active=true]:bg-[#00abfb] data-[active=true]:text-blue-900 data-[active=true]:font-semibold data-[active=true]:hover:bg-[#00abfb] data-[active=true]:hover:text-blue-900 hover:bg-sidebar-accent"
                 >
-                  <NavLink to={item.url} end={item.end}>
+                  <NavLink
+                    to={item.url}
+                    end={item.end}
+                    onClick={() => {
+                      if (collapsed && item.children && item.children.length > 0) {
+                        setOpen(true);
+                      }
+                    }}
+                  >
                     <span className="relative inline-flex">
                       <item.icon className="h-4 w-4" />
-                      {item.badgeKey === "alerts" && unreadAlerts > 0 && (
+                      {(item.badgeKey === "alerts" || item.badgeKey === "overdue") && badgeCount > 0 && (
                         <span
                           className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-[14px] text-center ring-2 ring-sidebar"
-                          aria-label={`${unreadAlerts} alertas não lidos`}
+                          aria-label={
+                            item.badgeKey === "alerts"
+                              ? `${badgeCount} alertas não lidos`
+                              : `${badgeCount} parcelas vencidas`
+                          }
                         >
-                          {unreadAlerts > 9 ? "9+" : unreadAlerts}
+                          {badgeCount > 9 ? "9+" : badgeCount}
                         </span>
                       )}
                       {item.badgeKey === "notifications" && hasNewNotification && (
@@ -153,9 +196,9 @@ export function AppSidebar() {
                     {!collapsed && (
                       <span className={`flex items-center gap-2 ${isDashboard && !active ? "text-[#00abfb] font-semibold" : ""}`}>
                         {item.title}
-                        {item.badgeKey === "alerts" && unreadAlerts > 0 && (
+                        {(item.badgeKey === "alerts" || item.badgeKey === "overdue") && badgeCount > 0 && (
                           <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
-                            {unreadAlerts > 99 ? "99+" : unreadAlerts}
+                            {badgeCount > 99 ? "99+" : badgeCount}
                           </span>
                         )}
                       </span>
