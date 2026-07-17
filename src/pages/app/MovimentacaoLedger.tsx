@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,13 @@ export default function MovimentacaoLedger({
   const [selected, setSelected] = useState<Row | null>(null);
   const [timeline, setTimeline] = useState<Timeline[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [sp, setSp] = useSearchParams();
+  const focusProductId = sp.get("product");
+  const focusDivergentes = sp.get("divergentes") === "1";
+
+  useEffect(() => {
+    if (focusDivergentes) setOnlyDiverg(true);
+  }, [focusDivergentes]);
 
   const load = async () => {
     if (!storeId) return;
@@ -99,6 +107,20 @@ export default function MovimentacaoLedger({
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [storeId, periodStart.getTime(), periodEnd.getTime(), category, brand, supplier]);
+
+  // Deep-link: quando vier ?product=<id>, abre a timeline daquele produto automaticamente
+  useEffect(() => {
+    if (!focusProductId || rows.length === 0) return;
+    const r = rows.find((x) => x.product_id === focusProductId);
+    if (r) {
+      openTimeline(r);
+      // limpa o param para não reabrir a cada re-render
+      const next = new URLSearchParams(sp);
+      next.delete("product");
+      setSp(next, { replace: true });
+    }
+    // eslint-disable-next-line
+  }, [focusProductId, rows]);
 
   const openTimeline = async (r: Row) => {
     setSelected(r);
@@ -249,9 +271,17 @@ export default function MovimentacaoLedger({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {timeline.map((t) => (
-                    <tr key={t.id}>
+                    <tr key={t.id} className={t.type === "edicao_manual" ? "bg-warning/10" : ""}>
                       <td className="py-1.5 font-mono text-muted-foreground">{new Date(t.occurred_at).toLocaleString("pt-BR")}</td>
-                      <td className="py-1.5"><Badge variant="outline" className="text-[10px]">{TYPE_LABEL[t.type] ?? t.type}</Badge></td>
+                      <td className="py-1.5">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${t.type === "edicao_manual" ? "border-warning/60 text-warning font-semibold" : ""}`}
+                        >
+                          {t.type === "edicao_manual" && "✎ "}
+                          {TYPE_LABEL[t.type] ?? t.type}
+                        </Badge>
+                      </td>
                       <td className={`py-1.5 text-right metric font-semibold ${Number(t.quantity) >= 0 ? "text-success" : "text-danger"}`}>
                         {Number(t.quantity) > 0 ? "+" : ""}{num(Number(t.quantity))}
                       </td>
