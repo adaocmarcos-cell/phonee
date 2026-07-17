@@ -99,6 +99,7 @@ export default function Configuracoes() {
     show_non_fiscal_notice: true,
     allow_negative_stock: false,
     block_sale_when_cash_closed: false,
+    stock_divergence_threshold: 0,
     pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B",
     pdf_logo_url: "", pdf_footer_text: "",
   });
@@ -134,6 +135,7 @@ export default function Configuracoes() {
       show_non_fiscal_notice: s.show_non_fiscal_notice ?? true,
       allow_negative_stock: s.allow_negative_stock ?? false,
       block_sale_when_cash_closed: s.block_sale_when_cash_closed ?? false,
+      stock_divergence_threshold: Number(s.stock_divergence_threshold ?? 0),
       pdf_primary_color: s.pdf_primary_color ?? "#0EA5E9",
       pdf_accent_color: s.pdf_accent_color ?? "#1E293B",
       pdf_logo_url: s.pdf_logo_url ?? "",
@@ -194,6 +196,7 @@ export default function Configuracoes() {
       show_non_fiscal_notice: storeForm.show_non_fiscal_notice,
       allow_negative_stock: storeForm.allow_negative_stock,
       block_sale_when_cash_closed: storeForm.block_sale_when_cash_closed,
+      stock_divergence_threshold: Number(storeForm.stock_divergence_threshold) || 0,
       pdf_primary_color: storeForm.pdf_primary_color || null,
       pdf_accent_color: storeForm.pdf_accent_color || null,
       pdf_logo_url: storeForm.pdf_logo_url || null,
