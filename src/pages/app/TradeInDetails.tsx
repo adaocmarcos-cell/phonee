@@ -6,12 +6,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle, Wrench, Plus, Trash2 } from "lucide-react";
 import { brl } from "@/lib/format";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import NumberInput from "@/components/NumberInput";
 import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP, DEACTIVATE_REASONS, REASON_LABEL } from "@/lib/tradeInStatus";
 import { printTradeInFicha, buildTradeInFichaHtml } from "@/lib/tradeInPrint";
 import { evaluateCompleteness } from "@/lib/tradeInCompleteness";
@@ -48,6 +50,11 @@ export default function TradeInDetails() {
   const [reasonKey, setReasonKey] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [repairOpen, setRepairOpen] = useState(false);
+  const [invParts, setInvParts] = useState<{ id: string; name: string; stock_current: number; cost_price: number }[]>([]);
+  const [rows, setRows] = useState<{ part_id: string | null; name: string; qty: number; unit_cost: number }[]>([]);
+  const [manualCost, setManualCost] = useState(0);
+  const [manualNotes, setManualNotes] = useState("");
 
   useEffect(() => {
     if (!id || !store) return;
@@ -83,6 +90,69 @@ export default function TradeInDetails() {
   const simple = toSimpleStatus(item.status);
   const reason = reasonSubtext(item.status);
   const isSold = item.status === "vendido";
+  const isAwaitingRepair = simple === "aguardando_preparo";
+
+  const openRepair = async () => {
+    if (!store) return;
+    const { data } = await supabase
+      .from("parts_inventory")
+      .select("id,name,stock_current,cost_price")
+      .eq("store_id", store.id)
+      .order("name");
+    setInvParts((data ?? []) as any);
+    // Prefill with existing repair_parts snapshot, if any
+    const existing = Array.isArray(item.repair_parts) ? item.repair_parts : [];
+    setRows(existing.map((p: any) => ({
+      part_id: p.part_id ?? null,
+      name: p.name || "",
+      qty: Number(p.qty || 1),
+      unit_cost: Number(p.unit_cost || 0),
+    })));
+    setManualCost(0);
+    setManualNotes("");
+    setRepairOpen(true);
+  };
+
+  const addRow = () => setRows((r) => [...r, { part_id: null, name: "", qty: 1, unit_cost: 0 }]);
+  const removeRow = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, patch: Partial<{ part_id: string | null; name: string; qty: number; unit_cost: number }>) =>
+    setRows((r) => r.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+
+  const partsCost = rows.reduce((s, r) => s + r.qty * r.unit_cost, 0);
+  const totalCost = partsCost + Number(manualCost || 0);
+
+  const submitRepair = async () => {
+    // Client-side stock validation
+    for (const r of rows) {
+      if (r.part_id) {
+        const p = invParts.find((x) => x.id === r.part_id);
+        if (!p) return toast.error(`Peça inválida: ${r.name}`);
+        if (p.stock_current < r.qty) return toast.error(`Estoque insuficiente de "${p.name}" (${p.stock_current} disponível).`);
+      }
+      if (r.qty <= 0) return toast.error("Quantidade da peça deve ser maior que zero.");
+    }
+    setSaving(true);
+    const payloadParts = rows.map((r) => ({
+      part_id: r.part_id,
+      name: r.name || (invParts.find((x) => x.id === r.part_id)?.name ?? ""),
+      qty: r.qty,
+      unit_cost: r.unit_cost,
+    }));
+    const { error } = await (supabase as any).rpc("finish_trade_in_repair", {
+      _trade_in_id: item.id,
+      _parts: payloadParts,
+      _manual_cost: Number(manualCost) || 0,
+      _manual_notes: manualNotes || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Preparo concluído. Aparelho no estoque.");
+    setRepairOpen(false);
+    // Reload
+    const { data: ti } = await supabase.from("trade_ins").select("*").eq("id", item.id).maybeSingle();
+    setItem(ti);
+    reloadAudits();
+  };
 
   const activateToStock = async () => {
     if (!item) return;
@@ -173,6 +243,11 @@ export default function TradeInDetails() {
             {simple === "desativado" && !isSold && (
               <Button onClick={activateToStock} disabled={saving} className="bg-success hover:bg-success/90 text-success-foreground">
                 <PackagePlus className="h-4 w-4 mr-1" /> Dar entrada no estoque
+              </Button>
+            )}
+            {isAwaitingRepair && (
+              <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
+                <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
               </Button>
             )}
             {simple === "em_estoque" && (
