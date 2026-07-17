@@ -38,6 +38,14 @@ function saveHistory(items: NotificationItem[]) {
   } catch {}
 }
 
+/** Fires a local notification into the bell (dedupes by id). */
+export function pushLocalNotification(entry: Omit<NotificationItem, "read"> & { read?: boolean }) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent("phonee:notification_push", { detail: entry }),
+  );
+}
+
 function formatTime(ts: number): string {
   const diff = Date.now() - ts;
   const min = Math.floor(diff / 60000);
@@ -82,9 +90,22 @@ export function NotificationsBell() {
     };
     window.addEventListener("storage", onStorage);
 
+    const onLocalPush = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as NotificationItem | undefined;
+      if (!detail?.id) return;
+      setItems((prev) => {
+        if (prev.some((i) => i.id === detail.id)) return prev;
+        const next = [{ read: false, ...detail } as NotificationItem, ...prev].slice(0, MAX_ITEMS);
+        saveHistory(next);
+        return next;
+      });
+    };
+    window.addEventListener("phonee:notification_push", onLocalPush as EventListener);
+
     return () => {
       navigator.serviceWorker?.removeEventListener?.("message", onSwMessage);
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("phonee:notification_push", onLocalPush as EventListener);
     };
   }, []);
 
