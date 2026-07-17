@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { DemoBanner } from "./DemoBanner";
 import { isDemoMode, isDemoUserEmail, clearDemoMode } from "@/lib/demoMode";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { useStalledOsAlerts } from "@/hooks/useStalledOsAlerts";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -23,6 +24,7 @@ export default function AppLayout() {
   const { user, store, role, signOut } = useAuth();
   const navigate = useNavigate();
   const demo = isDemoMode() || isDemoUserEmail(user?.email);
+  useStalledOsAlerts();
 
   const initials = (user?.email ?? "U").slice(0, 2).toUpperCase();
 
