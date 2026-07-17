@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle, Wrench, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle, Wrench, Plus, Trash2, XCircle, FileText } from "lucide-react";
 import { brl } from "@/lib/format";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import NumberInput from "@/components/NumberInput";
 import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP, DEACTIVATE_REASONS, REASON_LABEL } from "@/lib/tradeInStatus";
-import { printTradeInFicha, buildTradeInFichaHtml } from "@/lib/tradeInPrint";
+import { printTradeInFicha, buildTradeInFichaHtml, printTradeInTimeline } from "@/lib/tradeInPrint";
+import { Textarea } from "@/components/ui/textarea";
 import { evaluateCompleteness } from "@/lib/tradeInCompleteness";
 import { toast } from "sonner";
 
