@@ -637,6 +637,16 @@ export default function Estoque() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, SKU ou marca…" className="pl-9 h-10 bg-card border-border" />
         </div>
+        <div className="relative w-full md:w-52">
+          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={skuQ}
+            onChange={(e) => setSkuQ(e.target.value)}
+            placeholder="SKU (exato/parcial)"
+            className="pl-9 h-10 bg-card border-border font-mono text-xs uppercase"
+            aria-label="Filtrar por SKU"
+          />
+        </div>
         <Select value={brandFilter} onValueChange={setBrandFilter}>
           <SelectTrigger className="w-full md:w-44 h-10 bg-card border-border">
             <SelectValue placeholder="Marca" />
