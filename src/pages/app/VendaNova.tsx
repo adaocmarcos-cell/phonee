@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import {
-  Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt,
+  Plus, Trash2, Search, UserPlus, Save, X, FileDown, MessageCircle, Receipt, Barcode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
