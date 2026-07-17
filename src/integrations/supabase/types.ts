@@ -1907,6 +1907,67 @@ export type Database = {
           },
         ]
       }
+      receivable_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          notes: string | null
+          receivable_id: string
+          received_at: string
+          received_by: string | null
+          sale_id: string
+          store_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          method: string
+          notes?: string | null
+          receivable_id: string
+          received_at?: string
+          received_by?: string | null
+          sale_id: string
+          store_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          receivable_id?: string
+          received_at?: string
+          received_by?: string | null
+          sale_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receivable_payments_receivable_id_fkey"
+            columns: ["receivable_id"]
+            isOneToOne: false
+            referencedRelation: "sale_receivables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivable_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receivable_payments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_codes: {
         Row: {
           code: string
@@ -2209,6 +2270,88 @@ export type Database = {
             columns: ["trade_in_id"]
             isOneToOne: false
             referencedRelation: "trade_ins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_receivables: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_whatsapp: string | null
+          due_date: string
+          id: string
+          installment_number: number
+          notes: string | null
+          paid_amount: number
+          paid_at: string | null
+          renegotiated_from: string | null
+          sale_id: string
+          status: string
+          store_id: string
+          total_installments: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          due_date: string
+          id?: string
+          installment_number: number
+          notes?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          renegotiated_from?: string | null
+          sale_id: string
+          status?: string
+          store_id: string
+          total_installments: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_whatsapp?: string | null
+          due_date?: string
+          id?: string
+          installment_number?: number
+          notes?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          renegotiated_from?: string | null
+          sale_id?: string
+          status?: string
+          store_id?: string
+          total_installments?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_receivables_renegotiated_from_fkey"
+            columns: ["renegotiated_from"]
+            isOneToOne: false
+            referencedRelation: "sale_receivables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_receivables_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_receivables_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -4250,6 +4393,16 @@ export type Database = {
         Returns: Json
       }
       product_stock_metrics: { Args: { _store_id: string }; Returns: Json }
+      receive_installment: {
+        Args: {
+          _amount: number
+          _method: string
+          _notes?: string
+          _receivable_id: string
+          _received_at?: string
+        }
+        Returns: Json
+      }
       redeem_coupon: {
         Args: {
           _code: string
@@ -4282,6 +4435,17 @@ export type Database = {
           total: number
         }[]
       }
+      register_credit_installments: {
+        Args: {
+          _customer_whatsapp?: string
+          _entry_amount: number
+          _first_due: string
+          _installments: number
+          _interval_days?: number
+          _sale_id: string
+        }
+        Returns: Json
+      }
       register_referral: {
         Args: {
           _code: string
@@ -4293,6 +4457,16 @@ export type Database = {
       }
       reject_subscription_change: {
         Args: { _request_id: string; _review_notes: string }
+        Returns: Json
+      }
+      renegotiate_receivables: {
+        Args: {
+          _first_due: string
+          _interval_days?: number
+          _new_installments: number
+          _reason?: string
+          _receivable_ids: string[]
+        }
         Returns: Json
       }
       request_subscription_change: {
