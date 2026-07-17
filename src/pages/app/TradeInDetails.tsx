@@ -575,7 +575,7 @@ export default function TradeInDetails() {
             <Button variant="ghost" onClick={() => setRepairOpen(false)}>Cancelar</Button>
             <Button
               onClick={() => setRepairPreviewOpen(true)}
-              disabled={saving || rows.length === 0 && (Number(manualCost) || 0) === 0}
+              disabled={saving || (rows.length === 0 && (Number(manualCost) || 0) === 0)}
               className="bg-success text-success-foreground hover:bg-success/90"
             >
               Revisar e concluir
