@@ -284,13 +284,15 @@ export default function TradeInDetails() {
             <h3 className="font-semibold">{item.customer_name}</h3>
             <div className="flex flex-col items-end gap-0.5">
               <div className="flex items-center gap-1">
-                <Badge className={simple === "em_estoque"
-                  ? "bg-success/15 text-success border-success/30"
-                  : "bg-muted text-muted-foreground border-border"}>
-                  {simple === "em_estoque"
-                    ? <CheckCircle2 className="h-3 w-3 mr-1" />
-                    : <CircleOff className="h-3 w-3 mr-1" />}
-                  {simple === "em_estoque" ? "Em estoque" : "Desativado"}
+                <Badge className={
+                  simple === "em_estoque" ? "bg-success/15 text-success border-success/30" :
+                  simple === "aguardando_preparo" ? "bg-warning/15 text-warning border-warning/30" :
+                  "bg-muted text-muted-foreground border-border"
+                }>
+                  {simple === "em_estoque" ? <CheckCircle2 className="h-3 w-3 mr-1" /> :
+                   simple === "aguardando_preparo" ? <Wrench className="h-3 w-3 mr-1" /> :
+                   <CircleOff className="h-3 w-3 mr-1" />}
+                  {simple === "em_estoque" ? "Em estoque" : simple === "aguardando_preparo" ? "Aguardando preparo" : "Desativado"}
                 </Badge>
                 <Tooltip>
                   <TooltipTrigger asChild><HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" /></TooltipTrigger>
