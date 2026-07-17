@@ -926,6 +926,13 @@ export default function Vendas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SaleReturnDialog
+        open={!!returnSale}
+        onOpenChange={(b) => !b && setReturnSale(null)}
+        sale={returnSale}
+        onDone={() => { reloadSales(); }}
+      />
     </div>
   );
 }
