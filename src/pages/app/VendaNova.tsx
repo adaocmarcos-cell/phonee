@@ -912,6 +912,40 @@ export default function VendaNova() {
         trade_in_id: p.trade_in_id ?? null,
       }));
 
+    // Aparelho de troca cadastrado inline no PDV (Fatia 1): vai atomicamente
+    // na RPC create_sale para virar trade_in + sale_payment.trade_in_id numa
+    // única transação — sem despesa gerada no financeiro.
+    const trocaWithDraft = payments.find((p) => p.method === "troca" && p.new_trade_in);
+    const tradeInPayload = trocaWithDraft?.new_trade_in
+      ? {
+          brand: trocaWithDraft.new_trade_in.brand || null,
+          model: trocaWithDraft.new_trade_in.model || "Aparelho",
+          storage_gb: trocaWithDraft.new_trade_in.storage_gb || null,
+          color: trocaWithDraft.new_trade_in.color || null,
+          imei: trocaWithDraft.new_trade_in.imei || null,
+          condition: trocaWithDraft.new_trade_in.condition,
+          battery_health: trocaWithDraft.new_trade_in.battery_health || null,
+          entry_value: Number(trocaWithDraft.new_trade_in.entry_value) || 0,
+          intended_sale_value:
+            Number(trocaWithDraft.new_trade_in.intended_sale_value) ||
+            Number(trocaWithDraft.new_trade_in.entry_value) || 0,
+          needs_repair: !!trocaWithDraft.new_trade_in.needs_repair,
+          customer_name: customer || null,
+          customer_doc: doc || null,
+          customer_phone: whatsapp || null,
+          checklist: {
+            charger_included: !!trocaWithDraft.new_trade_in.charger_included,
+            accessories: trocaWithDraft.new_trade_in.accessories || "",
+          },
+          notes: [
+            trocaWithDraft.new_trade_in.notes,
+            trocaWithDraft.new_trade_in.needs_repair && trocaWithDraft.new_trade_in.repair_desc
+              ? `Reparo previsto: ${trocaWithDraft.new_trade_in.repair_desc} (~${brl(Number(trocaWithDraft.new_trade_in.repair_cost_est) || 0)})`
+              : "",
+          ].filter(Boolean).join("\n") || null,
+        }
+      : null;
+
     // Bloqueio local: em edição de venda com troca, não permite remover a parcela de troca.
     if (isEditingSale && editHasTradeIn && !payments.some((p) => p.method === "troca")) {
       setBusy(false);
