@@ -205,3 +205,121 @@ export function printTradeInFicha(ti: any, store: Store) {
   w.document.write(html);
   w.document.close();
 }
+
+// ============ Linha do tempo (auditoria) ============
+
+type TimelineEntry = {
+  created_at: string;
+  action: string;
+  user_label: string;
+  details: any;
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  em_avaliacao: "Em avaliação",
+  aprovado: "Aguardando preparo",
+  em_estoque: "Em estoque",
+  vendido: "Vendido",
+  recusado: "Recusado",
+};
+
+export function buildTradeInTimelineHtml(
+  ti: any,
+  store: Store,
+  entries: TimelineEntry[],
+  opts: { autoPrint?: boolean } = {},
+): string {
+  const rows = entries
+    .map((e) => {
+      const d = e.details || {};
+      const st = d.status && typeof d.status === "object" ? d.status : null;
+      const status = st
+        ? `<div class="pill from">${esc(STATUS_LABEL[st.de] ?? st.de ?? "—")}</div>
+           <span class="arrow">→</span>
+           <div class="pill to">${esc(STATUS_LABEL[st.para] ?? st.para ?? "—")}</div>`
+        : "";
+      const parts = Array.isArray(d.parts) && d.parts.length
+        ? `<div class="parts"><strong>Peças:</strong><ul>${d.parts
+            .map(
+              (p: any) =>
+                `<li>${esc(p.name)} × ${esc(p.qty)} · ${brl(Number(p.unit_cost || 0))}
+                 <span class="src">(${p.source === "estoque" ? "estoque" : "externa"})</span></li>`,
+            )
+            .join("")}</ul></div>`
+        : "";
+      const costs =
+        d.parts_cost !== undefined || d.manual_cost !== undefined
+          ? `<div class="costs">Peças ${brl(Number(d.parts_cost || 0))} · Manual ${brl(
+              Number(d.manual_cost || 0),
+            )} · <strong>Total ${brl(Number(d.total_cost || Number(d.parts_cost || 0) + Number(d.manual_cost || 0)))}</strong></div>`
+          : "";
+      const notes = d.notas_preparo ? `<div class="notes">"${esc(d.notas_preparo)}"</div>` : "";
+      const motivo = d.motivo ? `<div class="motivo">Motivo: ${esc(d.motivo)}</div>` : "";
+      return `<tr>
+        <td class="when">${esc(new Date(e.created_at).toLocaleString("pt-BR"))}</td>
+        <td class="who">${esc(e.user_label)}</td>
+        <td class="what">
+          <div class="action">${esc(
+            e.action === "criacao" ? "Entrada criada" : e.action === "edicao" ? "Edição" : "Mudança de status",
+          )}</div>
+          ${status ? `<div class="status">${status}</div>` : ""}
+          ${motivo}${notes}${costs}${parts}
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>Linha do tempo · ${esc(ti.model || "")}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial; color: #111; padding: 24px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: #555; font-size: 12px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border-bottom: 1px solid #ddd; padding: 8px; vertical-align: top; text-align: left; }
+  th { background: #f4f4f5; text-transform: uppercase; font-size: 10px; color: #555; }
+  .when { white-space: nowrap; color: #333; width: 140px; }
+  .who { width: 160px; color: #333; }
+  .action { font-weight: 600; margin-bottom: 4px; }
+  .status { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; border: 1px solid #ccc; background: #fafafa; }
+  .pill.to { background: #e6f7ec; border-color: #6bb686; color: #135a2a; }
+  .arrow { color: #888; }
+  .motivo, .notes, .costs { font-size: 11px; color: #444; margin-top: 2px; }
+  .notes { font-style: italic; }
+  .parts ul { margin: 4px 0 0 16px; padding: 0; }
+  .parts li { font-size: 11px; color: #333; }
+  .src { color: #777; }
+  .foot { margin-top: 20px; font-size: 10px; color: #888; text-align: right; }
+</style></head><body>
+<h1>Linha do tempo — ${esc(ti.brand || "")} ${esc(ti.model || "")}</h1>
+<div class="sub">
+  Cliente: <strong>${esc(ti.customer_name || "—")}</strong> ·
+  IMEI: <span style="font-family:monospace">${esc(ti.imei || "—")}</span> ·
+  Loja: ${esc(store.trade_name || store.name)} ·
+  Emitido em ${new Date().toLocaleString("pt-BR")}
+</div>
+<table>
+  <thead><tr><th>Quando</th><th>Quem</th><th>O que aconteceu</th></tr></thead>
+  <tbody>${rows || `<tr><td colspan="3" style="color:#777;text-align:center;padding:24px">Sem eventos registrados.</td></tr>`}</tbody>
+</table>
+<div class="foot">${esc(store.pdf_footer_text || "Emitido pelo Phonee")}</div>
+${opts.autoPrint ? '<script>window.onload=()=>{setTimeout(()=>window.print(),200)}</script>' : ""}
+</body></html>`;
+}
+
+export function printTradeInTimeline(
+  ti: any,
+  store: Store,
+  entries: TimelineEntry[],
+) {
+  const html = buildTradeInTimelineHtml(ti, store, entries, { autoPrint: true });
+  const w = window.open("", "_blank", "width=900,height=1100");
+  if (!w) {
+    alert("Habilite pop-ups para exportar a linha do tempo.");
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
