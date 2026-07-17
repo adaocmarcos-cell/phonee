@@ -779,7 +779,31 @@ export default function Estoque() {
                     </td>
                     <td className="px-4 py-3 min-w-[180px] max-w-[280px]">
                       <div className="font-medium truncate" title={p.name}>{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground font-mono truncate">{p.sku || "—"}{p.brand ? ` · ${p.brand}` : ""}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{p.brand || "—"}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.sku ? (
+                        <div className="inline-flex items-center gap-1 rounded-md border border-border bg-surface-elevated/60 px-2 py-1">
+                          <span className="font-mono text-[11px] tracking-tight">{p.sku}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard?.writeText(p.sku!).then(
+                                () => toast.success(`SKU ${p.sku} copiado`),
+                                () => toast.error("Não foi possível copiar"),
+                              );
+                            }}
+                            title="Copiar SKU"
+                            aria-label={`Copiar SKU ${p.sku}`}
+                            className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="outline" className="border-border text-xs">{categoryLabel[p.category] ?? p.category}</Badge>
