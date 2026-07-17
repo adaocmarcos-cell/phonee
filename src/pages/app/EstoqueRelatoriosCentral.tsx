@@ -21,15 +21,17 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import MovimentacaoLedger from "./MovimentacaoLedger";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 
 type ReportKey =
-  | "in_out" | "transfers" | "balances" | "top_movers"
+  | "movement" | "in_out" | "transfers" | "balances" | "top_movers"
   | "stalled" | "low_stock" | "financial" | "by_product";
 
 const REPORTS: { key: ReportKey; label: string; icon: any; desc: string }[] = [
+  { key: "movement",   label: "Movimentação (livro)",    icon: ShieldCheck, desc: "Saldo inicial · Entradas · Saídas · Divergência" },
   { key: "in_out",     label: "Entradas & Saídas",        icon: ArrowDownUp, desc: "Movimentações do período" },
   { key: "transfers",  label: "Transferências",           icon: Repeat,      desc: "Entre lojas/depósitos" },
   { key: "balances",   label: "Saldos em Estoque",        icon: Boxes,       desc: "Foto atual do estoque" },
@@ -416,7 +418,14 @@ export default function EstoqueRelatoriosCentral() {
           </div>
           <div>
             <Label className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Categoria</Label>
-            <Select value={category} onValueChange={setCategory}><SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas</SelectItem>{categories.map((c: any) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="smartphones">📱 Só smartphones</SelectItem>
+                {categories.map((c: any) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="md:col-span-2">
             <Label className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Fornecedor</Label>
@@ -455,6 +464,17 @@ export default function EstoqueRelatoriosCentral() {
           })}
         </TabsList>
 
+        <TabsContent value="movement">
+          <MovimentacaoLedger
+            storeId={store?.id}
+            periodStart={periodStart}
+            periodEnd={periodEnd}
+            category={category}
+            brand={brand}
+            supplier={supplier}
+            showCost={showCost}
+          />
+        </TabsContent>
         <TabsContent value="in_out"><MovChart data={movByDay} /><MovTable rows={filteredMovs} loading={loading} /></TabsContent>
         <TabsContent value="transfers"><TransfersTable rows={transfers} loading={loading} /></TabsContent>
         <TabsContent value="balances"><BalancesTable rows={filteredProds} loading={loading} /></TabsContent>
