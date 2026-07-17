@@ -148,6 +148,9 @@ export default function OrdensServico() {
             <Button variant="outline" onClick={() => navigate("/painel/pecas?tab=compras")}>
               <ShoppingCart className="h-4 w-4 mr-1" />Centro de compras
             </Button>
+            <Button variant="outline" onClick={() => navigate("/painel/ordens/relatorios")}>
+              <BarChart3 className="h-4 w-4 mr-1" />Relatórios
+            </Button>
             <Button onClick={() => navigate("/painel/ordens/nova")} className="bg-primary text-primary-foreground shadow-glow">
               <Plus className="h-4 w-4 mr-1" />Nova ordem de serviço
             </Button>
