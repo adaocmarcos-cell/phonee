@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import {
   Bug, Lightbulb, Wrench, History, UserCheck, Loader2, Lock, Paperclip, X, FileText, Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { HELP_MODULES } from "@/content/helpManual";
 
 type TicketStatus = "aberto" | "em_andamento" | "aguardando_cliente" | "pendente" | "resolvido" | "fechado";
 
@@ -49,53 +51,7 @@ type StatusHistoryRow = {
   created_at: string;
 };
 
-const HELP_TOPICS: { module: string; items: { q: string; a: string }[] }[] = [
-  {
-    module: "Estoque",
-    items: [
-      { q: "Como cadastrar um produto novo?", a: "Vá em Estoque → 'Novo produto'. Preencha nome, SKU, marca, categoria, preços e estoque atual/mínimo. Marque 'Visível no catálogo' se quiser exibir em tabela de preço." },
-      { q: "Como funciona o estoque mínimo?", a: "Quando o estoque atual fica igual ou abaixo do mínimo, o produto entra automaticamente nas sugestões de Pedidos de Compra e gera alerta na Central de Alertas." },
-      { q: "O que é o Relatório de Estoque em tempo real?", a: "Mostra o saldo de fechamento do mês anterior + entradas e saídas do período. Inconsistências (estoque negativo, divergências) aparecem destacadas em vermelho." },
-      { q: "Como funcionam os Ajustes de Estoque?", a: "Dentro da página Estoque há o botão 'Ajustes'. Toda alteração manual exige justificativa (perda, brinde, uso interno, outros), é enviada ao gestor para aprovação e fica registrada nos Logs." },
-      { q: "Como cadastrar marcas?", a: "Em Estoque, clique no ícone de marcas. Selecione as marcas com que sua loja trabalha — elas viram filtro automático nas Tabelas de Preço." },
-    ],
-  },
-  {
-    module: "Vendas",
-    items: [
-      { q: "Como registrar uma venda?", a: "Em Vendas → 'Nova venda'. Selecione cliente, itens, forma de pagamento e finalize. O estoque é baixado automaticamente." },
-      { q: "O que é o Financeiro · A receber?", a: "Lista as vendas com pagamento pendente. Você pode marcar como pago, ver clientes em aberto e enviar lembrete via WhatsApp com prévia da mensagem antes de enviar." },
-      { q: "Como funciona o lembrete por WhatsApp?", a: "Use o template padrão com {cliente}, {numero}, {valor}, {vencimento}, {loja}. Antes de enviar, a prévia mostra exatamente como o cliente vai receber a mensagem." },
-    ],
-  },
-  {
-    module: "Assistência & Ordens de Serviço",
-    items: [
-      { q: "Como cadastrar a senha do aparelho do cliente?", a: "Na OS, o campo 'Senha do aparelho' aceita senha numérica/texto OU padrão visual (3x3). O padrão mostra o início em verde, meio em amarelo e fim em vermelho com setas de direção." },
-      { q: "Peças usadas em OS dão baixa no estoque?", a: "Sim. Peças aparecem como categoria em Estoque e sincronizam saídas tanto pela venda de peça quanto pelo uso em uma Ordem de Serviço." },
-    ],
-  },
-  {
-    module: "Curva ABC e Pedidos de Compra",
-    items: [
-      { q: "O que é a Curva ABC?", a: "Classifica seus produtos por giro: A (maior faturamento), B (médio), C (baixo). Use para focar compras nos itens que mais geram resultado." },
-      { q: "Como funcionam as sugestões de compra?", a: "O sistema calcula a quantidade sugerida com base no histórico de vendas — você compra o que de fato gira, sem inflar o estoque. Em Pedidos de Compra, produtos abaixo do mínimo vêm pré-selecionados; você pode remover ou ajustar." },
-    ],
-  },
-  {
-    module: "Logs, Permissões e Alertas",
-    items: [
-      { q: "Onde vejo o histórico de ações dos usuários?", a: "No menu Logs (acima de Alertas). Filtre por usuário, tipo de ação e período. Acesso controlado por Permissões — o gestor define quem pode visualizar." },
-      { q: "Como funcionam os alertas?", a: "A bolinha vermelha estilo notificação aparece no ícone de Alertas sempre que há algo crítico: estoque negativo, ajuste manual pendente de aprovação, etc." },
-    ],
-  },
-  {
-    module: "Tabelas de Preço e Marcas",
-    items: [
-      { q: "Como gerar uma tabela de preço?", a: "Em Tabelas de Preço, selecione marca/categoria, layout e exporte em PDF ou compartilhe link. Use as marcas pré-cadastradas em Estoque para filtrar." },
-    ],
-  },
-];
+// Manual movido para src/content/helpManual.ts (HELP_MODULES).
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
   aberto: "Novo",
@@ -126,6 +82,7 @@ const STATUS_ICON: Record<TicketStatus, any> = {
 
 export default function Suporte() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null);
@@ -135,7 +92,10 @@ export default function Suporte() {
 
   const [form, setForm] = useState({ subject: "", category: "duvida", priority: "normal", message: "" });
   const [submitting, setSubmitting] = useState(false);
-  const [tab, setTab] = useState("ajuda");
+  const [tab, setTab] = useState<string>(() => searchParams.get("tab") || "ajuda");
+  const focusModuleId = searchParams.get("modulo");
+  const moduleRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
 
   // Sugestões & Bugs quick dialog
   const [sbOpen, setSbOpen] = useState(false);
@@ -321,12 +281,44 @@ export default function Suporte() {
 
   const filteredTopics = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return HELP_TOPICS;
-    return HELP_TOPICS.map((m) => ({
-      ...m,
-      items: m.items.filter((it) => it.q.toLowerCase().includes(q) || it.a.toLowerCase().includes(q) || m.module.toLowerCase().includes(q)),
-    })).filter((m) => m.items.length > 0);
+    if (!q) return HELP_MODULES;
+    return HELP_MODULES.filter((m) => {
+      const haystack = [
+        m.title,
+        m.whatIs,
+        ...m.steps.map((s) => `${s.title} ${s.detail}`),
+        ...(m.tips ?? []),
+        ...(m.faq ?? []).map((f) => `${f.q} ${f.a}`),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
   }, [search]);
+
+  // Sincroniza aba com query param
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && t !== tab) setTab(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Rola até o módulo alvo e abre o accordion
+  useEffect(() => {
+    if (tab !== "ajuda" || !focusModuleId) return;
+    setOpenAccordion(focusModuleId);
+    const el = moduleRefs.current[focusModuleId];
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    }
+  }, [tab, focusModuleId, filteredTopics.length]);
+
+  const handleTabChange = (v: string) => {
+    setTab(v);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", v);
+    setSearchParams(next, { replace: true });
+  };
 
   return (
     <div className="space-y-6">
@@ -335,7 +327,7 @@ export default function Suporte() {
         description="Tire dúvidas sobre o sistema, consulte a base de ajuda ou abra um chamado com nossa equipe."
       />
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="ajuda"><BookOpen className="h-4 w-4 mr-2" />Central de ajuda</TabsTrigger>
           <TabsTrigger value="novo"><HelpCircle className="h-4 w-4 mr-2" />Abrir chamado</TabsTrigger>
@@ -373,23 +365,86 @@ export default function Suporte() {
               Nenhum tópico encontrado. Tente outra palavra ou abra um chamado.
             </Card>
           ) : (
-            filteredTopics.map((module) => (
-              <Card key={module.module} className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">{module.module}</h3>
-                  <Badge variant="outline" className="ml-auto">{module.items.length}</Badge>
-                </div>
-                <Accordion type="single" collapsible>
-                  {module.items.map((it, idx) => (
-                    <AccordionItem key={idx} value={`${module.module}-${idx}`}>
-                      <AccordionTrigger className="text-sm text-left">{it.q}</AccordionTrigger>
-                      <AccordionContent className="text-sm text-muted-foreground leading-relaxed">{it.a}</AccordionContent>
+            <Accordion
+              type="single"
+              collapsible
+              value={openAccordion}
+              onValueChange={setOpenAccordion}
+              className="space-y-3"
+            >
+              {filteredTopics.map((mod) => {
+                const Icon = mod.icon;
+                const highlight = mod.id === focusModuleId;
+                return (
+                  <div
+                    key={mod.id}
+                    ref={(el) => (moduleRefs.current[mod.id] = el)}
+                  >
+                    <AccordionItem
+                      value={mod.id}
+                      className={`rounded-lg border ${highlight ? "border-primary/60 ring-2 ring-primary/20" : "border-border"} bg-card`}
+                    >
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                        <div className="flex items-center gap-2.5 text-left">
+                          <span className="h-8 w-8 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-sm">{mod.title}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">{mod.whatIs}</div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4 space-y-4">
+                        <p className="text-sm text-muted-foreground leading-relaxed">{mod.whatIs}</p>
+
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-foreground/70 mb-2">Passo a passo</div>
+                          <ol className="space-y-2.5">
+                            {mod.steps.map((s, i) => (
+                              <li key={i} className="flex gap-3 text-sm">
+                                <span className="shrink-0 h-6 w-6 rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex items-center justify-center">
+                                  {i + 1}
+                                </span>
+                                <div>
+                                  <div className="font-medium text-foreground">{s.title}</div>
+                                  <div className="text-muted-foreground leading-relaxed">{s.detail}</div>
+                                </div>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+
+                        {mod.tips && mod.tips.length > 0 && (
+                          <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-1.5">Dicas</div>
+                            <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                              {mod.tips.map((t, i) => (
+                                <li key={i}>{t}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {mod.faq && mod.faq.length > 0 && (
+                          <div>
+                            <div className="text-xs font-semibold uppercase tracking-wide text-foreground/70 mb-2">Perguntas frequentes</div>
+                            <div className="space-y-2">
+                              {mod.faq.map((f, i) => (
+                                <div key={i} className="rounded-md border border-border p-3">
+                                  <div className="text-sm font-medium">{f.q}</div>
+                                  <div className="text-sm text-muted-foreground mt-1 leading-relaxed">{f.a}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </AccordionContent>
                     </AccordionItem>
-                  ))}
-                </Accordion>
-              </Card>
-            ))
+                  </div>
+                );
+              })}
+            </Accordion>
           )}
         </TabsContent>
 
