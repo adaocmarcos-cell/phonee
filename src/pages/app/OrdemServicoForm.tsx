@@ -401,6 +401,11 @@ Status: ${os.status}`;
             <Button variant="ghost" onClick={() => navigate("/painel/ordens")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
             {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo Técnico</Button>}
+            {editing && os.public_token && (
+              <Button variant="outline" onClick={copyTrackingLink} title="Copiar link público de acompanhamento">
+                <Link2 className="h-4 w-4 mr-1" />Link do cliente
+              </Button>
+            )}
             {editing && store && (
               <WhatsappSendButton
                 storeId={store.id}
