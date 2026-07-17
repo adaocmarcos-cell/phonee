@@ -35,6 +35,7 @@ const ops: Item[] = [
     { title: "Compras/Entradas", url: "/painel/compras", icon: ShoppingCart },
     { title: "Peças", url: "/painel/pecas", icon: Hammer },
     { title: "Compra e Troca", url: "/painel/troca", icon: Smartphone },
+    { title: "Relatórios", url: "/painel/estoque/relatorios", icon: BarChart3 },
   ] },
   { title: "Clientes", url: "/painel/clientes", icon: Users },
   { title: "Financeiro", url: "/painel/financeiro", icon: DollarSign, badgeKey: "overdue", children: [
