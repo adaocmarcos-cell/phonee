@@ -330,3 +330,65 @@ function KPI({ label, value, sub, tone }: { label: string; value: string; sub?: 
     </Card>
   );
 }
+
+function exportTimelineCsv(row: Row, timeline: Timeline[], from: Date, to: Date) {
+  const header = ["Quando", "Tipo", "Quantidade", "Saldo depois", "Origem", "Nota", "Divergencia"];
+  const lines = [header.join(";")];
+  timeline.forEach((t) => {
+    const isEdit = t.type === "edicao_manual";
+    lines.push([
+      new Date(t.occurred_at).toLocaleString("pt-BR"),
+      TYPE_LABEL[t.type] ?? t.type,
+      String(t.quantity),
+      t.balance_after != null ? String(t.balance_after) : "",
+      t.origin_table ?? "",
+      (t.notes ?? "").replace(/[\n;]+/g, " "),
+      isEdit ? "EDICAO_MANUAL" : "",
+    ].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"));
+  });
+  const bom = "\uFEFF";
+  const blob = new Blob([bom + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `movimentacao_${(row.sku ?? row.product_id).replace(/\W+/g, "_")}_${from.toISOString().slice(0,10)}_${to.toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportTimelinePdf(row: Row, timeline: Timeline[], from: Date, to: Date) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  doc.setFontSize(14);
+  doc.text(`Movimentação de estoque — ${row.product_name}`, 40, 40);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(
+    `SKU: ${row.sku ?? "—"}   Período: ${from.toLocaleDateString("pt-BR")} a ${to.toLocaleDateString("pt-BR")}   Saldo atual: ${row.saldo_atual}   Divergência: ${row.divergencia}`,
+    40, 58,
+  );
+  autoTable(doc, {
+    startY: 78,
+    head: [["Quando", "Tipo", "Qtd", "Saldo", "Origem", "Nota"]],
+    body: timeline.map((t) => [
+      new Date(t.occurred_at).toLocaleString("pt-BR"),
+      (t.type === "edicao_manual" ? "* " : "") + (TYPE_LABEL[t.type] ?? t.type),
+      String(t.quantity),
+      t.balance_after != null ? String(t.balance_after) : "—",
+      t.origin_table ?? "—",
+      t.notes ?? "—",
+    ]),
+    styles: { fontSize: 8, cellPadding: 4 },
+    headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+    didParseCell: (data) => {
+      if (data.section === "body") {
+        const t = timeline[data.row.index];
+        if (t && t.type === "edicao_manual") {
+          data.cell.styles.fillColor = [255, 243, 205];
+          data.cell.styles.textColor = [120, 53, 15];
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+    },
+  });
+  doc.save(`movimentacao_${(row.sku ?? row.product_id).replace(/\W+/g, "_")}.pdf`);
+}
