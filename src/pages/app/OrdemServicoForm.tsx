@@ -604,6 +604,11 @@ Status: ${os.status}`;
                   allowedEvents={["orcamento_pronto", "orcamento_aprovado"]}
                 />
               )}
+              {editing && os.public_token && (
+                <Button variant="outline" onClick={copyTrackingLink} className="ml-2">
+                  <Link2 className="h-4 w-4 mr-1" />Copiar link de acompanhamento
+                </Button>
+              )}
             </div>
           </Card>
         </TabsContent>
