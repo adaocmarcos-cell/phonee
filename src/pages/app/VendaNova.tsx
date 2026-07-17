@@ -1106,6 +1106,27 @@ export default function VendaNova() {
       }
     }
 
+    // Gera parcelas de crediário (uma chamada por split de crediário)
+    for (const cp of payments.filter((p) => p.method === "crediario" && Number(p.amount) > 0)) {
+      if (!linkedCustomerId) {
+        toast.error("Crediário exige cliente identificado. Cadastre e vincule o cliente.");
+        continue;
+      }
+      try {
+        const { error: rErr } = await (supabase as any).rpc("register_credit_installments", {
+          _sale_id: sale.id,
+          _customer_id: linkedCustomerId,
+          _total_amount: Number(cp.amount),
+          _installments: Math.max(1, Number(cp.installments ?? 1)),
+          _first_due: cp.first_due ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+          _interval_days: Number(cp.interval_days ?? 30),
+        });
+        if (rErr) throw rErr;
+      } catch (err: any) {
+        toast.error(`Falha ao gerar parcelas do crediário: ${err.message ?? err}`);
+      }
+    }
+
     setBusy(false);
     setConfirmOpen(false);
     // Dispara evento Purchase para o Meta Pixel com detalhamento por forma de pagamento
