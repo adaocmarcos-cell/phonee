@@ -62,7 +62,33 @@ type LineItem = {
   unit_price: number;
 };
 
-type SplitPayment = { method: string; amount: number; notes: string; installments?: number; trade_in_id?: string | null };
+export type NewTradeInDraft = {
+  brand: string;
+  model: string;
+  storage_gb: string;
+  color: string;
+  imei: string;
+  condition: "otimo" | "bom" | "regular" | "com_defeito";
+  battery_health: number;
+  entry_value: number;
+  intended_sale_value: number;
+  needs_repair: boolean;
+  repair_desc: string;
+  repair_cost_est: number;
+  charger_included: boolean;
+  accessories: string;
+  notes: string;
+};
+
+type SplitPayment = {
+  method: string;
+  amount: number;
+  notes: string;
+  installments?: number;
+  trade_in_id?: string | null;
+  /** Rascunho criado pelo dialog inline — vai atomicamente na RPC create_sale. */
+  new_trade_in?: NewTradeInDraft | null;
+};
 
 type TradeInLite = {
   id: string; brand: string | null; model: string | null;
@@ -194,6 +220,17 @@ export default function VendaNova() {
 
   // Trade-ins disponíveis para uso como meio de pagamento
   const [availableTradeIns, setAvailableTradeIns] = useState<TradeInLite[]>([]);
+
+  // Dialog inline para cadastrar aparelho de troca DENTRO da venda (Fatia 1).
+  const emptyTradeInDraft: NewTradeInDraft = {
+    brand: "", model: "", storage_gb: "", color: "", imei: "",
+    condition: "bom", battery_health: 100,
+    entry_value: 0, intended_sale_value: 0,
+    needs_repair: false, repair_desc: "", repair_cost_est: 0,
+    charger_included: false, accessories: "", notes: "",
+  };
+  const [tradeInDialogIdx, setTradeInDialogIdx] = useState<number | null>(null);
+  const [tradeInDraft, setTradeInDraft] = useState<NewTradeInDraft>(emptyTradeInDraft);
 
   // Entrega
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
@@ -774,9 +811,19 @@ export default function VendaNova() {
       return toast.error("Só é possível registrar uma troca de aparelho por venda.");
     }
     for (const tp of trocaPays) {
-      if (!tp.trade_in_id) return toast.error("Selecione o aparelho recebido na troca.");
-      const ti = availableTradeIns.find((x) => x.id === tp.trade_in_id);
-      if (!ti) return toast.error("Aparelho de troca não encontrado. Recarregue a lista.");
+      if (!tp.trade_in_id && !tp.new_trade_in) {
+        return toast.error("Selecione o aparelho recebido na troca ou cadastre um novo.");
+      }
+      if (tp.new_trade_in) {
+        const d = tp.new_trade_in;
+        if (!d.model.trim()) return toast.error("Informe o modelo do aparelho da troca.");
+        if (Number(d.entry_value) <= 0) {
+          return toast.error("Valor de entrada do aparelho de troca deve ser maior que zero.");
+        }
+      } else {
+        const ti = availableTradeIns.find((x) => x.id === tp.trade_in_id);
+        if (!ti) return toast.error("Aparelho de troca não encontrado. Recarregue a lista.");
+      }
       // Amount pode ser ajustado manualmente; se ficar diferente do entry_value, avisa mas segue.
       if (Number(tp.amount) > totalSale) {
         return toast.error("Valor da troca não pode exceder o total da venda.");
@@ -865,6 +912,40 @@ export default function VendaNova() {
         trade_in_id: p.trade_in_id ?? null,
       }));
 
+    // Aparelho de troca cadastrado inline no PDV (Fatia 1): vai atomicamente
+    // na RPC create_sale para virar trade_in + sale_payment.trade_in_id numa
+    // única transação — sem despesa gerada no financeiro.
+    const trocaWithDraft = payments.find((p) => p.method === "troca" && p.new_trade_in);
+    const tradeInPayload = trocaWithDraft?.new_trade_in
+      ? {
+          brand: trocaWithDraft.new_trade_in.brand || null,
+          model: trocaWithDraft.new_trade_in.model || "Aparelho",
+          storage_gb: trocaWithDraft.new_trade_in.storage_gb || null,
+          color: trocaWithDraft.new_trade_in.color || null,
+          imei: trocaWithDraft.new_trade_in.imei || null,
+          condition: trocaWithDraft.new_trade_in.condition,
+          battery_health: trocaWithDraft.new_trade_in.battery_health || null,
+          entry_value: Number(trocaWithDraft.new_trade_in.entry_value) || 0,
+          intended_sale_value:
+            Number(trocaWithDraft.new_trade_in.intended_sale_value) ||
+            Number(trocaWithDraft.new_trade_in.entry_value) || 0,
+          needs_repair: !!trocaWithDraft.new_trade_in.needs_repair,
+          customer_name: customer || null,
+          customer_doc: doc || null,
+          customer_phone: whatsapp || null,
+          checklist: {
+            charger_included: !!trocaWithDraft.new_trade_in.charger_included,
+            accessories: trocaWithDraft.new_trade_in.accessories || "",
+          },
+          notes: [
+            trocaWithDraft.new_trade_in.notes,
+            trocaWithDraft.new_trade_in.needs_repair && trocaWithDraft.new_trade_in.repair_desc
+              ? `Reparo previsto: ${trocaWithDraft.new_trade_in.repair_desc} (~${brl(Number(trocaWithDraft.new_trade_in.repair_cost_est) || 0)})`
+              : "",
+          ].filter(Boolean).join("\n") || null,
+        }
+      : null;
+
     // Bloqueio local: em edição de venda com troca, não permite remover a parcela de troca.
     if (isEditingSale && editHasTradeIn && !payments.some((p) => p.method === "troca")) {
       setBusy(false);
@@ -899,6 +980,7 @@ export default function VendaNova() {
           _notes: JSON.stringify(payload),
           _items: rpcItems,
           _payments: rpcPayments,
+          _trade_in: tradeInPayload,
         });
 
     if (error || !rpcData) {
@@ -1479,17 +1561,42 @@ Obrigado pela preferência.`;
                               <Label className="text-[11px] uppercase tracking-widest text-amber-700">
                                 Aparelho recebido na troca
                               </Label>
-                              <a
-                                href="/painel/troca/novo"
-                                target="_blank" rel="noopener noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTradeInDraft({
+                                    ...emptyTradeInDraft,
+                                    ...(p.new_trade_in ?? {}),
+                                    entry_value: p.new_trade_in?.entry_value ?? (Number(p.amount) || 0),
+                                  });
+                                  setTradeInDialogIdx(idx);
+                                }}
                                 className="text-[11px] underline text-amber-700 hover:text-amber-800"
                               >
-                                + Cadastrar novo aparelho de troca
-                              </a>
+                                {p.new_trade_in ? "✎ Editar aparelho cadastrado" : "+ Cadastrar aparelho agora"}
+                              </button>
                             </div>
-                            {availableTradeIns.length === 0 ? (
+                            {p.new_trade_in ? (
+                              <div className="text-[11px] text-amber-800 bg-amber-500/10 rounded px-2 py-1.5 flex items-center justify-between gap-2">
+                                <span>
+                                  <b>{p.new_trade_in.brand} {p.new_trade_in.model}</b>
+                                  {p.new_trade_in.storage_gb ? ` · ${p.new_trade_in.storage_gb}GB` : ""}
+                                  {p.new_trade_in.imei ? ` · IMEI ${p.new_trade_in.imei}` : ""}
+                                  {" · "}Avaliado em <b>{brl(p.new_trade_in.entry_value)}</b>
+                                  {p.new_trade_in.needs_repair ? " · precisa de reparo" : ""}
+                                </span>
+                                <Button
+                                  type="button" size="sm" variant="ghost"
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => updatePayment(idx, { new_trade_in: null })}
+                                >
+                                  Remover
+                                </Button>
+                              </div>
+                            ) : availableTradeIns.length === 0 ? (
                               <div className="text-[11px] text-muted-foreground">
-                                Nenhum aparelho em avaliação/aprovado. Cadastre em <b>Compra & Troca</b> antes de finalizar a venda.
+                                Nenhum aparelho pré-cadastrado. Use <b>+ Cadastrar aparelho agora</b> acima
+                                para receber o aparelho na troca sem sair da venda.
                               </div>
                             ) : (
                               <Select
@@ -2085,6 +2192,133 @@ Obrigado pela preferência.`;
               <Plus className="h-4 w-4 mr-2" />Nova venda
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog inline: cadastrar aparelho recebido na troca (Fatia 1) */}
+      <Dialog
+        open={tradeInDialogIdx !== null}
+        onOpenChange={(o) => { if (!o) setTradeInDialogIdx(null); }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Aparelho recebido na troca</DialogTitle>
+            <DialogDescription>
+              O aparelho entra no estoque atomicamente com esta venda. <b>Não gera despesa</b> no
+              financeiro — o custo aparece só quando ele for revendido.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 py-2">
+            <Field label="Marca">
+              <Input value={tradeInDraft.brand}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, brand: e.target.value })}
+                placeholder="Apple, Samsung…" />
+            </Field>
+            <Field label="Modelo *">
+              <Input value={tradeInDraft.model}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, model: e.target.value })}
+                placeholder="iPhone 12" />
+            </Field>
+            <Field label="Armazenamento (GB)">
+              <Input value={tradeInDraft.storage_gb}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, storage_gb: e.target.value })}
+                placeholder="128" />
+            </Field>
+            <Field label="Cor">
+              <Input value={tradeInDraft.color}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, color: e.target.value })} />
+            </Field>
+            <Field label="IMEI">
+              <Input value={tradeInDraft.imei}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, imei: e.target.value })} />
+            </Field>
+            <Field label="Condição">
+              <Select value={tradeInDraft.condition}
+                onValueChange={(v) => setTradeInDraft({ ...tradeInDraft, condition: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="otimo">Ótimo</SelectItem>
+                  <SelectItem value="bom">Bom</SelectItem>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="com_defeito">Com defeito</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Saúde bateria (%)">
+              <NumberInput allowDecimal={false} min={0} value={tradeInDraft.battery_health}
+                onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, battery_health: n })} />
+            </Field>
+            <Field label="Valor de entrada (abatimento) *">
+              <NumberInput min={0} value={tradeInDraft.entry_value}
+                onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, entry_value: n })} />
+            </Field>
+            <Field label="Preço pretendido de venda">
+              <NumberInput min={0} value={tradeInDraft.intended_sale_value}
+                onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, intended_sale_value: n })} />
+            </Field>
+            <div className="col-span-2 md:col-span-3 flex flex-wrap items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={tradeInDraft.needs_repair}
+                  onCheckedChange={(v) => setTradeInDraft({ ...tradeInDraft, needs_repair: v })} />
+                Precisa de reparo
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={tradeInDraft.charger_included}
+                  onCheckedChange={(v) => setTradeInDraft({ ...tradeInDraft, charger_included: v })} />
+                Carregador incluso
+              </label>
+            </div>
+            {tradeInDraft.needs_repair && (
+              <>
+                <div className="col-span-2">
+                  <Field label="Descrição do reparo">
+                    <Input value={tradeInDraft.repair_desc}
+                      onChange={(e) => setTradeInDraft({ ...tradeInDraft, repair_desc: e.target.value })}
+                      placeholder="Ex.: troca de bateria, tela…" />
+                  </Field>
+                </div>
+                <Field label="Custo estimado do reparo">
+                  <NumberInput min={0} value={tradeInDraft.repair_cost_est}
+                    onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, repair_cost_est: n })} />
+                </Field>
+              </>
+            )}
+            <div className="col-span-2 md:col-span-3">
+              <Field label="Acessórios / brindes inclusos">
+                <Input value={tradeInDraft.accessories}
+                  onChange={(e) => setTradeInDraft({ ...tradeInDraft, accessories: e.target.value })}
+                  placeholder="Ex.: capinha, película, fone" />
+              </Field>
+            </div>
+            <div className="col-span-2 md:col-span-3">
+              <Field label="Observações">
+                <Textarea rows={2} value={tradeInDraft.notes}
+                  onChange={(e) => setTradeInDraft({ ...tradeInDraft, notes: e.target.value })} />
+              </Field>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTradeInDialogIdx(null)}>Cancelar</Button>
+            <Button
+              className="bg-gradient-primary"
+              onClick={() => {
+                if (!tradeInDraft.model.trim()) return toast.error("Informe o modelo.");
+                if (Number(tradeInDraft.entry_value) <= 0) {
+                  return toast.error("Informe o valor de entrada (abatimento).");
+                }
+                if (tradeInDialogIdx === null) return;
+                updatePayment(tradeInDialogIdx, {
+                  new_trade_in: { ...tradeInDraft },
+                  trade_in_id: null,
+                  amount: Number(tradeInDraft.entry_value) || 0,
+                  notes: `${tradeInDraft.brand} ${tradeInDraft.model}${tradeInDraft.imei ? ` · IMEI ${tradeInDraft.imei}` : ""}`.trim(),
+                });
+                setTradeInDialogIdx(null);
+              }}
+            >
+              Salvar aparelho
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

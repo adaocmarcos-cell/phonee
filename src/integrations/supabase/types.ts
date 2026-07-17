@@ -3319,6 +3319,7 @@ export type Database = {
           _payment_method: Database["public"]["Enums"]["payment_method"]
           _payments: Json
           _store_id: string
+          _trade_in?: Json
         }
         Returns: Json
       }
