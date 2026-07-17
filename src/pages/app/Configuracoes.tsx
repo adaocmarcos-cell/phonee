@@ -392,6 +392,23 @@ export default function Configuracoes() {
                 />
               </div>
             </div>
+            {/* Caixa */}
+            <div className="md:col-span-2 space-y-2 rounded-md border p-3 bg-muted/20">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Caixa</Label>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-sm">Bloquear venda em dinheiro com caixa fechado</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Quando ativo, o sistema impede registrar vendas em dinheiro (ou mistas com dinheiro) enquanto não houver um caixa aberto para a loja.
+                  </div>
+                </div>
+                <Switch
+                  checked={storeForm.block_sale_when_cash_closed}
+                  onCheckedChange={(v) => setSF("block_sale_when_cash_closed", v)}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
           </div>
           {canEdit && (
             <div className="flex justify-end mt-3">
