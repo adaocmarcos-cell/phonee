@@ -274,6 +274,149 @@ export type Database = {
           },
         ]
       }
+      commission_entries: {
+        Row: {
+          base_amount: number
+          commission_amount: number
+          created_at: string
+          expense_id: string | null
+          id: string
+          notes: string | null
+          origin: string
+          os_id: string | null
+          paid_at: string | null
+          rule_id: string | null
+          sale_id: string | null
+          status: string
+          store_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_amount?: number
+          commission_amount?: number
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          origin: string
+          os_id?: string | null
+          paid_at?: string | null
+          rule_id?: string | null
+          sale_id?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_amount?: number
+          commission_amount?: number
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          origin?: string
+          os_id?: string | null
+          paid_at?: string | null
+          rule_id?: string | null
+          sale_id?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_entries_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_entries_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_entries_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "commission_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_entries_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_entries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_rules: {
+        Row: {
+          applies_to: string
+          base: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          scope: string
+          scope_ref: string | null
+          store_id: string
+          type: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          applies_to: string
+          base: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          scope: string
+          scope_ref?: string | null
+          store_id: string
+          type: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          applies_to?: string
+          base?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          scope?: string
+          scope_ref?: string | null
+          store_id?: string
+          type?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rules_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_redemptions: {
         Row: {
           coupon_code: string
@@ -2210,6 +2353,7 @@ export type Database = {
           store_id: string
           tech_signature: string | null
           technician: string | null
+          technician_id: string | null
           total_value: number
           updated_at: string
           work_checklist: Json | null
@@ -2261,6 +2405,7 @@ export type Database = {
           store_id: string
           tech_signature?: string | null
           technician?: string | null
+          technician_id?: string | null
           total_value?: number
           updated_at?: string
           work_checklist?: Json | null
@@ -2312,6 +2457,7 @@ export type Database = {
           store_id?: string
           tech_signature?: string | null
           technician?: string | null
+          technician_id?: string | null
           total_value?: number
           updated_at?: string
           work_checklist?: Json | null
@@ -3404,6 +3550,11 @@ export type Database = {
         Args: { _permissions: string[]; _reason: string; _user_id: string }
         Returns: Json
       }
+      apply_commissions_for_os: { Args: { _os_id: string }; Returns: undefined }
+      apply_commissions_for_sale: {
+        Args: { _sale_id: string }
+        Returns: undefined
+      }
       apply_coupon: {
         Args: { _amount_cents: number; _code: string }
         Returns: Json
@@ -3423,6 +3574,10 @@ export type Database = {
       }
       assert_sale_has_items: { Args: { _sale_id: string }; Returns: boolean }
       backfill_trial_orphans: { Args: never; Returns: Json }
+      can_manage_commissions: {
+        Args: { _store_id: string; _uid: string }
+        Returns: boolean
+      }
       cancel_trade_in_repair: {
         Args: { _reason?: string; _trade_in_id: string }
         Returns: string
@@ -3477,6 +3632,15 @@ export type Database = {
       get_meta_pixel_id: { Args: never; Returns: string }
       get_public_os: { Args: { _token: string }; Returns: Json }
       get_store_sellers: {
+        Args: { _store_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
+      get_store_technicians: {
         Args: { _store_id: string }
         Returns: {
           email: string
@@ -3558,6 +3722,15 @@ export type Database = {
           store_id: string
           subscription_status: string
         }[]
+      }
+      pay_commission_entries: {
+        Args: {
+          _entry_ids: string[]
+          _expense_date?: string
+          _notes?: string
+          _payment_method?: string
+        }
+        Returns: Json
       }
       phonee_asaas_charge_duplicates: {
         Args: never
@@ -3865,6 +4038,10 @@ export type Database = {
       request_subscription_change: {
         Args: { _changes: Json; _reason: string; _subscription_id: string }
         Returns: string
+      }
+      reverse_commission_payment: {
+        Args: { _expense_id: string }
+        Returns: undefined
       }
       revoke_access_bonus: {
         Args: { p_bonus_id: string; p_reason: string }
