@@ -273,6 +273,19 @@ export default function Vendas() {
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(reminderText)}`;
     window.open(url, "_blank", "noopener,noreferrer");
     await supabase.from("sales").update({ last_reminder_sent_at: new Date().toISOString() }).eq("id", reminderSale.id);
+    // Registra no histórico centralizado de mensagens.
+    if (store?.id) {
+      await (supabase as any).from("whatsapp_messages_log").insert({
+        store_id: store.id,
+        sale_id: reminderSale.id,
+        event_key: "cobranca_pendente",
+        template_id: null,
+        template_title: "Lembrete de cobrança",
+        phone: phone.startsWith("55") ? phone : "55" + phone,
+        message_text: reminderText,
+        sent_by: user?.id ?? null,
+      });
+    }
     toast.success("Lembrete aberto no WhatsApp");
     setReminderOpen(false);
     setReminderSale(null);
