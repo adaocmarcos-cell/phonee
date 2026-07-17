@@ -592,6 +592,22 @@ export default function Vendas() {
                           </Button>
                         </>
                       )}
+                      {s.payment_status !== "pendente" && s.customer_whatsapp && store?.id && (
+                        <WhatsappSendButton
+                          storeId={store.id}
+                          phone={s.customer_whatsapp}
+                          saleId={s.id}
+                          vars={{
+                            cliente: s.customer_name || "cliente",
+                            loja: (store as any)?.trade_name || store?.name || "",
+                            valor: brl(Number(s.total || 0)),
+                            prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
+                          }}
+                          allowedEvents={["venda_concluida"]}
+                          className="h-8 w-8 p-0"
+                          size="sm"
+                        />
+                      )}
                       <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
                         <Printer className="h-4 w-4" />
                       </Button>
