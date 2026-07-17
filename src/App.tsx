@@ -47,6 +47,7 @@ const Financeiro = lazy(() => import("./pages/app/Financeiro"));
 const Comissoes = lazy(() => import("./pages/app/Comissoes"));
 const OrdensServico = lazy(() => import("./pages/app/OrdensServico"));
 const OrdemServicoForm = lazy(() => import("./pages/app/OrdemServicoForm"));
+const RelatoriosOS = lazy(() => import("./pages/app/RelatoriosOS"));
 const PartsInventory = lazy(() => import("./pages/app/PartsInventory"));
 const VendasPecas = lazy(() => import("./pages/app/VendasPecas"));
 const Configuracoes = lazy(() => import("./pages/app/Configuracoes"));
@@ -156,6 +157,7 @@ const App = () => (
               <Route path="fornecedores" element={<Fornecedores />} />
               <Route path="ordens" element={<OrdensServico />} />
               <Route path="ordens/nova" element={<OrdemServicoForm />} />
+              <Route path="ordens/relatorios" element={<RelatoriosOS />} />
               <Route path="ordens/:id" element={<OrdemServicoForm />} />
               <Route path="pecas" element={<PartsInventory />} />
               <Route path="pecas/vendas" element={<VendasPecas />} />
