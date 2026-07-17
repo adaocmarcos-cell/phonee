@@ -412,6 +412,31 @@ export default function VendaNova() {
     })();
   }, [isEditingSale, store, editingSaleId, editSaleLoaded, navigate]);
 
+  // Encomenda vinculada: carrega dados e pré-preenche cliente
+  useEffect(() => {
+    if (!encomendaId || !store || isEditingSale) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("customer_orders")
+        .select("id, customer_name, customer_whatsapp, description, agreed_price, quantity, has_deposit, deposit_amount, status, sale_id")
+        .eq("id", encomendaId)
+        .maybeSingle();
+      if (error || !data) return;
+      if ((data as any).status === "entregue" || (data as any).sale_id) {
+        toast.info("Esta encomenda já foi convertida em venda.");
+        return;
+      }
+      setEncomenda(data as any);
+      setCustomer((data as any).customer_name ?? "");
+      if ((data as any).customer_whatsapp) setWhatsapp((data as any).customer_whatsapp);
+      toast.info(
+        (data as any).has_deposit
+          ? `Encomenda carregada. Sinal de R$ ${Number((data as any).deposit_amount).toFixed(2)} será abatido ao finalizar.`
+          : "Encomenda carregada. Adicione o produto e finalize normalmente.",
+      );
+    })();
+  }, [encomendaId, store, isEditingSale]);
+
   // Carrega clientes cadastrados da loja (autocomplete + sincronização)
   const loadCustomers = async () => {
     if (!store) return;
