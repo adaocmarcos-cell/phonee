@@ -3327,6 +3327,15 @@ export type Database = {
         Args: { _event: string; _payload: Json; _store_id: string }
         Returns: undefined
       }
+      finish_trade_in_repair: {
+        Args: {
+          _manual_cost?: number
+          _manual_notes?: string
+          _parts?: Json
+          _trade_in_id: string
+        }
+        Returns: string
+      }
       generate_referral_code: { Args: { _user_id?: string }; Returns: string }
       get_meta_pixel_id: { Args: never; Returns: string }
       get_store_sellers: {
