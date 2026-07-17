@@ -1240,6 +1240,16 @@ export default function VendaNova() {
       toast.success("Venda atualizada · estoque recalculado");
       navigate("/painel/vendas");
     } else {
+      // Se veio de uma encomenda, consome o sinal e fecha a encomenda
+      if (encomenda?.id) {
+        try {
+          const { error: consErr } = await (supabase as any).rpc("consume_customer_order_deposit", {
+            _order_id: encomenda.id, _sale_id: sale.id,
+          });
+          if (consErr) toast.error(`Sinal não abatido: ${consErr.message}`);
+          else if (encomenda.has_deposit) toast.success("Sinal da encomenda abatido.");
+        } catch { /* noop */ }
+      }
       toast.success("Venda registrada!");
       setPostSave({
         saleId: sale.id,
