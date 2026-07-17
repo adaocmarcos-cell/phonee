@@ -55,21 +55,23 @@ export default function OrdensServico() {
   useEffect(() => {
     if (!store) return;
     (async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("service_orders")
         .select("*")
         .eq("store_id", store.id)
         .order("created_at", { ascending: false })
         .limit(500);
+      if (error) { (await import("@/lib/supabaseFetch")).handleSupabaseError(error, "Erro ao carregar ordens de serviço"); return; }
       const list = data ?? [];
       setRows(list);
       const openIds = list.filter((r: any) => !["entregue", "cancelado"].includes(r.status)).map((r: any) => r.id);
       if (openIds.length > 0) {
-        const { data: hist } = await (supabase as any)
+        const { data: hist, error: hErr } = await (supabase as any)
           .from("os_status_history")
           .select("os_id, changed_at")
           .in("os_id", openIds)
           .order("changed_at", { ascending: false });
+        if (hErr) { (await import("@/lib/supabaseFetch")).handleSupabaseError(hErr, "Erro ao carregar histórico das OS"); return; }
         const latest = new Map<string, string>();
         (hist ?? []).forEach((h: any) => { if (!latest.has(h.os_id)) latest.set(h.os_id, h.changed_at); });
         const now = Date.now();

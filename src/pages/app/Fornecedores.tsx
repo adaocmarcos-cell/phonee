@@ -18,6 +18,7 @@ import {
 import { Plus, Search, Truck, Edit3, Trash2, Phone, Mail, MapPin, Star } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/supabaseFetch";
 
 type Supplier = {
   id: string;
@@ -59,10 +60,15 @@ export default function Fornecedores() {
   const load = async () => {
     if (!store) return;
     setLoading(true);
-    const [{ data: sData }, { data: pData }] = await Promise.all([
+    const [{ data: sData, error: sErr }, { data: pData, error: pErr }] = await Promise.all([
       supabase.from("suppliers").select("*").eq("store_id", store.id).order("company_name"),
       supabase.from("purchase_orders").select("supplier_id, total_cost").eq("store_id", store.id),
     ]);
+    if (sErr || pErr) {
+      handleSupabaseError(sErr || pErr, "Erro ao carregar fornecedores");
+      setLoading(false);
+      return;
+    }
     setList((sData ?? []) as Supplier[]);
     const agg = new Map<string, Stats>();
     (pData ?? []).forEach((r: any) => {

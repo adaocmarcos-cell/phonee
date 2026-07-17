@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select as Select2, SelectContent as Select2Content, SelectItem as Select2Item, SelectTrigger as Select2Trigger, SelectValue as Select2Value } from "@/components/ui/select";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/supabaseFetch";
 
 const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, "0")}`;
 
@@ -80,7 +81,8 @@ export default function Vendas() {
     // Force re-fetch
     (async () => {
       if (!store) return;
-      const { data } = await supabase.from("sales").select("*").eq("store_id", store.id).order("created_at", { ascending: false }).limit(500);
+      const { data, error } = await supabase.from("sales").select("*").eq("store_id", store.id).order("created_at", { ascending: false }).limit(500);
+      if (error) { handleSupabaseError(error, "Erro ao recarregar vendas"); return; }
       if (data) setSales(data as any);
     })();
   };
@@ -125,13 +127,15 @@ export default function Vendas() {
     if (period === "custom" && (!from || !to)) { setSales([]); setTrocaSplits([]); return; }
     if (from) query = query.gte("created_at", from.toISOString());
     if (period !== "all" && to) query = query.lte("created_at", to.toISOString());
-    const { data: s } = await query;
+    const { data: s, error: sErr } = await query;
+    if (sErr) { handleSupabaseError(sErr, "Erro ao carregar vendas"); return; }
     setSales(s ?? []);
     // Recebido em aparelhos (troca) — soma de sale_payments.method='troca' no período
     let tq = (supabase as any).from("sale_payments").select("amount,created_at").eq("store_id", store.id).eq("method", "troca");
     if (from) tq = tq.gte("created_at", from.toISOString());
     if (period !== "all" && to) tq = tq.lte("created_at", to.toISOString());
-    const { data: tp } = await tq;
+    const { data: tp, error: tpErr } = await tq;
+    if (tpErr) { handleSupabaseError(tpErr, "Erro ao carregar pagamentos em troca"); return; }
     setTrocaSplits(((tp as any[]) ?? []).map((r) => ({ amount: Number(r.amount || 0) })));
   };
 
@@ -215,10 +219,11 @@ export default function Vendas() {
   };
 
   const onPrintReceipt = async (sale: any) => {
-    const { data: items } = await supabase
+    const { data: items, error: itemsPrintErr } = await supabase
       .from("sale_items")
       .select("quantity, unit_price, total, description, is_service, name, sku, category, brand, model, unit, discount_amount, imei_serial, public_notes")
       .eq("sale_id", sale.id);
+    if (itemsPrintErr) { handleSupabaseError(itemsPrintErr, "Erro ao carregar itens da venda"); return; }
     if (!items || items.length === 0) {
       toast.error("Esta venda não possui itens registrados.");
       return;

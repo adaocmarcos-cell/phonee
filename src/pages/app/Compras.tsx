@@ -21,6 +21,7 @@ import {
 import { Plus, Search, ShoppingCart, Trash2, Package, CheckCircle2, PackagePlus, TrendingUp, TrendingDown, Wallet, DollarSign, RefreshCw, Pencil, Eye } from "lucide-react";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/supabaseFetch";
 import { MAIN_CATEGORIES, SUBCATEGORIES_BY_MAIN } from "@/lib/categories";
 import { generateUniqueSku } from "@/lib/sku";
 import { NONE_SUBCATEGORY } from "@/lib/productCategory";
@@ -224,12 +225,18 @@ export default function Compras() {
     const monthStart = new Date();
     monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
     const iso = monthStart.toISOString();
-    const [{ data: o }, { data: s }, { data: salesM }, { data: expM }] = await Promise.all([
+    const [{ data: o, error: oErr }, { data: s, error: sErr }, { data: salesM, error: salesErr }, { data: expM, error: expErr }] = await Promise.all([
       supabase.from("purchase_orders").select("*").eq("store_id", store.id).order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id, company_name, brands, avg_delivery_days").eq("store_id", store.id).eq("active", true).order("company_name"),
       supabase.from("sales").select("total, created_at").eq("store_id", store.id).gte("created_at", iso),
       supabase.from("expenses").select("amount, expense_date").eq("store_id", store.id).gte("expense_date", monthStart.toISOString().slice(0, 10)),
     ]);
+    const firstErr = oErr || sErr || salesErr || expErr;
+    if (firstErr) {
+      handleSupabaseError(firstErr, "Erro ao carregar compras");
+      setLoading(false);
+      return;
+    }
     setOrders((o ?? []) as Order[]);
     setSuppliers((s ?? []) as Supplier[]);
     setMonthSales((salesM ?? []).reduce((a: number, r: any) => a + Number(r.total ?? 0), 0));

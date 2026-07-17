@@ -19,6 +19,7 @@ import { Plus, Search, Users, Edit3, Trash2, Phone, Mail, MapPin } from "lucide-
 import { Copy, MessageCircle, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/lib/supabaseFetch";
 
 type Customer = {
   id: string;
@@ -131,10 +132,11 @@ export default function Clientes() {
   const load = async () => {
     if (!store) return;
     setLoading(true);
-    const { data } = await (supabase.from("customers") as any)
+    const { data, error } = await (supabase.from("customers") as any)
       .select("*").eq("store_id", store.id).order("created_at", { ascending: false });
-    setItems((data as Customer[]) ?? []);
     setLoading(false);
+    if (error) { handleSupabaseError(error, "Erro ao carregar clientes"); return; }
+    setItems((data as Customer[]) ?? []);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store?.id]);
