@@ -373,7 +373,14 @@ export default function TradeInDetails() {
         </Card>
 
         <Card className="p-5 bg-card border-border">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" /> Linha do tempo</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold flex items-center gap-2"><History className="h-4 w-4" /> Linha do tempo</h3>
+            {audits.length > 0 && (
+              <Button size="sm" variant="outline" onClick={exportTimeline} title="Exportar linha do tempo em PDF">
+                <FileText className="h-3.5 w-3.5 mr-1" /> Exportar PDF
+              </Button>
+            )}
+          </div>
           {audits.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sem alterações registradas ainda.</p>
           ) : (
