@@ -833,7 +833,7 @@ export default function VendaNova() {
     },
   });
 
-  const onSubmitClick = (e?: FormEvent) => {
+  const onSubmitClick = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
     if (items.length === 0) return toast.error("Adicione ao menos um item");
