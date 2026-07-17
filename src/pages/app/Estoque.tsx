@@ -63,6 +63,7 @@ export default function Estoque() {
   });
   const [filterOptions, setFilterOptions] = useState<{ brands: string[]; categories: string[]; suppliers: string[] }>({ brands: [], categories: [], suppliers: [] });
   const [q, setQ] = useState("");
+  const [skuQ, setSkuQ] = useState("");
   const [filter, setFilter] = useState<"all" | "low" | "stalled">("all");
   const [delTarget, setDelTarget] = useState<Product | null>(null);
   const [saleTarget, setSaleTarget] = useState<Product | null>(null);
@@ -89,10 +90,11 @@ export default function Estoque() {
   const load = useCallback(async () => {
     if (!store) return;
     setLoading(true);
+    const activeQuery = skuQ.trim() ? skuQ.trim() : q;
     const [{ data: pData, error: pErr }, { data: metrics }, { data: options }] = await Promise.all([
       (supabase as any).rpc("stock_products_page", {
         _store_id: store.id,
-        _query: q,
+        _query: activeQuery,
         _filter: filter,
         _brand: brandFilter,
         _category: categoryFilter,
@@ -114,7 +116,7 @@ export default function Estoque() {
       });
     }
     setLoading(false);
-  }, [store, q, filter, brandFilter, categoryFilter, page, pageSize]);
+  }, [store, q, skuQ, filter, brandFilter, categoryFilter, page, pageSize]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -130,11 +132,19 @@ export default function Estoque() {
   }, [store?.id, load]);
 
   const filtered = useMemo(() => {
-    return products;
-  }, [products]);
+    const s = skuQ.trim().toLowerCase();
+    if (!s) return products;
+    const matches = products.filter((p) => (p.sku ?? "").toLowerCase().includes(s));
+    // exact match first, then partial (case-insensitive)
+    return matches.slice().sort((a, b) => {
+      const ea = (a.sku ?? "").toLowerCase() === s ? 0 : 1;
+      const eb = (b.sku ?? "").toLowerCase() === s ? 0 : 1;
+      return ea - eb;
+    });
+  }, [products, skuQ]);
 
   // Reset page when filter changes
-  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, filter, brandFilter, categoryFilter, pageSize]);
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, skuQ, filter, brandFilter, categoryFilter, pageSize]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const safePage = Math.min(page, totalPages);
