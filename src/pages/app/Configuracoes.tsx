@@ -17,6 +17,7 @@ import { ThemePicker } from "@/components/ThemePicker";
 import { Moon, Sun, Type, FileText, Store, Save, Palette, Upload, Trash2, ImageIcon, Paintbrush, RefreshCw, ShieldCheck } from "lucide-react";
 import { subscriptionAccess, anyGrantsAccess } from "@/lib/subscriptionAccess";
 import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
+import { WhatsappTemplatesSettings } from "@/components/settings/WhatsappTemplatesSettings";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -565,6 +566,7 @@ export default function Configuracoes() {
         </Card>
 
         <NotificationsSettings />
+        <WhatsappTemplatesSettings />
       </div>
     </div>
   );
