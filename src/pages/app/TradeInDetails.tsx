@@ -296,9 +296,14 @@ export default function TradeInDetails() {
               </Button>
             )}
             {isAwaitingRepair && (
-              <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
-                <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
-              </Button>
+              <>
+                <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
+                  <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
+                </Button>
+                <Button variant="outline" onClick={() => setCancelOpen(true)} disabled={saving}>
+                  <XCircle className="h-4 w-4 mr-1" /> Cancelar preparo
+                </Button>
+              </>
             )}
             {simple === "em_estoque" && (
               <Button variant="outline" onClick={() => { setReasonKey(""); setDeactivateOpen(true); }}>
