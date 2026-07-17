@@ -88,6 +88,10 @@ type SplitPayment = {
   trade_in_id?: string | null;
   /** Rascunho criado pelo dialog inline — vai atomicamente na RPC create_sale. */
   new_trade_in?: NewTradeInDraft | null;
+  /** Vale-troca: código digitado, id/saldo confirmado após validate_store_credit */
+  store_credit_code?: string;
+  store_credit_id?: string | null;
+  store_credit_balance?: number | null;
 };
 
 type TradeInLite = {
@@ -105,6 +109,7 @@ const PAY_METHODS: { value: string; label: string }[] = [
   { value: "boleto",   label: "Boleto" },
   { value: "transferencia", label: "Transferência" },
   { value: "troca",    label: "Troca de aparelho" },
+  { value: "vale_troca", label: "Vale-troca" },
 ];
 
 const DEDUCTION_REASONS = [
@@ -840,6 +845,18 @@ export default function VendaNova() {
         );
       }
     }
+    // Valida vale-troca: precisa estar validado e com saldo suficiente
+    for (const vp of payments.filter((p) => p.method === "vale_troca")) {
+      if (!vp.store_credit_id) {
+        return toast.error("Valide o código do vale-troca antes de finalizar a venda.");
+      }
+      if (Number(vp.amount) <= 0) {
+        return toast.error("Informe o valor a abater do vale-troca.");
+      }
+      if (vp.store_credit_balance != null && Number(vp.amount) > vp.store_credit_balance + 0.001) {
+        return toast.error(`Vale-troca ${vp.store_credit_code}: saldo insuficiente (${brl(vp.store_credit_balance)}).`);
+      }
+    }
     // Validação do documento antes de abrir confirmação
     if (doc && onlyDigits(doc)) {
       const v = validateDoc(doc, docType);
@@ -1058,9 +1075,28 @@ export default function VendaNova() {
             amount: Number(p.amount),
             installments: p.installments ?? 1,
             trade_in_id: p.trade_in_id ?? null,
+            store_credit_code: p.store_credit_code ?? null,
           })),
       })
       .eq("id", sale.id);
+
+    // Abate vale-troca (chama uma vez por split e atualiza notes do sale_payment)
+    for (const vp of payments.filter((p) => p.method === "vale_troca" && p.store_credit_id && Number(p.amount) > 0)) {
+      try {
+        const { data: rd, error: rdErr } = await (supabase as any).rpc("redeem_store_credit", {
+          _store_id: store.id,
+          _code: vp.store_credit_code,
+          _amount: Number(vp.amount),
+          _sale_id: sale.id,
+        });
+        if (rdErr) throw rdErr;
+        const nota = `Vale-troca ${vp.store_credit_code} · saldo restante ${brl(Number((rd as any)?.balance ?? 0))}`;
+        await (supabase as any).from("sale_payments").update({ notes: nota })
+          .eq("sale_id", sale.id).eq("method", "vale_troca");
+      } catch (err: any) {
+        toast.error(`Falha ao abater vale-troca ${vp.store_credit_code}: ${err.message}`);
+      }
+    }
 
     setBusy(false);
     setConfirmOpen(false);
@@ -1504,6 +1540,7 @@ Obrigado pela preferência.`;
                   {payments.map((p, idx) => {
                     const isCard = p.method === "credito" || p.method === "debito" || p.method === "crediario";
                     const isTroca = p.method === "troca";
+                    const isVale = p.method === "vale_troca";
                     return (
                       <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
                         <Field label={`Forma ${idx + 1}`}>
@@ -1620,6 +1657,47 @@ Obrigado pela preferência.`;
                                 </SelectContent>
                               </Select>
                             )}
+                          </div>
+                        )}
+                        {isVale && (
+                          <div className="md:col-span-5 -mt-1 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2 space-y-1.5">
+                            <Label className="text-[11px] uppercase tracking-widest text-emerald-700">Vale-troca</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Input
+                                value={p.store_credit_code || ""}
+                                placeholder="Código (ex.: VT-AB23CD)"
+                                className="h-9 w-48 uppercase"
+                                onChange={(e) => updatePayment(idx, {
+                                  store_credit_code: e.target.value.toUpperCase(),
+                                  store_credit_id: null, store_credit_balance: null,
+                                })}
+                              />
+                              <Button
+                                type="button" size="sm" variant="outline"
+                                disabled={!store || !p.store_credit_code}
+                                onClick={async () => {
+                                  if (!store) return;
+                                  const { data, error } = await (supabase as any).rpc("validate_store_credit", {
+                                    _store_id: store.id, _code: p.store_credit_code,
+                                  });
+                                  if (error) return toast.error(error.message);
+                                  const r = data as any;
+                                  if (!r?.ok) return toast.error(`Vale-troca: ${r?.reason || "inválido"}`);
+                                  updatePayment(idx, {
+                                    store_credit_id: r.id,
+                                    store_credit_balance: Number(r.balance || 0),
+                                    amount: Math.min(Math.max(0, remaining) || Number(r.balance), Number(r.balance)),
+                                    notes: `Vale-troca ${r.code} · saldo ${brl(Number(r.balance || 0))}`,
+                                  });
+                                  toast.success(`Vale-troca válido — saldo ${brl(Number(r.balance || 0))}`);
+                                }}
+                              >Validar</Button>
+                              {p.store_credit_balance != null && (
+                                <span className="text-[11px] text-emerald-700">
+                                  Saldo disponível: <b>{brl(Number(p.store_credit_balance))}</b>
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
