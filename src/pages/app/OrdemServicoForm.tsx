@@ -111,6 +111,7 @@ export default function OrdemServicoForm() {
   const [laudoOpen, setLaudoOpen] = useState(false);
   const [laudoObs, setLaudoObs] = useState("");
   const [laudoAnalise, setLaudoAnalise] = useState("");
+  const [technicians, setTechnicians] = useState<{ user_id: string; full_name: string }[]>([]);
   const [os, setOs] = useState<any>({
     status: "recebido", reasons: [], accessories: [], photos: [],
     receive_checklist: {}, work_checklist: {}, delivery_checklist: {},
@@ -130,6 +131,14 @@ export default function OrdemServicoForm() {
       setLoaded(true);
     })();
   }, [editing, id, store]);
+
+  useEffect(() => {
+    if (!store) return;
+    (async () => {
+      const { data } = await (supabase as any).rpc("get_store_technicians", { _store_id: store.id });
+      setTechnicians((data as any[]) ?? []);
+    })();
+  }, [store?.id]);
 
   // Total auto
   useEffect(() => {
@@ -616,7 +625,25 @@ Status: ${os.status}`;
         <TabsContent value="execucao">
           <Card className="p-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Field label="Técnico responsável"><Input value={os.technician || ""} onChange={(e) => set("technician", e.target.value)} /></Field>
+              <Field label="Técnico responsável">
+                <Select
+                  value={os.technician_id || "__none"}
+                  onValueChange={(v) => {
+                    if (v === "__none") { set("technician_id", null); return; }
+                    const t = technicians.find((x) => x.user_id === v);
+                    setOs((p: any) => ({ ...p, technician_id: v, technician: t?.full_name || p.technician }));
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione um técnico…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— Sem técnico vinculado —</SelectItem>
+                    {technicians.map((t) => (
+                      <SelectItem key={t.user_id} value={t.user_id}>{t.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Nome (impressão)"><Input value={os.technician || ""} onChange={(e) => set("technician", e.target.value)} placeholder="Auto-preenchido pelo técnico selecionado" /></Field>
               <Field label="Data de início"><Input type="date" value={os.start_date || ""} onChange={(e) => set("start_date", e.target.value)} /></Field>
               <Field label="Data de conclusão"><Input type="date" value={os.end_date || ""} onChange={(e) => set("end_date", e.target.value)} /></Field>
             </div>
