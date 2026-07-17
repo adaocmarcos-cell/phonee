@@ -2194,6 +2194,133 @@ Obrigado pela preferência.`;
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog inline: cadastrar aparelho recebido na troca (Fatia 1) */}
+      <Dialog
+        open={tradeInDialogIdx !== null}
+        onOpenChange={(o) => { if (!o) setTradeInDialogIdx(null); }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Aparelho recebido na troca</DialogTitle>
+            <DialogDescription>
+              O aparelho entra no estoque atomicamente com esta venda. <b>Não gera despesa</b> no
+              financeiro — o custo aparece só quando ele for revendido.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 py-2">
+            <Field label="Marca">
+              <Input value={tradeInDraft.brand}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, brand: e.target.value })}
+                placeholder="Apple, Samsung…" />
+            </Field>
+            <Field label="Modelo *">
+              <Input value={tradeInDraft.model}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, model: e.target.value })}
+                placeholder="iPhone 12" />
+            </Field>
+            <Field label="Armazenamento (GB)">
+              <Input value={tradeInDraft.storage_gb}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, storage_gb: e.target.value })}
+                placeholder="128" />
+            </Field>
+            <Field label="Cor">
+              <Input value={tradeInDraft.color}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, color: e.target.value })} />
+            </Field>
+            <Field label="IMEI">
+              <Input value={tradeInDraft.imei}
+                onChange={(e) => setTradeInDraft({ ...tradeInDraft, imei: e.target.value })} />
+            </Field>
+            <Field label="Condição">
+              <Select value={tradeInDraft.condition}
+                onValueChange={(v) => setTradeInDraft({ ...tradeInDraft, condition: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="otimo">Ótimo</SelectItem>
+                  <SelectItem value="bom">Bom</SelectItem>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="com_defeito">Com defeito</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Saúde bateria (%)">
+              <NumberInput allowDecimal={false} min={0} value={tradeInDraft.battery_health}
+                onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, battery_health: n })} />
+            </Field>
+            <Field label="Valor de entrada (abatimento) *">
+              <NumberInput min={0} value={tradeInDraft.entry_value}
+                onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, entry_value: n })} />
+            </Field>
+            <Field label="Preço pretendido de venda">
+              <NumberInput min={0} value={tradeInDraft.intended_sale_value}
+                onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, intended_sale_value: n })} />
+            </Field>
+            <div className="col-span-2 md:col-span-3 flex flex-wrap items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={tradeInDraft.needs_repair}
+                  onCheckedChange={(v) => setTradeInDraft({ ...tradeInDraft, needs_repair: v })} />
+                Precisa de reparo
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={tradeInDraft.charger_included}
+                  onCheckedChange={(v) => setTradeInDraft({ ...tradeInDraft, charger_included: v })} />
+                Carregador incluso
+              </label>
+            </div>
+            {tradeInDraft.needs_repair && (
+              <>
+                <div className="col-span-2">
+                  <Field label="Descrição do reparo">
+                    <Input value={tradeInDraft.repair_desc}
+                      onChange={(e) => setTradeInDraft({ ...tradeInDraft, repair_desc: e.target.value })}
+                      placeholder="Ex.: troca de bateria, tela…" />
+                  </Field>
+                </div>
+                <Field label="Custo estimado do reparo">
+                  <NumberInput min={0} value={tradeInDraft.repair_cost_est}
+                    onValueChange={(n) => setTradeInDraft({ ...tradeInDraft, repair_cost_est: n })} />
+                </Field>
+              </>
+            )}
+            <div className="col-span-2 md:col-span-3">
+              <Field label="Acessórios / brindes inclusos">
+                <Input value={tradeInDraft.accessories}
+                  onChange={(e) => setTradeInDraft({ ...tradeInDraft, accessories: e.target.value })}
+                  placeholder="Ex.: capinha, película, fone" />
+              </Field>
+            </div>
+            <div className="col-span-2 md:col-span-3">
+              <Field label="Observações">
+                <Textarea rows={2} value={tradeInDraft.notes}
+                  onChange={(e) => setTradeInDraft({ ...tradeInDraft, notes: e.target.value })} />
+              </Field>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTradeInDialogIdx(null)}>Cancelar</Button>
+            <Button
+              className="bg-gradient-primary"
+              onClick={() => {
+                if (!tradeInDraft.model.trim()) return toast.error("Informe o modelo.");
+                if (Number(tradeInDraft.entry_value) <= 0) {
+                  return toast.error("Informe o valor de entrada (abatimento).");
+                }
+                if (tradeInDialogIdx === null) return;
+                updatePayment(tradeInDialogIdx, {
+                  new_trade_in: { ...tradeInDraft },
+                  trade_in_id: null,
+                  amount: Number(tradeInDraft.entry_value) || 0,
+                  notes: `${tradeInDraft.brand} ${tradeInDraft.model}${tradeInDraft.imei ? ` · IMEI ${tradeInDraft.imei}` : ""}`.trim(),
+                });
+                setTradeInDialogIdx(null);
+              }}
+            >
+              Salvar aparelho
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
