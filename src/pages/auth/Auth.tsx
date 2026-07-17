@@ -1,5 +1,5 @@
 import { useEffect, useState, FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ const passwordSchema = z.string().min(6, "Mínimo 6 caracteres").max(72);
 export default function Auth() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [busy, setBusy] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -42,8 +44,25 @@ export default function Auth() {
     }
   }, []);
 
+  // Rota de retorno após login (definida pelo ProtectedRoute quando a sessão
+  // expira). Aceita tanto ?returnTo= quanto location.state.from.
+  const returnTo = (() => {
+    const q = searchParams.get("returnTo");
+    if (q && q.startsWith("/")) return q;
+    const fromState = (location.state as any)?.from;
+    if (typeof fromState === "string" && fromState.startsWith("/")) return fromState;
+    try {
+      const stored = sessionStorage.getItem("phonee.returnTo");
+      if (stored && stored.startsWith("/")) return stored;
+    } catch {}
+    return null;
+  })();
+
   if (loading) return null;
-  if (user) return <Navigate to="/painel" replace />;
+  if (user) {
+    try { sessionStorage.removeItem("phonee.returnTo"); } catch {}
+    return <Navigate to={returnTo || "/painel"} replace />;
+  }
 
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -112,7 +131,10 @@ export default function Auth() {
       return;
     }
     toast.success("Bem-vindo de volta!");
-    navigate(initialPath);
+    try { sessionStorage.removeItem("phonee.returnTo"); } catch {}
+    // Se veio de uma sessão expirada, honra a rota de origem (quando o
+    // usuário tem acesso a ela — se não tiver, o ProtectedRoute redireciona).
+    navigate(returnTo || initialPath);
   };
 
   return (
