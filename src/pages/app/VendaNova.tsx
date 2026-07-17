@@ -1516,17 +1516,42 @@ Obrigado pela preferência.`;
                               <Label className="text-[11px] uppercase tracking-widest text-amber-700">
                                 Aparelho recebido na troca
                               </Label>
-                              <a
-                                href="/painel/troca/novo"
-                                target="_blank" rel="noopener noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTradeInDraft({
+                                    ...emptyTradeInDraft,
+                                    ...(p.new_trade_in ?? {}),
+                                    entry_value: p.new_trade_in?.entry_value ?? (Number(p.amount) || 0),
+                                  });
+                                  setTradeInDialogIdx(idx);
+                                }}
                                 className="text-[11px] underline text-amber-700 hover:text-amber-800"
                               >
-                                + Cadastrar novo aparelho de troca
-                              </a>
+                                {p.new_trade_in ? "✎ Editar aparelho cadastrado" : "+ Cadastrar aparelho agora"}
+                              </button>
                             </div>
-                            {availableTradeIns.length === 0 ? (
+                            {p.new_trade_in ? (
+                              <div className="text-[11px] text-amber-800 bg-amber-500/10 rounded px-2 py-1.5 flex items-center justify-between gap-2">
+                                <span>
+                                  <b>{p.new_trade_in.brand} {p.new_trade_in.model}</b>
+                                  {p.new_trade_in.storage_gb ? ` · ${p.new_trade_in.storage_gb}GB` : ""}
+                                  {p.new_trade_in.imei ? ` · IMEI ${p.new_trade_in.imei}` : ""}
+                                  {" · "}Avaliado em <b>{brl(p.new_trade_in.entry_value)}</b>
+                                  {p.new_trade_in.needs_repair ? " · precisa de reparo" : ""}
+                                </span>
+                                <Button
+                                  type="button" size="sm" variant="ghost"
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => updatePayment(idx, { new_trade_in: null })}
+                                >
+                                  Remover
+                                </Button>
+                              </div>
+                            ) : availableTradeIns.length === 0 ? (
                               <div className="text-[11px] text-muted-foreground">
-                                Nenhum aparelho em avaliação/aprovado. Cadastre em <b>Compra & Troca</b> antes de finalizar a venda.
+                                Nenhum aparelho pré-cadastrado. Use <b>+ Cadastrar aparelho agora</b> acima
+                                para receber o aparelho na troca sem sair da venda.
                               </div>
                             ) : (
                               <Select
