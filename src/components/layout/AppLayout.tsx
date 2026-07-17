@@ -1,10 +1,11 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { StoreSubscriptionBanner } from "./StoreSubscriptionBanner";
 import { TrialExpiryBanner } from "@/components/billing/TrialExpiryBanner";
-import { AlertTriangle, LogOut, Search } from "lucide-react";
+import { AlertTriangle, HelpCircle, LogOut, Search } from "lucide-react";
 import { NotificationsBell } from "./NotificationsBell";
+import { helpHrefForPath } from "@/content/helpManual";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,6 +24,7 @@ import {
 export default function AppLayout() {
   const { user, store, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const demo = isDemoMode() || isDemoUserEmail(user?.email);
   useStalledOsAlerts();
 
@@ -64,6 +66,15 @@ export default function AppLayout() {
                 title="Alertas"
               >
                 <AlertTriangle className="h-[1.15rem] w-[1.15rem]" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(helpHrefForPath(pathname))}
+                aria-label="Ajuda e dicas"
+                title="Ajuda e dicas"
+              >
+                <HelpCircle className="h-[1.15rem] w-[1.15rem]" />
               </Button>
               <NotificationsBell />
               <DropdownMenu>
