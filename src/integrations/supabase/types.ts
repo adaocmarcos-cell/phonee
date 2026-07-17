@@ -1055,34 +1055,28 @@ export type Database = {
         Row: {
           changed_at: string
           changed_by: string | null
-          from_custom_status_id: string | null
           from_status: Database["public"]["Enums"]["os_status"] | null
           id: string
           os_id: string
           store_id: string
-          to_custom_status_id: string | null
           to_status: Database["public"]["Enums"]["os_status"] | null
         }
         Insert: {
           changed_at?: string
           changed_by?: string | null
-          from_custom_status_id?: string | null
           from_status?: Database["public"]["Enums"]["os_status"] | null
           id?: string
           os_id: string
           store_id: string
-          to_custom_status_id?: string | null
           to_status?: Database["public"]["Enums"]["os_status"] | null
         }
         Update: {
           changed_at?: string
           changed_by?: string | null
-          from_custom_status_id?: string | null
           from_status?: Database["public"]["Enums"]["os_status"] | null
           id?: string
           os_id?: string
           store_id?: string
-          to_custom_status_id?: string | null
           to_status?: Database["public"]["Enums"]["os_status"] | null
         }
         Relationships: [
