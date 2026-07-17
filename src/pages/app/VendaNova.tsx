@@ -336,13 +336,17 @@ export default function VendaNova() {
   useEffect(() => {
     if (!isEditingSale || !store || editSaleLoaded) return;
     (async () => {
-      const { data: sale } = await supabase
+      const { handleSupabaseError } = await import("@/lib/supabaseFetch");
+      const { data: sale, error: saleErr } = await supabase
         .from("sales").select("*").eq("id", editingSaleId).maybeSingle();
+      if (saleErr) { handleSupabaseError(saleErr, "Erro ao carregar venda para edição"); return; }
       if (!sale) { toast.error("Venda não encontrada."); navigate("/painel/vendas"); return; }
-      const { data: sItems } = await supabase
+      const { data: sItems, error: itemsErr } = await supabase
         .from("sale_items").select("*").eq("sale_id", editingSaleId);
-      const { data: sPays } = await supabase
+      if (itemsErr) { handleSupabaseError(itemsErr, "Erro ao carregar itens da venda"); return; }
+      const { data: sPays, error: paysErr } = await supabase
         .from("sale_payments").select("*").eq("sale_id", editingSaleId);
+      if (paysErr) { handleSupabaseError(paysErr, "Erro ao carregar pagamentos da venda"); return; }
 
       setCustomer((sale as any).customer_name ?? "");
       setCustomerId((sale as any).customer_id ?? null);
@@ -400,12 +404,13 @@ export default function VendaNova() {
   const loadCustomers = async () => {
     if (!store) return;
     setLoadingCustomers(true);
-    const { data } = await (supabase.from("customers") as any)
+    const { data, error } = await (supabase.from("customers") as any)
       .select("id, name, document, doc_type, phone, whatsapp, address_city, email")
       .eq("store_id", store.id)
       .order("name");
-    setCustomers((data as CustomerLite[]) ?? []);
     setLoadingCustomers(false);
+    if (error) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(error, "Erro ao carregar clientes"); return; }
+    setCustomers((data as CustomerLite[]) ?? []);
   };
   useEffect(() => { loadCustomers(); /* eslint-disable-next-line */ }, [store?.id]);
 
