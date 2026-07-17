@@ -98,6 +98,7 @@ export default function Configuracoes() {
     show_tax_id_on_docs: true, show_legal_name_on_docs: true,
     show_non_fiscal_notice: true,
     allow_negative_stock: false,
+    block_sale_when_cash_closed: false,
     pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B",
     pdf_logo_url: "", pdf_footer_text: "",
   });
