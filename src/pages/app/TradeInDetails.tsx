@@ -61,6 +61,8 @@ export default function TradeInDetails() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
   const [repairPreviewOpen, setRepairPreviewOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [invParts, setInvParts] = useState<{ id: string; name: string; stock_current: number; cost_price: number }[]>([]);
   const [rows, setRows] = useState<{ part_id: string | null; name: string; qty: number; unit_cost: number }[]>([]);
   const [manualCost, setManualCost] = useState(0);
@@ -101,6 +103,33 @@ export default function TradeInDetails() {
   const reason = reasonSubtext(item.status);
   const isSold = item.status === "vendido";
   const isAwaitingRepair = simple === "aguardando_preparo";
+
+  const exportTimeline = () => {
+    if (!store) return;
+    const entries = audits.map((a) => ({
+      created_at: a.created_at,
+      action: a.action,
+      user_label: a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema",
+      details: a.details,
+    }));
+    printTradeInTimeline(item, store as any, entries);
+  };
+
+  const submitCancelRepair = async () => {
+    setSaving(true);
+    const { error } = await (supabase as any).rpc("cancel_trade_in_repair", {
+      _trade_in_id: item.id,
+      _reason: cancelReason || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Preparo cancelado. Aparelho voltou para 'Em avaliação'.");
+    setCancelOpen(false);
+    setCancelReason("");
+    const { data: ti } = await supabase.from("trade_ins").select("*").eq("id", item.id).maybeSingle();
+    setItem(ti);
+    reloadAudits();
+  };
 
   const openRepair = async () => {
     if (!store) return;
