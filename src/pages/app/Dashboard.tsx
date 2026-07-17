@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/MetricCard";
@@ -57,6 +58,7 @@ type DashboardMetrics = {
 
 export default function Dashboard() {
   const { store, role } = useAuth();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodValue>("month");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [editingLayout, setEditingLayout] = useState(false);
