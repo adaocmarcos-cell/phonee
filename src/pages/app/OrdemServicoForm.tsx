@@ -18,6 +18,8 @@ import { PatternLock } from "@/components/PatternLock";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
+import { WhatsappSendButton } from "@/components/WhatsappSendButton";
+import { OsWhatsappHistory } from "@/components/OsWhatsappHistory";
 import {
   Save, X, FileDown, MessageCircle, Mail, Camera, Trash2, Printer, ArrowLeft,
   ChevronLeft, ChevronRight, FileEdit, User, Smartphone as SmartphoneIcon,
@@ -202,6 +204,27 @@ Status: ${os.status}`;
     if (!phone) return toast.error("Informe o WhatsApp do cliente");
     window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(text)}`, "_blank");
   };
+
+  // Variáveis padrão para os templates de WhatsApp desta OS.
+  const waVars = useMemo(() => {
+    const storeName = (store as any)?.trade_name || store?.name || "Phonee";
+    const device = [os.device_brand, os.device_model].filter(Boolean).join(" ");
+    const days = Number(os.estimated_days || 0);
+    const prazo = days > 0 ? `${days} dia(s) úteis` : "a definir";
+    const base = os.end_date ? new Date(os.end_date) : new Date();
+    const garantia = new Date(base.getTime() + 90 * 24 * 60 * 60 * 1000);
+    return {
+      cliente: os.customer_name || "cliente",
+      loja: storeName,
+      os_numero: String(os.os_number ?? "").padStart(4, "0"),
+      aparelho: device,
+      valor: brl(Number(os.total_value || 0)),
+      prazo,
+      garantia_ate: garantia.toLocaleDateString("pt-BR"),
+      link_acompanhamento: `${window.location.origin}/painel/ordens/${os.id ?? ""}`,
+    };
+  }, [os, store]);
+
   const sendMail = () => {
     if (!os.customer_email) return toast.error("Informe o e-mail do cliente");
     const storeName = (store as any)?.trade_name || store?.name || "Phonee";
