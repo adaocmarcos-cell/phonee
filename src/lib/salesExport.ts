@@ -97,8 +97,12 @@ export function printSaleReceipt(opts: {
   }[];
   store: any;
   warranty?: WarrantySettings | null;
+  tradeIns?: {
+    brand?: string | null; model?: string | null; imei?: string | null;
+    storage_gb?: number | null; value: number;
+  }[];
 }) {
-  const { sale, items, store, warranty } = opts;
+  const { sale, items, store, warranty, tradeIns } = opts;
   const integrity = validateSaleForReceipt(sale, items as any);
   if (!integrity.ok) {
     const summary = integrity.issues
@@ -263,6 +267,26 @@ export function printSaleReceipt(opts: {
         ${otherExpenses > 0 ? `<div><span>Outras despesas</span><span>+ ${brl(otherExpenses)}</span></div>` : ""}
         <div class="tot"><span>TOTAL</span><span>${brl(Number(sale.total || 0))}</span></div>
       </div>
+
+      ${tradeIns && tradeIns.length > 0 ? `
+        <div class="section">
+          <div class="label">Aparelho(s) recebido(s) em troca</div>
+          <table>
+            <thead><tr>
+              <th>Marca / Modelo</th>
+              <th>IMEI / Serial</th>
+              <th style="text-align:right;width:120px">Valor abatido</th>
+            </tr></thead>
+            <tbody>
+              ${tradeIns.map((t) => `<tr>
+                <td>${escape([t.brand, t.model, t.storage_gb ? t.storage_gb + "GB" : ""].filter(Boolean).join(" "))}</td>
+                <td style="font-family:'Courier New',monospace;font-size:11px">${escape(t.imei || "—")}</td>
+                <td style="text-align:right;font-weight:600">${brl(Number(t.value || 0))}</td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      ` : ""}
 
       ${warrantyEnabled ? `
         ${warrantyNotice ? `<div class="notice"><b>AVISO:</b> ${escape(warrantyNotice)}</div>` : ""}

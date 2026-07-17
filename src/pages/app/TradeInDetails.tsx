@@ -6,12 +6,14 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle, Wrench, Plus, Trash2 } from "lucide-react";
 import { brl } from "@/lib/format";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import NumberInput from "@/components/NumberInput";
 import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP, DEACTIVATE_REASONS, REASON_LABEL } from "@/lib/tradeInStatus";
 import { printTradeInFicha, buildTradeInFichaHtml } from "@/lib/tradeInPrint";
 import { evaluateCompleteness } from "@/lib/tradeInCompleteness";
@@ -48,6 +50,11 @@ export default function TradeInDetails() {
   const [reasonKey, setReasonKey] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [repairOpen, setRepairOpen] = useState(false);
+  const [invParts, setInvParts] = useState<{ id: string; name: string; stock_current: number; cost_price: number }[]>([]);
+  const [rows, setRows] = useState<{ part_id: string | null; name: string; qty: number; unit_cost: number }[]>([]);
+  const [manualCost, setManualCost] = useState(0);
+  const [manualNotes, setManualNotes] = useState("");
 
   useEffect(() => {
     if (!id || !store) return;
@@ -83,6 +90,69 @@ export default function TradeInDetails() {
   const simple = toSimpleStatus(item.status);
   const reason = reasonSubtext(item.status);
   const isSold = item.status === "vendido";
+  const isAwaitingRepair = simple === "aguardando_preparo";
+
+  const openRepair = async () => {
+    if (!store) return;
+    const { data } = await supabase
+      .from("parts_inventory")
+      .select("id,name,stock_current,cost_price")
+      .eq("store_id", store.id)
+      .order("name");
+    setInvParts((data ?? []) as any);
+    // Prefill with existing repair_parts snapshot, if any
+    const existing = Array.isArray(item.repair_parts) ? item.repair_parts : [];
+    setRows(existing.map((p: any) => ({
+      part_id: p.part_id ?? null,
+      name: p.name || "",
+      qty: Number(p.qty || 1),
+      unit_cost: Number(p.unit_cost || 0),
+    })));
+    setManualCost(0);
+    setManualNotes("");
+    setRepairOpen(true);
+  };
+
+  const addRow = () => setRows((r) => [...r, { part_id: null, name: "", qty: 1, unit_cost: 0 }]);
+  const removeRow = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, patch: Partial<{ part_id: string | null; name: string; qty: number; unit_cost: number }>) =>
+    setRows((r) => r.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+
+  const partsCost = rows.reduce((s, r) => s + r.qty * r.unit_cost, 0);
+  const totalCost = partsCost + Number(manualCost || 0);
+
+  const submitRepair = async () => {
+    // Client-side stock validation
+    for (const r of rows) {
+      if (r.part_id) {
+        const p = invParts.find((x) => x.id === r.part_id);
+        if (!p) return toast.error(`Peça inválida: ${r.name}`);
+        if (p.stock_current < r.qty) return toast.error(`Estoque insuficiente de "${p.name}" (${p.stock_current} disponível).`);
+      }
+      if (r.qty <= 0) return toast.error("Quantidade da peça deve ser maior que zero.");
+    }
+    setSaving(true);
+    const payloadParts = rows.map((r) => ({
+      part_id: r.part_id,
+      name: r.name || (invParts.find((x) => x.id === r.part_id)?.name ?? ""),
+      qty: r.qty,
+      unit_cost: r.unit_cost,
+    }));
+    const { error } = await (supabase as any).rpc("finish_trade_in_repair", {
+      _trade_in_id: item.id,
+      _parts: payloadParts,
+      _manual_cost: Number(manualCost) || 0,
+      _manual_notes: manualNotes || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Preparo concluído. Aparelho no estoque.");
+    setRepairOpen(false);
+    // Reload
+    const { data: ti } = await supabase.from("trade_ins").select("*").eq("id", item.id).maybeSingle();
+    setItem(ti);
+    reloadAudits();
+  };
 
   const activateToStock = async () => {
     if (!item) return;
@@ -175,6 +245,11 @@ export default function TradeInDetails() {
                 <PackagePlus className="h-4 w-4 mr-1" /> Dar entrada no estoque
               </Button>
             )}
+            {isAwaitingRepair && (
+              <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
+                <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
+              </Button>
+            )}
             {simple === "em_estoque" && (
               <Button variant="outline" onClick={() => { setReasonKey(""); setDeactivateOpen(true); }}>
                 <PowerOff className="h-4 w-4 mr-1" /> Desativar
@@ -209,13 +284,15 @@ export default function TradeInDetails() {
             <h3 className="font-semibold">{item.customer_name}</h3>
             <div className="flex flex-col items-end gap-0.5">
               <div className="flex items-center gap-1">
-                <Badge className={simple === "em_estoque"
-                  ? "bg-success/15 text-success border-success/30"
-                  : "bg-muted text-muted-foreground border-border"}>
-                  {simple === "em_estoque"
-                    ? <CheckCircle2 className="h-3 w-3 mr-1" />
-                    : <CircleOff className="h-3 w-3 mr-1" />}
-                  {simple === "em_estoque" ? "Em estoque" : "Desativado"}
+                <Badge className={
+                  simple === "em_estoque" ? "bg-success/15 text-success border-success/30" :
+                  simple === "aguardando_preparo" ? "bg-warning/15 text-warning border-warning/30" :
+                  "bg-muted text-muted-foreground border-border"
+                }>
+                  {simple === "em_estoque" ? <CheckCircle2 className="h-3 w-3 mr-1" /> :
+                   simple === "aguardando_preparo" ? <Wrench className="h-3 w-3 mr-1" /> :
+                   <CircleOff className="h-3 w-3 mr-1" />}
+                  {simple === "em_estoque" ? "Em estoque" : simple === "aguardando_preparo" ? "Aguardando preparo" : "Desativado"}
                 </Badge>
                 <Tooltip>
                   <TooltipTrigger asChild><HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" /></TooltipTrigger>
@@ -331,6 +408,99 @@ export default function TradeInDetails() {
             <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Fechar</Button>
             <Button onClick={() => { setPreviewOpen(false); store && printTradeInFicha(item, store as any); }}>
               <FileDown className="h-4 w-4 mr-1" /> Emitir PDF / Imprimir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={repairOpen} onOpenChange={setRepairOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Registrar preparo · consumo de peças</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              As peças escolhidas do estoque terão baixa automática. Se comprou peça fora do estoque, use "custo manual".
+            </p>
+            <div className="space-y-2">
+              {rows.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Nenhuma peça adicionada.</p>
+              )}
+              {rows.map((r, i) => {
+                const inv = r.part_id ? invParts.find((p) => p.id === r.part_id) : null;
+                const insufficient = inv && inv.stock_current < r.qty;
+                return (
+                  <div key={i} className="grid grid-cols-[1fr_80px_100px_32px] gap-2 items-end">
+                    <div>
+                      <Label className="text-[10px]">Peça</Label>
+                      <Select
+                        value={r.part_id ?? "__manual__"}
+                        onValueChange={(v) => {
+                          if (v === "__manual__") {
+                            updateRow(i, { part_id: null });
+                          } else {
+                            const p = invParts.find((x) => x.id === v);
+                            updateRow(i, { part_id: v, name: p?.name || "", unit_cost: Number(p?.cost_price || 0) });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar peça" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__manual__">— Peça externa (livre) —</SelectItem>
+                          {invParts.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} · estoque {p.stock_current}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!r.part_id && (
+                        <Input
+                          className="h-8 mt-1 text-xs"
+                          placeholder="Nome da peça"
+                          value={r.name}
+                          onChange={(e) => updateRow(i, { name: e.target.value })}
+                        />
+                      )}
+                      {insufficient && (
+                        <div className="text-[10px] text-danger mt-1">Estoque insuficiente ({inv?.stock_current} disponível)</div>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Qtd</Label>
+                      <NumberInput allowDecimal={false} min={1} value={r.qty} onValueChange={(n) => updateRow(i, { qty: n })} />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Custo un.</Label>
+                      <NumberInput value={r.unit_cost} onValueChange={(n) => updateRow(i, { unit_cost: n })} />
+                    </div>
+                    <Button size="icon" variant="ghost" onClick={() => removeRow(i)}>
+                      <Trash2 className="h-4 w-4 text-danger" />
+                    </Button>
+                  </div>
+                );
+              })}
+              <Button size="sm" variant="outline" onClick={addRow}>
+                <Plus className="h-3 w-3 mr-1" /> Adicionar peça
+              </Button>
+            </div>
+
+            <div className="border-t border-border pt-3 space-y-2">
+              <Label className="text-xs">Custo manual adicional (peça externa, mão-de-obra terceirizada, etc.)</Label>
+              <NumberInput value={manualCost} onValueChange={setManualCost} />
+              <Label className="text-xs">Notas do preparo (opcional)</Label>
+              <Input value={manualNotes} onChange={(e) => setManualNotes(e.target.value)} placeholder="Ex.: troca de tela + polimento" />
+            </div>
+
+            <div className="rounded-md bg-muted/40 p-2 text-xs flex justify-between">
+              <span>Custo em peças: <strong>{brl(partsCost)}</strong> · Manual: <strong>{brl(Number(manualCost) || 0)}</strong></span>
+              <span>Total do reparo: <strong className="text-primary">{brl(totalCost)}</strong></span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRepairOpen(false)}>Cancelar</Button>
+            <Button onClick={submitRepair} disabled={saving} className="bg-success text-success-foreground hover:bg-success/90">
+              {saving ? "Salvando…" : "Concluir preparo e enviar ao estoque"}
             </Button>
           </DialogFooter>
         </DialogContent>

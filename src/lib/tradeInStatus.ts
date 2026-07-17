@@ -8,7 +8,7 @@ export type TradeInRawStatus =
   | "vendido"
   | "recusado";
 
-export type TradeInSimpleStatus = "em_estoque" | "desativado";
+export type TradeInSimpleStatus = "em_estoque" | "aguardando_preparo" | "desativado";
 
 export const REASON_LABEL: Record<TradeInRawStatus, string> = {
   em_avaliacao: "Em avaliação",
@@ -19,11 +19,15 @@ export const REASON_LABEL: Record<TradeInRawStatus, string> = {
 };
 
 export function toSimpleStatus(raw: string | null | undefined): TradeInSimpleStatus {
-  return raw === "em_estoque" ? "em_estoque" : "desativado";
+  if (raw === "em_estoque") return "em_estoque";
+  if (raw === "aprovado") return "aguardando_preparo";
+  return "desativado";
 }
 
 export function simpleStatusLabel(s: TradeInSimpleStatus) {
-  return s === "em_estoque" ? "Em estoque" : "Desativado";
+  if (s === "em_estoque") return "Em estoque";
+  if (s === "aguardando_preparo") return "Aguardando preparo";
+  return "Desativado";
 }
 
 export function reasonSubtext(raw: string | null | undefined): string {
@@ -33,6 +37,7 @@ export function reasonSubtext(raw: string | null | undefined): string {
 
 export const SIMPLE_STATUS_TOOLTIP: Record<TradeInSimpleStatus, string> = {
   em_estoque: "Aparelho ativo, disponível como produto no estoque.",
+  aguardando_preparo: "Aparelho recebido, aguardando reparo/preparação para entrar no estoque.",
   desativado: "Fora do estoque ativo — em avaliação, recusado, vendido ou aguardando entrada.",
 };
 

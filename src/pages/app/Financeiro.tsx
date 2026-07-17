@@ -157,7 +157,7 @@ export default function Financeiro() {
     const pago = payables.filter((p) => p.status === "pago").reduce((s, p) => s + p.total, 0);
     const aPagar = payables.filter((p) => p.status !== "pago").reduce((s, p) => s + p.total, 0);
     const liquido = receita - despesa;
-    return { receita, recebido, aReceber, vencidoReceber, despesa, pago, aPagar, liquido };
+    return { receita, recebido, recebidoTroca: trocaAmount, aReceber, vencidoReceber, despesa, pago, aPagar, liquido };
   }, [receivables, payables, splits]);
 
   // Recebimentos por método (vendas com split + peças)
@@ -353,17 +353,29 @@ export default function Financeiro() {
               type="button"
               onClick={() => setOpenReceived(true)}
               className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-success rounded-lg group"
-              title="Ver recebimentos confirmados no período"
+              title="Ver recebimentos em dinheiro / cartão / PIX confirmados no período"
             >
               <MetricCard
-                label="Recebido"
+                label="Recebido em caixa"
                 value={brl(totals.recebido)}
-                delta={`${receivables.filter(r => r.status === "pago").length} recebimento(s) · clique para ver`}
+                delta={`Dinheiro, PIX, cartão, boleto · ${receivables.filter(r => r.status === "pago").length} recebimento(s)`}
                 icon={CheckCircle2}
                 tone="success"
                 className="py-[18px] cursor-pointer group-hover:brightness-110 transition"
               />
             </button>
+          ) },
+          { id: "recebido-troca", node: (
+            <div>
+              <MetricCard
+                label="Recebido em aparelhos (troca)"
+                value={brl(totals.recebidoTroca)}
+                delta="Aparelhos recebidos como forma de pagamento"
+                icon={Wrench}
+                tone="violet"
+                className="py-[18px]"
+              />
+            </div>
           ) },
           { id: "liquido", node: (
             <button

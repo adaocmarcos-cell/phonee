@@ -12,7 +12,7 @@ import { NumberInput } from "@/components/NumberInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import { brl } from "@/lib/format";
-import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Eye } from "lucide-react";
+import { Plus, Receipt, Search, FileDown, FileSpreadsheet, Printer, Activity, MessageCircle, CheckCircle2, Clock, AlertTriangle, Lock, Pencil, Banknote, CreditCard, Smartphone, Smartphone as PixIcon, FileText, Wallet, Users as UsersIcon, Truck, RotateCcw, Sliders, Eye } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -49,6 +49,7 @@ export default function Vendas() {
   const { allowed: canDeleteSale } = useHasPermission("vendas", "excluir");
   const navigate = useNavigate();
   const [sales, setSales] = useState<any[]>([]);
+  const [trocaSplits, setTrocaSplits] = useState<{ amount: number }[]>([]);
   const [period, setPeriod] = useState<PeriodValue>("30d");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [payment, setPayment] = useState<string>("all");
@@ -105,11 +106,17 @@ export default function Vendas() {
     if (!store) return;
     let query = supabase.from("sales").select("*").eq("store_id", store.id).order("created_at", { ascending: false }).limit(500);
     const { from, to } = resolvePeriod(period, periodCustom);
-    if (period === "custom" && (!from || !to)) { setSales([]); return; }
+    if (period === "custom" && (!from || !to)) { setSales([]); setTrocaSplits([]); return; }
     if (from) query = query.gte("created_at", from.toISOString());
     if (period !== "all" && to) query = query.lte("created_at", to.toISOString());
     const { data: s } = await query;
     setSales(s ?? []);
+    // Recebido em aparelhos (troca) — soma de sale_payments.method='troca' no período
+    let tq = (supabase as any).from("sale_payments").select("amount,created_at").eq("store_id", store.id).eq("method", "troca");
+    if (from) tq = tq.gte("created_at", from.toISOString());
+    if (period !== "all" && to) tq = tq.lte("created_at", to.toISOString());
+    const { data: tp } = await tq;
+    setTrocaSplits(((tp as any[]) ?? []).map((r) => ({ amount: Number(r.amount || 0) })));
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [store, period, periodCustom]);
@@ -133,6 +140,8 @@ export default function Vendas() {
 
   const total = filtered.reduce((a, b) => a + Number(b.total || 0), 0);
   const totalLiquido = filtered.reduce((a, b) => a + eff(b), 0);
+  const trocaTotal = trocaSplits.reduce((a, b) => a + b.amount, 0);
+  const cashTotal = Math.max(0, totalLiquido - trocaTotal);
   const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente"), [sales]);
   const pendingTotal = pendingSales.reduce((a, b) => a + eff(b), 0);
   const overdueCount = useMemo(() => {
@@ -212,7 +221,30 @@ export default function Vendas() {
       unit_price: Number(it.unit_price),
       total: Number(it.total),
     }));
-    printSaleReceipt({ sale, items: list, store, warranty });
+    // Carrega trade-ins vinculados a esta venda (troca como pagamento)
+    let tradeIns: any[] = [];
+    try {
+      const { data: pays } = await (supabase as any)
+        .from("sale_payments")
+        .select("amount, trade_in_id")
+        .eq("sale_id", sale.id)
+        .eq("method", "troca");
+      const ids = (pays ?? []).map((p: any) => p.trade_in_id).filter(Boolean);
+      if (ids.length > 0) {
+        const { data: tis } = await supabase
+          .from("trade_ins")
+          .select("id, brand, model, imei, storage_gb, entry_value")
+          .in("id", ids);
+        tradeIns = (tis ?? []).map((t: any) => {
+          const pay = (pays ?? []).find((p: any) => p.trade_in_id === t.id);
+          return {
+            brand: t.brand, model: t.model, imei: t.imei, storage_gb: t.storage_gb,
+            value: Number(pay?.amount || t.entry_value || 0),
+          };
+        });
+      }
+    } catch { /* noop */ }
+    printSaleReceipt({ sale, items: list, store, warranty, tradeIns });
   };
 
   const openReminder = (sale: any) => {
@@ -355,6 +387,30 @@ export default function Vendas() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <MetricCard
+          label="Total vendido"
+          value={brl(total)}
+          delta={`${filtered.length} venda(s)`}
+          icon={Receipt}
+          tone="primary"
+          className="py-[18px]"
+        />
+        <MetricCard
+          label="Recebido em caixa"
+          value={brl(cashTotal)}
+          delta="Dinheiro, PIX, cartão, boleto"
+          icon={Banknote}
+          tone="success"
+          className="py-[18px]"
+        />
+        <MetricCard
+          label="Recebido em aparelhos (troca)"
+          value={brl(trocaTotal)}
+          delta={`${trocaSplits.length} aparelho(s) recebido(s)`}
+          icon={Smartphone}
+          tone="violet"
+          className="py-[18px]"
+        />
         <button
           type="button"
           onClick={() => { setTab("receber"); setReceiverOpen(true); }}
