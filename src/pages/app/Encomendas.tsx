@@ -140,7 +140,7 @@ export default function Encomendas() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Encomendas" subtitle="Produtos que o cliente encomendou" helpKey="encomendas" />
+      <PageHeader title="Encomendas" description="Produtos que o cliente encomendou" helpKey="encomendas" />
 
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => setOpenNew(true)}>
@@ -372,7 +372,7 @@ function NewOrderDialog({ storeId, onClose, onCreated }: {
             <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: iPhone 15 Pro 256GB Preto" /></div>
           <div className="grid grid-cols-3 gap-3">
             <div><Label>Qtd</Label><NumberInput value={qty} onValueChange={(v) => setQty(Math.max(1, Math.floor(v || 1)))} /></div>
-            <div><Label>Preço unit.</Label><NumberInput currency value={price} onValueChange={setPrice} /></div>
+            <div><Label>Preço unit.</Label><NumberInput value={price} onValueChange={setPrice} /></div>
             <div><Label>Previsão</Label><Input type="date" value={expected} onChange={(e) => setExpected(e.target.value)} /></div>
           </div>
           <div className="flex items-center gap-2">
@@ -381,7 +381,7 @@ function NewOrderDialog({ storeId, onClose, onCreated }: {
           </div>
           {hasDeposit && (
             <div className="grid grid-cols-2 gap-3 pl-6 border-l-2 border-primary/30">
-              <div><Label>Valor do sinal</Label><NumberInput currency value={depositAmount} onValueChange={setDepositAmount} /></div>
+              <div><Label>Valor do sinal</Label><NumberInput value={depositAmount} onValueChange={setDepositAmount} /></div>
               <div>
                 <Label>Forma</Label>
                 <Select value={depositMethod} onValueChange={setDepositMethod}>
