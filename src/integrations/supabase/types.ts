@@ -2166,6 +2166,9 @@ export type Database = {
         Row: {
           accessories: string[] | null
           battery_health: number | null
+          budget_decided_at: string | null
+          budget_decided_by_name: string | null
+          budget_decided_ip: unknown
           budget_status: Database["public"]["Enums"]["os_budget_status"]
           created_at: string
           created_by: string | null
@@ -2198,6 +2201,7 @@ export type Database = {
           os_number: number | null
           parts_value: number
           photos: Json | null
+          public_token: string
           reasons: string[] | null
           receive_checklist: Json | null
           signed_at: string | null
@@ -2213,6 +2217,9 @@ export type Database = {
         Insert: {
           accessories?: string[] | null
           battery_health?: number | null
+          budget_decided_at?: string | null
+          budget_decided_by_name?: string | null
+          budget_decided_ip?: unknown
           budget_status?: Database["public"]["Enums"]["os_budget_status"]
           created_at?: string
           created_by?: string | null
@@ -2245,6 +2252,7 @@ export type Database = {
           os_number?: number | null
           parts_value?: number
           photos?: Json | null
+          public_token?: string
           reasons?: string[] | null
           receive_checklist?: Json | null
           signed_at?: string | null
@@ -2260,6 +2268,9 @@ export type Database = {
         Update: {
           accessories?: string[] | null
           battery_health?: number | null
+          budget_decided_at?: string | null
+          budget_decided_by_name?: string | null
+          budget_decided_ip?: unknown
           budget_status?: Database["public"]["Enums"]["os_budget_status"]
           created_at?: string
           created_by?: string | null
@@ -2292,6 +2303,7 @@ export type Database = {
           os_number?: number | null
           parts_value?: number
           photos?: Json | null
+          public_token?: string
           reasons?: string[] | null
           receive_checklist?: Json | null
           signed_at?: string | null
@@ -3396,6 +3408,15 @@ export type Database = {
         Args: { _amount_cents: number; _code: string }
         Returns: Json
       }
+      approve_public_budget: {
+        Args: {
+          _decision: string
+          _ip?: unknown
+          _name: string
+          _token: string
+        }
+        Returns: Json
+      }
       approve_subscription_change: {
         Args: { _request_id: string; _review_notes?: string }
         Returns: Json
@@ -3454,6 +3475,7 @@ export type Database = {
       }
       generate_referral_code: { Args: { _user_id?: string }; Returns: string }
       get_meta_pixel_id: { Args: never; Returns: string }
+      get_public_os: { Args: { _token: string }; Returns: Json }
       get_store_sellers: {
         Args: { _store_id: string }
         Returns: {

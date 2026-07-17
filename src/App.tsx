@@ -12,6 +12,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import Comece from "./pages/Comece";
+const PublicOs = lazy(() => import("./pages/PublicOs"));
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { MetaPixel } from "./components/MetaPixel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
@@ -119,6 +120,8 @@ const App = () => (
             <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/comprar" element={<Comprar />} />
             <Route path="/comprar/sucesso/:id" element={<ComprarSucesso />} />
+            {/* Página pública de acompanhamento de OS (sem autenticação) */}
+            <Route path="/os/:token" element={<PublicOs />} />
             <Route path="/parceiros" element={<Navigate to="/" replace />} />
             <Route path="/testegratis" element={<Navigate to="/?trial=1" replace />} />
             <Route path="/teste-gratis" element={<Navigate to="/?trial=1" replace />} />
