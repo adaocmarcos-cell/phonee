@@ -62,7 +62,33 @@ type LineItem = {
   unit_price: number;
 };
 
-type SplitPayment = { method: string; amount: number; notes: string; installments?: number; trade_in_id?: string | null };
+export type NewTradeInDraft = {
+  brand: string;
+  model: string;
+  storage_gb: string;
+  color: string;
+  imei: string;
+  condition: "otimo" | "bom" | "regular" | "com_defeito";
+  battery_health: number;
+  entry_value: number;
+  intended_sale_value: number;
+  needs_repair: boolean;
+  repair_desc: string;
+  repair_cost_est: number;
+  charger_included: boolean;
+  accessories: string;
+  notes: string;
+};
+
+type SplitPayment = {
+  method: string;
+  amount: number;
+  notes: string;
+  installments?: number;
+  trade_in_id?: string | null;
+  /** Rascunho criado pelo dialog inline — vai atomicamente na RPC create_sale. */
+  new_trade_in?: NewTradeInDraft | null;
+};
 
 type TradeInLite = {
   id: string; brand: string | null; model: string | null;
