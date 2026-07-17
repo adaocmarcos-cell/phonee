@@ -364,6 +364,30 @@ export default function Vendas() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <MetricCard
+          label="Total vendido"
+          value={brl(total)}
+          delta={`${filtered.length} venda(s)`}
+          icon={Receipt}
+          tone="primary"
+          className="py-[18px]"
+        />
+        <MetricCard
+          label="Recebido em caixa"
+          value={brl(cashTotal)}
+          delta="Dinheiro, PIX, cartão, boleto"
+          icon={Banknote}
+          tone="success"
+          className="py-[18px]"
+        />
+        <MetricCard
+          label="Recebido em aparelhos (troca)"
+          value={brl(trocaTotal)}
+          delta={`${trocaSplits.length} aparelho(s) recebido(s)`}
+          icon={Smartphone}
+          tone="violet"
+          className="py-[18px]"
+        />
         <button
           type="button"
           onClick={() => { setTab("receber"); setReceiverOpen(true); }}
