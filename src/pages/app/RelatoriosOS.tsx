@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { MetricCard } from "@/components/MetricCard";
 import { NumberInput } from "@/components/NumberInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { brl } from "@/lib/format";
 import { OS_STATUS_LABEL, OS_STATUS_COLOR, OS_STATUS_ORDER, OS_TERMINAL_STATUSES, fmtOS } from "@/lib/osStatus";
 import {
@@ -37,10 +38,24 @@ const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0);
 
 const CHART_COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#06b6d4", "#f97316", "#a855f7"];
 
+const FILTERS_KEY = (storeId: string) => `phonee:relatoriosOs:filters:${storeId}`;
+
+const pctDelta = (curr: number, prev: number): { text: string; positive: boolean | null } => {
+  if (!isFinite(prev) || prev === 0) {
+    if (curr === 0) return { text: "—", positive: null };
+    return { text: "novo", positive: null };
+  }
+  const diff = ((curr - prev) / Math.abs(prev)) * 100;
+  const sign = diff > 0 ? "+" : "";
+  return { text: `${sign}${diff.toFixed(1)}% vs anterior`, positive: diff >= 0 };
+};
+
 export default function RelatoriosOS() {
   const { store } = useAuth();
   const [rows, setRows] = useState<OS[]>([]);
   const [history, setHistory] = useState<Hist[]>([]);
+  const [prevRows, setPrevRows] = useState<OS[]>([]);
+  const [prevHistory, setPrevHistory] = useState<Hist[]>([]);
   const [loading, setLoading] = useState(false);
   const [from, setFrom] = useState<string>(() => {
     const d = new Date(); d.setDate(d.getDate() - 30);
@@ -51,8 +66,38 @@ export default function RelatoriosOS() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stalledDays, setStalledDays] = useState<number>((store as any)?.os_stalled_days ?? 3);
   const [savingStalled, setSavingStalled] = useState(false);
+  const [stageDialog, setStageDialog] = useState<{ status: string; label: string } | null>(null);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
 
   useEffect(() => { setStalledDays((store as any)?.os_stalled_days ?? 3); }, [(store as any)?.os_stalled_days, store?.id]);
+
+  // Restore saved filters per store
+  useEffect(() => {
+    if (!store?.id) return;
+    try {
+      const raw = localStorage.getItem(FILTERS_KEY(store.id));
+      if (raw) {
+        const f = JSON.parse(raw);
+        if (f.from) setFrom(f.from);
+        if (f.to) setTo(f.to);
+        if (f.tech) setTech(f.tech);
+        if (f.statusFilter) setStatusFilter(f.statusFilter);
+        if (typeof f.stalledDays === "number") setStalledDays(f.stalledDays);
+      }
+    } catch {}
+    setFiltersHydrated(true);
+  }, [store?.id]);
+
+  // Persist filters
+  useEffect(() => {
+    if (!store?.id || !filtersHydrated) return;
+    try {
+      localStorage.setItem(
+        FILTERS_KEY(store.id),
+        JSON.stringify({ from, to, tech, statusFilter, stalledDays }),
+      );
+    } catch {}
+  }, [store?.id, filtersHydrated, from, to, tech, statusFilter, stalledDays]);
 
   useEffect(() => {
     if (!store) return;
@@ -60,6 +105,11 @@ export default function RelatoriosOS() {
     (async () => {
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
+      // Previous window: same span immediately before "from"
+      const spanMs = new Date(toIso).getTime() - new Date(fromIso).getTime();
+      const prevToIso = new Date(new Date(fromIso).getTime() - 1).toISOString();
+      const prevFromIso = new Date(new Date(prevToIso).getTime() - spanMs).toISOString();
+
       const { data: os } = await (supabase as any)
         .from("service_orders")
         .select("id, os_number, customer_name, technician, technician_id, status, budget_status, parts_value, labor_value, total_value, net_value, created_at, start_date, end_date")
@@ -81,6 +131,28 @@ export default function RelatoriosOS() {
       } else {
         setHistory([]);
       }
+
+      // Previous period fetch (used only for trend comparison)
+      const { data: prevOs } = await (supabase as any)
+        .from("service_orders")
+        .select("id, status, budget_status, parts_value, total_value, net_value, created_at")
+        .eq("store_id", store.id)
+        .gte("created_at", prevFromIso)
+        .lte("created_at", prevToIso);
+      const prevArr = (prevOs ?? []) as OS[];
+      setPrevRows(prevArr);
+      if (prevArr.length > 0) {
+        const pids = prevArr.map((r) => r.id);
+        const { data: phist } = await (supabase as any)
+          .from("os_status_history")
+          .select("id, os_id, from_status, to_status, changed_at, changed_by")
+          .in("os_id", pids)
+          .order("changed_at", { ascending: true });
+        setPrevHistory((phist ?? []) as Hist[]);
+      } else {
+        setPrevHistory([]);
+      }
+
       setLoading(false);
     })();
   }, [store?.id, from, to]);
@@ -204,6 +276,56 @@ export default function RelatoriosOS() {
       return acc;
     }, { revenue: 0, parts: 0, labor: 0, profit: 0 });
   }, [filtered]);
+
+  // ---- Previous period metrics (for trend deltas) ----
+  const prevMetrics = useMemo(() => {
+    const byOs = new Map<string, Hist[]>();
+    prevHistory.forEach((h) => {
+      if (!byOs.has(h.os_id)) byOs.set(h.os_id, []);
+      byOs.get(h.os_id)!.push(h);
+    });
+    const delivered = prevRows.filter((r) => r.status === "entregue");
+    const times: number[] = [];
+    delivered.forEach((os) => {
+      const hs = (byOs.get(os.id) || []).sort((a, b) => a.changed_at.localeCompare(b.changed_at));
+      if (hs.length < 2) return;
+      const start = new Date(hs[0].changed_at).getTime();
+      const endEv = hs.find((h) => h.to_status === "entregue");
+      const end = endEv ? new Date(endEv.changed_at).getTime() : new Date(hs[hs.length - 1].changed_at).getTime();
+      times.push((end - start) / 3_600_000);
+    });
+    const avgCycle = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+
+    const decided = prevRows.filter((r) => r.budget_status && r.budget_status !== "pendente");
+    const approved = decided.filter((r) => r.budget_status === "aprovado").length;
+    const budgetRate = decided.length ? (approved / decided.length) * 100 : 0;
+
+    const profit = delivered.reduce((acc, r) => acc + (Number(r.total_value || 0) - Number(r.parts_value || 0)), 0);
+
+    return { avgCycle, budgetRate, profit };
+  }, [prevRows, prevHistory]);
+
+  const cycleDelta = useMemo(() => pctDelta(cycle.avgHours, prevMetrics.avgCycle), [cycle.avgHours, prevMetrics.avgCycle]);
+  const budgetDelta = useMemo(() => pctDelta(budgetRate.rate, prevMetrics.budgetRate), [budgetRate.rate, prevMetrics.budgetRate]);
+  const profitDelta = useMemo(() => pctDelta(profitTotal.profit, prevMetrics.profit), [profitTotal.profit, prevMetrics.profit]);
+
+  // ---- Detailed OSs for clicked stage ----
+  const stageOsList = useMemo(() => {
+    if (!stageDialog) return [] as { os: OS; hours: number; segments: number; ongoing: boolean }[];
+    const acc = new Map<string, { os: OS; hours: number; segments: number; ongoing: boolean }>();
+    const osById = new Map(filtered.map((r) => [r.id, r]));
+    segments.forEach((s) => {
+      if (s.status !== stageDialog.status) return;
+      const os = osById.get(s.os_id);
+      if (!os) return;
+      const cur = acc.get(s.os_id) || { os, hours: 0, segments: 0, ongoing: false };
+      cur.hours += s.hours;
+      cur.segments += 1;
+      if (s.is_current) cur.ongoing = true;
+      acc.set(s.os_id, cur);
+    });
+    return Array.from(acc.values()).sort((a, b) => b.hours - a.hours);
+  }, [stageDialog, segments, filtered]);
 
   // OS paradas: aberto (não terminal), tempo desde última mudança > stalledDays
   const stalled = useMemo(() => {
@@ -335,9 +457,9 @@ export default function RelatoriosOS() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <MetricCard label="OSs no período" value={String(filtered.length)} icon={Wrench} />
         <MetricCard label="Entregues" value={String(cycle.deliveredCount)} icon={CheckCircle2} />
-        <MetricCard label="Ciclo médio" value={fmtHours(cycle.avgHours)} icon={Timer} />
-        <MetricCard label="Aprovação de orçamento" value={`${budgetRate.rate.toFixed(0)}%`} icon={TrendingUp} delta={`${budgetRate.approved}/${budgetRate.decided}`} />
-        <MetricCard label="Lucro no período" value={brl(profitTotal.profit)} icon={TrendingUp} delta={`Receita ${brl(profitTotal.revenue)}`} />
+        <MetricCard label="Ciclo médio" value={fmtHours(cycle.avgHours)} icon={Timer} delta={cycleDelta.text} />
+        <MetricCard label="Aprovação de orçamento" value={`${budgetRate.rate.toFixed(0)}%`} icon={TrendingUp} delta={`${budgetRate.approved}/${budgetRate.decided} · ${budgetDelta.text}`} />
+        <MetricCard label="Lucro no período" value={brl(profitTotal.profit)} icon={TrendingUp} delta={`Receita ${brl(profitTotal.revenue)} · ${profitDelta.text}`} />
       </div>
 
       {/* Destaques: OS paradas */}
@@ -396,7 +518,10 @@ export default function RelatoriosOS() {
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-4 bg-card border-border shadow-card">
-          <h3 className="text-sm font-semibold mb-3">Tempo médio por etapa</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Tempo médio por etapa</h3>
+            <span className="text-[10px] text-muted-foreground">Toque na barra para ver as OSs</span>
+          </div>
           {avgByStatus.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sem dados suficientes no período.</p>
           ) : (
@@ -409,7 +534,14 @@ export default function RelatoriosOS() {
                   formatter={(v: any) => fmtHours(Number(v))}
                   labelClassName="text-xs"
                 />
-                <Bar dataKey="avgHours" radius={[4, 4, 0, 0]}>
+                <Bar
+                  dataKey="avgHours"
+                  radius={[4, 4, 0, 0]}
+                  className="cursor-pointer"
+                  onClick={(d: any) => {
+                    if (d?.status) setStageDialog({ status: d.status, label: d.label });
+                  }}
+                >
                   {avgByStatus.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Bar>
               </BarChart>
@@ -492,6 +624,57 @@ export default function RelatoriosOS() {
           </div>
         )}
       </Card>
+
+      {/* Dialog: OSs de uma etapa */}
+      <Dialog open={!!stageDialog} onOpenChange={(o) => !o && setStageDialog(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>OSs na etapa · {stageDialog?.label}</DialogTitle>
+          </DialogHeader>
+          {stageOsList.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma OS passou por esta etapa no período.</p>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground sticky top-0">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">OS</th>
+                    <th className="text-left px-3 py-2 font-medium">Cliente</th>
+                    <th className="text-left px-3 py-2 font-medium">Status atual</th>
+                    <th className="text-right px-3 py-2 font-medium">Tempo nesta etapa</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {stageOsList.map(({ os, hours, ongoing }) => (
+                    <tr key={os.id} className="hover:bg-surface-elevated/40">
+                      <td className="px-3 py-2 font-mono text-xs text-primary font-bold">{fmtOS(os.os_number)}</td>
+                      <td className="px-3 py-2 truncate max-w-[220px]">{os.customer_name}</td>
+                      <td className="px-3 py-2">
+                        <Badge variant="outline" className={OS_STATUS_COLOR[os.status] ?? ""}>
+                          {OS_STATUS_LABEL[os.status] ?? os.status}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono tabular-nums">
+                        {fmtHours(hours)} {ongoing && <span className="ml-1 text-[10px] text-warning">(em andamento)</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <Link
+                          to={`/painel/ordens/${os.id}`}
+                          onClick={() => setStageDialog(null)}
+                          className="text-primary hover:underline text-xs inline-flex items-center gap-1"
+                        >
+                          Abrir <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
