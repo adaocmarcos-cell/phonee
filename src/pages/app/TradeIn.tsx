@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Smartphone, Search, ArrowLeft, CheckCircle2, CircleOff, HelpCircle, AlertTriangle, Scale } from "lucide-react";
+import { Plus, Smartphone, Search, ArrowLeft, CheckCircle2, CircleOff, HelpCircle, AlertTriangle, Scale, Wrench } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { brl } from "@/lib/format";
@@ -103,6 +103,7 @@ export default function TradeIn() {
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="em_estoque">Em estoque</SelectItem>
+              <SelectItem value="aguardando_preparo">Aguardando preparo</SelectItem>
               <SelectItem value="desativado">Desativado</SelectItem>
             </SelectContent>
           </Select>
@@ -191,13 +192,15 @@ export default function TradeIn() {
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-0.5">
                         <div className="flex items-center gap-1">
-                          <Badge className={simple === "em_estoque"
-                            ? "bg-success/15 text-success border-success/30"
-                            : "bg-muted text-muted-foreground border-border"}>
-                            {simple === "em_estoque"
-                              ? <CheckCircle2 className="h-3 w-3 mr-1" />
-                              : <CircleOff className="h-3 w-3 mr-1" />}
-                            {simple === "em_estoque" ? "Em estoque" : "Desativado"}
+                          <Badge className={
+                            simple === "em_estoque" ? "bg-success/15 text-success border-success/30" :
+                            simple === "aguardando_preparo" ? "bg-warning/15 text-warning border-warning/30" :
+                            "bg-muted text-muted-foreground border-border"
+                          }>
+                            {simple === "em_estoque" ? <CheckCircle2 className="h-3 w-3 mr-1" /> :
+                             simple === "aguardando_preparo" ? <Wrench className="h-3 w-3 mr-1" /> :
+                             <CircleOff className="h-3 w-3 mr-1" />}
+                            {simple === "em_estoque" ? "Em estoque" : simple === "aguardando_preparo" ? "Aguardando preparo" : "Desativado"}
                           </Badge>
                           <Tooltip>
                             <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
