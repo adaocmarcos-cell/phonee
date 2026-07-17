@@ -26,10 +26,11 @@ import {
 } from "recharts";
 
 type ReportKey =
-  | "in_out" | "transfers" | "balances" | "top_movers"
+  | "movement" | "in_out" | "transfers" | "balances" | "top_movers"
   | "stalled" | "low_stock" | "financial" | "by_product";
 
 const REPORTS: { key: ReportKey; label: string; icon: any; desc: string }[] = [
+  { key: "movement",   label: "Movimentação (livro)",    icon: ShieldCheck, desc: "Saldo inicial · Entradas · Saídas · Divergência" },
   { key: "in_out",     label: "Entradas & Saídas",        icon: ArrowDownUp, desc: "Movimentações do período" },
   { key: "transfers",  label: "Transferências",           icon: Repeat,      desc: "Entre lojas/depósitos" },
   { key: "balances",   label: "Saldos em Estoque",        icon: Boxes,       desc: "Foto atual do estoque" },
