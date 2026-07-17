@@ -97,8 +97,12 @@ export function printSaleReceipt(opts: {
   }[];
   store: any;
   warranty?: WarrantySettings | null;
+  tradeIns?: {
+    brand?: string | null; model?: string | null; imei?: string | null;
+    storage_gb?: number | null; value: number;
+  }[];
 }) {
-  const { sale, items, store, warranty } = opts;
+  const { sale, items, store, warranty, tradeIns } = opts;
   const integrity = validateSaleForReceipt(sale, items as any);
   if (!integrity.ok) {
     const summary = integrity.issues
