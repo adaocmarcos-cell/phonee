@@ -59,6 +59,7 @@ export default function TradeInDetails() {
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
+  const [repairPreviewOpen, setRepairPreviewOpen] = useState(false);
   const [invParts, setInvParts] = useState<{ id: string; name: string; stock_current: number; cost_price: number }[]>([]);
   const [rows, setRows] = useState<{ part_id: string | null; name: string; qty: number; unit_cost: number }[]>([]);
   const [manualCost, setManualCost] = useState(0);
@@ -128,6 +129,19 @@ export default function TradeInDetails() {
 
   const partsCost = rows.reduce((s, r) => s + r.qty * r.unit_cost, 0);
   const totalCost = partsCost + Number(manualCost || 0);
+
+  // Prévia: peças com estoque insuficiente
+  const missingParts = rows
+    .map((r) => {
+      if (!r.part_id) return null;
+      const inv = invParts.find((p) => p.id === r.part_id);
+      if (!inv) return { name: r.name || "?", need: r.qty, available: 0 };
+      if (inv.stock_current < r.qty)
+        return { name: inv.name, need: r.qty, available: inv.stock_current };
+      return null;
+    })
+    .filter(Boolean) as { name: string; need: number; available: number }[];
+  const externalParts = rows.filter((r) => !r.part_id && (r.name || r.unit_cost > 0));
 
   const submitRepair = async () => {
     // Client-side stock validation
