@@ -1395,22 +1395,40 @@ Obrigado pela preferência.`;
           <Card className="p-5">
             <h3 className="font-semibold mb-4">Itens da Venda</h3>
 
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={productQuery}
-                onChange={(e) => setProductQuery(e.target.value)}
-                onFocus={() => setShowProductList(true)}
-                onBlur={() => setTimeout(() => setShowProductList(false), 150)}
-                onKeyDown={onSearchKeyDown}
-                placeholder="Buscar por nome, SKU, EAN, categoria, marca ou modelo…"
-                className="pl-9"
-                role="combobox"
-                aria-expanded={showProductList}
-                aria-controls="produtos-listbox"
-                aria-activedescendant={visibleProducts[activeIdx] ? `produto-opt-${visibleProducts[activeIdx].id}` : undefined}
-                autoComplete="off"
-              />
+            <div className="flex flex-col md:flex-row gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={productQuery}
+                  onChange={(e) => setProductQuery(e.target.value)}
+                  onFocus={() => setShowProductList(true)}
+                  onBlur={() => setTimeout(() => setShowProductList(false), 150)}
+                  onKeyDown={onSearchKeyDown}
+                  placeholder="Buscar por nome, SKU, EAN, categoria, marca ou modelo…"
+                  className="pl-9"
+                  role="combobox"
+                  aria-expanded={showProductList}
+                  aria-controls="produtos-listbox"
+                  aria-activedescendant={visibleProducts[activeIdx] ? `produto-opt-${visibleProducts[activeIdx].id}` : undefined}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="relative w-full md:w-56">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={skuInput}
+                  onChange={(e) => setSkuInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); submitSku(); }
+                  }}
+                  placeholder="SKU / código de barras"
+                  className="pl-9 font-mono text-xs uppercase"
+                  autoFocus
+                  autoComplete="off"
+                  aria-label="Adicionar por SKU"
+                  disabled={skuBusy}
+                />
+              </div>
               {showProductList && searchState.kind === "empty-table" && (
                 <div className="absolute z-10 top-full mt-1 w-full bg-popover border border-border rounded-md shadow-card px-3 py-3 text-sm text-muted-foreground">
                   Nenhum produto cadastrado.{" "}
