@@ -157,7 +157,7 @@ export default function Financeiro() {
     const pago = payables.filter((p) => p.status === "pago").reduce((s, p) => s + p.total, 0);
     const aPagar = payables.filter((p) => p.status !== "pago").reduce((s, p) => s + p.total, 0);
     const liquido = receita - despesa;
-    return { receita, recebido, aReceber, vencidoReceber, despesa, pago, aPagar, liquido };
+    return { receita, recebido, recebidoTroca: trocaAmount, aReceber, vencidoReceber, despesa, pago, aPagar, liquido };
   }, [receivables, payables, splits]);
 
   // Recebimentos por método (vendas com split + peças)
