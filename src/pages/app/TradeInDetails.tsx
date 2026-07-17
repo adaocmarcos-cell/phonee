@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle, Wrench, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, History, Package, CheckCircle2, CircleOff, HelpCircle, FileDown, PackagePlus, PowerOff, Eye, AlertTriangle, Wrench, Plus, Trash2, XCircle, FileText } from "lucide-react";
 import { brl } from "@/lib/format";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import NumberInput from "@/components/NumberInput";
 import { toSimpleStatus, reasonSubtext, SIMPLE_STATUS_TOOLTIP, DEACTIVATE_REASONS, REASON_LABEL } from "@/lib/tradeInStatus";
-import { printTradeInFicha, buildTradeInFichaHtml } from "@/lib/tradeInPrint";
+import { printTradeInFicha, buildTradeInFichaHtml, printTradeInTimeline } from "@/lib/tradeInPrint";
+import { Textarea } from "@/components/ui/textarea";
 import { evaluateCompleteness } from "@/lib/tradeInCompleteness";
 import { toast } from "sonner";
 
@@ -60,6 +61,8 @@ export default function TradeInDetails() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
   const [repairPreviewOpen, setRepairPreviewOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [invParts, setInvParts] = useState<{ id: string; name: string; stock_current: number; cost_price: number }[]>([]);
   const [rows, setRows] = useState<{ part_id: string | null; name: string; qty: number; unit_cost: number }[]>([]);
   const [manualCost, setManualCost] = useState(0);
@@ -100,6 +103,33 @@ export default function TradeInDetails() {
   const reason = reasonSubtext(item.status);
   const isSold = item.status === "vendido";
   const isAwaitingRepair = simple === "aguardando_preparo";
+
+  const exportTimeline = () => {
+    if (!store) return;
+    const entries = audits.map((a) => ({
+      created_at: a.created_at,
+      action: a.action,
+      user_label: a.user_id ? (people[a.user_id] ?? a.user_id.slice(0, 8)) : "sistema",
+      details: a.details,
+    }));
+    printTradeInTimeline(item, store as any, entries);
+  };
+
+  const submitCancelRepair = async () => {
+    setSaving(true);
+    const { error } = await (supabase as any).rpc("cancel_trade_in_repair", {
+      _trade_in_id: item.id,
+      _reason: cancelReason || null,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Preparo cancelado. Aparelho voltou para 'Em avaliação'.");
+    setCancelOpen(false);
+    setCancelReason("");
+    const { data: ti } = await supabase.from("trade_ins").select("*").eq("id", item.id).maybeSingle();
+    setItem(ti);
+    reloadAudits();
+  };
 
   const openRepair = async () => {
     if (!store) return;
@@ -266,9 +296,14 @@ export default function TradeInDetails() {
               </Button>
             )}
             {isAwaitingRepair && (
-              <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
-                <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
-              </Button>
+              <>
+                <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
+                  <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
+                </Button>
+                <Button variant="outline" onClick={() => setCancelOpen(true)} disabled={saving}>
+                  <XCircle className="h-4 w-4 mr-1" /> Cancelar preparo
+                </Button>
+              </>
             )}
             {simple === "em_estoque" && (
               <Button variant="outline" onClick={() => { setReasonKey(""); setDeactivateOpen(true); }}>
@@ -338,7 +373,14 @@ export default function TradeInDetails() {
         </Card>
 
         <Card className="p-5 bg-card border-border">
-          <h3 className="font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" /> Linha do tempo</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold flex items-center gap-2"><History className="h-4 w-4" /> Linha do tempo</h3>
+            {audits.length > 0 && (
+              <Button size="sm" variant="outline" onClick={exportTimeline} title="Exportar linha do tempo em PDF">
+                <FileText className="h-3.5 w-3.5 mr-1" /> Exportar PDF
+              </Button>
+            )}
+          </div>
           {audits.length === 0 ? (
             <p className="text-xs text-muted-foreground">Sem alterações registradas ainda.</p>
           ) : (
@@ -662,6 +704,34 @@ export default function TradeInDetails() {
               className="bg-success text-success-foreground hover:bg-success/90"
             >
               {saving ? "Salvando…" : "Confirmar e enviar ao estoque"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar preparo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              O aparelho voltará para <strong>"Em avaliação"</strong>. Nenhuma peça é reservada nesta etapa, então nada será devolvido ao estoque. A ação fica registrada na linha do tempo com seu usuário.
+            </p>
+            <div className="space-y-2">
+              <Label>Motivo (opcional)</Label>
+              <Textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Ex.: cliente desistiu do reparo / peça indisponível no mercado"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCancelOpen(false)}>Voltar</Button>
+            <Button variant="destructive" onClick={submitCancelRepair} disabled={saving}>
+              {saving ? "Cancelando…" : "Confirmar cancelamento"}
             </Button>
           </DialogFooter>
         </DialogContent>

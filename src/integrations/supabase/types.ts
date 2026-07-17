@@ -3290,6 +3290,10 @@ export type Database = {
       }
       assert_sale_has_items: { Args: { _sale_id: string }; Returns: boolean }
       backfill_trial_orphans: { Args: never; Returns: Json }
+      cancel_trade_in_repair: {
+        Args: { _reason?: string; _trade_in_id: string }
+        Returns: string
+      }
       create_purchase_with_stock: {
         Args: {
           _create_expense: boolean
