@@ -1600,15 +1600,6 @@ Obrigado pela preferência.`;
                             <Trash2 className="h-3.5 w-3.5 text-danger" />
                           </Button>
                         </div>
-                        {isTroca && (
-                          <div className="md:col-span-5 -mt-1 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <Label className="text-[11px] uppercase tracking-widest text-amber-700">
-                                Aparelho recebido na troca
-                              </Label>
-                            </div>
-                          </div>
-                        )}
                         {p.method === "crediario" && (
                           <div className="md:col-span-5 -mt-1 rounded-md border border-indigo-500/30 bg-indigo-500/5 p-2 grid grid-cols-1 md:grid-cols-3 gap-2">
                             <div>
@@ -1634,7 +1625,7 @@ Obrigado pela preferência.`;
                             </div>
                           </div>
                         )}
-                        {isTroca && false && (
+                        {isTroca && (
                           <div>
                             <div>
                               <Label>_</Label>
