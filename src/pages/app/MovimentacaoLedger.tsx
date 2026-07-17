@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronRight, Loader2, Download, FileText, Pencil } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Row = {
   product_id: string;
@@ -258,6 +260,15 @@ export default function MovimentacaoLedger({
             ) : timeline.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">Sem movimentos registrados no período.</div>
             ) : (
+              <>
+              <div className="flex justify-end gap-2 mb-2">
+                <Button size="sm" variant="outline" onClick={() => exportTimelineCsv(selected!, timeline, periodStart, periodEnd)}>
+                  <Download className="h-3.5 w-3.5 mr-1" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => exportTimelinePdf(selected!, timeline, periodStart, periodEnd)}>
+                  <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+                </Button>
+              </div>
               <table className="w-full text-xs">
                 <thead className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground border-b">
                   <tr>
@@ -271,16 +282,24 @@ export default function MovimentacaoLedger({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {timeline.map((t) => (
-                    <tr key={t.id} className={t.type === "edicao_manual" ? "bg-warning/10" : ""}>
+                    <tr
+                      key={t.id}
+                      className={
+                        t.type === "edicao_manual"
+                          ? "border-l-2 border-warning"
+                          : ""
+                      }
+                    >
                       <td className="py-1.5 font-mono text-muted-foreground">{new Date(t.occurred_at).toLocaleString("pt-BR")}</td>
                       <td className="py-1.5">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${t.type === "edicao_manual" ? "border-warning/60 text-warning font-semibold" : ""}`}
-                        >
-                          {t.type === "edicao_manual" && "✎ "}
-                          {TYPE_LABEL[t.type] ?? t.type}
-                        </Badge>
+                        {t.type === "edicao_manual" ? (
+                          <span className="inline-flex items-center gap-1 text-warning font-semibold text-[11px]">
+                            <Pencil className="h-3 w-3" />
+                            {TYPE_LABEL[t.type]}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-foreground/80">{TYPE_LABEL[t.type] ?? t.type}</span>
+                        )}
                       </td>
                       <td className={`py-1.5 text-right metric font-semibold ${Number(t.quantity) >= 0 ? "text-success" : "text-danger"}`}>
                         {Number(t.quantity) > 0 ? "+" : ""}{num(Number(t.quantity))}
@@ -292,6 +311,7 @@ export default function MovimentacaoLedger({
                   ))}
                 </tbody>
               </table>
+              </>
             )}
           </div>
         </DialogContent>
