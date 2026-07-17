@@ -848,6 +848,19 @@ export default function VendaNova() {
     if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
       return toast.error("Cada forma de pagamento precisa de método e valor > 0");
     }
+    // Bloqueio de venda em dinheiro com caixa fechado (config por loja)
+    try {
+      const hasCash = payments.some((p) => p.method === "dinheiro" && Number(p.amount) > 0);
+      const blockFlag = (store as any)?.block_sale_when_cash_closed;
+      if (hasCash && blockFlag && store?.id) {
+        const { data: openSess } = await (supabase as any)
+          .rpc("get_open_cash_session", { _store_id: store.id });
+        const isOpen = Array.isArray(openSess) ? openSess.length > 0 : !!openSess;
+        if (!isOpen) {
+          return toast.error("Caixa fechado: abra o caixa em Financeiro › Caixa antes de registrar vendas em dinheiro.");
+        }
+      }
+    } catch { /* fail-open se RPC indisponível */ }
     // Trocas: uma por venda, com aparelho selecionado e valor = entry_value.
     const trocaPays = payments.filter((p) => p.method === "troca");
     if (trocaPays.length > 1) {
