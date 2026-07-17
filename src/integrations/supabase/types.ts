@@ -2166,6 +2166,120 @@ export type Database = {
           },
         ]
       }
+      sale_return_items: {
+        Row: {
+          created_at: string
+          defect_note: string | null
+          id: string
+          product_id: string | null
+          quantity: number
+          restock: boolean
+          return_id: string
+          sale_item_id: string
+          unit_value: number
+          warranty_os_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          defect_note?: string | null
+          id?: string
+          product_id?: string | null
+          quantity: number
+          restock?: boolean
+          return_id: string
+          sale_item_id: string
+          unit_value?: number
+          warranty_os_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          defect_note?: string | null
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          restock?: boolean
+          return_id?: string
+          sale_item_id?: string
+          unit_value?: number
+          warranty_os_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "sale_returns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_return_items_sale_item_id_fkey"
+            columns: ["sale_item_id"]
+            isOneToOne: false
+            referencedRelation: "sale_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_returns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expense_id: string | null
+          id: string
+          notes: string | null
+          reason: string | null
+          refund_method: string
+          sale_id: string
+          store_credit_id: string | null
+          store_id: string
+          total_returned: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          refund_method: string
+          sale_id: string
+          store_credit_id?: string | null
+          store_id: string
+          total_returned?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          refund_method?: string
+          sale_id?: string
+          store_credit_id?: string | null
+          store_id?: string
+          total_returned?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_returns_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           created_at: string
@@ -2184,6 +2298,7 @@ export type Database = {
           payment_breakdown: Json | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: string
+          returned_total: number
           sale_number: number | null
           seller_id: string | null
           store_id: string
@@ -2207,6 +2322,7 @@ export type Database = {
           payment_breakdown?: Json | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
+          returned_total?: number
           sale_number?: number | null
           seller_id?: string | null
           store_id: string
@@ -2230,6 +2346,7 @@ export type Database = {
           payment_breakdown?: Json | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
+          returned_total?: number
           sale_number?: number | null
           seller_id?: string | null
           store_id?: string
@@ -2586,6 +2703,69 @@ export type Database = {
           },
         ]
       }
+      store_credits: {
+        Row: {
+          balance: number
+          code: string
+          created_at: string
+          customer_doc: string | null
+          customer_id: string | null
+          customer_name: string | null
+          expires_at: string | null
+          id: string
+          origin_return_id: string | null
+          original_amount: number
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance: number
+          code: string
+          created_at?: string
+          customer_doc?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          expires_at?: string | null
+          id?: string
+          origin_return_id?: string | null
+          original_amount: number
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          code?: string
+          created_at?: string
+          customer_doc?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          expires_at?: string | null
+          id?: string
+          origin_return_id?: string | null
+          original_amount?: number
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_credits_origin_return_id_fkey"
+            columns: ["origin_return_id"]
+            isOneToOne: false
+            referencedRelation: "sale_returns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_credits_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           address: string | null
@@ -2615,6 +2795,7 @@ export type Database = {
           show_non_fiscal_notice: boolean
           show_tax_id_on_docs: boolean
           slug: string
+          store_credit_default_days: number
           tax_id: string | null
           trade_name: string | null
           welcome_text: string | null
@@ -2647,6 +2828,7 @@ export type Database = {
           show_non_fiscal_notice?: boolean
           show_tax_id_on_docs?: boolean
           slug: string
+          store_credit_default_days?: number
           tax_id?: string | null
           trade_name?: string | null
           welcome_text?: string | null
@@ -2679,6 +2861,7 @@ export type Database = {
           show_non_fiscal_notice?: boolean
           show_tax_id_on_docs?: boolean
           slug?: string
+          store_credit_default_days?: number
           tax_id?: string | null
           trade_name?: string | null
           welcome_text?: string | null
@@ -3615,6 +3798,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_sale_return: {
+        Args: {
+          _items: Json
+          _notes: string
+          _reason: string
+          _refund_method: string
+          _sale_id: string
+        }
+        Returns: Json
+      }
       dispatch_push_event: {
         Args: { _event: string; _payload: Json; _store_id: string }
         Returns: undefined
@@ -3629,6 +3822,10 @@ export type Database = {
         Returns: string
       }
       generate_referral_code: { Args: { _user_id?: string }; Returns: string }
+      generate_store_credit_code: {
+        Args: { _store_id: string }
+        Returns: string
+      }
       get_meta_pixel_id: { Args: never; Returns: string }
       get_public_os: { Args: { _token: string }; Returns: Json }
       get_store_sellers: {
@@ -4010,6 +4207,15 @@ export type Database = {
         }
         Returns: string
       }
+      redeem_store_credit: {
+        Args: {
+          _amount: number
+          _code: string
+          _sale_id: string
+          _store_id: string
+        }
+        Returns: Json
+      }
       referral_balance: { Args: { _user_id?: string }; Returns: number }
       referral_dashboard: { Args: { _user_id?: string }; Returns: Json }
       referral_pending_balance: { Args: { _user_id?: string }; Returns: number }
@@ -4167,6 +4373,10 @@ export type Database = {
       user_store_can: {
         Args: { _feature: string; _store_id: string; _user_id: string }
         Returns: boolean
+      }
+      validate_store_credit: {
+        Args: { _code: string; _store_id: string }
+        Returns: Json
       }
     }
     Enums: {
