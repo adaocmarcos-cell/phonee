@@ -274,6 +274,113 @@ export type Database = {
           },
         ]
       }
+      cash_movements: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          reason: string
+          session_id: string
+          store_id: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          id?: string
+          reason: string
+          session_id: string
+          store_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          reason?: string
+          session_id?: string
+          store_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_sessions: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          counted_cash: number | null
+          created_at: string
+          difference: number | null
+          expected_cash: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string
+          opening_amount: number
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash?: number | null
+          created_at?: string
+          difference?: number | null
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by: string
+          opening_amount?: number
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_cash?: number | null
+          created_at?: string
+          difference?: number | null
+          expected_cash?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string
+          opening_amount?: number
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_sessions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_entries: {
         Row: {
           base_amount: number
@@ -1904,6 +2011,7 @@ export type Database = {
       receivable_payments: {
         Row: {
           amount: number
+          cash_session_id: string | null
           created_at: string
           id: string
           method: string
@@ -1916,6 +2024,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          cash_session_id?: string | null
           created_at?: string
           id?: string
           method: string
@@ -1928,6 +2037,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          cash_session_id?: string | null
           created_at?: string
           id?: string
           method?: string
@@ -1939,6 +2049,13 @@ export type Database = {
           store_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "receivable_payments_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "receivable_payments_receivable_id_fkey"
             columns: ["receivable_id"]
@@ -2466,6 +2583,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          cash_session_id: string | null
           created_at: string
           customer_doc: string | null
           customer_id: string | null
@@ -2490,6 +2608,7 @@ export type Database = {
           total: number
         }
         Insert: {
+          cash_session_id?: string | null
           created_at?: string
           customer_doc?: string | null
           customer_id?: string | null
@@ -2514,6 +2633,7 @@ export type Database = {
           total?: number
         }
         Update: {
+          cash_session_id?: string | null
           created_at?: string
           customer_doc?: string | null
           customer_id?: string | null
@@ -2538,6 +2658,13 @@ export type Database = {
           total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_cash_session_id_fkey"
+            columns: ["cash_session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_customer_id_fkey"
             columns: ["customer_id"]
@@ -2960,6 +3087,7 @@ export type Database = {
           address_street: string | null
           address_uf: string | null
           allow_negative_stock: boolean
+          block_sale_when_cash_closed: boolean
           created_at: string
           email: string | null
           hours: string | null
@@ -2994,6 +3122,7 @@ export type Database = {
           address_street?: string | null
           address_uf?: string | null
           allow_negative_stock?: boolean
+          block_sale_when_cash_closed?: boolean
           created_at?: string
           email?: string | null
           hours?: string | null
@@ -3028,6 +3157,7 @@ export type Database = {
           address_street?: string | null
           address_uf?: string | null
           allow_negative_stock?: boolean
+          block_sale_when_cash_closed?: boolean
           created_at?: string
           email?: string | null
           hours?: string | null
@@ -3874,6 +4004,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_cash_movement: {
+        Args: {
+          _amount: number
+          _reason: string
+          _session_id: string
+          _type: string
+        }
+        Returns: string
+      }
       admin_change_user_plan: {
         Args: {
           _new_expires_at?: string
@@ -3952,6 +4091,10 @@ export type Database = {
         Args: { _reason?: string; _trade_in_id: string }
         Returns: string
       }
+      close_cash_session: {
+        Args: { _counted_cash: number; _notes?: string; _session_id: string }
+        Returns: Json
+      }
       create_purchase_with_stock: {
         Args: {
           _create_expense: boolean
@@ -4013,11 +4156,41 @@ export type Database = {
         Args: { _store_id: string }
         Returns: string
       }
+      get_cash_consolidated: {
+        Args: { _from: string; _store_id: string; _to: string }
+        Returns: Json
+      }
+      get_cash_session_summary: { Args: { _session_id: string }; Returns: Json }
       get_dashboard_metrics: {
         Args: { _from: string; _store_id: string; _to: string }
         Returns: Json
       }
       get_meta_pixel_id: { Args: never; Returns: string }
+      get_open_cash_session: {
+        Args: { _store_id: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          counted_cash: number | null
+          created_at: string
+          difference: number | null
+          expected_cash: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string
+          opening_amount: number
+          status: string
+          store_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "cash_sessions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_public_os: { Args: { _token: string }; Returns: Json }
       get_store_sellers: {
         Args: { _store_id: string }
@@ -4110,6 +4283,10 @@ export type Database = {
           store_id: string
           subscription_status: string
         }[]
+      }
+      open_cash_session: {
+        Args: { _notes?: string; _opening_amount: number; _store_id: string }
+        Returns: string
       }
       pay_commission_entries: {
         Args: {
