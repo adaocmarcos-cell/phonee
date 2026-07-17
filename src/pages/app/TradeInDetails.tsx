@@ -144,14 +144,11 @@ export default function TradeInDetails() {
   const externalParts = rows.filter((r) => !r.part_id && (r.name || r.unit_cost > 0));
 
   const submitRepair = async () => {
-    // Client-side stock validation
     for (const r of rows) {
-      if (r.part_id) {
-        const p = invParts.find((x) => x.id === r.part_id);
-        if (!p) return toast.error(`Peça inválida: ${r.name}`);
-        if (p.stock_current < r.qty) return toast.error(`Estoque insuficiente de "${p.name}" (${p.stock_current} disponível).`);
-      }
       if (r.qty <= 0) return toast.error("Quantidade da peça deve ser maior que zero.");
+    }
+    if (missingParts.length > 0) {
+      return toast.error("Há peças com estoque insuficiente. Ajuste antes de continuar.");
     }
     setSaving(true);
     const payloadParts = rows.map((r) => ({
@@ -169,6 +166,7 @@ export default function TradeInDetails() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Preparo concluído. Aparelho no estoque.");
+    setRepairPreviewOpen(false);
     setRepairOpen(false);
     // Reload
     const { data: ti } = await supabase.from("trade_ins").select("*").eq("id", item.id).maybeSingle();
