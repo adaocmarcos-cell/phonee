@@ -492,8 +492,9 @@ ${os.technician ? `<div><span class="b">Técnico:</span> ${esc(os.technician)}</
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/ordens")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
-            {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo Técnico</Button>}
-            {editing && <Button variant="outline" onClick={gerar80mm}><Receipt className="h-4 w-4 mr-1" />Cupom 80mm</Button>}
+            {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo A4</Button>}
+            {editing && <Button variant="outline" onClick={() => gerar80mm({ download: false })}><Receipt className="h-4 w-4 mr-1" />Cupom 80mm</Button>}
+            {editing && <Button variant="outline" onClick={() => gerar80mm({ download: true })} title="Baixar PDF do cupom térmico"><Receipt className="h-4 w-4 mr-1" />Baixar cupom PDF</Button>}
             {editing && os.public_token && (
               <Button variant="outline" onClick={copyTrackingLink} title="Copiar link público de acompanhamento">
                 <Link2 className="h-4 w-4 mr-1" />Link do cliente
@@ -981,8 +982,11 @@ ${os.technician ? `<div><span class="b">Técnico:</span> ${esc(os.technician)}</
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLaudoOpen(false)}>Cancelar</Button>
-            <Button onClick={gerarLaudoHTML} className="bg-primary text-primary-foreground shadow-glow">
-              <FileText className="h-4 w-4 mr-1" />Gerar Laudo Técnico
+            <Button variant="outline" onClick={() => gerarLaudoHTML({ download: false })}>
+              <Printer className="h-4 w-4 mr-1" />Visualizar / Imprimir
+            </Button>
+            <Button onClick={() => gerarLaudoHTML({ download: true })} className="bg-primary text-primary-foreground shadow-glow">
+              <FileText className="h-4 w-4 mr-1" />Baixar Laudo PDF
             </Button>
           </DialogFooter>
         </DialogContent>
