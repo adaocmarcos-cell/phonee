@@ -4459,6 +4459,16 @@ export type Database = {
         Args: { _reason?: string; _trade_in_id: string }
         Returns: string
       }
+      check_tradein_cost_divergence: {
+        Args: never
+        Returns: {
+          actual: number
+          diff: number
+          expected: number
+          imei: string
+          store_id: string
+        }[]
+      }
       close_cash_session: {
         Args: { _counted_cash: number; _notes?: string; _session_id: string }
         Returns: Json
