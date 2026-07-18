@@ -276,7 +276,7 @@ Status: ${os.status}`;
     setLaudoOpen(true);
   };
 
-  const gerarLaudoHTML = () => {
+  const gerarLaudoHTML = (opts: { download?: boolean } = {}) => {
     const s: any = store || {};
     const logo = s.pdf_logo_url || s.logo_url || "";
     const primary = s.pdf_primary_color || "#0F4C81";
@@ -284,15 +284,20 @@ Status: ${os.status}`;
     const storeName = s.trade_name || s.name || "Assistência Técnica";
     const addr = [s.address_street, s.address_number, s.address_neighborhood, s.address_city, s.address_uf]
       .filter(Boolean).join(", ") || s.address || "";
-    const today = new Date().toLocaleDateString("pt-BR");
+    const now = new Date();
+    const today = now.toLocaleDateString("pt-BR");
+    const stampNow = now.toLocaleString("pt-BR");
+    const stampCompact = now.toISOString().replace(/[-:T.]/g, "").slice(0, 14);
     const osNum = String(os.os_number ?? "").padStart(4, "0");
+    const docNo = `LAUDO-${osNum}-${stampCompact}`;
+    const fileName = `OS-${osNum}-laudo-${stampCompact}.pdf`;
     const esc = (v: any) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
     const nl2br = (v: string) => esc(v).replace(/\n/g, "<br/>");
     const reasons = (os.reasons || []).join(", ") || "—";
     const device = [os.device_brand, os.device_model].filter(Boolean).join(" ") || "—";
 
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" />
-<title>Laudo Técnico OS #${osNum}</title>
+<title>${esc(fileName)}</title>
 <style>
   @page { size: A4; margin: 18mm 16mm; }
   *{box-sizing:border-box} body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:0;font-size:12px;line-height:1.45}
@@ -342,7 +347,8 @@ Status: ${os.status}`;
     <div class="doc-title">
       <span class="tag">Laudo Técnico</span>
       <h2>OS #${osNum}</h2>
-      <div class="date">Emitido em ${today}</div>
+      <div class="date">Emitido em ${stampNow}</div>
+      <div class="date" style="font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#777">Doc. ${docNo}</div>
     </div>
   </div>
 
@@ -391,9 +397,13 @@ Status: ${os.status}`;
 
   <div class="footer">
     ${esc(s.pdf_footer_text || `Este laudo técnico foi emitido por ${storeName} e tem validade exclusivamente para a OS #${osNum}.`)}
+    <div style="margin-top:6px;font-family:ui-monospace,Menlo,monospace;color:#999">Doc. ${docNo} · emitido em ${stampNow}</div>
   </div>
 </div>
-<script>setTimeout(()=>{try{window.focus()}catch(e){}},150)</script>
+<script>
+  document.title = ${JSON.stringify(fileName)};
+  ${opts.download ? "setTimeout(()=>{try{window.focus();window.print()}catch(e){}},250);" : "setTimeout(()=>{try{window.focus()}catch(e){}},150);"}
+</script>
 </body></html>`;
 
     const w = window.open("", "_blank", "width=900,height=1100");
@@ -403,19 +413,23 @@ Status: ${os.status}`;
   };
 
   // 80mm thermal receipt (cupom de entrega)
-  const gerar80mm = () => {
+  const gerar80mm = (opts: { download?: boolean } = {}) => {
     const s: any = store || {};
     const storeName = s.trade_name || s.name || "Assistência";
     const osNum = String(os.os_number ?? "").padStart(4, "0");
     const esc = (v: any) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
-    const dt = new Date().toLocaleString("pt-BR");
+    const nowDt = new Date();
+    const dt = nowDt.toLocaleString("pt-BR");
+    const stampCompact = nowDt.toISOString().replace(/[-:T.]/g, "").slice(0, 14);
+    const docNo = `CUPOM-${osNum}-${stampCompact}`;
+    const fileName = `OS-${osNum}-cupom-${stampCompact}.pdf`;
     const device = [os.device_brand, os.device_model].filter(Boolean).join(" ") || "—";
     const totalPecas = Number(os.parts_value || 0);
     const totalMo = Number(os.labor_value || 0);
     const total = Number(os.total_value || 0);
     const garantia = os.end_date ? new Date(new Date(os.end_date).getTime() + 90 * 86400000).toLocaleDateString("pt-BR") : "—";
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
-<title>Cupom OS #${osNum}</title>
+<title>${esc(fileName)}</title>
 <style>
   @page { size: 80mm auto; margin: 3mm; }
   body{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.35;margin:0;color:#000;width:74mm}
@@ -438,6 +452,7 @@ ${s.phone ? `<div class="c">Tel: ${esc(s.phone)}</div>` : ""}
 <div class="sep"></div>
 <div class="c b tot">OS #${osNum}</div>
 <div class="c">${dt}</div>
+<div class="c" style="font-size:9px;color:#555">Doc. ${docNo}</div>
 <div class="sep"></div>
 <div><span class="b">Cliente:</span> ${esc(os.customer_name)}</div>
 ${os.customer_whatsapp ? `<div><span class="b">WhatsApp:</span> ${esc(os.customer_whatsapp)}</div>` : ""}
@@ -456,7 +471,10 @@ ${os.technician ? `<div><span class="b">Técnico:</span> ${esc(os.technician)}</
 <div style="font-size:10px;margin-top:4px">Garantia válida somente sobre o serviço executado, conforme laudo técnico.</div>
 <div class="sep"></div>
 <div class="c" style="font-size:10px">${esc((store as any)?.trade_name || (store as any)?.name || "")}<br/>Obrigado pela preferência!</div>
-<script>setTimeout(()=>window.print(),300)</script>
+<script>
+  document.title = ${JSON.stringify(fileName)};
+  ${opts.download ? "setTimeout(()=>window.print(),300);" : "setTimeout(()=>window.print(),400);"}
+</script>
 </body></html>`;
     const w = window.open("", "_blank", "width=380,height=760");
     if (!w) return toast.error("Popup bloqueado — permita para imprimir");
@@ -474,8 +492,9 @@ ${os.technician ? `<div><span class="b">Técnico:</span> ${esc(os.technician)}</
           <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" onClick={() => navigate("/painel/ordens")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
-            {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo Técnico</Button>}
-            {editing && <Button variant="outline" onClick={gerar80mm}><Receipt className="h-4 w-4 mr-1" />Cupom 80mm</Button>}
+            {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo A4</Button>}
+            {editing && <Button variant="outline" onClick={() => gerar80mm({ download: false })}><Receipt className="h-4 w-4 mr-1" />Cupom 80mm</Button>}
+            {editing && <Button variant="outline" onClick={() => gerar80mm({ download: true })} title="Baixar PDF do cupom térmico"><Receipt className="h-4 w-4 mr-1" />Baixar cupom PDF</Button>}
             {editing && os.public_token && (
               <Button variant="outline" onClick={copyTrackingLink} title="Copiar link público de acompanhamento">
                 <Link2 className="h-4 w-4 mr-1" />Link do cliente
@@ -963,8 +982,11 @@ ${os.technician ? `<div><span class="b">Técnico:</span> ${esc(os.technician)}</
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLaudoOpen(false)}>Cancelar</Button>
-            <Button onClick={gerarLaudoHTML} className="bg-primary text-primary-foreground shadow-glow">
-              <FileText className="h-4 w-4 mr-1" />Gerar Laudo Técnico
+            <Button variant="outline" onClick={() => gerarLaudoHTML({ download: false })}>
+              <Printer className="h-4 w-4 mr-1" />Visualizar / Imprimir
+            </Button>
+            <Button onClick={() => gerarLaudoHTML({ download: true })} className="bg-primary text-primary-foreground shadow-glow">
+              <FileText className="h-4 w-4 mr-1" />Baixar Laudo PDF
             </Button>
           </DialogFooter>
         </DialogContent>
