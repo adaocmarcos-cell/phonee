@@ -100,6 +100,8 @@ export default function Configuracoes() {
     allow_negative_stock: false,
     block_sale_when_cash_closed: false,
     stock_divergence_threshold: 0,
+    tradein_divergence_threshold: 0.5,
+    tradein_divergence_severity: "warning" as "info" | "warning" | "danger",
     pdf_primary_color: "#0EA5E9", pdf_accent_color: "#1E293B",
     pdf_logo_url: "", pdf_footer_text: "",
   });
@@ -136,6 +138,8 @@ export default function Configuracoes() {
       allow_negative_stock: s.allow_negative_stock ?? false,
       block_sale_when_cash_closed: s.block_sale_when_cash_closed ?? false,
       stock_divergence_threshold: Number(s.stock_divergence_threshold ?? 0),
+      tradein_divergence_threshold: Number(s.tradein_divergence_threshold ?? 0.5),
+      tradein_divergence_severity: (s.tradein_divergence_severity ?? "warning") as any,
       pdf_primary_color: s.pdf_primary_color ?? "#0EA5E9",
       pdf_accent_color: s.pdf_accent_color ?? "#1E293B",
       pdf_logo_url: s.pdf_logo_url ?? "",
@@ -197,6 +201,8 @@ export default function Configuracoes() {
       allow_negative_stock: storeForm.allow_negative_stock,
       block_sale_when_cash_closed: storeForm.block_sale_when_cash_closed,
       stock_divergence_threshold: Number(storeForm.stock_divergence_threshold) || 0,
+      tradein_divergence_threshold: Number(storeForm.tradein_divergence_threshold) || 0,
+      tradein_divergence_severity: storeForm.tradein_divergence_severity,
       pdf_primary_color: storeForm.pdf_primary_color || null,
       pdf_accent_color: storeForm.pdf_accent_color || null,
       pdf_logo_url: storeForm.pdf_logo_url || null,
@@ -413,6 +419,46 @@ export default function Configuracoes() {
                 />
               </div>
               <StockJobsStatus storeId={store?.id} />
+            </div>
+            {/* Divergência trade-in */}
+            <div className="md:col-span-2 space-y-2 rounded-md border p-3 bg-muted/20">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Divergência de custo (Trade-in / Seminovos)
+              </Label>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-sm">Limite de tolerância (R$)</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Só gera alerta quando a diferença entre <b>entrada + reparos</b> e o <b>custo de estoque</b> for maior que este valor.
+                  </div>
+                </div>
+                <Input
+                  type="number" min={0} step="0.01" className="w-28 text-right"
+                  value={storeForm.tradein_divergence_threshold}
+                  onChange={(e) => setSF("tradein_divergence_threshold", e.target.value === "" ? 0 : Number(e.target.value))}
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/60">
+                <div className="flex-1">
+                  <div className="text-sm">Severidade do alerta</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Define a cor/prioridade do alerta gerado pelo agendamento diário.
+                  </div>
+                </div>
+                <Select
+                  value={storeForm.tradein_divergence_severity}
+                  onValueChange={(v) => setSF("tradein_divergence_severity", v as any)}
+                  disabled={!canEdit}
+                >
+                  <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">Info</SelectItem>
+                    <SelectItem value="warning">Aviso</SelectItem>
+                    <SelectItem value="danger">Crítico</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {/* Caixa */}
             <div className="md:col-span-2 space-y-2 rounded-md border p-3 bg-muted/20">
