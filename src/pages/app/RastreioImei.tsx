@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -6,9 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowLeftRight, Package, ShoppingCart, Wrench, ArrowRightLeft, Clock } from "lucide-react";
+import { Search, ArrowLeftRight, Package, ShoppingCart, Wrench, ArrowRightLeft, Clock, Database, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { brl } from "@/lib/format";
 
 type Event = {
@@ -38,13 +38,15 @@ const LABEL: Record<Event["event_type"], string> = {
 export default function RastreioImei() {
   const { store } = useAuth();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const [imei, setImei] = useState("");
   const [events, setEvents] = useState<Event[] | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const search = async () => {
+  const search = async (override?: string) => {
     if (!store) return;
-    const value = imei.replace(/\D/g, "");
+    const raw = override ?? imei;
+    const value = raw.replace(/\D/g, "");
     if (value.length !== 15) return toast.error("IMEI deve ter 15 dígitos");
     setLoading(true);
     const { data, error } = await (supabase as any).rpc("track_device_by_imei", {
@@ -54,7 +56,18 @@ export default function RastreioImei() {
     setLoading(false);
     if (error) return toast.error(error.message);
     setEvents((data ?? []) as Event[]);
+    setParams({ imei: value }, { replace: true });
   };
+
+  // Auto search when landing with ?imei=...
+  useEffect(() => {
+    const q = params.get("imei");
+    if (q && q.length === 15 && store && events === null) {
+      setImei(q);
+      search(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store]);
 
   const goTo = (e: Event) => {
     if (e.event_type === "trade_in") navigate(`/painel/troca/${e.ref_id}/detalhes`);
@@ -74,10 +87,14 @@ export default function RastreioImei() {
     const custoReparos = Number(tradeIn?.details?.repair_costs || 0);
     const custoTotal = Number(produto?.details?.cost || custoEntrada + custoReparos);
     const totalVenda = Number(venda?.details?.total || 0);
+    const custoEsperado = custoEntrada + custoReparos;
+    const custoCadastrado = Number(produto?.details?.cost || 0);
+    const diverge = tradeIn && produto ? Math.abs(custoEsperado - custoCadastrado) > 0.5 : false;
     return {
       first: new Date(first.event_at).toLocaleDateString("pt-BR"),
       last: new Date(last.event_at).toLocaleDateString("pt-BR"),
       custoTotal, totalVenda, tradeIn, produto, venda,
+      custoEntrada, custoReparos, custoEsperado, custoCadastrado, diverge,
       count: events.length,
     };
   })() : null;
@@ -173,6 +190,85 @@ export default function RastreioImei() {
                 </li>
               ))}
             </ol>
+          )}
+        </Card>
+      )}
+
+      {summary && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-primary" />
+            <div className="font-semibold text-sm">Detalhes do cálculo</div>
+            {summary.diverge && (
+              <Badge variant="destructive" className="ml-auto gap-1">
+                <AlertTriangle className="h-3 w-3" /> Divergência detectada
+              </Badge>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Cada linha mostra a origem exata (tabela.coluna) usada nos cálculos exibidos acima.
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b">
+                  <th className="py-1 pr-3 font-medium">Campo</th>
+                  <th className="py-1 pr-3 font-medium">Origem</th>
+                  <th className="py-1 pr-3 font-medium">Função</th>
+                  <th className="py-1 pr-3 font-medium text-right">Valor</th>
+                </tr>
+              </thead>
+              <tbody className="[&_tr]:border-b [&_tr:last-child]:border-0">
+                <tr>
+                  <td className="py-1.5 pr-3">Valor de entrada</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">trade_ins.entry_value</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">create_trade_in</td>
+                  <td className="py-1.5 pr-3 text-right font-medium">{brl(summary.custoEntrada)}</td>
+                </tr>
+                <tr>
+                  <td className="py-1.5 pr-3">Σ Custos de reparo</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">trade_ins.repair_costs</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">add_tradein_repair_cost</td>
+                  <td className="py-1.5 pr-3 text-right font-medium">{brl(summary.custoReparos)}</td>
+                </tr>
+                <tr>
+                  <td className="py-1.5 pr-3">Custo esperado (entrada + reparos)</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">— cálculo —</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">tg_tradein_sync_product_cost</td>
+                  <td className="py-1.5 pr-3 text-right font-medium">{brl(summary.custoEsperado)}</td>
+                </tr>
+                <tr className={summary.diverge ? "bg-destructive/5" : ""}>
+                  <td className="py-1.5 pr-3">Custo no estoque</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">products.cost_price</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">tg_tradein_to_product</td>
+                  <td className={`py-1.5 pr-3 text-right font-medium ${summary.diverge ? "text-destructive" : ""}`}>
+                    {summary.produto ? brl(summary.custoCadastrado) : "—"}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1.5 pr-3">Preço de venda</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">sale_items.total</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">create_sale</td>
+                  <td className="py-1.5 pr-3 text-right font-medium">{summary.venda ? brl(summary.totalVenda) : "—"}</td>
+                </tr>
+                <tr className="bg-muted/40">
+                  <td className="py-1.5 pr-3 font-semibold">Lucro estimado (venda − custo esperado)</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">— cálculo —</td>
+                  <td className="py-1.5 pr-3 font-mono text-[11px]">frontend</td>
+                  <td className={`py-1.5 pr-3 text-right font-semibold ${summary.venda && summary.totalVenda - summary.custoEsperado >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    {summary.venda ? brl(summary.totalVenda - summary.custoEsperado) : "—"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {summary.diverge && (
+            <div className="text-xs bg-destructive/10 text-destructive rounded-md p-2 border border-destructive/20">
+              O custo cadastrado em <span className="font-mono">products.cost_price</span> difere do esperado por
+              <span className="font-semibold"> {brl(Math.abs(summary.custoEsperado - summary.custoCadastrado))}</span>.
+              Isso normalmente indica edição manual do produto ou reparo lançado após a venda. Verifique
+              <span className="font-mono"> trade_ins.repair_parts</span> e a trilha de <span className="font-mono">stock_movements</span>.
+            </div>
           )}
         </Card>
       )}
