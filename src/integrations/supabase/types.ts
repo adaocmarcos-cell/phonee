@@ -2983,6 +2983,7 @@ export type Database = {
           customer_city: string | null
           customer_cpf: string | null
           customer_email: string | null
+          customer_id: string | null
           customer_name: string
           customer_signature: string | null
           customer_whatsapp: string | null
@@ -3036,6 +3037,7 @@ export type Database = {
           customer_city?: string | null
           customer_cpf?: string | null
           customer_email?: string | null
+          customer_id?: string | null
           customer_name: string
           customer_signature?: string | null
           customer_whatsapp?: string | null
@@ -3089,6 +3091,7 @@ export type Database = {
           customer_city?: string | null
           customer_cpf?: string | null
           customer_email?: string | null
+          customer_id?: string | null
           customer_name?: string
           customer_signature?: string | null
           customer_whatsapp?: string | null
@@ -3129,6 +3132,13 @@ export type Database = {
           work_checklist?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "service_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_orders_store_id_fkey"
             columns: ["store_id"]
