@@ -59,6 +59,20 @@ Deno.serve(async (req) => {
         );
     }
 
+    // Auto-desbloqueio: quando um pagamento é confirmado/recebido para uma
+    // assinatura já vinculada a uma loja, libera o acesso automaticamente.
+    // Roda via service_role, então o trigger `enforce_access_blocked_admin_only`
+    // permite (auth.uid() é NULL nas edge functions).
+    if (newStatus === "active" && sub.store_id) {
+      try {
+        await admin
+          .from("stores")
+          .update({ access_blocked: false, blocked_at: null, blocked_by: null })
+          .eq("id", sub.store_id)
+          .eq("access_blocked", true);
+      } catch (_) { /* ignore */ }
+    }
+
     // Create user + send password reset on approval
     if (newStatus === "active" && !sub.user_id) {
       const email = sub.customer_email;
