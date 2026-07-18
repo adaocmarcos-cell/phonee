@@ -3,7 +3,7 @@ import { z } from "npm:zod@3.23.8";
 import { asaasFetch, corsHeaders, jsonResponse } from "../_shared/asaas.ts";
 
 const Schema = z.object({
-  plan_code: z.enum(["trial", "annual", "lifetime"]),
+  plan_code: z.enum(["trial", "annual", "lifetime", "monthly"]),
   customer_name: z.string().trim().min(2).max(120),
   customer_email: z.string().trim().email().max(255),
   customer_phone: z.string().trim().min(8).max(20),
@@ -12,7 +12,7 @@ const Schema = z.object({
   installments: z.number().int().min(1).max(12).default(1),
   store_id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional(),
-  billing_cycle: z.enum(["trial", "annual", "lifetime"]).optional(),
+  billing_cycle: z.enum(["trial", "annual", "lifetime", "monthly"]).optional(),
   ref_code: z.string().trim().max(40).optional(),
   coupon_code: z.string().trim().max(40).optional(),
 });
