@@ -148,28 +148,25 @@ export default function Alertas() {
       <PageHeader
         title="Central de alertas"
         description={
-          unreadCount > 0
-            ? `${unreadCount} não lido${unreadCount > 1 ? "s" : ""} · em ordem de prioridade.`
-            : "Tudo em dia — nenhum alerta pendente."
+          counts.abertos > 0
+            ? `${counts.abertos} aberto${counts.abertos > 1 ? "s" : ""} · em ordem de prioridade.`
+            : "Tudo em dia — nenhum alerta em aberto."
         }
         actions={
           <>
             <div className="flex rounded-md border border-border overflow-hidden">
-              <button
-                onClick={() => setFilter("nao_lidos")}
-                className={`px-3 py-1.5 text-xs ${filter === "nao_lidos" ? "bg-primary text-primary-foreground" : "bg-transparent"}`}
-              >
-                Não lidos {unreadCount > 0 && <span className="ml-1 font-mono">({unreadCount})</span>}
-              </button>
-              <button
-                onClick={() => setFilter("todos")}
-                className={`px-3 py-1.5 text-xs ${filter === "todos" ? "bg-primary text-primary-foreground" : "bg-transparent"}`}
-              >
-                Todos <span className="ml-1 font-mono">({alerts.length})</span>
-              </button>
+              {(["abertos","arquivados","resolvidos","todos"] as StatusFilter[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1.5 text-xs capitalize ${filter === f ? "bg-primary text-primary-foreground" : "bg-transparent"}`}
+                >
+                  {f} <span className="ml-1 font-mono">({counts[f]})</span>
+                </button>
+              ))}
             </div>
             <Button variant="outline" onClick={scan} disabled={scanning}><RefreshCw className={`h-4 w-4 mr-1 ${scanning ? "animate-spin" : ""}`} />Verificar agora</Button>
-            <Button variant="outline" onClick={markAll} disabled={unreadCount === 0}>
+            <Button variant="outline" onClick={markAll} disabled={counts.abertos === 0}>
               <Check className="h-4 w-4 mr-1" />Marcar tudo como lido
             </Button>
           </>
