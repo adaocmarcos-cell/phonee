@@ -114,7 +114,7 @@ export default function RastreioImei() {
           maxLength={15}
           onKeyDown={(e) => e.key === "Enter" && search()}
         />
-        <Button onClick={search} disabled={loading}>
+        <Button onClick={() => search()} disabled={loading}>
           <Search className="h-4 w-4 mr-1" /> Buscar
         </Button>
       </Card>
