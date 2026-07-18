@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, Handshake, CheckCircle2, Clock, XCircle, DollarSign,
   ChevronDown, ChevronRight, Search, Pencil, ExternalLink, CreditCard, Package, ShoppingCart, HardDrive, Gift,
+  MessageCircle, Eye, LayoutDashboard, MapPin, Phone, FileText, Wrench, UserCircle2, TrendingUp,
+  CalendarDays, Ban, Sparkles,
 } from "lucide-react";
 import { BonusDialog } from "@/components/phonee/BonusDialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 type StoreRow = {
   store_id: string; store_name: string;
@@ -30,9 +36,28 @@ type Trial = {
 type Overview = {
   total_stores: number; active_subscriptions: number; trialing: number;
   total_users: number; mrr_estimate: number; gmv_30d: number;
+  new_stores_30d?: number; avg_ticket?: number;
 };
 
-type TabKey = "todos" | "ativos" | "teste" | "sem_plano";
+type TabKey = "todos" | "ativos" | "teste" | "sem_plano" | "canceladas";
+
+type StoreDetail = {
+  logo_url: string | null;
+  address: string | null;
+  address_city: string | null;
+  address_uf: string | null;
+  phone: string | null;
+  email: string | null;
+  tax_id: string | null;
+  welcome_text: string | null;
+  created_at: string;
+  users_count: number;
+  products_count: number;
+  os_count: number;
+  customers_count: number;
+  revenue_total: number;
+  last_login: string | null;
+};
 
 const brl = (n: number) =>
   (n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -42,6 +67,24 @@ const fmtBytes = (b: number) => {
   while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
   return `${v.toFixed(v < 10 && i > 0 ? 2 : 1)} ${u[i]}`;
 };
+const fmtDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("pt-BR") : "—";
+const initials = (name?: string | null) => {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
+};
+const onlyDigits = (s?: string | null) => (s ?? "").replace(/\D/g, "");
+const waLink = (phone?: string | null, name?: string | null) => {
+  const p = onlyDigits(phone);
+  if (!p) return null;
+  const num = p.startsWith("55") ? p : `55${p}`;
+  const first = (name ?? "").split(" ")[0] || "";
+  const msg = encodeURIComponent(
+    `Olá, ${first}! 👋\n\nAqui é da equipe Phonee.\nGostaríamos de apresentar nossos planos e recursos disponíveis para sua loja.\nCaso tenha interesse, será um prazer explicar todas as opções.`
+  );
+  return `https://wa.me/${num}?text=${msg}`;
+};
 
 function isActive(s?: string | null) {
   return s === "active" || s === "ativa" || s === "ativo";
@@ -49,8 +92,13 @@ function isActive(s?: string | null) {
 function isTrial(s?: string | null) {
   return s === "trialing" || s === "trial" || s === "em_teste";
 }
+function isCanceled(s?: string | null) {
+  const st = (s ?? "").toLowerCase();
+  return st === "canceled" || st === "cancelada" || st === "cancelled";
+}
 
 export default function PhoneeContas() {
+  const navigate = useNavigate();
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [metrics, setMetrics] = useState<Record<string, Metric>>({});
@@ -61,6 +109,8 @@ export default function PhoneeContas() {
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [bonusTarget, setBonusTarget] = useState<{ email: string; store?: string | null } | null>(null);
+  const [details, setDetails] = useState<Record<string, StoreDetail | "loading">>({});
+  const [usersModalStore, setUsersModalStore] = useState<StoreRow | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -113,7 +163,8 @@ export default function PhoneeContas() {
     return stores.filter((s) => {
       if (tab === "ativos" && !isActive(s.subscription_status)) return false;
       if (tab === "teste" && !isTrial(s.subscription_status) && !trialsByEmail.has((s.owner_email ?? "").toLowerCase())) return false;
-      if (tab === "sem_plano" && (isActive(s.subscription_status) || isTrial(s.subscription_status))) return false;
+      if (tab === "sem_plano" && (isActive(s.subscription_status) || isTrial(s.subscription_status) || isCanceled(s.subscription_status))) return false;
+      if (tab === "canceladas" && !isCanceled(s.subscription_status)) return false;
       if (!term) return true;
       return (
         s.store_name?.toLowerCase().includes(term) ||
@@ -127,9 +178,53 @@ export default function PhoneeContas() {
     });
   }, [stores, tab, q, trialsByEmail, usersByStore]);
 
-  const toggle = (id: string) => {
+  const loadDetail = async (s: StoreRow) => {
+    if (details[s.store_id]) return;
+    setDetails((prev) => ({ ...prev, [s.store_id]: "loading" }));
+    const [storeRow, productsCount, osCount, customersCount, lastLogin] = await Promise.all([
+      (supabase as any).from("stores")
+        .select("logo_url, address, address_city, address_uf, phone, email, tax_id, welcome_text, created_at")
+        .eq("id", s.store_id).maybeSingle(),
+      (supabase as any).from("products").select("id", { count: "exact", head: true }).eq("store_id", s.store_id),
+      (supabase as any).from("service_orders").select("id", { count: "exact", head: true }).eq("store_id", s.store_id),
+      (supabase as any).from("customers").select("id", { count: "exact", head: true }).eq("store_id", s.store_id),
+      s.owner_id
+        ? (supabase as any).from("user_profile_extras").select("last_login_at").eq("user_id", s.owner_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const row = storeRow?.data ?? {};
+    const members = usersByStore.get(s.store_id) ?? [];
+    setDetails((prev) => ({
+      ...prev,
+      [s.store_id]: {
+        logo_url: row.logo_url ?? null,
+        address: row.address ?? null,
+        address_city: row.address_city ?? null,
+        address_uf: row.address_uf ?? null,
+        phone: row.phone ?? null,
+        email: row.email ?? s.owner_email ?? null,
+        tax_id: row.tax_id ?? null,
+        welcome_text: row.welcome_text ?? null,
+        created_at: row.created_at ?? s.created_at,
+        users_count: members.length || (s.owner_id ? 1 : 0),
+        products_count: productsCount?.count ?? 0,
+        os_count: osCount?.count ?? 0,
+        customers_count: customersCount?.count ?? 0,
+        revenue_total: s.total_sales ?? 0,
+        last_login: lastLogin?.data?.last_login_at ?? null,
+      },
+    }));
+  };
+
+  const toggle = (s: StoreRow) => {
+    const id = s.store_id;
     const next = new Set(expanded);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+      loadDetail(s);
+    }
     setExpanded(next);
   };
 
@@ -137,11 +232,18 @@ export default function PhoneeContas() {
     todos: stores.length,
     ativos: stores.filter((s) => isActive(s.subscription_status)).length,
     teste: stores.filter((s) => isTrial(s.subscription_status) || trialsByEmail.has((s.owner_email ?? "").toLowerCase())).length,
-    sem_plano: stores.filter((s) => !isActive(s.subscription_status) && !isTrial(s.subscription_status)).length,
+    sem_plano: stores.filter((s) => !isActive(s.subscription_status) && !isTrial(s.subscription_status) && !isCanceled(s.subscription_status)).length,
+    canceladas: stores.filter((s) => isCanceled(s.subscription_status)).length,
   }), [stores, trials, trialsByEmail]);
 
+  const receitaTotal = useMemo(() => stores.reduce((acc, s) => acc + (s.total_sales ?? 0), 0), [stores]);
+  const novasLojas30d = overview?.new_stores_30d ?? 0;
+
+  const goEditStore = () => navigate("/phonee/lojas");
+  const goOpenPanel = () => navigate("/phonee/lojas");
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold">Contas da plataforma</h1>
         <p className="text-sm text-slate-400">
@@ -150,13 +252,16 @@ export default function PhoneeContas() {
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-3">
         <Kpi icon={Building2} label="Lojas" value={overview?.total_stores ?? stores.length} />
-        <Kpi icon={CheckCircle2} label="Assinantes ativos" value={overview?.active_subscriptions ?? counts.ativos} tone="emerald" />
+        <Kpi icon={CheckCircle2} label="Ativas" value={overview?.active_subscriptions ?? counts.ativos} tone="emerald" />
         <Kpi icon={Clock} label="Em teste" value={overview?.trialing ?? counts.teste} tone="sky" />
+        <Kpi icon={XCircle} label="Canceladas" value={counts.canceladas} tone="rose" />
+        <Kpi icon={Sparkles} label="Novas (30d)" value={novasLojas30d} tone="violet" />
         <Kpi icon={Users} label="Usuários" value={overview?.total_users ?? users.length} />
-        <Kpi icon={DollarSign} label="MRR estimado" value={brl(overview?.mrr_estimate ?? 0)} tone="emerald" />
-        <Kpi icon={DollarSign} label="GMV 30d" value={brl(overview?.gmv_30d ?? 0)} />
+        <Kpi icon={DollarSign} label="MRR" value={brl(overview?.mrr_estimate ?? 0)} tone="emerald" />
+        <Kpi icon={TrendingUp} label="GMV 30d" value={brl(overview?.gmv_30d ?? 0)} />
+        <Kpi icon={DollarSign} label="Receita total" value={brl(receitaTotal)} tone="amber" />
       </div>
 
       {/* Tabs + search */}
@@ -166,6 +271,7 @@ export default function PhoneeContas() {
           <TabBtn active={tab === "ativos"} onClick={() => setTab("ativos")} label="Assinantes ativos" count={counts.ativos} tone="emerald" />
           <TabBtn active={tab === "teste"} onClick={() => setTab("teste")} label="Em teste" count={counts.teste} tone="sky" />
           <TabBtn active={tab === "sem_plano"} onClick={() => setTab("sem_plano")} label="Sem plano" count={counts.sem_plano} tone="amber" />
+          <TabBtn active={tab === "canceladas"} onClick={() => setTab("canceladas")} label="Canceladas" count={counts.canceladas} tone="rose" />
         </div>
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -178,7 +284,13 @@ export default function PhoneeContas() {
         </div>
       </div>
 
-      {loading && <div className="text-slate-400 py-8 text-center">Carregando contas…</div>}
+      {loading && (
+        <div className="space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-xl bg-slate-900" />
+          ))}
+        </div>
+      )}
 
       {/* Stores list */}
       {!loading && (
@@ -189,19 +301,35 @@ export default function PhoneeContas() {
             const owner = members.find((m) => m.user_id === s.owner_id);
             const ownerMetric = owner ? metrics[owner.user_id] : undefined;
             const isOpen = expanded.has(s.store_id);
+            const detail = details[s.store_id];
+            const detailReady = detail && detail !== "loading" ? detail : null;
+            const wa = waLink(detailReady?.phone, s.owner_name);
             return (
-              <div key={s.store_id} className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden">
-                <button
-                  onClick={() => toggle(s.store_id)}
-                  className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-slate-800/40 transition"
-                >
-                  <div className="mt-0.5 text-slate-400">
+              <div
+                key={s.store_id}
+                className={`rounded-xl border bg-slate-900 overflow-hidden transition-all duration-200 hover:border-slate-700 hover:shadow-[0_4px_20px_-8px_rgba(0,171,251,0.15)] ${isOpen ? "border-slate-700" : "border-slate-800"}`}
+              >
+                <div className="w-full flex items-center gap-3 px-4 py-3">
+                  <button
+                    onClick={() => toggle(s)}
+                    className="text-slate-400 hover:text-[#00abfb] transition shrink-0"
+                    aria-label={isOpen ? "Recolher" : "Expandir"}
+                  >
                     {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </button>
+
+                  {/* Logo/initials */}
+                  <div className="h-11 w-11 rounded-lg border border-slate-700 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shrink-0 overflow-hidden">
+                    {detailReady?.logo_url ? (
+                      <img src={detailReady.logo_url} alt={s.store_name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-semibold text-[#00abfb]">{initials(s.store_name)}</span>
+                    )}
                   </div>
-                  <Building2 className="h-5 w-5 text-[#00abfb] mt-0.5 shrink-0" />
-                  <div className="min-w-0 flex-1">
+
+                  <button onClick={() => toggle(s)} className="min-w-0 flex-1 text-left group">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-slate-100 truncate">{s.store_name}</span>
+                      <span className="font-semibold text-slate-100 truncate group-hover:text-[#00abfb] transition">{s.store_name}</span>
                       <StatusPill status={s.subscription_status} trial={trial?.status} />
                       <PlanPill
                         plan={s.plan_name}
@@ -210,26 +338,97 @@ export default function PhoneeContas() {
                         expiresAt={s.expires_at}
                       />
                     </div>
-                    <div className="text-xs text-slate-400 truncate">
-                      {s.owner_name ?? "—"} <span className="text-slate-600">·</span> {s.owner_email ?? "—"}
+                    <div className="text-xs text-slate-400 truncate flex flex-wrap items-center gap-x-2">
+                      <span className="inline-flex items-center gap-1"><UserCircle2 className="h-3 w-3" />{s.owner_name ?? "—"}</span>
+                      <span className="text-slate-600">·</span>
+                      <span className="truncate">{s.owner_email ?? "—"}</span>
+                      {detailReady?.address_city && (
+                        <>
+                          <span className="text-slate-600">·</span>
+                          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{detailReady.address_city}{detailReady.address_uf ? `/${detailReady.address_uf}` : ""}</span>
+                        </>
+                      )}
+                      <span className="text-slate-600">·</span>
+                      <span className="inline-flex items-center gap-1"><CalendarDays className="h-3 w-3" />{fmtDate(s.created_at)}</span>
                     </div>
-                  </div>
-                  <div className="hidden md:grid grid-cols-4 gap-4 text-right shrink-0">
+                  </button>
+
+                  <div className="hidden lg:grid grid-cols-4 gap-4 text-right shrink-0">
                     <Stat icon={Users} label="Usuários" value={members.length || (s.owner_id ? 1 : 0)} />
                     <Stat icon={Package} label="Produtos" value={ownerMetric?.products ?? 0} />
                     <Stat icon={ShoppingCart} label="Vendas 30d" value={ownerMetric?.sales_30 ?? s.sales_count} />
                     <Stat icon={DollarSign} label="Receita" value={brl(ownerMetric?.revenue ?? s.total_sales)} strong />
                   </div>
-                </button>
+
+                  {/* Action buttons */}
+                  <div className="hidden md:flex items-center gap-1 shrink-0 pl-2 border-l border-slate-800">
+                    {wa ? (
+                      <a
+                        href={wa}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Abrir WhatsApp"
+                        className="inline-flex items-center justify-center h-8 w-8 rounded-md text-emerald-300 hover:bg-emerald-500/15 hover:text-emerald-200 transition"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => { if (!detailReady) loadDetail(s); }}
+                        title="Carregar contato"
+                        className="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </button>
+                    )}
+                    <StoreDetailsPopover
+                      store={s}
+                      detail={detailReady}
+                      onOpen={() => loadDetail(s)}
+                      onGoPanel={goOpenPanel}
+                      onSeeUsers={() => setUsersModalStore(s)}
+                      ownerMetric={ownerMetric}
+                    />
+                    <button
+                      onClick={goOpenPanel}
+                      title="Abrir painel da loja"
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-300 hover:bg-[#00abfb]/15 hover:text-[#00abfb] transition"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={goEditStore}
+                      title="Editar loja"
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-300 hover:bg-slate-800 transition"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
 
                 {isOpen && (
-                  <div className="border-t border-slate-800 bg-slate-950/40 px-4 py-3 space-y-3">
+                  <div className="border-t border-slate-800 bg-slate-950/40 px-4 py-4 space-y-4 animate-accordion-down">
                     {/* Metrics row on mobile */}
-                    <div className="grid grid-cols-2 md:hidden gap-3">
+                    <div className="grid grid-cols-2 lg:hidden gap-3">
                       <Stat icon={Users} label="Usuários" value={members.length || (s.owner_id ? 1 : 0)} />
                       <Stat icon={Package} label="Produtos" value={ownerMetric?.products ?? 0} />
                       <Stat icon={ShoppingCart} label="Vendas 30d" value={ownerMetric?.sales_30 ?? s.sales_count} />
                       <Stat icon={DollarSign} label="Receita" value={brl(ownerMetric?.revenue ?? s.total_sales)} strong />
+                    </div>
+
+                    {/* Mobile actions */}
+                    <div className="flex md:hidden flex-wrap gap-2">
+                      {wa && (
+                        <a href={wa} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10">
+                          <MessageCircle className="h-3 w-3" /> WhatsApp
+                        </a>
+                      )}
+                      <button onClick={goOpenPanel} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-200 hover:bg-slate-800">
+                        <LayoutDashboard className="h-3 w-3" /> Painel
+                      </button>
+                      <button onClick={goEditStore} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-200 hover:bg-slate-800">
+                        <Pencil className="h-3 w-3" /> Editar
+                      </button>
                     </div>
 
                     {/* Trial banner */}
@@ -242,13 +441,51 @@ export default function PhoneeContas() {
                       </div>
                     )}
 
+                    {/* Lazy details */}
+                    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
+                        <Building2 className="h-3 w-3" /> Detalhes da loja
+                      </div>
+                      {detail === "loading" || !detailReady ? (
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                          {[0,1,2,3,4,5,6,7].map((i) => <Skeleton key={i} className="h-8 w-full bg-slate-800/60" />)}
+                        </div>
+                      ) : (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                          <Field icon={MapPin} label="Endereço" value={
+                            [detailReady.address, detailReady.address_city, detailReady.address_uf].filter(Boolean).join(", ") || "—"
+                          } />
+                          <Field icon={Phone} label="Telefone" value={detailReady.phone ?? "—"} />
+                          <Field icon={MessageCircle} label="WhatsApp" value={detailReady.phone ?? "—"} />
+                          <Field icon={FileText} label="Documento" value={detailReady.tax_id ?? "—"} />
+                          <Field icon={CalendarDays} label="Cadastro" value={fmtDate(detailReady.created_at)} />
+                          <Field icon={Clock} label="Último acesso (dono)" value={fmtDate(detailReady.last_login)} />
+                          <Field icon={CreditCard} label="Plano contratado" value={s.plan_name ?? "—"} />
+                          <Field icon={FileText} label="Observações" value={detailReady.welcome_text ?? "—"} />
+                          <Field icon={Users} label="Usuários" value={String(detailReady.users_count)} />
+                          <Field icon={Package} label="Produtos" value={String(detailReady.products_count)} />
+                          <Field icon={Wrench} label="Ordens de serviço" value={String(detailReady.os_count)} />
+                          <Field icon={UserCircle2} label="Clientes" value={String(detailReady.customers_count)} />
+                          <Field icon={DollarSign} label="Faturamento" value={brl(detailReady.revenue_total)} strong />
+                        </div>
+                      )}
+                    </div>
+
                     {/* Users list */}
                     <div className="rounded-lg border border-slate-800">
                       <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-800 flex items-center justify-between">
                         <span>Usuários da loja ({members.length})</span>
-                        <Link to="/phonee/usuarios" className="text-[10px] text-[#00abfb] hover:underline inline-flex items-center gap-1">
-                          Gerir usuários <ExternalLink className="h-3 w-3" />
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setUsersModalStore(s)}
+                            className="text-[10px] text-[#00abfb] hover:underline inline-flex items-center gap-1"
+                          >
+                            <Eye className="h-3 w-3" /> Ver usuários
+                          </button>
+                          <Link to="/phonee/usuarios" className="text-[10px] text-slate-400 hover:text-[#00abfb] inline-flex items-center gap-1">
+                            Gerir <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        </div>
                       </div>
                       {members.length === 0 && (
                         <div className="px-3 py-3 text-xs text-slate-500">Nenhum usuário vinculado.</div>
@@ -291,9 +528,6 @@ export default function PhoneeContas() {
 
                     {/* Quick links */}
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <Link to="/phonee/lojas" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-200 hover:bg-slate-800">
-                        <Pencil className="h-3 w-3" /> Editar loja
-                      </Link>
                       <Link to="/phonee/assinaturas" className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-200 hover:bg-slate-800">
                         <CreditCard className="h-3 w-3" /> Assinatura
                       </Link>
@@ -342,19 +576,151 @@ export default function PhoneeContas() {
         email={bonusTarget?.email ?? ""}
         storeLabel={bonusTarget?.store}
       />
+
+      {/* Users modal */}
+      <Dialog open={!!usersModalStore} onOpenChange={(o) => !o && setUsersModalStore(null)}>
+        <DialogContent className="max-w-3xl bg-slate-900 border-slate-800 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-[#00abfb]" /> Usuários — {usersModalStore?.store_name}
+            </DialogTitle>
+          </DialogHeader>
+          {usersModalStore && (() => {
+            const members = usersByStore.get(usersModalStore.store_id) ?? [];
+            if (!members.length) return <div className="text-sm text-slate-500 py-6 text-center">Nenhum usuário vinculado.</div>;
+            return (
+              <div className="divide-y divide-slate-800 border border-slate-800 rounded-lg max-h-[60vh] overflow-y-auto">
+                {members.map((u) => (
+                  <div key={u.user_id} className="p-3 flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-semibold text-[#00abfb] shrink-0">
+                      {initials(u.full_name ?? u.email)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm text-slate-100 truncate">{u.full_name ?? "—"}</span>
+                        {u.user_id === usersModalStore.owner_id && (
+                          <span className="text-[9px] uppercase tracking-widest text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded px-1.5 py-0.5">Dono</span>
+                        )}
+                        {(u.roles ?? []).map((r) => (
+                          <span key={r} className="text-[9px] uppercase tracking-widest text-slate-300 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5">{r}</span>
+                        ))}
+                      </div>
+                      <div className="text-xs text-slate-500 truncate">{u.email}</div>
+                    </div>
+                    <Button asChild size="sm" variant="outline" className="border-slate-700 text-slate-200 hover:bg-slate-800">
+                      <Link to="/phonee/usuarios">Gerir</Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function StoreDetailsPopover({
+  store, detail, onOpen, onGoPanel, onSeeUsers, ownerMetric,
+}: {
+  store: StoreRow;
+  detail: StoreDetail | null;
+  onOpen: () => void;
+  onGoPanel: () => void;
+  onSeeUsers: () => void;
+  ownerMetric: Metric | undefined;
+}) {
+  return (
+    <Popover onOpenChange={(o) => o && onOpen()}>
+      <PopoverTrigger asChild>
+        <button
+          title="Ver detalhes"
+          className="inline-flex items-center justify-center h-8 w-8 rounded-md text-slate-300 hover:bg-slate-800 transition"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-96 bg-slate-900 border-slate-700 text-slate-100 p-0">
+        <div className="p-4 border-b border-slate-800 flex items-center gap-3">
+          <div className="h-12 w-12 rounded-lg border border-slate-700 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center overflow-hidden">
+            {detail?.logo_url ? (
+              <img src={detail.logo_url} alt={store.store_name} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-sm font-semibold text-[#00abfb]">{initials(store.store_name)}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold truncate">{store.store_name}</div>
+            <div className="text-xs text-slate-400 truncate">{store.plan_name ?? "Sem plano"} · {store.subscription_status ?? "—"}</div>
+          </div>
+        </div>
+        <div className="p-4 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+          <PopField label="Cidade" value={[detail?.address_city, detail?.address_uf].filter(Boolean).join("/") || "—"} />
+          <PopField label="Cadastro" value={fmtDate(store.created_at)} />
+          <PopField label="Responsável" value={store.owner_name ?? "—"} />
+          <PopField label="Último login" value={fmtDate(detail?.last_login)} />
+          <PopField label="E-mail" value={store.owner_email ?? "—"} full />
+          <PopField label="WhatsApp" value={detail?.phone ?? "—"} />
+          <PopField label="Documento" value={detail?.tax_id ?? "—"} />
+          <PopField label="Usuários" value={detail ? String(detail.users_count) : "…"} />
+          <PopField label="Produtos" value={detail ? String(detail.products_count) : String(ownerMetric?.products ?? 0)} />
+          <PopField label="Clientes" value={detail ? String(detail.customers_count) : "…"} />
+          <PopField label="Vendas 30d" value={String(ownerMetric?.sales_30 ?? store.sales_count)} />
+          <PopField label="Receita" value={brl(ownerMetric?.revenue ?? store.total_sales)} strong />
+          <PopField label="Assinatura" value={store.billing_cycle ?? "—"} full />
+        </div>
+        <div className="p-3 border-t border-slate-800 flex items-center justify-between gap-2">
+          <button
+            onClick={onSeeUsers}
+            className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-slate-700 hover:bg-slate-800 text-slate-200"
+          >
+            <Users className="h-3 w-3" /> Ver usuários
+          </button>
+          <button
+            onClick={onGoPanel}
+            className="text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#00abfb] text-slate-900 font-semibold hover:brightness-110"
+          >
+            Abrir painel <ExternalLink className="h-3 w-3" />
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function PopField({ label, value, strong, full }: { label: string; value: string; strong?: boolean; full?: boolean }) {
+  return (
+    <div className={full ? "col-span-2" : ""}>
+      <div className="text-[10px] uppercase tracking-widest text-slate-500">{label}</div>
+      <div className={`truncate ${strong ? "text-[#00abfb] font-semibold" : "text-slate-200"}`}>{value}</div>
+    </div>
+  );
+}
+
+function Field({ icon: Icon, label, value, strong }: { icon: any; label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-widest text-slate-500 flex items-center gap-1">
+        <Icon className="h-3 w-3" /> {label}
+      </div>
+      <div className={`truncate ${strong ? "text-[#00abfb] font-semibold" : "text-slate-200"}`}>{value}</div>
     </div>
   );
 }
 
 function Kpi({
   icon: Icon, label, value, tone,
-}: { icon: any; label: string; value: React.ReactNode; tone?: "emerald" | "sky" }) {
+}: { icon: any; label: string; value: React.ReactNode; tone?: "emerald" | "sky" | "rose" | "violet" | "amber" }) {
   const color =
     tone === "emerald" ? "text-emerald-300"
     : tone === "sky" ? "text-sky-300"
+    : tone === "rose" ? "text-rose-300"
+    : tone === "violet" ? "text-violet-300"
+    : tone === "amber" ? "text-amber-300"
     : "text-slate-100";
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3">
+    <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 transition hover:border-slate-700">
       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-slate-500">
         <Icon className="h-3 w-3" /> {label}
       </div>
@@ -365,7 +731,7 @@ function Kpi({
 
 function TabBtn({
   active, onClick, label, count, tone,
-}: { active: boolean; onClick: () => void; label: string; count: number; tone?: "emerald" | "sky" | "amber" }) {
+}: { active: boolean; onClick: () => void; label: string; count: number; tone?: "emerald" | "sky" | "amber" | "rose" }) {
   const activeStyle = active
     ? "bg-[#00abfb] text-slate-900 border-[#00abfb]"
     : "border-slate-700 text-slate-300 hover:bg-slate-800";
@@ -373,6 +739,7 @@ function TabBtn({
     : tone === "emerald" ? "bg-emerald-500/15 text-emerald-300"
     : tone === "sky" ? "bg-sky-500/15 text-sky-300"
     : tone === "amber" ? "bg-amber-500/15 text-amber-300"
+    : tone === "rose" ? "bg-rose-500/15 text-rose-300"
     : "bg-slate-800 text-slate-400";
   return (
     <button
