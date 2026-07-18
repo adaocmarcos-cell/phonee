@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus, Target, Ticket, ShieldAlert, ShieldCheck, Crown, Layers, Stethoscope,
-  Megaphone, Link2, ScrollText, ChevronDown, Gift, Settings2, ShoppingBag, CreditCard,
+  Megaphone, Link2, ScrollText, ChevronDown, Gift, Settings2, ShoppingBag, CreditCard, Package,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
@@ -31,6 +31,7 @@ const groups: NavGroup[] = [
   { id: "faturamento", label: "Faturamento", icon: CreditCard, items: [
     { to: "/phonee/assinaturas",              label: "Assinaturas",   icon: Receipt },
     { to: "/phonee/assinaturas/solicitacoes", label: "Aprovações",    icon: ShieldCheck },
+    { to: "/phonee/planos",                   label: "Planos",        icon: Package },
     { to: "/phonee/financeiro",               label: "Financeiro",    icon: DollarSign },
     { to: "/phonee/bonificacoes",             label: "Bonificações",  icon: Gift },
   ]},
