@@ -93,6 +93,7 @@ const PhoneeAssinaturaSolicitacoes = lazy(() => import("./pages/phonee/Assinatur
 const PhoneeAdminMasters = lazy(() => import("./pages/phonee/AdminMasters"));
 const PhoneeContas = lazy(() => import("./pages/phonee/Contas"));
 const PhoneeDiagnostico = lazy(() => import("./pages/phonee/Diagnostico"));
+const PhoneePlanos = lazy(() => import("./pages/phonee/Planos"));
 const PhoneeVinculos = lazy(() => import("./pages/phonee/Vinculos"));
 const PhoneeAuditLog = lazy(() => import("./pages/phonee/AuditLog"));
 const PhoneeBonificacoes = lazy(() => import("./pages/phonee/Bonificacoes"));
