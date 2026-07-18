@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Pencil, Trash2, AlertTriangle, ChevronDown, ChevronRight, Users as UsersIcon, Gift } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, ChevronDown, ChevronRight, Users as UsersIcon, Gift, Lock, Unlock } from "lucide-react";
 import { BonusDialog } from "@/components/phonee/BonusDialog";
+import { Switch } from "@/components/ui/switch";
 
 type Row = {
   store_id: string; store_name: string;
@@ -15,6 +16,7 @@ type Row = {
   plan_name: string | null; billing_cycle: string | null; subscription_status: string | null;
   expires_at: string | null; created_at: string;
   total_sales: number; sales_count: number; avg_ticket: number;
+  access_blocked?: boolean | null; blocked_at?: string | null;
 };
 
 type UserStore = { id: string; name: string; is_owner: boolean };
@@ -30,6 +32,9 @@ export default function PhoneeLojas() {
   const [rows, setRows] = useState<Row[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all");
+  const [pendingBlock, setPendingBlock] = useState<Row | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [bonusTarget, setBonusTarget] = useState<{ email: string; store?: string | null } | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
@@ -155,10 +160,55 @@ export default function PhoneeLojas() {
 
   const filtered = rows.filter((r) => {
     const t = q.toLowerCase();
-    return !t || r.store_name?.toLowerCase().includes(t)
+    const matchesText = !t || r.store_name?.toLowerCase().includes(t)
       || r.owner_email?.toLowerCase().includes(t)
       || r.owner_name?.toLowerCase().includes(t);
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "blocked"
+          ? !!r.access_blocked
+          : !r.access_blocked;
+    return matchesText && matchesStatus;
   });
+
+  const setBlocked = async (r: Row, blocked: boolean) => {
+    setTogglingId(r.store_id);
+    try {
+      const { error } = await supabase.rpc("phonee_set_store_blocked" as any, {
+        _store_id: r.store_id, _blocked: blocked,
+      });
+      if (error) throw error;
+      toast.success(blocked ? `"${r.store_name}" bloqueada.` : `"${r.store_name}" desbloqueada.`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao alterar bloqueio.");
+    } finally {
+      setTogglingId(null);
+      setPendingBlock(null);
+    }
+  };
+
+  const requestToggleBlock = (r: Row) => {
+    if (r.access_blocked) {
+      // desbloqueio sem confirmação
+      void setBlocked(r, false);
+    } else {
+      setPendingBlock(r);
+    }
+  };
+
+  const StatusBadge = ({ blocked }: { blocked: boolean }) => (
+    <span
+      className={
+        blocked
+          ? "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30"
+          : "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+      }
+    >
+      {blocked ? <><Lock className="h-3 w-3" /> Bloqueada</> : <><Unlock className="h-3 w-3" /> Ativa</>}
+    </span>
+  );
 
   return (
     <div>
@@ -169,12 +219,23 @@ export default function PhoneeLojas() {
             {rows.length} loja(s) registrada(s).
           </p>
         </div>
-        <input
-          placeholder="Buscar por loja, dono ou e-mail…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="w-full sm:w-72 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm focus:outline-none focus:border-[#00abfb]"
-        />
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm focus:outline-none focus:border-[#00abfb]"
+          >
+            <option value="all">Todos os status</option>
+            <option value="active">Somente ativas</option>
+            <option value="blocked">Somente bloqueadas</option>
+          </select>
+          <input
+            placeholder="Buscar por loja, dono ou e-mail…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="w-full sm:w-72 px-3 py-2 rounded-md bg-slate-900 border border-slate-700 text-sm focus:outline-none focus:border-[#00abfb]"
+          />
+        </div>
       </div>
 
       {/* Mobile: stacked cards with vertical labels */}
@@ -186,7 +247,10 @@ export default function PhoneeLojas() {
           >
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="min-w-0">
-                <div className="font-semibold truncate">{r.store_name}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-semibold truncate">{r.store_name}</div>
+                  <StatusBadge blocked={!!r.access_blocked} />
+                </div>
                 <div className="text-xs text-slate-400 truncate">
                   {r.owner_name ?? "—"}
                 </div>
@@ -198,6 +262,14 @@ export default function PhoneeLojas() {
                 <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-200 capitalize">
                   {r.subscription_status ?? "sem assinatura"}
                 </span>
+                <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-300">
+                  <Switch
+                    checked={!r.access_blocked}
+                    disabled={togglingId === r.store_id}
+                    onCheckedChange={() => requestToggleBlock(r)}
+                  />
+                  <span>Acesso</span>
+                </label>
                 <button
                   onClick={() => openEdit(r)}
                   className="inline-flex items-center gap-1 text-[11px] text-[#00abfb] hover:underline"
@@ -254,6 +326,7 @@ export default function PhoneeLojas() {
               <th className="px-4 py-3">Plano</th>
               <th className="px-4 py-3">Ciclo</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Acesso</th>
               <th className="px-4 py-3 text-right">Vendas</th>
               <th className="px-4 py-3 text-right">Faturamento</th>
               <th className="px-4 py-3 text-right">Ticket médio</th>
@@ -281,6 +354,16 @@ export default function PhoneeLojas() {
                   <span className="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-200">
                     {r.subscription_status ?? "sem assinatura"}
                   </span>
+                </td>
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={!r.access_blocked}
+                      disabled={togglingId === r.store_id}
+                      onCheckedChange={() => requestToggleBlock(r)}
+                    />
+                    <StatusBadge blocked={!!r.access_blocked} />
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right">{r.sales_count}</td>
                 <td className="px-4 py-3 text-right">{brl(Number(r.total_sales))}</td>
@@ -312,7 +395,7 @@ export default function PhoneeLojas() {
               </tr>
               {isOpen && (
                 <tr className="bg-slate-950/40 border-b border-slate-800/60">
-                  <td colSpan={10} className="px-4 py-3">
+                  <td colSpan={11} className="px-4 py-3">
                     <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-1.5">
                       <UsersIcon className="h-3 w-3" /> Usuários da loja ({members.length})
                     </div>
@@ -343,7 +426,7 @@ export default function PhoneeLojas() {
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">Nenhuma loja encontrada.</td></tr>
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-500">Nenhuma loja encontrada.</td></tr>
             )}
           </tbody>
         </table>
@@ -503,6 +586,41 @@ export default function PhoneeLojas() {
         email={bonusTarget?.email ?? ""}
         storeLabel={bonusTarget?.store}
       />
+
+      {/* Confirmar bloqueio de loja */}
+      <Dialog open={!!pendingBlock} onOpenChange={(o) => !o && setPendingBlock(null)}>
+        <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-300">
+              <Lock className="h-5 w-5" /> Bloquear acesso?
+            </DialogTitle>
+          </DialogHeader>
+          {pendingBlock && (
+            <div className="space-y-3 text-sm text-slate-300">
+              <p>
+                Você vai bloquear o acesso da loja <b className="text-white">{pendingBlock.store_name}</b>.
+                Todos os usuários vinculados serão redirecionados para a tela de assinatura
+                e não poderão ler nem gravar dados até que o acesso seja liberado.
+              </p>
+              <p className="text-xs text-slate-400">
+                Os dados da loja continuam preservados. Você pode desbloquear a qualquer momento.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingBlock(null)} disabled={togglingId !== null}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => pendingBlock && setBlocked(pendingBlock, true)}
+              disabled={togglingId !== null}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {togglingId ? "Bloqueando…" : "Bloquear acesso"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
