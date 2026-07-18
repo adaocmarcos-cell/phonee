@@ -1788,6 +1788,47 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_audit_log: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          plan_code: string
+          plan_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          plan_code: string
+          plan_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          plan_code?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_audit_log_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           active: boolean
