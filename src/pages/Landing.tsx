@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Reveal, useParallax } from "@/components/Reveal";
+import { supabase } from "@/integrations/supabase/client";
+import { brl } from "@/lib/format";
 import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
@@ -149,6 +151,25 @@ export default function Landing() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<null | "trial" | "annual" | "lifetime">(null);
+
+  // Planos dinâmicos do banco: apenas ativos são renderizados.
+  type PublicPlan = { code: string; name: string; price_cents: number; max_installments: number };
+  const [publicPlans, setPublicPlans] = useState<PublicPlan[]>([]);
+  useEffect(() => {
+    supabase
+      .from("plans")
+      .select("code,name,price_cents,max_installments,display_order,active")
+      .eq("active", true)
+      .order("display_order", { ascending: true })
+      .then(({ data }) => setPublicPlans((data as any[])?.map(({ code, name, price_cents, max_installments }) => ({ code, name, price_cents, max_installments })) ?? []));
+  }, []);
+  const planBy = (code: string) => publicPlans.find((p) => p.code === code);
+  const monthlyPlan  = planBy("monthly");
+  const annualPlan   = planBy("annual");
+  const lifetimePlan = planBy("lifetime");
+  const paidCards = [monthlyPlan, annualPlan, lifetimePlan].filter(Boolean).length;
+  const totalCards = 1 /* trial */ + paidCards;
+  const gridColsMd = totalCards >= 4 ? "md:grid-cols-4" : totalCards === 3 ? "md:grid-cols-3" : totalCards === 2 ? "md:grid-cols-2" : "md:grid-cols-1";
   // Garante que o estado de loading do botão Trial é resetado quando o dialog fecha.
   useEffect(() => {
     if (!freeTrialOpen && pendingPlan === "trial") setPendingPlan(null);
@@ -644,7 +665,7 @@ export default function Landing() {
             subtitle="Experimente grátis por 7 dias. Depois, escolha Plano Anual ou Vitalício."
           />
 
-          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          <div className={`mt-10 grid grid-cols-1 ${gridColsMd} gap-6 items-stretch`}>
             {/* Teste grátis — 7 dias */}
             <Reveal direction="left" duration={1000} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-info/40 to-primary/20 blur-2xl rounded-3xl" />
@@ -689,7 +710,7 @@ export default function Landing() {
             </Reveal>
 
             {/* Anual — destaque */}
-            <Reveal direction="left" duration={1000} delay={60} className="relative">
+            {annualPlan && <Reveal direction="left" duration={1000} delay={60} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/40 to-info/25 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full flex flex-col">
                 <Badge className="bg-success/15 text-success border-success/40 text-sm">
@@ -699,10 +720,10 @@ export default function Landing() {
                   Sem mensalidades
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="metric text-6xl md:text-7xl text-primary">R$ 127</span>
+                  <span className="metric text-6xl md:text-7xl text-primary">{brl(annualPlan.price_cents / 100)}</span>
                 </div>
                 <div className="mt-1 text-xl font-extrabold">/anual</div>
-                <div className="mt-1 text-lg font-semibold text-foreground/80">ou Parcelado em até 12x no cartão</div>
+                <div className="mt-1 text-lg font-semibold text-foreground/80">ou Parcelado em até {annualPlan.max_installments}x no cartão</div>
 
                 <ul className="mt-6 space-y-3">
                   {[
@@ -728,10 +749,46 @@ export default function Landing() {
                   helper="Pagamento 100% seguro · Acesso imediato"
                 />
               </Card>
-            </Reveal>
+            </Reveal>}
+
+            {/* Mensal — só aparece quando ativo no banco */}
+            {monthlyPlan && <Reveal direction="up" duration={1000} delay={90} className="relative">
+              <div className="absolute -inset-2 bg-gradient-to-br from-info/30 to-primary/20 blur-2xl rounded-3xl" />
+              <Card className="relative p-8 md:p-10 border-2 border-border bg-card h-full flex flex-col">
+                <Badge className="bg-info/15 text-info border-info/40 text-sm">
+                  PLANO MENSAL
+                </Badge>
+                <div className="mt-4 text-base font-bold uppercase tracking-wide text-info">
+                  Assine mês a mês
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="metric text-6xl md:text-7xl text-info">{brl(monthlyPlan.price_cents / 100)}</span>
+                </div>
+                <div className="mt-1 text-xl font-extrabold">/mês</div>
+                <div className="mt-1 text-lg font-semibold text-foreground/80">Cobrança recorrente, cancele quando quiser</div>
+                <ul className="mt-6 space-y-3">
+                  {[
+                    "Sem fidelidade",
+                    "Todos os módulos liberados",
+                    "Atualizações incluídas",
+                    "Suporte por WhatsApp",
+                  ].map((i) => <CheckItem key={i} big>{i}</CheckItem>)}
+                </ul>
+                <PlanCardActions
+                  ctas={[{
+                    id: "monthly",
+                    to: "/comprar?plano=monthly",
+                    ariaLabel: "Assinar Mensal",
+                    label: <>Assinar Mensal</>,
+                    trailingIcon: ArrowRight,
+                  }]}
+                  helper="Cobrança recorrente · Cancele quando quiser"
+                />
+              </Card>
+            </Reveal>}
 
             {/* Vitalício — destaque máximo */}
-            <Reveal direction="right" duration={1000} delay={120} className="relative">
+            {lifetimePlan && <Reveal direction="right" duration={1000} delay={120} className="relative">
               <div className="absolute -inset-2 bg-gradient-to-br from-primary/50 to-info/30 blur-2xl rounded-3xl" />
               <Card className="relative p-8 md:p-10 border-2 border-primary bg-card h-full shadow-glow flex flex-col">
                 <Badge className="bg-primary/15 text-primary border-primary/40 text-sm">
@@ -742,7 +799,7 @@ export default function Landing() {
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="metric text-5xl md:text-6xl text-foreground/50 line-through">R$ 497</span>
-                  <span className="metric text-6xl md:text-7xl text-primary">R$ 297</span>
+                  <span className="metric text-6xl md:text-7xl text-primary">{brl(lifetimePlan.price_cents / 100)}</span>
                 </div>
                 <div className="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">Condição especial de lançamento, por tempo limitado.</div>
                 <div className="mt-1 text-xl font-extrabold">Pague uma vez, use para sempre</div>
@@ -782,7 +839,7 @@ export default function Landing() {
                   helper="Pagamento 100% seguro · Acesso imediato"
                 />
               </Card>
-            </Reveal>
+            </Reveal>}
           </div>
         </div>
       </section>
