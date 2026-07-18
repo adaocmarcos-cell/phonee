@@ -313,7 +313,7 @@ export default function TradeInDetails() {
             )}
             {isAwaitingRepair && (
               <>
-                <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
+                <Button onClick={() => openRepair("finish")} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
                   <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
                 </Button>
                 <Button variant="outline" onClick={() => setCancelOpen(true)} disabled={saving}>
