@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Reveal, useParallax } from "@/components/Reveal";
+import { supabase } from "@/integrations/supabase/client";
+import { brl } from "@/lib/format";
 import {
   ShieldCheck, TrendingUp, AlertTriangle, Users, Workflow, Building2,
   Boxes, Wrench, RefreshCw, Wallet, Check, X,
@@ -149,6 +151,25 @@ export default function Landing() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [freeTrialOpen, setFreeTrialOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<null | "trial" | "annual" | "lifetime">(null);
+
+  // Planos dinâmicos do banco: apenas ativos são renderizados.
+  type PublicPlan = { code: string; name: string; price_cents: number; max_installments: number };
+  const [publicPlans, setPublicPlans] = useState<PublicPlan[]>([]);
+  useEffect(() => {
+    supabase
+      .from("plans")
+      .select("code,name,price_cents,max_installments,display_order,active")
+      .eq("active", true)
+      .order("display_order", { ascending: true })
+      .then(({ data }) => setPublicPlans((data as any[])?.map(({ code, name, price_cents, max_installments }) => ({ code, name, price_cents, max_installments })) ?? []));
+  }, []);
+  const planBy = (code: string) => publicPlans.find((p) => p.code === code);
+  const monthlyPlan  = planBy("monthly");
+  const annualPlan   = planBy("annual");
+  const lifetimePlan = planBy("lifetime");
+  const paidCards = [monthlyPlan, annualPlan, lifetimePlan].filter(Boolean).length;
+  const totalCards = 1 /* trial */ + paidCards;
+  const gridColsMd = totalCards >= 4 ? "md:grid-cols-4" : totalCards === 3 ? "md:grid-cols-3" : totalCards === 2 ? "md:grid-cols-2" : "md:grid-cols-1";
   // Garante que o estado de loading do botão Trial é resetado quando o dialog fecha.
   useEffect(() => {
     if (!freeTrialOpen && pendingPlan === "trial") setPendingPlan(null);
