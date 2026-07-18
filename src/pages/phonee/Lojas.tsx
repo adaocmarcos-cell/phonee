@@ -586,6 +586,41 @@ export default function PhoneeLojas() {
         email={bonusTarget?.email ?? ""}
         storeLabel={bonusTarget?.store}
       />
+
+      {/* Confirmar bloqueio de loja */}
+      <Dialog open={!!pendingBlock} onOpenChange={(o) => !o && setPendingBlock(null)}>
+        <DialogContent className="max-w-md bg-slate-900 border-slate-800 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-300">
+              <Lock className="h-5 w-5" /> Bloquear acesso?
+            </DialogTitle>
+          </DialogHeader>
+          {pendingBlock && (
+            <div className="space-y-3 text-sm text-slate-300">
+              <p>
+                Você vai bloquear o acesso da loja <b className="text-white">{pendingBlock.store_name}</b>.
+                Todos os usuários vinculados serão redirecionados para a tela de assinatura
+                e não poderão ler nem gravar dados até que o acesso seja liberado.
+              </p>
+              <p className="text-xs text-slate-400">
+                Os dados da loja continuam preservados. Você pode desbloquear a qualquer momento.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingBlock(null)} disabled={togglingId !== null}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => pendingBlock && setBlocked(pendingBlock, true)}
+              disabled={togglingId !== null}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {togglingId ? "Bloqueando…" : "Bloquear acesso"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
