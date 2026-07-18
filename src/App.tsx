@@ -222,6 +222,7 @@ const App = () => (
               <Route path="audit-log" element={<PhoneeAuditLog />} />
               <Route path="diagnostico" element={<PhoneeDiagnostico />} />
               <Route path="bonificacoes" element={<PhoneeBonificacoes />} />
+              <Route path="planos" element={<PhoneePlanos />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
