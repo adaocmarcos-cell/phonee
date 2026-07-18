@@ -6,10 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowLeftRight, Package, ShoppingCart, Wrench, ArrowRightLeft, Clock, Database, AlertTriangle } from "lucide-react";
+import { Search, ArrowLeftRight, Package, ShoppingCart, Wrench, ArrowRightLeft, Clock, Database, AlertTriangle, FileDown, FileText, Archive, ArchiveRestore, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { brl } from "@/lib/format";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Event = {
   event_at: string;
@@ -42,6 +44,9 @@ export default function RastreioImei() {
   const [imei, setImei] = useState("");
   const [events, setEvents] = useState<Event[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [divAlerts, setDivAlerts] = useState<any[]>([]);
+  const [divBusy, setDivBusy] = useState<string | null>(null);
+  const [divFilter, setDivFilter] = useState<"open" | "archived" | "resolved" | "all">("open");
 
   const search = async (override?: string) => {
     if (!store) return;
@@ -57,6 +62,29 @@ export default function RastreioImei() {
     if (error) return toast.error(error.message);
     setEvents((data ?? []) as Event[]);
     setParams({ imei: value }, { replace: true });
+    loadDivAlerts(value);
+  };
+
+  const loadDivAlerts = async (imeiVal: string) => {
+    if (!store) return;
+    const { data } = await supabase
+      .from("alerts")
+      .select("*")
+      .eq("store_id", store.id)
+      .eq("type", "tradein_cost_divergence")
+      .eq("imei", imeiVal)
+      .order("created_at", { ascending: false });
+    setDivAlerts((data ?? []) as any[]);
+  };
+
+  const setAlertStatus = async (id: string, status: "open" | "archived" | "resolved") => {
+    setDivBusy(id);
+    const { error } = await (supabase as any).rpc("set_alert_status", { _alert_id: id, _status: status, _note: null });
+    setDivBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success(status === "archived" ? "Alerta arquivado" : status === "resolved" ? "Alerta resolvido" : "Alerta reaberto");
+    const q = params.get("imei");
+    if (q) loadDivAlerts(q);
   };
 
   // Auto search when landing with ?imei=...
@@ -75,6 +103,64 @@ export default function RastreioImei() {
     else if (e.event_type === "venda") navigate(`/painel/vendas/${e.ref_id}/editar`);
     else if (e.event_type === "os") navigate(`/painel/ordens/${e.ref_id}`);
     else if (e.event_type === "movimento") navigate(`/painel/estoque/movimentacao`);
+  };
+
+  const buildDetailRows = (s: any) => [
+    ["Valor de entrada", "trade_ins.entry_value", "create_trade_in", brl(s.custoEntrada), false],
+    ["Σ Custos de reparo", "trade_ins.repair_costs", "add_tradein_repair_cost", brl(s.custoReparos), false],
+    ["Custo esperado (entrada + reparos)", "— cálculo —", "tg_tradein_sync_product_cost", brl(s.custoEsperado), false],
+    ["Custo no estoque", "products.cost_price", "tg_tradein_to_product", s.produto ? brl(s.custoCadastrado) : "—", s.diverge],
+    ["Preço de venda", "sale_items.total", "create_sale", s.venda ? brl(s.totalVenda) : "—", false],
+    ["Lucro estimado", "— cálculo —", "frontend", s.venda ? brl(s.totalVenda - s.custoEsperado) : "—", false],
+  ] as Array<[string, string, string, string, boolean]>;
+
+  const exportCsv = () => {
+    if (!summary) return;
+    const q = params.get("imei") ?? "";
+    const rows = buildDetailRows(summary);
+    const header = ["Campo","Origem","Funcao","Valor","Divergencia"];
+    const csv = [header, ...rows.map((r) => [r[0], r[1], r[2], r[3], r[4] ? "SIM" : ""])]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `rastreio-imei-${q}-detalhes.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exportado");
+  };
+
+  const exportPdf = () => {
+    if (!summary) return;
+    const q = params.get("imei") ?? "";
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Rastreio IMEI — Detalhes do cálculo", 14, 16);
+    doc.setFontSize(10);
+    doc.text(`IMEI: ${q}`, 14, 24);
+    doc.text(`Emitido: ${new Date().toLocaleString("pt-BR")}`, 14, 30);
+    if (summary.diverge) {
+      doc.setTextColor(200, 30, 30);
+      doc.text(`⚠ Divergência: ${brl(Math.abs(summary.custoEsperado - summary.custoCadastrado))}`, 14, 36);
+      doc.setTextColor(0, 0, 0);
+    }
+    const rows = buildDetailRows(summary).map((r) => [r[0], r[1], r[2], r[3]]);
+    autoTable(doc, {
+      startY: 42,
+      head: [["Campo", "Origem", "Função", "Valor"]],
+      body: rows,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [14, 165, 233] },
+      didParseCell: (data) => {
+        const raw = buildDetailRows(summary);
+        if (data.section === "body" && raw[data.row.index]?.[4]) {
+          data.cell.styles.fillColor = [253, 226, 226];
+          data.cell.styles.textColor = [180, 20, 20];
+        }
+      },
+    });
+    doc.save(`rastreio-imei-${q}-detalhes.pdf`);
+    toast.success("PDF exportado");
   };
 
   const summary = events && events.length > 0 ? (() => {
@@ -200,10 +286,18 @@ export default function RastreioImei() {
             <Database className="h-4 w-4 text-primary" />
             <div className="font-semibold text-sm">Detalhes do cálculo</div>
             {summary.diverge && (
-              <Badge variant="destructive" className="ml-auto gap-1">
+              <Badge variant="destructive" className="gap-1">
                 <AlertTriangle className="h-3 w-3" /> Divergência detectada
               </Badge>
             )}
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" variant="outline" onClick={exportCsv}>
+                <FileDown className="h-3.5 w-3.5 mr-1" /> CSV
+              </Button>
+              <Button size="sm" variant="outline" onClick={exportPdf}>
+                <FileText className="h-3.5 w-3.5 mr-1" /> PDF
+              </Button>
+            </div>
           </div>
           <div className="text-xs text-muted-foreground">
             Cada linha mostra a origem exata (tabela.coluna) usada nos cálculos exibidos acima.
@@ -270,6 +364,67 @@ export default function RastreioImei() {
               <span className="font-mono"> trade_ins.repair_parts</span> e a trilha de <span className="font-mono">stock_movements</span>.
             </div>
           )}
+        </Card>
+      )}
+
+      {summary && divAlerts.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <div className="font-semibold text-sm">Alertas de divergência deste IMEI</div>
+            <div className="ml-auto flex rounded-md border border-border overflow-hidden text-xs">
+              {(["open","archived","resolved","all"] as const).map((f) => {
+                const cnt = f === "all" ? divAlerts.length : divAlerts.filter((a) => (a.status ?? "open") === f).length;
+                return (
+                  <button key={f} onClick={() => setDivFilter(f)}
+                    className={`px-2 py-1 ${divFilter === f ? "bg-primary text-primary-foreground" : "bg-transparent"}`}>
+                    {f === "open" ? "Abertos" : f === "archived" ? "Arquivados" : f === "resolved" ? "Resolvidos" : "Todos"} ({cnt})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-2">
+            {divAlerts
+              .filter((a) => divFilter === "all" || (a.status ?? "open") === divFilter)
+              .map((a) => {
+                const status = a.status ?? "open";
+                return (
+                  <div key={a.id} className="rounded-md border border-border p-3 flex items-start gap-3 text-xs">
+                    <Badge variant={status === "resolved" ? "outline" : status === "archived" ? "secondary" : "destructive"}>
+                      {status === "open" ? "Aberto" : status === "archived" ? "Arquivado" : "Resolvido"}
+                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">{a.title}</div>
+                      <div className="text-muted-foreground mt-0.5">{a.message}</div>
+                      <div className="font-mono text-[10px] text-muted-foreground/70 mt-1 flex flex-wrap gap-x-3">
+                        <span>Criado: {new Date(a.created_at).toLocaleString("pt-BR")}</span>
+                        {a.first_opened_at && <span>Aberto em: {new Date(a.first_opened_at).toLocaleString("pt-BR")}</span>}
+                        {a.resolved_at && <span>Resolvido: {new Date(a.resolved_at).toLocaleString("pt-BR")}</span>}
+                        {a.archived_at && <span>Arquivado: {new Date(a.archived_at).toLocaleString("pt-BR")}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {status === "open" && (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => setAlertStatus(a.id, "resolved")} disabled={divBusy === a.id}>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setAlertStatus(a.id, "archived")} disabled={divBusy === a.id}>
+                            <Archive className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                      {status !== "open" && (
+                        <Button size="sm" variant="ghost" onClick={() => setAlertStatus(a.id, "open")} disabled={divBusy === a.id}>
+                          <ArchiveRestore className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </Card>
       )}
     </div>

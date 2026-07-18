@@ -128,44 +128,94 @@ export type Database = {
       }
       alerts: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           created_at: string
+          first_opened_at: string | null
           id: string
+          imei: string | null
           is_read: boolean
           link: string | null
           message: string | null
+          metadata: Json
+          product_id: string | null
+          resolution_kind: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
           severity: Database["public"]["Enums"]["alert_severity"]
+          status: string
           store_id: string
           title: string
+          trade_in_id: string | null
           type: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
+          first_opened_at?: string | null
           id?: string
+          imei?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
+          metadata?: Json
+          product_id?: string | null
+          resolution_kind?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           severity?: Database["public"]["Enums"]["alert_severity"]
+          status?: string
           store_id: string
           title: string
+          trade_in_id?: string | null
           type: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
+          first_opened_at?: string | null
           id?: string
+          imei?: string | null
           is_read?: boolean
           link?: string | null
           message?: string | null
+          metadata?: Json
+          product_id?: string | null
+          resolution_kind?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           severity?: Database["public"]["Enums"]["alert_severity"]
+          status?: string
           store_id?: string
           title?: string
+          trade_in_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "alerts_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alerts_trade_in_id_fkey"
+            columns: ["trade_in_id"]
+            isOneToOne: false
+            referencedRelation: "trade_ins"
             referencedColumns: ["id"]
           },
         ]
@@ -3444,6 +3494,8 @@ export type Database = {
           store_credit_default_days: number
           tax_id: string | null
           trade_name: string | null
+          tradein_divergence_severity: string
+          tradein_divergence_threshold: number
           welcome_text: string | null
         }
         Insert: {
@@ -3483,6 +3535,8 @@ export type Database = {
           store_credit_default_days?: number
           tax_id?: string | null
           trade_name?: string | null
+          tradein_divergence_severity?: string
+          tradein_divergence_threshold?: number
           welcome_text?: string | null
         }
         Update: {
@@ -3522,6 +3576,8 @@ export type Database = {
           store_credit_default_days?: number
           tax_id?: string | null
           trade_name?: string | null
+          tradein_divergence_severity?: string
+          tradein_divergence_threshold?: number
           welcome_text?: string | null
         }
         Relationships: []
@@ -5109,6 +5165,10 @@ export type Database = {
         Args: { _changes: Json; _reason: string; _subscription_id: string }
         Returns: string
       }
+      resolve_alert_action: {
+        Args: { _action: string; _alert_id: string; _params?: Json }
+        Returns: Json
+      }
       reverse_commission_payment: {
         Args: { _expense_id: string }
         Returns: undefined
@@ -5163,6 +5223,10 @@ export type Database = {
       }
       seed_whatsapp_templates_for_store: {
         Args: { _store_id: string }
+        Returns: undefined
+      }
+      set_alert_status: {
+        Args: { _alert_id: string; _note?: string; _status: string }
         Returns: undefined
       }
       stock_products_page: {
