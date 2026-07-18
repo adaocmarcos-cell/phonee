@@ -180,6 +180,12 @@ export default function PhoneeLojas() {
       });
       if (error) throw error;
       toast.success(blocked ? `"${r.store_name}" bloqueada.` : `"${r.store_name}" desbloqueada.`);
+      // Notificação WhatsApp (best-effort; pula lojas em trial ativo)
+      supabase.functions
+        .invoke("notify-store-access-change", {
+          body: { store_id: r.store_id, blocked },
+        })
+        .catch(() => { /* silencioso — alerta interno já registra falha */ });
       await load();
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao alterar bloqueio.");
