@@ -1,7 +1,7 @@
 
 # Auditoria Interna — IMEI, Trade-in e Ordens de Serviço
 
-> Este é um **relatório de auditoria** (somente leitura). Nada foi alterado. Ao final, listo o que sugiro fazer em seguida — mas apenas se você aprovar.
+> Relatório somente-leitura. Nada foi alterado. Os "próximos passos" no final são sugestões que aguardam sua escolha.
 
 ---
 
@@ -18,7 +18,7 @@
 1. **`products` NÃO tem coluna `imei`/`serial`.** Um aparelho parado em estoque não tem identidade própria — só existe IMEI enquanto está numa linha de `trade_ins` ou `sale_items`.
 2. **`parts_inventory` também não tem serial**.
 3. **Nenhuma constraint `UNIQUE` nem índice em nenhuma coluna de IMEI/serial** em qualquer tabela. Dá pra cadastrar o mesmo IMEI em vários `trade_ins` e várias vendas sem conflito.
-4. **`checkImei()` em `TradeInForm.tsx:138-144` é mock:** só valida `length >= 14` (comentário diz "15 dígitos", código está errado) e marca como "restrito" se termina em `"000"`. Não há integração real (Anatel/GSMA) nem checagem Luhn.
+4. **`checkImei()` em `TradeInForm.tsx:138-144` é mock:** só valida `length >= 14` (comentário diz "15 dígitos", código está errado) e marca como "restrito" se termina em `"000"`. Sem integração real (Anatel/GSMA) nem checagem Luhn.
 5. **Nenhum schema Zod valida formato de IMEI** em nenhum lugar — é `string` livre.
 6. **Trade-in ↔ Venda não têm link por identidade de aparelho**, só por `trade_ins.product_id` (nullable, `ON DELETE SET NULL`). Se o produto derivado for excluído/religado, a trilha do IMEI silenciosamente quebra.
 7. **Sem view/RPC de histórico por IMEI** — não dá pra responder "onde este aparelho passou?" numa única consulta. `ProductForm.tsx` só olha `trade_ins`.
