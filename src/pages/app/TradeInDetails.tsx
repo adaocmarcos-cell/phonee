@@ -60,6 +60,7 @@ export default function TradeInDetails() {
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
+  const [repairMode, setRepairMode] = useState<"finish" | "add">("finish");
   const [repairPreviewOpen, setRepairPreviewOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -133,22 +134,26 @@ export default function TradeInDetails() {
     reloadAudits();
   };
 
-  const openRepair = async () => {
+  const openRepair = async (mode: "finish" | "add" = "finish") => {
     if (!store) return;
+    setRepairMode(mode);
     const { data } = await supabase
       .from("parts_inventory")
       .select("id,name,stock_current,cost_price")
       .eq("store_id", store.id)
       .order("name");
     setInvParts((data ?? []) as any);
-    // Prefill with existing repair_parts snapshot, if any
-    const existing = Array.isArray(item.repair_parts) ? item.repair_parts : [];
-    setRows(existing.map((p: any) => ({
-      part_id: p.part_id ?? null,
-      name: p.name || "",
-      qty: Number(p.qty || 1),
-      unit_cost: Number(p.unit_cost || 0),
-    })));
+    if (mode === "finish") {
+      const existing = Array.isArray(item.repair_parts) ? item.repair_parts : [];
+      setRows(existing.map((p: any) => ({
+        part_id: p.part_id ?? null,
+        name: p.name || "",
+        qty: Number(p.qty || 1),
+        unit_cost: Number(p.unit_cost || 0),
+      })));
+    } else {
+      setRows([]);
+    }
     setManualCost(0);
     setManualNotes("");
     setRepairOpen(true);
@@ -189,15 +194,24 @@ export default function TradeInDetails() {
       qty: r.qty,
       unit_cost: r.unit_cost,
     }));
-    const { error } = await (supabase as any).rpc("finish_trade_in_repair", {
-      _trade_in_id: item.id,
-      _parts: payloadParts,
-      _manual_cost: Number(manualCost) || 0,
-      _manual_notes: manualNotes || null,
-    });
+    const rpcName = repairMode === "add" ? "add_tradein_repair_cost" : "finish_trade_in_repair";
+    const payload: any = repairMode === "add"
+      ? {
+          _trade_in_id: item.id,
+          _parts: payloadParts.filter((p) => p.part_id),
+          _manual_cost: Number(manualCost) || 0,
+          _notes: manualNotes || null,
+        }
+      : {
+          _trade_in_id: item.id,
+          _parts: payloadParts,
+          _manual_cost: Number(manualCost) || 0,
+          _manual_notes: manualNotes || null,
+        };
+    const { error } = await (supabase as any).rpc(rpcName, payload);
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success("Preparo concluído. Aparelho no estoque.");
+    toast.success(repairMode === "add" ? "Custo de reparo adicionado." : "Preparo concluído. Aparelho no estoque.");
     setRepairPreviewOpen(false);
     setRepairOpen(false);
     // Reload
@@ -299,13 +313,18 @@ export default function TradeInDetails() {
             )}
             {isAwaitingRepair && (
               <>
-                <Button onClick={openRepair} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
+                <Button onClick={() => openRepair("finish")} disabled={saving} className="bg-warning hover:bg-warning/90 text-warning-foreground">
                   <Wrench className="h-4 w-4 mr-1" /> Registrar preparo
                 </Button>
                 <Button variant="outline" onClick={() => setCancelOpen(true)} disabled={saving}>
                   <XCircle className="h-4 w-4 mr-1" /> Cancelar preparo
                 </Button>
               </>
+            )}
+            {simple === "em_estoque" && (
+              <Button variant="outline" onClick={() => openRepair("add")} disabled={saving}>
+                <Wrench className="h-4 w-4 mr-1" /> Adicionar custo de reparo
+              </Button>
             )}
             {simple === "em_estoque" && (
               <Button variant="outline" onClick={() => { setReasonKey(""); setDeactivateOpen(true); }}>

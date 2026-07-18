@@ -1950,6 +1950,7 @@ export type Database = {
           data_entrada: string
           ean: string | null
           id: string
+          imei: string | null
           last_sold_at: string | null
           location: string | null
           name: string
@@ -1976,6 +1977,7 @@ export type Database = {
           data_entrada?: string
           ean?: string | null
           id?: string
+          imei?: string | null
           last_sold_at?: string | null
           location?: string | null
           name: string
@@ -2002,6 +2004,7 @@ export type Database = {
           data_entrada?: string
           ean?: string | null
           id?: string
+          imei?: string | null
           last_sold_at?: string | null
           location?: string | null
           name?: string
@@ -2910,29 +2913,35 @@ export type Database = {
       service_order_parts: {
         Row: {
           created_at: string
+          description: string | null
           id: string
-          part_id: string
+          part_id: string | null
           qty: number
           service_order_id: string
           store_id: string
+          unit_cost: number
           unit_price: number
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
-          part_id: string
+          part_id?: string | null
           qty?: number
           service_order_id: string
           store_id: string
+          unit_cost?: number
           unit_price?: number
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
-          part_id?: string
+          part_id?: string | null
           qty?: number
           service_order_id?: string
           store_id?: string
+          unit_cost?: number
           unit_price?: number
         }
         Relationships: [
@@ -2967,6 +2976,7 @@ export type Database = {
           budget_decided_by_name: string | null
           budget_decided_ip: unknown
           budget_status: Database["public"]["Enums"]["os_budget_status"]
+          cancellation_reason: string | null
           created_at: string
           created_by: string | null
           customer_address: string | null
@@ -3019,6 +3029,7 @@ export type Database = {
           budget_decided_by_name?: string | null
           budget_decided_ip?: unknown
           budget_status?: Database["public"]["Enums"]["os_budget_status"]
+          cancellation_reason?: string | null
           created_at?: string
           created_by?: string | null
           customer_address?: string | null
@@ -3071,6 +3082,7 @@ export type Database = {
           budget_decided_by_name?: string | null
           budget_decided_ip?: unknown
           budget_status?: Database["public"]["Enums"]["os_budget_status"]
+          cancellation_reason?: string | null
           created_at?: string
           created_by?: string | null
           customer_address?: string | null
@@ -4332,6 +4344,25 @@ export type Database = {
         }
         Returns: string
       }
+      add_os_part: {
+        Args: {
+          _description?: string
+          _os_id: string
+          _part_id: string
+          _qty: number
+          _unit_price?: number
+        }
+        Returns: string
+      }
+      add_tradein_repair_cost: {
+        Args: {
+          _manual_cost?: number
+          _notes?: string
+          _parts?: Json
+          _trade_in_id: string
+        }
+        Returns: undefined
+      }
       admin_change_user_plan: {
         Args: {
           _new_expires_at?: string
@@ -4409,6 +4440,10 @@ export type Database = {
       cancel_customer_order: {
         Args: { _order_id: string; _reason: string; _refund_mode: string }
         Returns: Json
+      }
+      cancel_service_order: {
+        Args: { _os_id: string; _reason?: string }
+        Returns: undefined
       }
       cancel_trade_in_repair: {
         Args: { _reason?: string; _trade_in_id: string }
@@ -4969,6 +5004,10 @@ export type Database = {
         Returns: Json
       }
       product_stock_metrics: { Args: { _store_id: string }; Returns: Json }
+      recalc_service_order_totals: {
+        Args: { _os_id: string }
+        Returns: undefined
+      }
       receive_installment: {
         Args: {
           _amount: number
@@ -5035,6 +5074,7 @@ export type Database = {
         Args: { _request_id: string; _review_notes: string }
         Returns: Json
       }
+      remove_os_part: { Args: { _line_id: string }; Returns: undefined }
       renegotiate_receivables: {
         Args: {
           _first_due: string
@@ -5133,6 +5173,16 @@ export type Database = {
         }[]
       }
       take_stock_snapshot: { Args: { p_date?: string }; Returns: number }
+      track_device_by_imei: {
+        Args: { _imei: string; _store_id: string }
+        Returns: {
+          details: Json
+          event_at: string
+          event_type: string
+          label: string
+          ref_id: string
+        }[]
+      }
       trial_eligibility: {
         Args: { _doc?: string; _email?: string; _user_id?: string }
         Returns: Json

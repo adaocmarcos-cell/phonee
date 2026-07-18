@@ -219,19 +219,14 @@ export default function PartsInventory() {
     if (osQty < 1 || osQty > osTarget.stock_current) {
       toast.error("Quantidade inválida"); return;
     }
-    const { error: e1 } = await supabase.from("service_order_parts").insert({
-      service_order_id: osPick,
-      part_id: osTarget.id,
-      store_id: store.id,
-      qty: osQty,
-      unit_price: osTarget.sale_price,
+    const { error } = await (supabase as any).rpc("add_os_part", {
+      _os_id: osPick,
+      _part_id: osTarget.id,
+      _qty: osQty,
+      _unit_price: osTarget.sale_price,
+      _description: null,
     });
-    if (e1) { toast.error(e1.message); return; }
-    const { error: e2 } = await supabase
-      .from("parts_inventory")
-      .update({ stock_current: osTarget.stock_current - osQty })
-      .eq("id", osTarget.id);
-    if (e2) { toast.error(e2.message); return; }
+    if (error) { toast.error(error.message); return; }
     toast.success("Peça vinculada à OS");
     setOsTarget(null);
     load();

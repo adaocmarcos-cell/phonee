@@ -48,7 +48,7 @@ const schema = z.object({
 });
 
 type FormState = {
-  name: string; sku: string; ean: string; brand: string; compatible_model: string;
+  name: string; sku: string; ean: string; imei: string; brand: string; compatible_model: string;
   category: string; subcategory: string; condition: string;
   supplier: string; cost_price: number; sale_price: number;
   stock_current: number; stock_min: number; stock_max: number;
@@ -57,7 +57,7 @@ type FormState = {
 };
 
 const empty: FormState = {
-  name: "", sku: "", ean: "", brand: "", compatible_model: "",
+  name: "", sku: "", ean: "", imei: "", brand: "", compatible_model: "",
   category: "", subcategory: "", condition: "novo",
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 0, stock_max: 0,
@@ -162,6 +162,7 @@ export default function ProductForm() {
           name: raw.name ?? "",
           sku: raw.sku ?? "",
           ean: raw.ean ?? "",
+          imei: raw.imei ?? "",
           brand: raw.brand ?? "",
           compatible_model: raw.compatible_model ?? "",
           category: raw.category ?? "",
@@ -198,6 +199,9 @@ export default function ProductForm() {
       location: form.location,
     });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    if (form.imei && !/^\d{15}$/.test(form.imei.trim())) {
+      return toast.error("IMEI inválido: deve ter 15 dígitos numéricos");
+    }
     setBusy(true);
 
     const payload: any = {
@@ -205,6 +209,7 @@ export default function ProductForm() {
       name: form.name.trim(),
       sku: form.sku || null,
       ean: form.ean || null,
+      imei: form.imei ? form.imei.trim() : null,
       brand: form.brand || null,
       compatible_model: form.compatible_model || null,
       category: catCheck.category,
@@ -315,6 +320,15 @@ export default function ProductForm() {
               <p className="text-xs text-muted-foreground mt-1">Opcional. Se deixar em branco, o produto ficará sem SKU (nenhum código é gerado automaticamente ao salvar).</p>
             </Field>
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
+            <Field label="IMEI (aparelhos)">
+              <Input
+                value={form.imei}
+                onChange={(e) => set("imei", e.target.value.replace(/\D/g, "").slice(0, 15))}
+                placeholder="15 dígitos (opcional)"
+                inputMode="numeric"
+                maxLength={15}
+              />
+            </Field>
             <Field label="Marca"><AutocompleteInput options={suggest.brands} value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
             <Field label="Modelo compatível"><AutocompleteInput options={suggest.models} value={form.compatible_model} onChange={(e) => set("compatible_model", e.target.value)} placeholder="iPhone 15 Pro" /></Field>
             <Field label="Fornecedor"><AutocompleteInput options={suggest.suppliers} value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Selecione ou digite" /></Field>
