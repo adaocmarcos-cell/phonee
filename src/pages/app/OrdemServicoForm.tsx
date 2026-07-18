@@ -20,11 +20,13 @@ import { brl } from "@/lib/format";
 import { toast } from "sonner";
 import { WhatsappSendButton } from "@/components/WhatsappSendButton";
 import { OsWhatsappHistory } from "@/components/OsWhatsappHistory";
+import { OsCustomerPicker } from "@/components/OsCustomerPicker";
+import { OsPartsSection } from "@/components/OsPartsSection";
 import {
   Save, X, FileDown, MessageCircle, Mail, Camera, Trash2, Printer, ArrowLeft,
   ChevronLeft, ChevronRight, FileEdit, User, Smartphone as SmartphoneIcon,
   AlertCircle, ClipboardCheck, Image as ImageIcon, Calculator, Wrench as WrenchIcon,
-  PackageCheck, PenSquare, Check, FileText, Link2,
+  PackageCheck, PenSquare, Check, FileText, Link2, Receipt,
 } from "lucide-react";
 
 const CATEGORIES = ["iPhone","Xiaomi","Samsung","Motorola","Apple Watch","Smartwatch","Tablet","Notebook","Outro"];
@@ -400,6 +402,67 @@ Status: ${os.status}`;
     setLaudoOpen(false);
   };
 
+  // 80mm thermal receipt (cupom de entrega)
+  const gerar80mm = () => {
+    const s: any = store || {};
+    const storeName = s.trade_name || s.name || "Assistência";
+    const osNum = String(os.os_number ?? "").padStart(4, "0");
+    const esc = (v: any) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+    const dt = new Date().toLocaleString("pt-BR");
+    const device = [os.device_brand, os.device_model].filter(Boolean).join(" ") || "—";
+    const totalPecas = Number(os.parts_value || 0);
+    const totalMo = Number(os.labor_value || 0);
+    const total = Number(os.total_value || 0);
+    const garantia = os.end_date ? new Date(new Date(os.end_date).getTime() + 90 * 86400000).toLocaleDateString("pt-BR") : "—";
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/>
+<title>Cupom OS #${osNum}</title>
+<style>
+  @page { size: 80mm auto; margin: 3mm; }
+  body{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.35;margin:0;color:#000;width:74mm}
+  h1,h2,h3{margin:0}
+  .c{text-align:center}
+  .b{font-weight:700}
+  .sep{border-top:1px dashed #000;margin:6px 0}
+  .row{display:flex;justify-content:space-between;gap:4px}
+  .tot{font-size:14px}
+  .btn{background:#000;color:#fff;border:0;padding:8px 14px;border-radius:4px;cursor:pointer;font-weight:600}
+  @media print { .noprint{display:none} }
+</style></head><body>
+<div class="c noprint" style="margin-bottom:8px">
+  <button class="btn" onclick="window.print()">Imprimir 80mm</button>
+  <button class="btn" style="background:#666" onclick="window.close()">Fechar</button>
+</div>
+<div class="c b">${esc(storeName)}</div>
+${s.tax_id ? `<div class="c">${esc(s.tax_id)}</div>` : ""}
+${s.phone ? `<div class="c">Tel: ${esc(s.phone)}</div>` : ""}
+<div class="sep"></div>
+<div class="c b tot">OS #${osNum}</div>
+<div class="c">${dt}</div>
+<div class="sep"></div>
+<div><span class="b">Cliente:</span> ${esc(os.customer_name)}</div>
+${os.customer_whatsapp ? `<div><span class="b">WhatsApp:</span> ${esc(os.customer_whatsapp)}</div>` : ""}
+<div><span class="b">Aparelho:</span> ${esc(device)}</div>
+${os.device_imei1 ? `<div><span class="b">IMEI:</span> ${esc(os.device_imei1)}</div>` : ""}
+<div class="sep"></div>
+<div class="b">Serviço executado</div>
+<div>${esc((os.reasons || []).join(", ") || os.issue_description || "—")}</div>
+${os.technician ? `<div><span class="b">Técnico:</span> ${esc(os.technician)}</div>` : ""}
+<div class="sep"></div>
+<div class="row"><span>Peças</span><span>${brl(totalPecas)}</span></div>
+<div class="row"><span>Mão de obra</span><span>${brl(totalMo)}</span></div>
+<div class="row b tot"><span>Total</span><span>${brl(total)}</span></div>
+<div class="sep"></div>
+<div><span class="b">Garantia até:</span> ${garantia}</div>
+<div style="font-size:10px;margin-top:4px">Garantia válida somente sobre o serviço executado, conforme laudo técnico.</div>
+<div class="sep"></div>
+<div class="c" style="font-size:10px">${esc((store as any)?.trade_name || (store as any)?.name || "")}<br/>Obrigado pela preferência!</div>
+<script>setTimeout(()=>window.print(),300)</script>
+</body></html>`;
+    const w = window.open("", "_blank", "width=380,height=760");
+    if (!w) return toast.error("Popup bloqueado — permita para imprimir");
+    w.document.write(html); w.document.close();
+  };
+
   if (!loaded) return <div className="p-8 text-sm text-muted-foreground">Carregando…</div>;
 
   return (
@@ -412,6 +475,7 @@ Status: ${os.status}`;
             <Button variant="ghost" onClick={() => navigate("/painel/ordens")}><ArrowLeft className="h-4 w-4 mr-1" />Voltar</Button>
             {editing && <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />PDF</Button>}
             {editing && <Button variant="outline" onClick={openLaudo}><FileText className="h-4 w-4 mr-1" />Laudo Técnico</Button>}
+            {editing && <Button variant="outline" onClick={gerar80mm}><Receipt className="h-4 w-4 mr-1" />Cupom 80mm</Button>}
             {editing && os.public_token && (
               <Button variant="outline" onClick={copyTrackingLink} title="Copiar link público de acompanhamento">
                 <Link2 className="h-4 w-4 mr-1" />Link do cliente
@@ -500,13 +564,33 @@ Status: ${os.status}`;
       <Tabs value={current.key} className="space-y-4">
 
         <TabsContent value="cliente">
-          <Card className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <Card className="p-5 space-y-4">
+            {store && (
+              <OsCustomerPicker
+                storeId={store.id}
+                value={os.customer_id}
+                os={os}
+                onLink={(c) => setOs((p: any) => ({
+                  ...p,
+                  customer_id: c.id,
+                  customer_name: c.name,
+                  customer_cpf: c.document || p.customer_cpf,
+                  customer_whatsapp: c.whatsapp || c.phone || p.customer_whatsapp,
+                  customer_email: c.email || p.customer_email,
+                  customer_city: c.address_city || p.customer_city,
+                  customer_address: c.address_street || p.customer_address,
+                }))}
+                onUnlink={() => set("customer_id", null)}
+              />
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <Field label="Nome completo *"><Input value={os.customer_name || ""} onChange={(e) => set("customer_name", e.target.value)} /></Field>
             <Field label="CPF"><Input value={os.customer_cpf || ""} onChange={(e) => set("customer_cpf", e.target.value)} /></Field>
             <Field label="WhatsApp"><Input value={os.customer_whatsapp || ""} onChange={(e) => set("customer_whatsapp", e.target.value)} placeholder="(11) 90000-0000" /></Field>
             <Field label="E-mail"><Input type="email" value={os.customer_email || ""} onChange={(e) => set("customer_email", e.target.value)} /></Field>
             <Field label="Cidade"><Input value={os.customer_city || ""} onChange={(e) => set("customer_city", e.target.value)} /></Field>
             <Field label="Endereço"><Input value={os.customer_address || ""} onChange={(e) => set("customer_address", e.target.value)} /></Field>
+            </div>
           </Card>
         </TabsContent>
 
@@ -589,7 +673,10 @@ Status: ${os.status}`;
 
         <TabsContent value="orcamento">
           <Card className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Field label="Peças (R$)"><NumberInput value={os.parts_value ?? 0} onValueChange={(n) => set("parts_value", n)} /></Field>
+            <Field label="Peças (R$)">
+              <NumberInput value={os.parts_value ?? 0} onValueChange={(n) => set("parts_value", n)} />
+              <p className="text-[10px] text-muted-foreground mt-1">Valor recalculado automaticamente quando peças forem lançadas na aba Execução.</p>
+            </Field>
             <Field label="Mão de obra (R$)"><NumberInput value={os.labor_value ?? 0} onValueChange={(n) => set("labor_value", n)} /></Field>
             <Field label="Total (R$)"><Input readOnly value={(Number(os.parts_value || 0) + Number(os.labor_value || 0)).toFixed(2)} className="bg-primary/10 text-primary font-bold" /></Field>
             <Field label="Prazo estimado (dias)"><NumberInput allowDecimal={false} min={0} value={os.estimated_days ?? 0} onValueChange={(n) => set("estimated_days", n === 0 ? null : n)} /></Field>
@@ -625,6 +712,11 @@ Status: ${os.status}`;
         </TabsContent>
 
         <TabsContent value="execucao">
+          {editing && os.id && store && (
+            <div className="mb-4">
+              <OsPartsSection osId={os.id} storeId={store.id} />
+            </div>
+          )}
           <Card className="p-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Field label="Técnico responsável">
