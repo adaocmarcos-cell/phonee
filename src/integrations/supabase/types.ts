@@ -1791,9 +1791,11 @@ export type Database = {
       plans: {
         Row: {
           active: boolean
+          billing_period: string | null
           code: string
           created_at: string
           description: string | null
+          display_order: number
           duration_months: number | null
           id: string
           max_installments: number
@@ -1803,9 +1805,11 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          billing_period?: string | null
           code: string
           created_at?: string
           description?: string | null
+          display_order?: number
           duration_months?: number | null
           id?: string
           max_installments?: number
@@ -1815,9 +1819,11 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          billing_period?: string | null
           code?: string
           created_at?: string
           description?: string | null
+          display_order?: number
           duration_months?: number | null
           id?: string
           max_installments?: number
