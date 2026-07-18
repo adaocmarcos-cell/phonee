@@ -52,6 +52,7 @@ const OrdensServico = lazy(() => import("./pages/app/OrdensServico"));
 const OrdemServicoForm = lazy(() => import("./pages/app/OrdemServicoForm"));
 const RelatoriosOS = lazy(() => import("./pages/app/RelatoriosOS"));
 const PartsInventory = lazy(() => import("./pages/app/PartsInventory"));
+const RastreioImei = lazy(() => import("./pages/app/RastreioImei"));
 const VendasPecas = lazy(() => import("./pages/app/VendasPecas"));
 const Configuracoes = lazy(() => import("./pages/app/Configuracoes"));
 const TabelasPreco = lazy(() => import("./pages/app/TabelasPreco"));
