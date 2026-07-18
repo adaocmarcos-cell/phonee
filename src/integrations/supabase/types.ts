@@ -3386,6 +3386,7 @@ export type Database = {
       }
       stores: {
         Row: {
+          access_blocked: boolean
           address: string | null
           address_city: string | null
           address_complement: string | null
@@ -3395,6 +3396,8 @@ export type Database = {
           address_uf: string | null
           allow_negative_stock: boolean
           block_sale_when_cash_closed: boolean
+          blocked_at: string | null
+          blocked_by: string | null
           created_at: string
           email: string | null
           hours: string | null
@@ -3422,6 +3425,7 @@ export type Database = {
           welcome_text: string | null
         }
         Insert: {
+          access_blocked?: boolean
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
@@ -3431,6 +3435,8 @@ export type Database = {
           address_uf?: string | null
           allow_negative_stock?: boolean
           block_sale_when_cash_closed?: boolean
+          blocked_at?: string | null
+          blocked_by?: string | null
           created_at?: string
           email?: string | null
           hours?: string | null
@@ -3458,6 +3464,7 @@ export type Database = {
           welcome_text?: string | null
         }
         Update: {
+          access_blocked?: boolean
           address?: string | null
           address_city?: string | null
           address_complement?: string | null
@@ -3467,6 +3474,8 @@ export type Database = {
           address_uf?: string | null
           allow_negative_stock?: boolean
           block_sale_when_cash_closed?: boolean
+          blocked_at?: string | null
+          blocked_by?: string | null
           created_at?: string
           email?: string | null
           hours?: string | null
@@ -4648,6 +4657,15 @@ export type Database = {
         Args: { _order_id: string }
         Returns: undefined
       }
+      my_access_block_status: {
+        Args: never
+        Returns: {
+          blocked_at: string
+          is_blocked: boolean
+          store_id: string
+          store_name: string
+        }[]
+      }
       my_stores: {
         Args: { _user_id: string }
         Returns: {
@@ -4834,6 +4852,10 @@ export type Database = {
         Returns: Json
       }
       phonee_security_test: { Args: never; Returns: Json }
+      phonee_set_store_blocked: {
+        Args: { _blocked: boolean; _store_id: string }
+        Returns: undefined
+      }
       phonee_set_store_permission: {
         Args: {
           _allowed: boolean
@@ -4869,8 +4891,11 @@ export type Database = {
       phonee_stores: {
         Args: never
         Returns: {
+          access_blocked: boolean
           avg_ticket: number
           billing_cycle: string
+          blocked_at: string
+          blocked_by: string
           created_at: string
           expires_at: string
           owner_email: string
