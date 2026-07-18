@@ -156,12 +156,31 @@ export default function Landing() {
   type PublicPlan = { code: string; name: string; price_cents: number; max_installments: number };
   const [publicPlans, setPublicPlans] = useState<PublicPlan[]>([]);
   useEffect(() => {
-    supabase
-      .from("plans")
-      .select("code,name,price_cents,max_installments,display_order,active")
-      .eq("active", true)
-      .order("display_order", { ascending: true })
-      .then(({ data }) => setPublicPlans((data as any[])?.map(({ code, name, price_cents, max_installments }) => ({ code, name, price_cents, max_installments })) ?? []));
+    const fetchPlans = () =>
+      supabase
+        .from("plans")
+        .select("code,name,price_cents,max_installments,display_order,active")
+        .eq("active", true)
+        .order("display_order", { ascending: true })
+        .then(({ data }) =>
+          setPublicPlans(
+            (data as any[])?.map(({ code, name, price_cents, max_installments }) => ({
+              code, name, price_cents, max_installments,
+            })) ?? []
+          )
+        );
+    fetchPlans();
+    // Realtime: recarrega os cards de planos quando o Admin Master ativa/desativa
+    // ou altera o preço de um plano, sem exigir refresh manual.
+    const channel = supabase
+      .channel("plans-public")
+      .on("postgres_changes", { event: "*", schema: "public", table: "plans" }, () => {
+        fetchPlans();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
   const planBy = (code: string) => publicPlans.find((p) => p.code === code);
   const monthlyPlan  = planBy("monthly");
