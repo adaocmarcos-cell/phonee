@@ -881,7 +881,7 @@ export default function VendaNova() {
       return toast.error("Cada forma de pagamento precisa de método e valor > 0");
     }
     // Crediário exige cliente vinculado — bloquear ANTES de salvar a venda.
-    if (payments.some((p) => p.method === "crediario" && Number(p.amount) > 0) && !linkedCustomerId) {
+    if (payments.some((p) => p.method === "crediario" && Number(p.amount) > 0) && !customerId) {
       return toast.error("Crediário exige cliente cadastrado e vinculado. Selecione ou cadastre o cliente antes de finalizar.");
     }
     // Bloqueio de venda em dinheiro com caixa fechado (config por loja)
