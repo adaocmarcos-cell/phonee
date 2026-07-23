@@ -880,6 +880,10 @@ export default function VendaNova() {
     if (payments.some((p) => !p.method || Number(p.amount) <= 0)) {
       return toast.error("Cada forma de pagamento precisa de método e valor > 0");
     }
+    // Crediário exige cliente vinculado — bloquear ANTES de salvar a venda.
+    if (payments.some((p) => p.method === "crediario" && Number(p.amount) > 0) && !customerId) {
+      return toast.error("Crediário exige cliente cadastrado e vinculado. Selecione ou cadastre o cliente antes de finalizar.");
+    }
     // Bloqueio de venda em dinheiro com caixa fechado (config por loja)
     try {
       const hasCash = payments.some((p) => p.method === "dinheiro" && Number(p.amount) > 0);
@@ -1187,18 +1191,49 @@ export default function VendaNova() {
         toast.error("Crediário exige cliente identificado. Cadastre e vincule o cliente.");
         continue;
       }
+      // A RPC calcula credit_total = sale.total - _entry_amount. Para vendas
+      // mistas, financiamos apenas cp.amount → entry = total - cp.amount.
+      const creditAmount = Number(cp.amount);
+      const entryAmount = Math.max(0, +(totalSale - creditAmount).toFixed(2));
+      const payload = {
+        _sale_id: sale.id,
+        _entry_amount: entryAmount,
+        _installments: Math.max(1, Number(cp.installments ?? 1)),
+        _first_due: cp.first_due ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+        _interval_days: Number(cp.interval_days ?? 30),
+        _customer_whatsapp: whatsapp || null,
+      };
       try {
-        const { error: rErr } = await (supabase as any).rpc("register_credit_installments", {
-          _sale_id: sale.id,
-          _customer_id: linkedCustomerId,
-          _total_amount: Number(cp.amount),
-          _installments: Math.max(1, Number(cp.installments ?? 1)),
-          _first_due: cp.first_due ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-          _interval_days: Number(cp.interval_days ?? 30),
-        });
+        const { error: rErr } = await (supabase as any).rpc("register_credit_installments", payload);
         if (rErr) throw rErr;
       } catch (err: any) {
-        toast.error(`Falha ao gerar parcelas do crediário: ${err.message ?? err}`);
+        const raw = err?.message ?? String(err);
+        // Auditoria: crediário salvo sem parcelas — precisa de reprocessamento manual.
+        try {
+          await (supabase as any).from("audit_log").insert({
+            user_id: user.id,
+            store_id: store.id,
+            action: "crediario_falha",
+            entity: "sale",
+            entity_id: sale.id,
+            module: "vendas",
+            screen: isEditingSale ? "venda_editar" : "venda_nova",
+            status: "erro",
+            details: {
+              origem: "register_credit_installments",
+              venda_total: totalSale,
+              parcela_credito: creditAmount,
+              entrada_calculada: entryAmount,
+              payload,
+              db_error: raw,
+            },
+          });
+        } catch {/* noop */}
+        toast.error(
+          `Venda #${sale.sale_number ?? ""} salva, mas as parcelas do crediário NÃO foram geradas: ${raw}. ` +
+          "Reprocesse em Financeiro › Crediário.",
+          { duration: 12000 },
+        );
       }
     }
 
@@ -1749,10 +1784,10 @@ Obrigado pela preferência.`;
                             </div>
                           </div>
                         )}
-                        {isTroca && false && (
-                          <div>
-                            <div>
-                              <Label>_</Label>
+                        {isTroca && (
+                          <div className="md:col-span-5 -mt-1 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-[11px] uppercase tracking-widest text-amber-700">Aparelho da troca</Label>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1769,7 +1804,7 @@ Obrigado pela preferência.`;
                               </button>
                             </div>
                             {p.new_trade_in ? (
-                              <div className="text-[11px] text-amber-800 bg-amber-500/10 rounded px-2 py-1.5 flex items-center justify-between gap-2">
+                              <div className="text-[11px] text-amber-800 bg-amber-500/10 rounded px-2 py-1.5 flex items-center justify-between gap-2 flex-wrap">
                                 <span>
                                   <b>{p.new_trade_in.brand} {p.new_trade_in.model}</b>
                                   {p.new_trade_in.storage_gb ? ` · ${p.new_trade_in.storage_gb}GB` : ""}
@@ -1786,8 +1821,8 @@ Obrigado pela preferência.`;
                                 </Button>
                               </div>
                             ) : availableTradeIns.length === 0 ? (
-                              <div className="text-[11px] text-muted-foreground">
-                                Nenhum aparelho pré-cadastrado. Use <b>+ Cadastrar aparelho agora</b> acima
+                              <div className="text-[11px] text-amber-800/80">
+                                Nenhum aparelho pré-cadastrado. Use <b>+ Cadastrar aparelho agora</b>
                                 para receber o aparelho na troca sem sair da venda.
                               </div>
                             ) : (
