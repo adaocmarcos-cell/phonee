@@ -1191,18 +1191,49 @@ export default function VendaNova() {
         toast.error("Crediário exige cliente identificado. Cadastre e vincule o cliente.");
         continue;
       }
+      // A RPC calcula credit_total = sale.total - _entry_amount. Para vendas
+      // mistas, financiamos apenas cp.amount → entry = total - cp.amount.
+      const creditAmount = Number(cp.amount);
+      const entryAmount = Math.max(0, +(totalSale - creditAmount).toFixed(2));
+      const payload = {
+        _sale_id: sale.id,
+        _entry_amount: entryAmount,
+        _installments: Math.max(1, Number(cp.installments ?? 1)),
+        _first_due: cp.first_due ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+        _interval_days: Number(cp.interval_days ?? 30),
+        _customer_whatsapp: whatsapp || null,
+      };
       try {
-        const { error: rErr } = await (supabase as any).rpc("register_credit_installments", {
-          _sale_id: sale.id,
-          _customer_id: linkedCustomerId,
-          _total_amount: Number(cp.amount),
-          _installments: Math.max(1, Number(cp.installments ?? 1)),
-          _first_due: cp.first_due ?? new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
-          _interval_days: Number(cp.interval_days ?? 30),
-        });
+        const { error: rErr } = await (supabase as any).rpc("register_credit_installments", payload);
         if (rErr) throw rErr;
       } catch (err: any) {
-        toast.error(`Falha ao gerar parcelas do crediário: ${err.message ?? err}`);
+        const raw = err?.message ?? String(err);
+        // Auditoria: crediário salvo sem parcelas — precisa de reprocessamento manual.
+        try {
+          await (supabase as any).from("audit_log").insert({
+            user_id: user.id,
+            store_id: store.id,
+            action: "crediario_falha",
+            entity: "sale",
+            entity_id: sale.id,
+            module: "vendas",
+            screen: isEditingSale ? "venda_editar" : "venda_nova",
+            status: "erro",
+            details: {
+              origem: "register_credit_installments",
+              venda_total: totalSale,
+              parcela_credito: creditAmount,
+              entrada_calculada: entryAmount,
+              payload,
+              db_error: raw,
+            },
+          });
+        } catch {/* noop */}
+        toast.error(
+          `Venda #${sale.sale_number ?? ""} salva, mas as parcelas do crediário NÃO foram geradas: ${raw}. ` +
+          "Reprocesse em Financeiro › Crediário.",
+          { duration: 12000 },
+        );
       }
     }
 
