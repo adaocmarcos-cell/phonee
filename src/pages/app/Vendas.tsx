@@ -630,10 +630,10 @@ export default function Vendas() {
                 const overdue = due && due < today0;
                 return (
                 <tr key={s.id} className="hover:bg-surface-elevated/40">
-                  <td className="px-4 py-3 font-mono text-xs text-primary font-semibold">{fmtNum(s.sale_number)}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3">{s.customer_name || <span className="text-muted-foreground">Avulso</span>}</td>
-                  <td className="px-4 py-3"><Badge variant="outline" className="capitalize text-xs">{s.payment_method}</Badge></td>
+                  <td className="px-4 py-3 font-mono text-xs text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">{new Date(s.created_at).toLocaleString("pt-BR")}</td>
+                  <td className="px-4 py-3 max-w-[240px]"><div className="truncate" title={s.customer_name || "Avulso"}>{s.customer_name || <span className="text-muted-foreground">Avulso</span>}</div></td>
+                  <td className="px-4 py-3 whitespace-nowrap"><Badge variant="outline" className="capitalize text-xs whitespace-nowrap px-2 py-0.5">{pmLabel[s.payment_method] || s.payment_method}</Badge></td>
                   {tab === "receber" && (
                     <td className="px-4 py-3 font-mono text-xs">
                       {due ? due.toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}
@@ -648,8 +648,8 @@ export default function Vendas() {
                       )}
                     </td>
                   )}
-                  <td className="px-4 py-3 text-right metric text-muted-foreground">{brl(Number(s.discount))}</td>
-                  <td className="px-4 py-3 text-right metric font-semibold">
+                  <td className="px-4 py-3 text-right metric text-muted-foreground whitespace-nowrap">{brl(Number(s.discount))}</td>
+                  <td className="px-4 py-3 text-right metric font-semibold whitespace-nowrap">
                     {brl(Number(s.total))}
                     {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
                       <div className="text-[10px] font-mono text-emerald-700">
