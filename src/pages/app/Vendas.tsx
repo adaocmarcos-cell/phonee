@@ -541,14 +541,76 @@ export default function Vendas() {
         </div>
       </Card>
 
-      <Card className="bg-card border-border shadow-card overflow-hidden">
+      <Card className="bg-card border-border shadow-card overflow-hidden pb-[calc(env(safe-area-inset-bottom)+72px)] md:pb-0">
         {filtered.length === 0 ? (
           <div className="p-12 text-center">
             <Receipt className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-sm text-muted-foreground">Nenhuma venda registrada ainda.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <>
+          {/* MOBILE: cards */}
+          <ul className="md:hidden divide-y divide-border">
+            {filtered.map((s) => {
+              const due = s.due_date ? new Date(s.due_date + "T00:00:00") : null;
+              const overdue = due && due < today0;
+              const dt = new Date(s.created_at);
+              const dtShort = `${dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })} ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+              return (
+                <li key={s.id} className="p-3">
+                  <div className="rounded-lg border border-border bg-surface-elevated/40 p-3 flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-sm text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</span>
+                      <Badge variant="outline" className="capitalize text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
+                        {pmLabel[s.payment_method] || s.payment_method}
+                      </Badge>
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">{dtShort}</div>
+                    <div className="text-sm truncate" title={s.customer_name || "Avulso"}>
+                      {s.customer_name || <span className="text-muted-foreground">Avulso</span>}
+                    </div>
+                    {tab === "receber" && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {due && <span className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">Venc. {due.toLocaleDateString("pt-BR")}</span>}
+                        {overdue ? (
+                          <Badge className="bg-danger/15 text-danger border-danger/30 whitespace-nowrap"><AlertTriangle className="h-3 w-3 mr-1" />Vencida</Badge>
+                        ) : (
+                          <Badge className="bg-warning/15 text-warning border-warning/30 whitespace-nowrap"><Clock className="h-3 w-3 mr-1" />Em aberto</Badge>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-end justify-between gap-2 pt-1">
+                      <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                        Desc. <span className="metric">{brl(Number(s.discount))}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className="text-[10px] text-muted-foreground leading-none">Total</div>
+                          <div className="metric text-base font-semibold whitespace-nowrap">{brl(Number(s.total))}</div>
+                          {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
+                            <div className="text-[10px] font-mono text-emerald-700 whitespace-nowrap">líq. {brl(Number(s.net_value))}</div>
+                          )}
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Imprimir comprovante"
+                          onClick={() => onPrintReceipt(s)}
+                          className="h-11 w-11 shrink-0"
+                        >
+                          <Printer className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* DESKTOP: table */}
+          <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm min-w-[880px]">
             <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
               <tr>
                 <th className="text-left px-4 py-3 font-medium">Nº</th>
@@ -680,6 +742,8 @@ export default function Vendas() {
               })}
             </tbody>
           </table>
+          </div>
+          </>
         )}
       </Card>
 
