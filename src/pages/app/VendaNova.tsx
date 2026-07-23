@@ -1784,10 +1784,10 @@ Obrigado pela preferência.`;
                             </div>
                           </div>
                         )}
-                        {isTroca && false && (
-                          <div>
-                            <div>
-                              <Label>_</Label>
+                        {isTroca && (
+                          <div className="md:col-span-5 -mt-1 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <Label className="text-[11px] uppercase tracking-widest text-amber-700">Aparelho da troca</Label>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1804,7 +1804,7 @@ Obrigado pela preferência.`;
                               </button>
                             </div>
                             {p.new_trade_in ? (
-                              <div className="text-[11px] text-amber-800 bg-amber-500/10 rounded px-2 py-1.5 flex items-center justify-between gap-2">
+                              <div className="text-[11px] text-amber-800 bg-amber-500/10 rounded px-2 py-1.5 flex items-center justify-between gap-2 flex-wrap">
                                 <span>
                                   <b>{p.new_trade_in.brand} {p.new_trade_in.model}</b>
                                   {p.new_trade_in.storage_gb ? ` · ${p.new_trade_in.storage_gb}GB` : ""}
@@ -1821,8 +1821,8 @@ Obrigado pela preferência.`;
                                 </Button>
                               </div>
                             ) : availableTradeIns.length === 0 ? (
-                              <div className="text-[11px] text-muted-foreground">
-                                Nenhum aparelho pré-cadastrado. Use <b>+ Cadastrar aparelho agora</b> acima
+                              <div className="text-[11px] text-amber-800/80">
+                                Nenhum aparelho pré-cadastrado. Use <b>+ Cadastrar aparelho agora</b>
                                 para receber o aparelho na troca sem sair da venda.
                               </div>
                             ) : (
