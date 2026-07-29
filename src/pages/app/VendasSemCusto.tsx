@@ -91,7 +91,7 @@ export default function VendasSemCusto() {
 
   return (
     <div className="p-4 sm:p-6">
-      <PageHeader title="Vendas sem custo" subtitle="Itens vendidos sem custo cadastrado — o lucro dessas vendas não é calculado" />
+      <PageHeader title="Vendas sem custo" description="Itens vendidos sem custo cadastrado — o lucro dessas vendas não é calculado" />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <Card className="p-4">
