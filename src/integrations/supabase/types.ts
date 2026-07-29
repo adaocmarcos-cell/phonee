@@ -324,6 +324,59 @@ export type Database = {
           },
         ]
       }
+      card_fee_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fee_fixed_cents: number
+          fee_pct: number
+          id: string
+          installments_from: number
+          installments_to: number
+          label: string | null
+          payment_method: string
+          receive_days: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fee_fixed_cents?: number
+          fee_pct?: number
+          id?: string
+          installments_from?: number
+          installments_to?: number
+          label?: string | null
+          payment_method: string
+          receive_days?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fee_fixed_cents?: number
+          fee_pct?: number
+          id?: string
+          installments_from?: number
+          installments_to?: number
+          label?: string | null
+          payment_method?: string
+          receive_days?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_fee_rules_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_movements: {
         Row: {
           amount: number
@@ -1625,6 +1678,124 @@ export type Database = {
           },
         ]
       }
+      payables: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string
+          expense_id: string | null
+          id: string
+          installment_number: number | null
+          installment_of: string | null
+          notes: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          payment_method: string | null
+          purchase_order_id: string | null
+          receipt_url: string | null
+          recurrence: string
+          status: string
+          store_id: string
+          supplier_id: string | null
+          total_installments: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date: string
+          expense_id?: string | null
+          id?: string
+          installment_number?: number | null
+          installment_of?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          purchase_order_id?: string | null
+          receipt_url?: string | null
+          recurrence?: string
+          status?: string
+          store_id: string
+          supplier_id?: string | null
+          total_installments?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string
+          expense_id?: string | null
+          id?: string
+          installment_number?: number | null
+          installment_of?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_method?: string | null
+          purchase_order_id?: string | null
+          receipt_url?: string | null
+          recurrence?: string
+          status?: string
+          store_id?: string
+          supplier_id?: string | null
+          total_installments?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payables_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_installment_of_fkey"
+            columns: ["installment_of"]
+            isOneToOne: false
+            referencedRelation: "payables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_logs: {
         Row: {
           action: string | null
@@ -2575,10 +2746,16 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          expected_receipt_date: string | null
+          fee_amount: number
+          fee_pct: number | null
           id: string
           installments: number | null
           method: string
+          net_amount: number | null
           notes: string | null
+          received_amount: number | null
+          received_at: string | null
           sale_id: string
           store_id: string
           trade_in_id: string | null
@@ -2586,10 +2763,16 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          expected_receipt_date?: string | null
+          fee_amount?: number
+          fee_pct?: number | null
           id?: string
           installments?: number | null
           method: string
+          net_amount?: number | null
           notes?: string | null
+          received_amount?: number | null
+          received_at?: string | null
           sale_id: string
           store_id: string
           trade_in_id?: string | null
@@ -2597,10 +2780,16 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          expected_receipt_date?: string | null
+          fee_amount?: number
+          fee_pct?: number | null
           id?: string
           installments?: number | null
           method?: string
+          net_amount?: number | null
           notes?: string | null
+          received_amount?: number | null
+          received_at?: string | null
           sale_id?: string
           store_id?: string
           trade_in_id?: string | null
@@ -4498,6 +4687,14 @@ export type Database = {
         Args: { _reason?: string; _trade_in_id: string }
         Returns: string
       }
+      card_fees_report: {
+        Args: { _from: string; _store_id: string; _to: string }
+        Returns: Json
+      }
+      cash_flow_projection: {
+        Args: { _days?: number; _store_id: string }
+        Returns: Json
+      }
       check_tradein_cost_divergence: {
         Args: never
         Returns: {
@@ -4510,6 +4707,14 @@ export type Database = {
       }
       close_cash_session: {
         Args: { _counted_cash: number; _notes?: string; _session_id: string }
+        Returns: Json
+      }
+      confirm_card_receipt: {
+        Args: {
+          _payment_id: string
+          _received_amount: number
+          _received_at?: string
+        }
         Returns: Json
       }
       consume_customer_order_deposit: {
@@ -4581,6 +4786,10 @@ export type Database = {
       dispatch_push_event: {
         Args: { _event: string; _payload: Json; _store_id: string }
         Returns: undefined
+      }
+      dre_gerencial: {
+        Args: { _from: string; _store_id: string; _to: string }
+        Returns: Json
       }
       finish_trade_in_repair: {
         Args: {
@@ -4793,6 +5002,17 @@ export type Database = {
         }
         Returns: Json
       }
+      pay_payable: {
+        Args: {
+          _paid_amount?: number
+          _paid_at?: string
+          _payable_id: string
+          _payment_method?: string
+          _receipt_url?: string
+        }
+        Returns: Json
+      }
+      payables_daily_job: { Args: never; Returns: Json }
       phonee_asaas_charge_duplicates: {
         Args: never
         Returns: {
