@@ -6,12 +6,14 @@ import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { SortableCards } from "@/components/SortableCards";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
+import { exportResultPDF } from "@/lib/resultExport";
 import { cn } from "@/lib/utils";
 import { loadProductStockMetrics } from "@/lib/stockMetrics";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Wrench, LayoutGrid, Check, Banknote, RefreshCw, Smartphone } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Wrench, LayoutGrid, Check, Banknote, RefreshCw, Smartphone, PiggyBank, FileDown } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -63,6 +65,7 @@ export default function Dashboard() {
   const [period, setPeriod] = useState<PeriodValue>("month");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [editingLayout, setEditingLayout] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
 
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
