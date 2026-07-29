@@ -187,6 +187,10 @@ export default function VendaNova() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [skuInput, setSkuInput] = useState("");
+  // Produto sem custo cadastrado: aviso não-bloqueante + atalho para preencher.
+  const [costFix, setCostFix] = useState<{ id: string; name: string } | null>(null);
+  const [costFixValue, setCostFixValue] = useState<number | "">("");
+  const [costFixSaving, setCostFixSaving] = useState(false);
   const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
@@ -750,6 +754,17 @@ export default function VendaNova() {
     if (built.ok === false) { toast.error(built.error); return; }
     const draft = built.item;
     built.warnings.forEach((w) => toast.warning(w));
+
+    // Aviso não-bloqueante: sem custo cadastrado o lucro da venda não é calculado.
+    if (Number(p.cost_price ?? 0) <= 0) {
+      toast.warning(`"${p.name}": produto sem custo cadastrado — o lucro desta venda não será calculado.`, {
+        duration: 8000,
+        action: {
+          label: "Preencher custo",
+          onClick: () => { setCostFix({ id: p.id, name: p.name }); setCostFixValue(""); },
+        },
+      });
+    }
 
     setItems((arr) => {
       const existing = arr.find((i) => i.product_id === draft.product_id);
@@ -2702,6 +2717,50 @@ Obrigado pela preferência.`;
               }}
             >
               Salvar aparelho
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preenchimento rápido do custo do produto direto do PDV */}
+      <Dialog open={!!costFix} onOpenChange={(o) => !o && setCostFix(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Custo do produto</DialogTitle>
+            <DialogDescription>{costFix?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Preço de custo (R$)</Label>
+            <NumberInput
+              value={typeof costFixValue === "number" ? costFixValue : 0}
+              onValueChange={(v) => setCostFixValue(v)}
+              min={0}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Sem custo cadastrado o lucro desta venda não entra no cálculo do CMV.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCostFix(null)}>Agora não</Button>
+            <Button
+              disabled={costFixSaving}
+              onClick={async () => {
+                if (!costFix) return;
+                const v = Number(costFixValue);
+                if (!v || v <= 0) return toast.error("Informe um custo maior que zero.");
+                setCostFixSaving(true);
+                const { error } = await supabase
+                  .from("products")
+                  .update({ cost_price: v })
+                  .eq("id", costFix.id);
+                setCostFixSaving(false);
+                if (error) return toast.error(error.message);
+                toast.success("Custo atualizado.");
+                setCostFix(null);
+              }}
+            >
+              Salvar custo
             </Button>
           </DialogFooter>
         </DialogContent>

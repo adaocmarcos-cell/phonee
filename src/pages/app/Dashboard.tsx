@@ -53,6 +53,8 @@ type DashboardMetrics = {
   lucro_bruto?: number;
   lucro_liquido?: number;
   movimento_caixa?: number;
+  cobertura_custo?: number;
+  itens_sem_custo?: number;
   lucro: number;
   qtd_vendas: number;
   ticket_medio: number;
@@ -242,6 +244,9 @@ export default function Dashboard() {
   const arVencido      = metrics?.crediario_vencido ?? 0;
   const arVencidasCount= metrics?.crediario_vencidas_count ?? 0;
   const margemBruta    = revenueTotal > 0 ? (lucroBruto / revenueTotal) * 100 : 0;
+  const cobertura      = metrics?.cobertura_custo ?? 100;
+  const itensSemCusto  = metrics?.itens_sem_custo ?? 0;
+  const custoEstimado  = cobertura < 90;
   const itensAlerta    = productsLow + stalled;
 
   const periodLabel =
@@ -342,11 +347,11 @@ export default function Dashboard() {
             node: canSeeCost(role) ? (
               <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
                 <MetricCard
-                  label="Lucro bruto"
+                  label={custoEstimado ? "Lucro bruto (estimativa)" : "Lucro bruto"}
                   value={brl(lucroBruto)}
-                  delta={`Margem bruta ${pct(margemBruta)} · ver detalhes`}
+                  delta={`Margem ${pct(margemBruta)} · CMV calculado sobre ${pct(cobertura)} das vendas`}
                   icon={Percent}
-                  tone={lucroBruto >= 0 ? "violet" : "danger"}
+                  tone={custoEstimado ? "warning" : lucroBruto >= 0 ? "violet" : "danger"}
                   className="h-full"
                 />
               </button>
@@ -553,6 +558,20 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">= Lucro bruto</span>
                 <span className="font-mono tabular-nums font-semibold">{brl(lucroBruto)}</span>
               </div>
+              {custoEstimado && (
+                <div className="flex items-start justify-between gap-3 rounded-md bg-warning/10 p-2 text-xs">
+                  <span className="text-muted-foreground">
+                    CMV calculado sobre {pct(cobertura)} das vendas — {itensSemCusto} item(ns) sem custo cadastrado.
+                    O lucro bruto é uma estimativa.
+                  </span>
+                  <button
+                    className="shrink-0 underline font-medium"
+                    onClick={() => navigate("/painel/vendas/sem-custo")}
+                  >
+                    Regularizar
+                  </button>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <span className="text-muted-foreground">− Despesas operacionais</span>
                 <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
