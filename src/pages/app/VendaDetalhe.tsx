@@ -56,6 +56,7 @@ export default function VendaDetalhe() {
   const [receivables, setReceivables] = useState<any[]>([]);
   const [returns, setReturns] = useState<any[]>([]);
   const [movements, setMovements] = useState<any[]>([]);
+  const [sellerName, setSellerName] = useState<string | null>(null);
 
   useEffect(() => {
     if (store?.id) loadWarrantySettings(store.id).then(setWarranty);
