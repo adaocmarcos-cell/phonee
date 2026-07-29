@@ -219,17 +219,41 @@ export default function ProductForm() {
       location: form.location,
     });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    if (form.imei && !/^\d{15}$/.test(form.imei.trim())) {
-      return toast.error("IMEI inválido: deve ter 15 dígitos numéricos");
+
+    const kind = form.item_kind;
+    if (isDevice(kind)) {
+      const err = imeiError(form.imei);
+      if (err) return toast.error(err);
+      if (Number(form.stock_current) !== 1) {
+        return toast.error("Aparelho é sempre 1 unidade por registro. Cadastre um registro por aparelho.");
+      }
+    } else if (form.imei && !isValidImei(form.imei)) {
+      return toast.error("IMEI inválido: 15 dígitos e dígito verificador (Luhn).");
+    }
+    if (form.imei2 && !isValidImei(form.imei2)) {
+      return toast.error("IMEI 2 inválido: 15 dígitos e dígito verificador (Luhn).");
+    }
+    if (isTool(kind) && !form.patrimonio.trim()) {
+      return toast.error("Informe o número de patrimônio da ferramenta.");
     }
     setBusy(true);
 
     const payload: any = {
       store_id: store.id,
+      item_kind: kind,
       name: form.name.trim(),
       sku: form.sku || null,
       ean: form.ean || null,
-      imei: form.imei ? form.imei.trim() : null,
+      imei: form.imei ? form.imei.replace(/\D/g, "") : null,
+      imei2: form.imei2 ? form.imei2.replace(/\D/g, "") : null,
+      battery_health: isDevice(kind) && form.battery_health > 0 ? Number(form.battery_health) : null,
+      color: isDevice(kind) ? (form.color || null) : null,
+      storage_gb: isDevice(kind) && form.storage_gb > 0 ? Number(form.storage_gb) : null,
+      compatible_models: form.compatible_models || null,
+      notes: form.notes || null,
+      patrimonio: isTool(kind) ? (form.patrimonio || null) : null,
+      responsavel: isTool(kind) ? (form.responsavel || null) : null,
+      data_aquisicao: isTool(kind) ? (form.data_aquisicao || null) : null,
       brand: form.brand || null,
       compatible_model: form.compatible_model || null,
       category: catCheck.category,
@@ -239,11 +263,11 @@ export default function ProductForm() {
       supplier: form.supplier || null,
       cost_price: Number(form.cost_price),
       sale_price: Number(form.sale_price),
-      stock_current: Number(form.stock_current),
+      stock_current: isDevice(kind) ? 1 : Number(form.stock_current),
       stock_min: Number(form.stock_min),
       stock_max: Number(form.stock_max),
       location: form.location || null,
-      visible_in_catalog: form.visible_in_catalog,
+      visible_in_catalog: isTool(kind) ? false : form.visible_in_catalog,
       status: form.status,
       data_entrada: form.data_entrada || null,
     };
@@ -255,6 +279,8 @@ export default function ProductForm() {
     setBusy(false);
     if (error) {
       if ((error as any).code === "23505") return toast.error("Este SKU já está em uso. Use outro ou gere automaticamente.");
+      const msg = (error as any).message || "";
+      if (/IMEI/i.test(msg)) return toast.error(msg);
       const friendly = friendlyCategoryError(error as any);
       return toast.error(friendly ?? error.message);
     }
