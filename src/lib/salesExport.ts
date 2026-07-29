@@ -135,8 +135,23 @@ export function printSaleReceipt(opts: {
   const warrantyNotice = w?.notice ?? warranty?.notice_text ?? "";
   const warrantyTerms = w?.terms ?? warranty?.message_template ?? "";
 
-  const expDate = new Date(sale.created_at);
-  expDate.setDate(expDate.getDate() + Number(warrantyDays || 0));
+  // Garantia por item: usa warranty_days do próprio item; só cai no padrão da venda
+  // quando o item não tiver prazo próprio. Itens com 0 dia ficam fora do termo.
+  const warrantyItems = items
+    .map((i) => ({
+      item: i,
+      days: Number(i.warranty_days ?? warrantyDays ?? 0),
+    }))
+    .filter((wi) => wi.days > 0);
+  const maxWarrantyDays = warrantyItems.length
+    ? Math.max(...warrantyItems.map((wi) => wi.days))
+    : Number(warrantyDays || 0);
+  const addDays = (base: string, days: number) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + Number(days || 0));
+    return d;
+  };
+  const expDate = addDays(sale.created_at, maxWarrantyDays);
 
   const addrLine = [
     [store?.address_street, store?.address_number].filter(Boolean).join(", "),
