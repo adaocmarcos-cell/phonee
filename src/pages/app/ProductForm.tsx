@@ -401,15 +401,64 @@ export default function ProductForm() {
               <p className="text-xs text-muted-foreground mt-1">Opcional. Se deixar em branco, o produto ficará sem SKU (nenhum código é gerado automaticamente ao salvar).</p>
             </Field>
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
-            <Field label="IMEI (aparelhos)">
-              <Input
-                value={form.imei}
-                onChange={(e) => set("imei", e.target.value.replace(/\D/g, "").slice(0, 15))}
-                placeholder="15 dígitos (opcional)"
-                inputMode="numeric"
-                maxLength={15}
-              />
-            </Field>
+            {isDevice(form.item_kind) && (
+              <>
+                <Field label="IMEI *">
+                  <Input
+                    value={form.imei}
+                    onChange={(e) => set("imei", e.target.value.replace(/\D/g, "").slice(0, 15))}
+                    placeholder="15 dígitos"
+                    inputMode="numeric"
+                    maxLength={15}
+                    className="font-mono"
+                  />
+                  {form.imei.length > 0 && imeiError(form.imei) && (
+                    <p className="text-xs text-danger mt-1">{imeiError(form.imei)}</p>
+                  )}
+                </Field>
+                <Field label="IMEI 2 (dual SIM)">
+                  <Input
+                    value={form.imei2}
+                    onChange={(e) => set("imei2", e.target.value.replace(/\D/g, "").slice(0, 15))}
+                    placeholder="Opcional"
+                    inputMode="numeric"
+                    maxLength={15}
+                    className="font-mono"
+                  />
+                </Field>
+                <Field label="Cor">
+                  <Input value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="Titânio natural" />
+                </Field>
+                <Field label="Armazenamento (GB)">
+                  <NumberInput allowDecimal={false} min={0} placeholder="128" value={form.storage_gb} onValueChange={(n) => set("storage_gb", n)} />
+                </Field>
+                <Field label="Saúde da bateria (%)">
+                  <NumberInput allowDecimal={false} min={0} max={100} placeholder="100" value={form.battery_health} onValueChange={(n) => set("battery_health", n)} />
+                </Field>
+              </>
+            )}
+            {hasFreeQuantity(form.item_kind) && (
+              <Field label="Modelos compatíveis">
+                <Input
+                  value={form.compatible_models}
+                  onChange={(e) => set("compatible_models", e.target.value)}
+                  placeholder="iPhone 13, 13 Pro, 14"
+                />
+              </Field>
+            )}
+            {isTool(form.item_kind) && (
+              <>
+                <Field label="Nº de patrimônio *">
+                  <Input value={form.patrimonio} onChange={(e) => set("patrimonio", e.target.value)} placeholder="FER-0012" className="font-mono" />
+                </Field>
+                <Field label="Responsável">
+                  <Input value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Nome do técnico" />
+                </Field>
+                <Field label="Data de aquisição">
+                  <Input type="date" value={form.data_aquisicao} onChange={(e) => set("data_aquisicao", e.target.value)} />
+                </Field>
+              </>
+            )}
             <Field label="Marca"><AutocompleteInput options={suggest.brands} value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
             <Field label="Modelo compatível"><AutocompleteInput options={suggest.models} value={form.compatible_model} onChange={(e) => set("compatible_model", e.target.value)} placeholder="iPhone 15 Pro" /></Field>
             <Field label="Fornecedor"><AutocompleteInput options={suggest.suppliers} value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Selecione ou digite" /></Field>
