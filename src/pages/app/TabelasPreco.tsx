@@ -108,6 +108,7 @@ export default function TabelasPreco() {
         .from("products")
         .select("id,name,sku,category,brand,sale_price,stock_current,status")
         .eq("store_id", store.id)
+        .in("item_kind", ["aparelho", "acessorio"])
         .neq("status", "inativo")
         .order("name");
       if (error) { handleSupabaseError(error, "Erro ao carregar produtos"); setLoading(false); return; }
