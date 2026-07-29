@@ -803,6 +803,8 @@ export default function VendaNova() {
         discount_pct: 0,
         discount_brl: 0,
         unit_price: draft.unit_price,
+        item_kind: p.item_kind ?? undefined,
+        imei_serial: String(p.imei ?? "").trim() || undefined,
       }];
     });
     setProductQuery("");
