@@ -92,9 +92,10 @@ export default function TradeInForm() {
     if (!store) return;
     (async () => {
       const { data } = await supabase
-        .from("parts_inventory")
+        .from("products")
         .select("id,name,sku,cost_price,stock_current")
         .eq("store_id", store.id)
+        .in("item_kind", ["peca", "ferramenta"])
         .order("name");
       setPartsCatalog(data || []);
     })();
@@ -217,7 +218,7 @@ export default function TradeInForm() {
     setPendingDevices((arr) => arr.filter((_, i) => i !== idx));
 
   // Repair side-effects (regime de competência):
-  //  - Dá baixa das peças usadas no reparo em parts_inventory.
+  //  - Dá baixa das peças usadas no reparo no cadastro unificado (products).
   //  - Se o aparelho já virou produto (product_id preenchido), soma o custo das
   //    peças ao products.cost_price. NUNCA cria despesa — o custo entra no CMV
   //    quando o aparelho for vendido.
@@ -228,7 +229,7 @@ export default function TradeInForm() {
     for (const p of newParts) {
       const cur = partsCatalog.find((x) => x.id === p.part_id);
       const newStock = Math.max(0, (cur?.stock_current ?? 0) - (p.qty || 0));
-      await supabase.from("parts_inventory").update({ stock_current: newStock }).eq("id", p.part_id);
+      await supabase.from("products").update({ stock_current: newStock }).eq("id", p.part_id);
     }
     // O trigger tradein_sync_product_cost cuida do custo do produto ao salvar
     // a ficha com o novo repair_costs, então não precisamos escrever em products aqui.
