@@ -681,23 +681,15 @@ export default function Compras() {
     load();
   };
 
-  const updateStockOnReceive = async (_orderId: string, its: Item[]) => {
-    for (const it of its) {
-      if (!it.product_id) continue;
-      const { data: prod } = await supabase.from("products").select("stock_current").eq("id", it.product_id).maybeSingle();
-      if (!prod) continue;
-      await supabase.from("products").update({ stock_current: Number(prod.stock_current ?? 0) + Number(it.quantity) }).eq("id", it.product_id);
-    }
-  };
-
   const markAsReceived = async (o: Order) => {
-    const { data: its } = await supabase.from("purchase_order_items").select("*").eq("order_id", o.id);
-    await supabase.from("purchase_orders").update({ status: "recebido", received_at: new Date().toISOString() }).eq("id", o.id);
-    if (its) {
-      toast.info("Sincronizando entrada de mercadorias com o estoque…");
-      await updateStockOnReceive(o.id, its as any);
+    toast.info("Sincronizando entrada de mercadorias com o estoque…");
+    const { data, error } = await supabase.rpc("receive_purchase_order" as any, { _order_id: o.id });
+    if (error) {
+      toast.error(`Falha ao receber a compra — nada foi gravado: ${error.message}`);
+      return;
     }
-    toast.success("Compra recebida e estoque atualizado");
+    const units = Number((data as any)?.units ?? 0);
+    toast.success(`Compra recebida · ${units} un. no estoque (movimento registrado como compra)`);
     load();
   };
 
