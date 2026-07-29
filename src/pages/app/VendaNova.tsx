@@ -1841,6 +1841,22 @@ Obrigado pela preferência.`;
                     <Field label="Desc R$"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} /></Field>
                     <Field label="P. unit."><NumberInput value={i.unit_price} onValueChange={(n) => updateItem(i.product_id, { unit_price: n })} /></Field>
                   </div>
+                  {(pricePending[i.product_id] || (!i.is_service && Number(i.unit_price) <= 0)) && (
+                    <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 space-y-2">
+                      <p className="text-[11px] font-medium text-amber-700">Informe o preço de venda deste item</p>
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <NumberInput
+                            autoFocus
+                            min={0}
+                            value={priceDraft[i.product_id] ?? 0}
+                            onValueChange={(v) => setPriceDraft((st) => ({ ...st, [i.product_id]: v }))}
+                          />
+                        </div>
+                        <Button type="button" size="sm" disabled={inlineSaving} onClick={() => savePendingPrice(i.product_id, i.name)}>Salvar preço</Button>
+                      </div>
+                    </div>
+                  )}
                   {costMissing[i.product_id] && (
                     <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-2">
                       <p className="text-[11px] text-amber-700">Produto sem custo cadastrado — o lucro desta venda não será calculado.</p>
