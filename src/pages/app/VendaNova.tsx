@@ -191,12 +191,18 @@ export default function VendaNova() {
   // Produtos no carrinho sem cost_price cadastrado (aviso inline, não bloqueia).
   const [costMissing, setCostMissing] = useState<Record<string, boolean>>({});
   const [costDraft, setCostDraft] = useState<Record<string, number>>({});
-  // Produto bloqueado por falta de sale_price (campo inline para definir o preço).
-  const [priceFix, setPriceFix] = useState<{ product: any; value: number } | null>(null);
+  // Itens no carrinho aguardando preço de venda (resolução inline, sem sair da venda).
+  const [pricePending, setPricePending] = useState<Record<string, boolean>>({});
+  const [priceDraft, setPriceDraft] = useState<Record<string, number>>({});
   const [inlineSaving, setInlineSaving] = useState(false);
   const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
+  // Itens que ainda não têm preço definido — travam apenas a conclusão da venda.
+  const pendingPriceCount = useMemo(
+    () => items.filter((i) => !i.is_service && (pricePending[i.product_id] || Number(i.unit_price) <= 0)).length,
+    [items, pricePending],
+  );
 
   // Serviços
   const [serviceDialog, setServiceDialog] = useState<{ open: boolean; description: string; quantity: number; unit_price: number; editing?: string | null }>({
@@ -752,19 +758,20 @@ export default function VendaNova() {
       toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
       return;
     }
-    // BLOQUEIO: produto sem preço de venda cadastrado. Oferece campo inline
-    // para definir o preço (grava em products.sale_price) antes de adicionar.
-    if (Number(p.sale_price ?? 0) <= 0) {
-      setPriceFix({ product: p, value: 0 });
-      toast.error(`"${p.name}" está sem preço de venda cadastrado. Defina o preço para adicionar ao carrinho.`);
-      setShowProductList(false);
-      return;
-    }
     // Vinculação validada de product_id, nome, preço e estoque.
     const built = buildLineItemFromProduct(p);
     if (built.ok === false) { toast.error(built.error); return; }
     const draft = built.item;
-    built.warnings.forEach((w) => toast.warning(w));
+    const needsPrice = Number(p.sale_price ?? 0) <= 0;
+    if (needsPrice) {
+      // Sem preço cadastrado: entra no carrinho em modo de edição. A trava é na
+      // conclusão da venda, nunca na adição do item.
+      setPricePending((s) => ({ ...s, [draft.product_id]: true }));
+      setPriceDraft((s) => ({ ...s, [draft.product_id]: s[draft.product_id] ?? 0 }));
+      toast.info(`Informe o preço de venda de "${draft.name}".`);
+    } else {
+      built.warnings.forEach((w) => toast.warning(w));
+    }
 
     // Aviso NÃO bloqueante: sem custo cadastrado o lucro da venda não é calculado.
     if (Number(p.cost_price ?? 0) <= 0) {
@@ -806,19 +813,20 @@ export default function VendaNova() {
     toast.success(`Custo de "${name}" salvo.`);
   };
 
-  // Define o preço de venda do produto bloqueado e adiciona ao carrinho.
-  const saveInlinePriceAndAdd = async () => {
-    if (!priceFix) return;
-    const v = Number(priceFix.value ?? 0);
-    if (!v || v <= 0) { toast.error("Informe um preço maior que zero."); return; }
+  // Define o preço de venda do item pendente: grava em products.sale_price
+  // (para não repetir na próxima venda) e aplica no item do carrinho.
+  const savePendingPrice = async (productId: string, name: string) => {
+    const v = Number(priceDraft[productId] ?? 0);
+    if (!v || v <= 0) { toast.error("Informe um preço de venda maior que zero."); return; }
     setInlineSaving(true);
-    const { error } = await supabase.from("products").update({ sale_price: v }).eq("id", priceFix.product.id);
+    const { error } = await supabase.from("products").update({ sale_price: v }).eq("id", productId);
     setInlineSaving(false);
     if (error) { toast.error(error.message); return; }
-    const p = { ...priceFix.product, sale_price: v };
-    setPriceFix(null);
-    toast.success(`Preço de "${p.name}" salvo.`);
-    addItem(p);
+    setItems((arr) => arr.map((i) => i.product_id === productId
+      ? { ...i, list_price: v, discount_pct: 0, discount_brl: 0, unit_price: v }
+      : i));
+    setPricePending((s) => { const n = { ...s }; delete n[productId]; return n; });
+    toast.success(`Preço de "${name}" salvo.`);
   };
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -953,6 +961,9 @@ export default function VendaNova() {
     e?.preventDefault();
     if (!store || !user) return;
     if (items.length === 0) return toast.error("Adicione ao menos um item");
+    if (pendingPriceCount > 0) {
+      return toast.error("Informe o preço de venda dos itens destacados antes de concluir.");
+    }
     if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
     if (Math.abs(remaining) > 0.009) {
       return toast.error(
@@ -1456,7 +1467,7 @@ Obrigado pela preferência.`;
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
-            <Button onClick={onSubmitClick} disabled={busy} className="bg-primary text-primary-foreground shadow-glow">
+            <Button onClick={onSubmitClick} disabled={busy || pendingPriceCount > 0} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : (isEditingSale ? "Salvar alterações" : "Salvar venda")}
             </Button>
           </div>
@@ -1713,29 +1724,13 @@ Obrigado pela preferência.`;
               )}
             </div>
 
-            {priceFix && (
-              <div className="rounded-lg border border-danger/40 bg-danger/5 p-3 space-y-2">
-                <div className="text-sm font-medium text-danger">
-                  "{priceFix.product?.name}" está sem preço de venda cadastrado
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Item bloqueado. Informe o preço de venda para salvar no cadastro e adicionar ao carrinho.
+            {pendingPriceCount > 0 && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="text-xs text-amber-700">
+                  {pendingPriceCount === 1
+                    ? "1 item aguardando preço de venda. Informe o valor na linha destacada para concluir a venda."
+                    : `${pendingPriceCount} itens aguardando preço de venda. Informe os valores nas linhas destacadas para concluir a venda.`}
                 </p>
-                <div className="flex flex-wrap items-end gap-2">
-                  <div className="w-40">
-                    <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Preço de venda (R$)</Label>
-                    <NumberInput
-                      autoFocus
-                      min={0}
-                      value={priceFix.value}
-                      onValueChange={(v) => setPriceFix((s) => s ? { ...s, value: v } : s)}
-                    />
-                  </div>
-                  <Button type="button" size="sm" disabled={inlineSaving} onClick={saveInlinePriceAndAdd}>
-                    Salvar preço e adicionar
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setPriceFix(null)}>Cancelar</Button>
-                </div>
               </div>
             )}
 
@@ -1775,6 +1770,29 @@ Obrigado pela preferência.`;
                       <td className="px-3 py-2.5 text-right metric font-semibold text-primary">{brl(i.quantity * i.unit_price)}</td>
                       <td className="text-center"><Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button></td>
                     </tr>
+                    {(pricePending[i.product_id] || (!i.is_service && Number(i.unit_price) <= 0)) && (
+                      <tr className="border-t border-amber-500/40 bg-amber-500/10">
+                        <td colSpan={11} className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-medium text-amber-700">
+                              Informe o preço de venda deste item
+                            </span>
+                            <div className="w-32">
+                              <NumberInput
+                                autoFocus
+                                min={0}
+                                value={priceDraft[i.product_id] ?? 0}
+                                onValueChange={(v) => setPriceDraft((s) => ({ ...s, [i.product_id]: v }))}
+                                className="h-8 text-right"
+                              />
+                            </div>
+                            <Button type="button" size="sm" disabled={inlineSaving} onClick={() => savePendingPrice(i.product_id, i.name)}>
+                              Salvar preço
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {costMissing[i.product_id] && (
                       <tr className="border-t border-amber-500/30 bg-amber-500/5">
                         <td colSpan={11} className="px-3 py-2">
@@ -1823,6 +1841,22 @@ Obrigado pela preferência.`;
                     <Field label="Desc R$"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} /></Field>
                     <Field label="P. unit."><NumberInput value={i.unit_price} onValueChange={(n) => updateItem(i.product_id, { unit_price: n })} /></Field>
                   </div>
+                  {(pricePending[i.product_id] || (!i.is_service && Number(i.unit_price) <= 0)) && (
+                    <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 space-y-2">
+                      <p className="text-[11px] font-medium text-amber-700">Informe o preço de venda deste item</p>
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <NumberInput
+                            autoFocus
+                            min={0}
+                            value={priceDraft[i.product_id] ?? 0}
+                            onValueChange={(v) => setPriceDraft((st) => ({ ...st, [i.product_id]: v }))}
+                          />
+                        </div>
+                        <Button type="button" size="sm" disabled={inlineSaving} onClick={() => savePendingPrice(i.product_id, i.name)}>Salvar preço</Button>
+                      </div>
+                    </div>
+                  )}
                   {costMissing[i.product_id] && (
                     <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-2">
                       <p className="text-[11px] text-amber-700">Produto sem custo cadastrado — o lucro desta venda não será calculado.</p>
@@ -2369,7 +2403,7 @@ Obrigado pela preferência.`;
           <Button type="button" variant="outline" onClick={sendWhatsapp} className="flex-shrink-0">
             <MessageCircle className="h-4 w-4" />
           </Button>
-          <Button type="submit" disabled={busy} className="flex-1 bg-primary text-primary-foreground shadow-glow">
+          <Button type="submit" disabled={busy || pendingPriceCount > 0} className="flex-1 bg-primary text-primary-foreground shadow-glow">
             <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : `Salvar · ${brl(totalSale)}`}
           </Button>
         </div>
@@ -2414,7 +2448,7 @@ Obrigado pela preferência.`;
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
-            <Button onClick={() => submit()} disabled={busy || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
+            <Button onClick={() => submit()} disabled={busy || pendingPriceCount > 0 || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
             </Button>
           </DialogFooter>
