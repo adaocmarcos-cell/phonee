@@ -29,6 +29,10 @@ import {
   reconcileSubcategoryOnCategoryChange,
 } from "@/lib/productCategory";
 import { brl } from "@/lib/format";
+import {
+  ITEM_KINDS, type ItemKind, kindFromCategory, defaultCategoryForKind,
+  isDevice, isTool, hasFreeQuantity, imeiError, isValidImei,
+} from "@/lib/itemKind";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 
@@ -48,7 +52,10 @@ const schema = z.object({
 });
 
 type FormState = {
-  name: string; sku: string; ean: string; imei: string; brand: string; compatible_model: string;
+  item_kind: ItemKind;
+  name: string; sku: string; ean: string; imei: string; imei2: string; brand: string; compatible_model: string;
+  compatible_models: string; battery_health: number; color: string; storage_gb: number;
+  patrimonio: string; responsavel: string; data_aquisicao: string; notes: string;
   category: string; subcategory: string; condition: string;
   supplier: string; cost_price: number; sale_price: number;
   stock_current: number; stock_min: number; stock_max: number;
@@ -57,7 +64,10 @@ type FormState = {
 };
 
 const empty: FormState = {
-  name: "", sku: "", ean: "", imei: "", brand: "", compatible_model: "",
+  item_kind: "acessorio",
+  name: "", sku: "", ean: "", imei: "", imei2: "", brand: "", compatible_model: "",
+  compatible_models: "", battery_health: 0, color: "", storage_gb: 0,
+  patrimonio: "", responsavel: "", data_aquisicao: "", notes: "",
   category: "", subcategory: "", condition: "novo",
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 0, stock_max: 0,
