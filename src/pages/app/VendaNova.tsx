@@ -919,9 +919,19 @@ export default function VendaNova() {
         merged.discount_brl = +(merged.list_price - merged.unit_price).toFixed(2);
         merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
       }
+      // Aparelho é rastreado por IMEI: uma linha por unidade.
+      if (merged.item_kind === "aparelho" && Number(merged.quantity) > 1) {
+        merged.quantity = 1;
+        toast.info("Aparelhos são vendidos por unidade (IMEI). Adicione outra linha para vender mais de um.");
+      }
       return merged;
     }));
   };
+
+  /** Itens do tipo aparelho que ainda não têm IMEI válido informado. */
+  const imeiPendingItems = items.filter(
+    (i) => !i.is_service && i.item_kind === "aparelho" && !isValidImei(String(i.imei_serial ?? "")),
+  );
 
   const removeItem = (id: string) => setItems((arr) => arr.filter((i) => i.product_id !== id));
 
