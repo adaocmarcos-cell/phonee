@@ -75,6 +75,7 @@ const Suporte = lazy(() => import("./pages/app/Suporte"));
 const Notificacoes = lazy(() => import("./pages/app/Notificacoes"));
 const SuporteAdmin = lazy(() => import("./pages/app/admin/SuporteAdmin"));
 const Clientes = lazy(() => import("./pages/app/Clientes"));
+const PosVenda = lazy(() => import("./pages/app/PosVenda"));
 const MinhasLojas = lazy(() => import("./pages/app/MinhasLojas"));
 const TransferenciaProdutos = lazy(() => import("./pages/app/TransferenciaProdutos"));
 const Compras = lazy(() => import("./pages/app/Compras"));
@@ -170,6 +171,7 @@ const App = () => (
               <Route path="comissoes" element={<Comissoes />} />
               <Route path="crediario" element={<Crediario />} />
               <Route path="clientes" element={<Clientes />} />
+              <Route path="pos-venda" element={<PosVenda />} />
               <Route path="lojas" element={<MinhasLojas />} />
               <Route path="estoque/transferencia" element={<TransferenciaProdutos />} />
               <Route path="compras" element={<Compras />} />
