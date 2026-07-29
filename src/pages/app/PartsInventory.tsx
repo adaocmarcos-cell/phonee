@@ -28,6 +28,7 @@ import autoTable from "jspdf-autotable";
 import VendasPecas from "./VendasPecas";
 import PartsPurchaseCenter from "./PartsPurchaseCenter";
 import { NumberInput } from "@/components/NumberInput";
+import { PARTS_KINDS_ARR, PART_SELECT } from "@/lib/partsRepo";
 
 type Category =
   | "telas" | "baterias" | "tampas" | "cameras"
@@ -103,12 +104,13 @@ export default function PartsInventory() {
     if (!store) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("parts_inventory")
-      .select("*")
+      .from("products")
+      .select(PART_SELECT)
       .eq("store_id", store.id)
+      .in("item_kind", PARTS_KINDS_ARR)
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
-    setParts((data ?? []) as Part[]);
+    setParts((data ?? []) as unknown as Part[]);
     setLoading(false);
   };
 
@@ -168,8 +170,12 @@ export default function PartsInventory() {
       ? Array.from(new Set([...models, ...modelInput.split(",").map(s => s.trim()).filter(Boolean)]))
       : models;
     const payload = {
-      ...rest,
+      name: rest.name,
       store_id: store.id,
+      // Cadastro unificado: peças/ferramentas vivem em `products`.
+      category: "peca" as const,
+      item_kind: form.category === "ferramentas" ? ("ferramenta" as const) : ("peca" as const),
+      subcategory: form.category,
       category_other: form.category === "outros" ? form.category_other : null,
       sku: form.sku || null,
       brand: form.brand || null,
@@ -177,12 +183,16 @@ export default function PartsInventory() {
       supplier: form.supplier || null,
       location: form.location || null,
       notes: form.notes || null,
+      cost_price: rest.cost_price,
+      sale_price: rest.sale_price,
+      stock_current: rest.stock_current,
+      stock_min: rest.stock_min,
     };
     let error;
     if (editing) {
-      ({ error } = await supabase.from("parts_inventory").update(payload).eq("id", editing.id));
+      ({ error } = await supabase.from("products").update(payload).eq("id", editing.id));
     } else {
-      ({ error } = await supabase.from("parts_inventory").insert(payload));
+      ({ error } = await supabase.from("products").insert(payload));
     }
     if (error) { toast.error(error.message); return; }
     toast.success(editing ? "Peça atualizada" : "Peça cadastrada");
@@ -192,7 +202,7 @@ export default function PartsInventory() {
 
   const remove = async () => {
     if (!delTarget) return;
-    const { error } = await supabase.from("parts_inventory").delete().eq("id", delTarget.id);
+    const { error } = await supabase.from("products").delete().eq("id", delTarget.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Removida");
     setDelTarget(null);
