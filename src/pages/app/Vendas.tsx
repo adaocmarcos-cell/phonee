@@ -47,6 +47,7 @@ const NET_REASONS = [
 ];
 
 const eff = (s: any) => Number(s?.net_value ?? s?.total ?? 0);
+const isReversed = (s: any) => String(s?.status ?? "ativa") === "estornada";
 
 export default function Vendas() {
   const { store, role, user } = useAuth();
@@ -73,6 +74,9 @@ export default function Vendas() {
   const [detailsItems, setDetailsItems] = useState<any[] | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [returnSale, setReturnSale] = useState<any | null>(null);
+  const [reverseSale, setReverseSale] = useState<any | null>(null);
+  const [reverseReason, setReverseReason] = useState("");
+  const [reversing, setReversing] = useState(false);
 
   const reloadSales = () => {
     // simplest: refetch by toggling a state through window event; but we can just re-run the query below
@@ -158,11 +162,12 @@ export default function Vendas() {
     });
   }, [sales, payment, q, tab]);
 
-  const total = filtered.reduce((a, b) => a + Number(b.total || 0), 0);
-  const totalLiquido = filtered.reduce((a, b) => a + eff(b), 0);
+  const filteredAtivas = useMemo(() => filtered.filter((s) => !isReversed(s)), [filtered]);
+  const total = filteredAtivas.reduce((a, b) => a + Number(b.total || 0), 0);
+  const totalLiquido = filteredAtivas.reduce((a, b) => a + eff(b), 0);
   const trocaTotal = trocaSplits.reduce((a, b) => a + b.amount, 0);
   const cashTotal = Math.max(0, totalLiquido - trocaTotal);
-  const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente"), [sales]);
+  const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente" && !isReversed(s)), [sales]);
   const pendingTotal = pendingSales.reduce((a, b) => a + eff(b), 0);
   const overdueCount = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -172,6 +177,7 @@ export default function Vendas() {
   const paymentBreakdown = useMemo(() => {
     const map: Record<string, { count: number; total: number }> = {};
     sales.forEach((s) => {
+      if (isReversed(s)) return;
       const k = s.payment_method || "outro";
       if (!map[k]) map[k] = { count: 0, total: 0 };
       map[k].count += 1;
