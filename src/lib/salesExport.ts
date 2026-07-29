@@ -190,7 +190,7 @@ export function printSaleReceipt(opts: {
 
   const stripDays = (t: string) =>
     String(t || "")
-      .replace(/\{dias\}/gi, String(warrantyDays))
+      .replace(/\{dias\}/gi, String(maxWarrantyDays))
       .replace(/\s*(?:de\s+)?\d+\s*(?:dias|meses|m[êe]s|ano|anos)\b/gi, "")
       .replace(/\s{2,}/g, " ")
       .replace(/\s+([,.;])/g, "$1")
