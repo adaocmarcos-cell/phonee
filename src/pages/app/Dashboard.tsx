@@ -47,6 +47,12 @@ type DashboardMetrics = {
   custo_produtos: number;
   custo_os: number;
   despesas: number;
+  despesas_pagas?: number;
+  compras_estoque?: number;
+  compras_estoque_pagas?: number;
+  lucro_bruto?: number;
+  lucro_liquido?: number;
+  movimento_caixa?: number;
   lucro: number;
   qtd_vendas: number;
   ticket_medio: number;
