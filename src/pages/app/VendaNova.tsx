@@ -440,6 +440,39 @@ export default function VendaNova() {
   }, [encomendaId, store, isEditingSale]);
 
   // Carrega clientes cadastrados da loja (autocomplete + sincronização)
+  // Orçamento convertido em venda: pré-carrega itens e cliente
+  useEffect(() => {
+    if (!store || isEditingSale) return;
+    const raw = sessionStorage.getItem("pdv_prefill_quote");
+    if (!raw) return;
+    sessionStorage.removeItem("pdv_prefill_quote");
+    try {
+      const q = JSON.parse(raw);
+      if (q.customer_name) setCustomer(q.customer_name);
+      if (q.customer_phone) setWhatsapp(q.customer_phone);
+      const loaded: LineItem[] = (q.items ?? []).map((r: any, idx: number) => {
+        const qty = Number(r.quantity || 1);
+        const price = Number(r.unit_price || 0);
+        const discPerUnit = qty > 0 ? Number(r.discount_amount || 0) / qty : 0;
+        return {
+          product_id: `svc-orc-${idx}`,
+          is_service: true,
+          description: r.description ?? "",
+          name: r.description ?? "",
+          quantity: qty,
+          list_price: price + discPerUnit,
+          discount_pct: 0,
+          discount_brl: discPerUnit,
+          unit_price: price,
+        };
+      });
+      if (loaded.length > 0) setItems(loaded);
+      toast.info(
+        `Orçamento nº ${q.quote_number ?? ""} carregado. Confira os itens — troque por produtos do estoque para dar baixa.`,
+      );
+    } catch { /* payload inválido */ }
+  }, [store, isEditingSale]);
+
   const loadCustomers = async () => {
     if (!store) return;
     setLoadingCustomers(true);

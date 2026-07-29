@@ -6,6 +6,7 @@ import {
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
   ArrowRightLeft, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
   DollarSign, Building2, AlertTriangle, PackagePlus, MessageCircle,
+  FileText, Target, Calculator,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -32,6 +33,7 @@ const ops: Item[] = [
   { title: "Dashboard", url: "/painel", icon: LayoutDashboard, end: true },
   { title: "Vendas", url: "/painel/vendas", icon: Receipt, children: [
     { title: "Encomendas", url: "/painel/vendas/encomendas", icon: PackagePlus },
+    { title: "Orçamentos", url: "/painel/orcamentos", icon: FileText },
   ] },
   { title: "Estoque", url: "/painel/estoque", icon: Boxes, children: [
     { title: "Compras/Entradas", url: "/painel/compras", icon: ShoppingCart },
@@ -56,6 +58,8 @@ const ops: Item[] = [
   ] },
   { title: "Tabelas de Preço", url: "/painel/tabelas", icon: Tags },
   { title: "Garantias", url: "/painel/garantias", icon: ShieldCheck },
+  { title: "Metas", url: "/painel/metas", icon: Target },
+  { title: "Ferramentas", url: "/painel/ferramentas", icon: Calculator },
 ];
 
 const config = [
