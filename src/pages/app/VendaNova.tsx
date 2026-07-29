@@ -2732,9 +2732,9 @@ Obrigado pela preferência.`;
           <div className="space-y-2">
             <Label>Preço de custo (R$)</Label>
             <NumberInput
-              value={costFixValue}
-              onChange={(v) => setCostFixValue(v)}
-              currency
+              value={typeof costFixValue === "number" ? costFixValue : 0}
+              onValueChange={(v) => setCostFixValue(v)}
+              min={0}
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
