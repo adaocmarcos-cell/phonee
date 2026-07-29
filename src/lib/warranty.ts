@@ -39,7 +39,6 @@ export async function loadWarrantySettings(storeId: string): Promise<WarrantySet
 
 export async function saveWarrantySettings(s: WarrantySettings) {
   const payload = {
-  const payload = {
     store_id: s.store_id,
     notice_text: s.notice_text,
     message_template: s.message_template,
