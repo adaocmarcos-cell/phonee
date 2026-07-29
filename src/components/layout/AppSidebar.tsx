@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Boxes, BarChart3, Smartphone, ShoppingCart,
   Receipt, Users, Wrench, Bell, Tags, Settings, ShieldCheck, Wallet, Hammer,
   ArrowRightLeft, KeyRound, FileSearch, CreditCard, Package, ScrollText, Lock, LifeBuoy, Inbox,
-  DollarSign, Building2, AlertTriangle, PackagePlus,
+  DollarSign, Building2, AlertTriangle, PackagePlus, MessageCircle,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -39,7 +39,9 @@ const ops: Item[] = [
     { title: "Compra e Troca", url: "/painel/troca", icon: Smartphone },
     { title: "Relatórios", url: "/painel/estoque/relatorios", icon: BarChart3 },
   ] },
-  { title: "Clientes", url: "/painel/clientes", icon: Users },
+  { title: "Clientes", url: "/painel/clientes", icon: Users, children: [
+    { title: "Pós-venda", url: "/painel/pos-venda", icon: MessageCircle },
+  ] },
   { title: "Financeiro", url: "/painel/financeiro", icon: DollarSign, badgeKey: "overdue", children: [
     { title: "Caixa", url: "/painel/financeiro/caixa", icon: Wallet },
     { title: "Fluxo de caixa", url: "/painel/financeiro/fluxo-caixa", icon: BarChart3 },

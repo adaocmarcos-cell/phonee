@@ -730,6 +730,156 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_queue: {
+        Row: {
+          context: Json
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          message: string
+          os_id: string | null
+          phone: string | null
+          queue_date: string
+          reason: string
+          rule_id: string | null
+          sale_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          store_id: string
+          trigger_key: string
+          updated_at: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          customer_id?: string | null
+          customer_name: string
+          id?: string
+          message: string
+          os_id?: string | null
+          phone?: string | null
+          queue_date?: string
+          reason: string
+          rule_id?: string | null
+          sale_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          store_id: string
+          trigger_key: string
+          updated_at?: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          message?: string
+          os_id?: string | null
+          phone?: string | null
+          queue_date?: string
+          reason?: string
+          rule_id?: string | null
+          sale_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          store_id?: string
+          trigger_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_queue_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_queue_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_queue_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "crm_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_queue_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_queue_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_rules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          params: Json
+          send_hour: number
+          store_id: string
+          template_id: string | null
+          trigger_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          params?: Json
+          send_hour?: number
+          store_id: string
+          template_id?: string | null
+          trigger_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          params?: Json
+          send_hour?: number
+          store_id?: string
+          template_id?: string | null
+          trigger_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_rules_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_order_events: {
         Row: {
           actor_id: string | null
@@ -4459,6 +4609,7 @@ export type Database = {
       whatsapp_messages_log: {
         Row: {
           created_at: string
+          customer_id: string | null
           event_key: string
           id: string
           message_text: string
@@ -4472,6 +4623,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           event_key: string
           id?: string
           message_text: string
@@ -4485,6 +4637,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           event_key?: string
           id?: string
           message_text?: string
@@ -4497,6 +4650,13 @@ export type Database = {
           template_title?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "whatsapp_messages_log_os_id_fkey"
             columns: ["os_id"]
@@ -4780,6 +4940,24 @@ export type Database = {
           _refund_method: string
           _sale_id: string
         }
+        Returns: Json
+      }
+      crm_build_queue: {
+        Args: { _date?: string; _store_id: string }
+        Returns: Json
+      }
+      crm_daily_job: { Args: never; Returns: Json }
+      crm_default_body: { Args: { _trigger: string }; Returns: string }
+      crm_mark_sent: { Args: { _queue_id: string }; Returns: Json }
+      crm_metrics: {
+        Args: { _from: string; _store_id: string; _to: string }
+        Returns: Json
+      }
+      crm_render: { Args: { _body: string; _vars: Json }; Returns: string }
+      crm_skip: { Args: { _queue_id: string }; Returns: Json }
+      crm_trigger_label: { Args: { _trigger: string }; Returns: string }
+      crm_upgrade_candidates: {
+        Args: { _limit?: number; _months?: number; _store_id: string }
         Returns: Json
       }
       data_health_weekly_job: { Args: never; Returns: Json }
