@@ -42,6 +42,9 @@ const ops: Item[] = [
   { title: "Clientes", url: "/painel/clientes", icon: Users },
   { title: "Financeiro", url: "/painel/financeiro", icon: DollarSign, badgeKey: "overdue", children: [
     { title: "Caixa", url: "/painel/financeiro/caixa", icon: Wallet },
+    { title: "Fluxo de caixa", url: "/painel/financeiro/fluxo-caixa", icon: BarChart3 },
+    { title: "DRE Gerencial", url: "/painel/financeiro/dre", icon: BarChart3 },
+    { title: "Taxas de maquininha", url: "/painel/financeiro/taxas", icon: CreditCard },
     { title: "Crediário", url: "/painel/crediario", icon: CreditCard },
     { title: "Comissões", url: "/painel/comissoes", icon: Wallet },
     { title: "Custos & Despesas", url: "/painel/despesas", icon: Wallet },
