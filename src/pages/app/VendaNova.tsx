@@ -956,6 +956,9 @@ export default function VendaNova() {
     e?.preventDefault();
     if (!store || !user) return;
     if (items.length === 0) return toast.error("Adicione ao menos um item");
+    if (pendingPriceCount > 0) {
+      return toast.error("Informe o preço de venda dos itens destacados antes de concluir.");
+    }
     if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
     if (Math.abs(remaining) > 0.009) {
       return toast.error(
