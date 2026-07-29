@@ -1770,6 +1770,29 @@ Obrigado pela preferência.`;
                       <td className="px-3 py-2.5 text-right metric font-semibold text-primary">{brl(i.quantity * i.unit_price)}</td>
                       <td className="text-center"><Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button></td>
                     </tr>
+                    {(pricePending[i.product_id] || (!i.is_service && Number(i.unit_price) <= 0)) && (
+                      <tr className="border-t border-amber-500/40 bg-amber-500/10">
+                        <td colSpan={11} className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-medium text-amber-700">
+                              Informe o preço de venda deste item
+                            </span>
+                            <div className="w-32">
+                              <NumberInput
+                                autoFocus
+                                min={0}
+                                value={priceDraft[i.product_id] ?? 0}
+                                onValueChange={(v) => setPriceDraft((s) => ({ ...s, [i.product_id]: v }))}
+                                className="h-8 text-right"
+                              />
+                            </div>
+                            <Button type="button" size="sm" disabled={inlineSaving} onClick={() => savePendingPrice(i.product_id, i.name)}>
+                              Salvar preço
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {costMissing[i.product_id] && (
                       <tr className="border-t border-amber-500/30 bg-amber-500/5">
                         <td colSpan={11} className="px-3 py-2">
