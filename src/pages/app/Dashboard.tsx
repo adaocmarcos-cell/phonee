@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { loadProductStockMetrics } from "@/lib/stockMetrics";
 import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Wrench, LayoutGrid, Check, Banknote, RefreshCw, Smartphone } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
@@ -240,12 +241,69 @@ export default function Dashboard() {
     period === "year" ? "ano atual" :
     period === "custom" ? "período personalizado" : "período";
 
+  const periodTitle =
+    period === "month" ? "Mês atual" :
+    period === "30d" ? "Últimos 30 dias" :
+    period === "90d" ? "Últimos 90 dias" :
+    period === "6m" ? "Últimos 180 dias" :
+    period === "custom" ? "Período personalizado" : "Período";
+
   return (
     <div className="text-[15px] leading-relaxed">
-      <PageHeader
-        title="Visão geral"
-        description="Tudo que importa na sua loja, em um só lugar."
-      />
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <PageHeader
+          title="Visão geral"
+          description="Tudo que importa na sua loja, em um só lugar."
+        />
+        <div className="sm:pt-1 shrink-0 sm:self-start">
+          <PeriodFilter
+            value={period}
+            onChange={setPeriod}
+            options={["month", "30d", "90d", "6m", "custom"]}
+            custom={periodCustom}
+            onCustomChange={setPeriodCustom}
+            compact
+            showLabel={false}
+          />
+        </div>
+      </div>
+
+      {canSeeCost(role) && (
+        <Card className="p-5 sm:p-6 mb-6 bg-card border-border shadow-card">
+          <div className="flex items-baseline justify-between gap-2 mb-4">
+            <h3 className="font-semibold">Resultado</h3>
+            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground truncate">{periodTitle}</span>
+          </div>
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between gap-3">
+              <span>Faturamento</span>
+              <span className="font-mono tabular-nums">{brl(revenueTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>− Custo da mercadoria</span>
+              <span className="font-mono tabular-nums">{brl(costMonth)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>− Despesas</span>
+              <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
+            </div>
+          </div>
+          <div className="border-t border-border my-4" />
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-xs uppercase tracking-widest font-mono text-muted-foreground mb-1">
+                = Lucro do período
+              </div>
+              <div className={cn("metric font-bold leading-tight text-2xl sm:text-3xl truncate", lucroMes >= 0 ? "text-success" : "text-danger")}>
+                {brl(lucroMes)}
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground font-mono shrink-0">
+              Margem {pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {metricsError && (
         <Card className="p-4 mb-4 border-danger/40 bg-danger/5 flex items-center justify-between gap-3">
@@ -355,21 +413,11 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 mb-6">
-        {canSeeCost(role) ? (
-          <MetricCard
-            label="Lucro líquido do período"
-            value={brl(lucroMes)}
-            delta={`Receita − custo − despesas (${brl(expensesMonth)} desp.)`}
-            icon={Wallet}
-            variant="highlight"
-            tone="success"
-            trend={lucroMes >= 0 ? "up" : "down"}
-          />
-        ) : (
+      {!canSeeCost(role) && (
+        <div className="grid grid-cols-1 gap-4 mb-6">
           <MetricCard label="Itens em alerta" value={num(productsLow)} icon={AlertTriangle} tone="warning" />
-        )}
-      </div>
+        </div>
+      )}
 
       <SortableCards
         storageKey="dashboard.kpis.secondary"
@@ -468,18 +516,6 @@ export default function Dashboard() {
             </>
           )}
         </button>
-      </div>
-
-      <div className="flex items-center justify-end mb-6">
-        <PeriodFilter
-          value={period}
-          onChange={setPeriod}
-          options={["today", "7d", "30d", "month", "year", "custom"]}
-          custom={periodCustom}
-          onCustomChange={setPeriodCustom}
-          compact
-          showLabel={false}
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
