@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl } from "@/lib/format";
 import { handleSupabaseError } from "@/lib/supabaseFetch";
+import { printSaleReceipt } from "@/lib/salesExport";
+import { loadWarrantySettings, type WarrantySettings } from "@/lib/warranty";
+import { useHasPermission } from "@/hooks/useHasPermission";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { ArrowLeft, Pencil, Printer, Receipt, RotateCcw, Smartphone, Boxes, CreditCard, Undo2, CalendarClock } from "lucide-react";
 
 const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, "0")}`;
@@ -33,8 +40,13 @@ function Empty({ text }: { text: string }) {
 export default function VendaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, store } = useAuth();
   const showCost = canSeeCost(role);
+  const { allowed: canDeleteSale } = useHasPermission("vendas", "excluir");
+  const [warranty, setWarranty] = useState<WarrantySettings | null>(null);
+  const [reverseOpen, setReverseOpen] = useState(false);
+  const [reverseReason, setReverseReason] = useState("");
+  const [reversing, setReversing] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [sale, setSale] = useState<any | null>(null);
@@ -44,6 +56,10 @@ export default function VendaDetalhe() {
   const [receivables, setReceivables] = useState<any[]>([]);
   const [returns, setReturns] = useState<any[]>([]);
   const [movements, setMovements] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (store?.id) loadWarrantySettings(store.id).then(setWarranty);
+  }, [store?.id]);
 
   useEffect(() => {
     if (!id) return;
@@ -87,6 +103,54 @@ export default function VendaDetalhe() {
 
   const reversed = String(sale?.status ?? "ativa") === "estornada";
 
+  /** Comprovante formatado (mesmo layout usado na lista de vendas). */
+  const onPrintReceipt = () => {
+    if (!sale) return;
+    if (items.length === 0) { toast.error("Esta venda não possui itens registrados."); return; }
+    const list = items.map((it) => ({
+      name: it.name || it.description || "Item",
+      sku: it.sku ?? null,
+      category: it.category ?? null,
+      brand: it.brand ?? null,
+      model: it.model ?? null,
+      unit: it.unit ?? null,
+      imei_serial: it.imei_serial ?? null,
+      public_notes: it.public_notes ?? null,
+      discount_amount: Number(it.discount_amount || 0),
+      quantity: it.quantity,
+      unit_price: Number(it.unit_price),
+      total: Number(it.total),
+    }));
+    const trocaPays = payments.filter((p) => p.method === "troca");
+    const tiList = tradeIns.map((t) => {
+      const pay = trocaPays.find((p) => p.trade_in_id === t.id);
+      return {
+        brand: t.brand, model: t.model, imei: t.imei, storage_gb: t.storage_gb,
+        value: Number(pay?.amount || t.entry_value || 0),
+      };
+    });
+    printSaleReceipt({ sale, items: list, store, warranty, tradeIns: tiList } as any);
+  };
+
+  /** Estorno não destrutivo via RPC reverse_sale. */
+  const estornar = async () => {
+    if (!sale) return;
+    if (!reverseReason.trim()) { toast.error("Informe o motivo do estorno."); return; }
+    setReversing(true);
+    const { data, error } = await (supabase.rpc as any)("reverse_sale", {
+      p_sale_id: sale.id,
+      p_reason: reverseReason.trim(),
+    });
+    setReversing(false);
+    if (error) { handleSupabaseError(error, "Não foi possível estornar a venda"); return; }
+    const res = (data ?? {}) as any;
+    toast.success(`Venda ${fmtNum(sale.sale_number)} estornada · ${res.movimentos_estoque ?? 0} item(ns) devolvido(s) ao estoque`);
+    ((res.avisos ?? []) as any[]).forEach((w) => toast.warning(w.mensagem, { description: w.descricao }));
+    setReverseOpen(false);
+    setReverseReason("");
+    navigate(0);
+  };
+
   if (loading) return <div className="p-8 text-sm text-muted-foreground">Carregando venda…</div>;
   if (!sale) {
     return (
@@ -108,7 +172,7 @@ export default function VendaDetalhe() {
             <Button variant="outline" onClick={() => navigate("/painel/vendas")}>
               <ArrowLeft className="h-4 w-4 mr-1" />Voltar
             </Button>
-            <Button variant="outline" onClick={() => window.print()}>
+            <Button variant="outline" onClick={onPrintReceipt}>
               <Printer className="h-4 w-4 mr-1" />Imprimir
             </Button>
             {!reversed && canRegisterSale(role) && (
@@ -116,9 +180,35 @@ export default function VendaDetalhe() {
                 <Pencil className="h-4 w-4 mr-1" />Editar
               </Button>
             )}
+            {!reversed && canRegisterSale(role) && canDeleteSale && (
+              <Button variant="outline" className="text-danger" onClick={() => { setReverseReason(""); setReverseOpen(true); }}>
+                <RotateCcw className="h-4 w-4 mr-1" />Estornar
+              </Button>
+            )}
           </div>
         }
       />
+
+      <Dialog open={reverseOpen} onOpenChange={setReverseOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Estornar venda {fmtNum(sale.sale_number)}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              A venda permanece no histórico como estornada. O estoque é devolvido e pagamentos, crediário e comissões são revertidos.
+            </p>
+            <Label htmlFor="reverse-reason">Motivo do estorno</Label>
+            <Textarea id="reverse-reason" value={reverseReason} onChange={(e) => setReverseReason(e.target.value)} placeholder="Descreva o motivo" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReverseOpen(false)}>Cancelar</Button>
+            <Button onClick={estornar} disabled={reversing || !reverseReason.trim()}>
+              {reversing ? "Estornando…" : "Confirmar estorno"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {reversed && (
         <Card className="p-4 border-danger/40 bg-danger/5">
