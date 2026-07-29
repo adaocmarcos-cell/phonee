@@ -5061,6 +5061,7 @@ export type Database = {
         Returns: Json
       }
       assert_sale_has_items: { Args: { _sale_id: string }; Returns: boolean }
+      assert_stock_origin_guardrail: { Args: never; Returns: string }
       backfill_trial_orphans: { Args: never; Returns: Json }
       can_manage_commissions: {
         Args: { _store_id: string; _uid: string }
@@ -5935,6 +5936,34 @@ export type Database = {
           product_id: string
         }[]
       }
+      stock_ledger_backfill: {
+        Args: { _apply?: boolean; _kinds?: string[]; _store_id: string }
+        Returns: Json
+      }
+      stock_ledger_gaps: {
+        Args: { _store_id: string }
+        Returns: {
+          doc_label: string
+          kind: string
+          movement_type: string
+          occurred_at: string
+          origin_id: string
+          origin_table: string
+          product_id: string
+          product_name: string
+          quantity: number
+          unit_cost: number
+        }[]
+      }
+      stock_origin_guardrail: {
+        Args: never
+        Returns: {
+          function_name: string
+          ok: boolean
+          origin_tags: number
+          stock_updates: number
+        }[]
+      }
       stock_products_page: {
         Args: {
           _brand?: string
@@ -5977,6 +6006,17 @@ export type Database = {
           label: string
           ref_id: string
         }[]
+      }
+      transfer_products: {
+        Args: {
+          _from_product_id: string
+          _from_store_id: string
+          _note?: string
+          _quantity: number
+          _to_product_id?: string
+          _to_store_id: string
+        }
+        Returns: string
       }
       trial_eligibility: {
         Args: { _doc?: string; _email?: string; _user_id?: string }
