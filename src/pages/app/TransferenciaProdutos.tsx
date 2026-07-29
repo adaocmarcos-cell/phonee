@@ -46,6 +46,7 @@ export default function TransferenciaProdutos() {
     supabase.from("products")
       .select("id,name,sku,stock_current,store_id")
       .eq("store_id", fromId)
+      .in("item_kind", ["aparelho", "acessorio"])
       .gt("stock_current", 0)
       .order("name")
       .then(async ({ data, error }) => {
@@ -141,6 +142,7 @@ export default function TransferenciaProdutos() {
       // reload products + history
       const { data: refreshed } = await supabase.from("products")
         .select("id,name,sku,stock_current,store_id").eq("store_id", fromId)
+        .in("item_kind", ["aparelho", "acessorio"])
         .gt("stock_current", 0).order("name");
       setProducts((refreshed ?? []) as Product[]);
       loadHistory();
