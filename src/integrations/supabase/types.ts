@@ -5873,6 +5873,23 @@ export type Database = {
       }
       run_daily_stock_snapshot: { Args: never; Returns: undefined }
       run_stock_divergence_check: { Args: never; Returns: undefined }
+      sales_without_cost: {
+        Args: { _from: string; _store_id: string; _to: string }
+        Returns: {
+          created_at: string
+          customer_name: string
+          item_id: string
+          item_name: string
+          item_total: number
+          product_cost: number
+          product_id: string
+          quantity: number
+          sale_id: string
+          sale_number: string
+          sale_total: number
+          unit_price: number
+        }[]
+      }
       search_sale_products: {
         Args: { _limit?: number; _query?: string; _store_id: string }
         Returns: {
@@ -5899,6 +5916,7 @@ export type Database = {
         Args: { _alert_id: string; _note?: string; _status: string }
         Returns: undefined
       }
+      set_sale_items_cost: { Args: { _items: Json }; Returns: number }
       split_device_units: {
         Args: { _product_id: string; _units: Json }
         Returns: {
