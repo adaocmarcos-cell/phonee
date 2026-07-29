@@ -308,10 +308,33 @@ export function printSaleReceipt(opts: {
       <div class="section">
         <div class="label">Condição de pagamento</div>
         <div class="grid g3">
-          <div class="field"><span class="k">Forma</span><span class="v">${escape(String(sale.payment_method || "").toUpperCase())}</span></div>
+          <div class="field"><span class="k">Forma</span><span class="v">${escape(isMixed ? "Pagamento misto" : payLabel(payList[0]?.method || sale.payment_method || ""))}</span></div>
           <div class="field"><span class="k">Parcelas</span><span class="v">${installments > 1 ? `${installments}x` : "À vista"}</span></div>
-          <div class="field"><span class="k">Vendedor</span><span class="v">${escape(ex.seller || "—")}</span></div>
+          <div class="field"><span class="k">Vendedor</span><span class="v">${escape(ex.seller || sellerName || "—")}</span></div>
         </div>
+        ${payList.length ? `
+          <table style="margin-top:10px">
+            <thead><tr>
+              <th>Forma de pagamento</th>
+              <th style="width:90px;text-align:center">Parcelas</th>
+              <th style="width:120px;text-align:right">Valor</th>
+            </tr></thead>
+            <tbody>
+              ${payList.map((p) => `<tr>
+                <td>${escape(payLabel(p.method))}</td>
+                <td style="text-align:center">${Number(p.installments || 1) > 1 ? `${Number(p.installments)}x` : "À vista"}</td>
+                <td style="text-align:right;font-weight:600">${brl(Number(p.amount || 0))}</td>
+              </tr>`).join("")}
+              <tr>
+                <td colspan="2" style="text-align:right;font-weight:700">Total pago</td>
+                <td style="text-align:right;font-weight:700">${brl(paidSum)}</td>
+              </tr>
+              ${Math.abs(openBalance) > 0.009 ? `<tr>
+                <td colspan="2" style="text-align:right;font-weight:700">${openBalance > 0 ? "Saldo em aberto" : "Valor pago a maior"}</td>
+                <td style="text-align:right;font-weight:700">${brl(Math.abs(openBalance))}</td>
+              </tr>` : ""}
+            </tbody>
+          </table>` : ""}
         ${dueDates.length ? `<div style="margin-top:9px;font-size:11px;color:#334155"><b>Vencimentos:</b> ${dueDates.map((d, n) => `${n + 1}ª ${d}`).join(" · ")}</div>` : ""}
       </div>
 
@@ -357,8 +380,10 @@ export function printSaleReceipt(opts: {
 
       <div class="totals">
         <div><span>Total de itens</span><span>${items.length} (${totalItemsQty} un.)</span></div>
-        <div><span>Subtotal produtos/serviços</span><span>${brl(grossTotal || Number(sale.subtotal || 0))}</span></div>
-        <div><span>Descontos</span><span>- ${brl(totalItemsDiscount || Number(sale.discount || 0))}</span></div>
+        <div><span>Subtotal produtos/serviços</span><span>${brl(subtotalProdutos)}</span></div>
+        ${totalItemsDiscount > 0 ? `<div><span>Desconto nos itens</span><span>- ${brl(totalItemsDiscount)}</span></div>` : ""}
+        ${saleDiscount > 0 ? `<div><span>Desconto da venda</span><span>- ${brl(saleDiscount)}</span></div>` : ""}
+        ${totalItemsDiscount <= 0 && saleDiscount <= 0 ? `<div><span>Descontos</span><span>- ${brl(0)}</span></div>` : ""}
         ${freight > 0 ? `<div><span>Frete</span><span>+ ${brl(freight)}</span></div>` : ""}
         ${otherExpenses > 0 ? `<div><span>Outras despesas</span><span>+ ${brl(otherExpenses)}</span></div>` : ""}
         <div class="tot"><span>TOTAL</span><span>${brl(Number(sale.total || 0))}</span></div>
