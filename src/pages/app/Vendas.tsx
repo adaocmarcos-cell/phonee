@@ -599,9 +599,21 @@ export default function Vendas() {
               const dtShort = `${dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })} ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
               return (
                 <li key={s.id} className="p-3">
-                  <div className="rounded-lg border border-border bg-surface-elevated/40 p-3 flex flex-col gap-1.5">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/painel/vendas/${s.id}`)}
+                    onKeyDown={(e) => { if (e.key === "Enter") navigate(`/painel/vendas/${s.id}`); }}
+                    className="rounded-lg border border-border bg-surface-elevated/40 p-3 flex flex-col gap-1.5 cursor-pointer active:bg-surface-elevated/70 transition-colors"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-sm text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/painel/vendas/${s.id}`); }}
+                        className="font-mono text-sm text-primary font-semibold whitespace-nowrap hover:underline"
+                      >
+                        {fmtNum(s.sale_number)}
+                      </button>
                       <div className="flex items-center gap-1 shrink-0">
                         {isReversed(s) && (
                           <Badge className="bg-danger/15 text-danger border-danger/30 text-[11px] px-2 py-0.5 whitespace-nowrap">
@@ -669,9 +681,19 @@ export default function Vendas() {
                 const due = s.due_date ? new Date(s.due_date + "T00:00:00") : null;
                 const overdue = due && due < today0;
                 return (
-                <tr key={s.id} className={`hover:bg-surface-elevated/40 ${isReversed(s) ? "opacity-70" : ""}`}>
+                <tr
+                  key={s.id}
+                  onClick={() => navigate(`/painel/vendas/${s.id}`)}
+                  className={`hover:bg-surface-elevated/40 cursor-pointer ${isReversed(s) ? "opacity-70" : ""}`}
+                >
                   <td className="px-4 py-3 font-mono text-xs text-primary font-semibold whitespace-nowrap">
-                    {fmtNum(s.sale_number)}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/painel/vendas/${s.id}`); }}
+                      className="hover:underline"
+                    >
+                      {fmtNum(s.sale_number)}
+                    </button>
                     {isReversed(s) && (
                       <div className="mt-1"><Badge className="bg-danger/15 text-danger border-danger/30 text-[10px]"><RotateCcw className="h-3 w-3 mr-1" />Estornada</Badge></div>
                     )}
