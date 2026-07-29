@@ -244,6 +244,9 @@ export default function Dashboard() {
   const arVencido      = metrics?.crediario_vencido ?? 0;
   const arVencidasCount= metrics?.crediario_vencidas_count ?? 0;
   const margemBruta    = revenueTotal > 0 ? (lucroBruto / revenueTotal) * 100 : 0;
+  const cobertura      = metrics?.cobertura_custo ?? 100;
+  const itensSemCusto  = metrics?.itens_sem_custo ?? 0;
+  const custoEstimado  = cobertura < 90;
   const itensAlerta    = productsLow + stalled;
 
   const periodLabel =
