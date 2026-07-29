@@ -434,3 +434,7 @@ function escape(s: any) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
+}
