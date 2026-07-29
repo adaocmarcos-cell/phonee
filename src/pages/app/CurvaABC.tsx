@@ -155,6 +155,7 @@ export default function CurvaABC() {
         .from("sales")
         .select("id, created_at, sale_items(product_id, quantity, total, unit_price)")
         .eq("store_id", store.id)
+        .neq("status", "estornada")
         .gte("created_at", since);
       if (sErr) { handleSupabaseError(sErr, "Erro ao carregar vendas"); setLoading(false); return; }
       setAllSales(sales ?? []);

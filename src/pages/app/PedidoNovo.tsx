@@ -76,6 +76,7 @@ export default function PedidoNovo() {
         supabase.from("sales")
           .select("created_at, sale_items(product_id, quantity)")
           .eq("store_id", store.id)
+          .neq("status", "estornada")
           .gte("created_at", since),
       ]);
       if (pErr || sErr) { const { handleSupabaseError } = await import("@/lib/supabaseFetch"); handleSupabaseError(pErr || sErr, "Erro ao carregar sugestões"); setLoading(false); return; }

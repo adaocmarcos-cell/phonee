@@ -229,7 +229,7 @@ export default function Compras() {
     const [{ data: o, error: oErr }, { data: s, error: sErr }, { data: salesM, error: salesErr }, { data: expM, error: expErr }] = await Promise.all([
       supabase.from("purchase_orders").select("*").eq("store_id", store.id).order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id, company_name, brands, avg_delivery_days").eq("store_id", store.id).eq("active", true).order("company_name"),
-      supabase.from("sales").select("total, created_at").eq("store_id", store.id).gte("created_at", iso),
+      supabase.from("sales").select("total, created_at").eq("store_id", store.id).neq("status", "estornada").gte("created_at", iso),
       supabase.from("expenses").select("amount, expense_date").eq("store_id", store.id).gte("expense_date", monthStart.toISOString().slice(0, 10)),
     ]);
     const firstErr = oErr || sErr || salesErr || expErr;

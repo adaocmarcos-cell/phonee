@@ -282,6 +282,7 @@ export default function VendaNova() {
   const [busy, setBusy] = useState(false);
   const [editHasTradeIn, setEditHasTradeIn] = useState(false);
   const [editSaleLoaded, setEditSaleLoaded] = useState(false);
+  const [editSaleNumber, setEditSaleNumber] = useState<number | null>(null);
 
   // Garantia
   const [warrantyCfg, setWarrantyCfg] = useState<WarrantySettings | null>(null);
@@ -368,6 +369,12 @@ export default function VendaNova() {
         .from("sales").select("*").eq("id", editingSaleId).maybeSingle();
       if (saleErr) { handleSupabaseError(saleErr, "Erro ao carregar venda para edição"); return; }
       if (!sale) { toast.error("Venda não encontrada."); navigate("/painel/vendas"); return; }
+      if (String((sale as any).status ?? "ativa") === "estornada") {
+        toast.error("Venda estornada não pode ser editada.");
+        navigate(`/painel/vendas/${editingSaleId}`);
+        return;
+      }
+      setEditSaleNumber((sale as any).sale_number ?? null);
       const { data: sItems, error: itemsErr } = await supabase
         .from("sale_items").select("*").eq("sale_id", editingSaleId);
       if (itemsErr) { handleSupabaseError(itemsErr, "Erro ao carregar itens da venda"); return; }
@@ -1458,7 +1465,9 @@ Obrigado pela preferência.`;
   return (
     <div className="pb-28 md:pb-6">
       <PageHeader
-        title={isEditingSale ? "Editar venda" : "Nova venda"}
+        title={isEditingSale
+          ? `Editar venda ${editSaleNumber != null ? `#${String(editSaleNumber).padStart(4, "0")}` : ""}`.trim()
+          : "Nova venda"}
         description={isEditingSale
           ? "Ajuste itens, quantidades, preços e formas de pagamento. O estoque é recalculado pela diferença e a alteração fica na auditoria."
           : "Cadastro completo de venda, com cliente, itens, pagamento e entrega."}

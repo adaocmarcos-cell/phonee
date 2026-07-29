@@ -2758,6 +2758,7 @@ export type Database = {
           receivable_id: string
           received_at: string
           received_by: string | null
+          reversed_at: string | null
           sale_id: string
           store_id: string
         }
@@ -2771,6 +2772,7 @@ export type Database = {
           receivable_id: string
           received_at?: string
           received_by?: string | null
+          reversed_at?: string | null
           sale_id: string
           store_id: string
         }
@@ -2784,6 +2786,7 @@ export type Database = {
           receivable_id?: string
           received_at?: string
           received_by?: string | null
+          reversed_at?: string | null
           sale_id?: string
           store_id?: string
         }
@@ -3080,6 +3083,7 @@ export type Database = {
           notes: string | null
           received_amount: number | null
           received_at: string | null
+          reversed_at: string | null
           sale_id: string
           store_id: string
           trade_in_id: string | null
@@ -3097,6 +3101,7 @@ export type Database = {
           notes?: string | null
           received_amount?: number | null
           received_at?: string | null
+          reversed_at?: string | null
           sale_id: string
           store_id: string
           trade_in_id?: string | null
@@ -3114,6 +3119,7 @@ export type Database = {
           notes?: string | null
           received_amount?: number | null
           received_at?: string | null
+          reversed_at?: string | null
           sale_id?: string
           store_id?: string
           trade_in_id?: string | null
@@ -3361,8 +3367,12 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: string
           returned_total: number
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
           sale_number: number | null
           seller_id: string | null
+          status: string
           store_id: string
           subtotal: number
           total: number
@@ -3386,8 +3396,12 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
           returned_total?: number
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           sale_number?: number | null
           seller_id?: string | null
+          status?: string
           store_id: string
           subtotal?: number
           total?: number
@@ -3411,8 +3425,12 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: string
           returned_total?: number
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           sale_number?: number | null
           seller_id?: string | null
+          status?: string
           store_id?: string
           subtotal?: number
           total?: number
@@ -5858,6 +5876,10 @@ export type Database = {
       reverse_commission_payment: {
         Args: { _expense_id: string }
         Returns: undefined
+      }
+      reverse_sale: {
+        Args: { p_reason?: string; p_sale_id: string }
+        Returns: Json
       }
       revoke_access_bonus: {
         Args: { p_bonus_id: string; p_reason: string }

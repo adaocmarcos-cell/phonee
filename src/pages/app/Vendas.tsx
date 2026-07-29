@@ -47,6 +47,7 @@ const NET_REASONS = [
 ];
 
 const eff = (s: any) => Number(s?.net_value ?? s?.total ?? 0);
+const isReversed = (s: any) => String(s?.status ?? "ativa") === "estornada";
 
 export default function Vendas() {
   const { store, role, user } = useAuth();
@@ -73,6 +74,9 @@ export default function Vendas() {
   const [detailsItems, setDetailsItems] = useState<any[] | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [returnSale, setReturnSale] = useState<any | null>(null);
+  const [reverseSale, setReverseSale] = useState<any | null>(null);
+  const [reverseReason, setReverseReason] = useState("");
+  const [reversing, setReversing] = useState(false);
 
   const reloadSales = () => {
     // simplest: refetch by toggling a state through window event; but we can just re-run the query below
@@ -158,11 +162,12 @@ export default function Vendas() {
     });
   }, [sales, payment, q, tab]);
 
-  const total = filtered.reduce((a, b) => a + Number(b.total || 0), 0);
-  const totalLiquido = filtered.reduce((a, b) => a + eff(b), 0);
+  const filteredAtivas = useMemo(() => filtered.filter((s) => !isReversed(s)), [filtered]);
+  const total = filteredAtivas.reduce((a, b) => a + Number(b.total || 0), 0);
+  const totalLiquido = filteredAtivas.reduce((a, b) => a + eff(b), 0);
   const trocaTotal = trocaSplits.reduce((a, b) => a + b.amount, 0);
   const cashTotal = Math.max(0, totalLiquido - trocaTotal);
-  const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente"), [sales]);
+  const pendingSales = useMemo(() => sales.filter((s) => s.payment_status === "pendente" && !isReversed(s)), [sales]);
   const pendingTotal = pendingSales.reduce((a, b) => a + eff(b), 0);
   const overdueCount = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -172,6 +177,7 @@ export default function Vendas() {
   const paymentBreakdown = useMemo(() => {
     const map: Record<string, { count: number; total: number }> = {};
     sales.forEach((s) => {
+      if (isReversed(s)) return;
       const k = s.payment_method || "outro";
       if (!map[k]) map[k] = { count: 0, total: 0 };
       map[k].count += 1;
@@ -341,51 +347,100 @@ export default function Vendas() {
     load();
   };
 
-  const estornarVenda = async (sale: any) => {
-    // 1. Buscar itens da venda para devolver ao estoque
-    const { data: items, error: itemsErr } = await supabase
-      .from("sale_items")
-      .select("product_id, quantity")
-      .eq("sale_id", sale.id);
-    if (itemsErr) return toast.error("Erro ao ler itens: " + itemsErr.message);
-
-    // 2. Devolver quantidade ao estoque (produto a produto)
-    for (const it of items ?? []) {
-      if (!it.product_id) continue;
-      const { data: prod } = await supabase.from("products").select("stock_current").eq("id", it.product_id).maybeSingle();
-      const novoEstoque = Number(prod?.stock_current ?? 0) + Number(it.quantity || 0);
-      const { error: updErr } = await supabase.from("products").update({ stock_current: novoEstoque }).eq("id", it.product_id);
-      if (updErr) return toast.error("Erro ao devolver estoque: " + updErr.message);
-    }
-
-    // 3. Registrar ajuste de estoque (auditoria) por item
-    const { data: userRes } = await supabase.auth.getUser();
-    const uid = userRes.user?.id;
-    for (const it of items ?? []) {
-      if (!it.product_id) continue;
-      await (supabase as any).from("stock_adjustments").insert({
-        store_id: sale.store_id,
-        item_kind: "product",
-        product_id: it.product_id,
-        item_name: `Estorno venda #${sale.sale_number ?? "-"}`,
-        qty_change: Number(it.quantity || 0),
-        prev_stock: 0,
-        new_stock: 0,
-        reason: "correcao",
-        justification: `Estorno da venda #${sale.sale_number ?? sale.id.slice(0,8)} — ${brl(Number(sale.total || 0))}`,
-        user_id: uid,
-      });
-    }
-
-    // 4. Excluir a venda (cascade remove sale_items) — debita o faturamento
-    const { error: delErr } = await supabase.from("sales").delete().eq("id", sale.id);
-    if (delErr) return toast.error("Erro ao estornar venda: " + delErr.message);
-
-    toast.success(`Venda #${sale.sale_number ?? ""} estornada · estoque atualizado`);
+  /**
+   * Estorno NÃO destrutivo: a venda permanece no histórico com status
+   * "estornada". A RPC devolve estoque (com movimento real no livro-razão),
+   * estorna pagamentos/crediário/comissões e grava auditoria — tudo em uma
+   * única transação no banco.
+   */
+  const estornarVenda = async () => {
+    const sale = reverseSale;
+    if (!sale) return;
+    setReversing(true);
+    const { data, error } = await (supabase.rpc as any)("reverse_sale", {
+      p_sale_id: sale.id,
+      p_reason: reverseReason.trim() || null,
+    });
+    setReversing(false);
+    if (error) { handleSupabaseError(error, "Não foi possível estornar a venda"); return; }
+    const res = (data ?? {}) as any;
+    toast.success(
+      `Venda ${fmtNum(sale.sale_number)} estornada · ${res.movimentos_estoque ?? 0} item(ns) devolvido(s) ao estoque`,
+    );
+    ((res.avisos ?? []) as any[]).forEach((w) => toast.warning(w.mensagem, { description: w.descricao }));
+    setReverseSale(null);
+    setReverseReason("");
     load();
   };
 
   const today0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+
+  /** Barra de ações usada tanto no card mobile quanto na tabela desktop. */
+  const SaleActions = ({ s }: { s: any }) => {
+    const reversed = isReversed(s);
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-1">
+        <Button size="icon" variant="ghost" title="Ver detalhes da venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}`)}>
+          <Eye className="h-4 w-4 text-info" />
+        </Button>
+        <Button size="icon" variant="ghost" title="Imprimir comprovante" className="h-9 w-9" onClick={() => onPrintReceipt(s)}>
+          <Printer className="h-4 w-4" />
+        </Button>
+        {!reversed && (s.payment_method === "credito" || s.payment_method === "debito") && (
+          <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" className="h-9 w-9" onClick={() => openAdjust(s)}>
+            <Sliders className="h-4 w-4 text-info" />
+          </Button>
+        )}
+        {!reversed && s.payment_status === "pendente" && (
+          <>
+            <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" className="h-9 w-9" onClick={() => openReminder(s)}>
+              <MessageCircle className="h-4 w-4 text-success" />
+            </Button>
+            <Button size="icon" variant="ghost" title="Marcar como pago" className="h-9 w-9" onClick={() => markPaid(s)}>
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+            </Button>
+          </>
+        )}
+        {!reversed && s.payment_status !== "pendente" && s.customer_whatsapp && store?.id && (
+          <WhatsappSendButton
+            storeId={store.id}
+            phone={s.customer_whatsapp}
+            saleId={s.id}
+            vars={{
+              cliente: s.customer_name || "cliente",
+              loja: (store as any)?.trade_name || store?.name || "",
+              valor: brl(Number(s.total || 0)),
+              prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
+            }}
+            allowedEvents={["venda_concluida"]}
+            className="h-9 w-9 p-0"
+            size="sm"
+          />
+        )}
+        {!reversed && canRegisterSale(role) && (
+          <Button size="icon" variant="ghost" title="Devolver / trocar itens" className="h-9 w-9" onClick={() => setReturnSale(s)}>
+            <Undo2 className="h-4 w-4 text-warning" />
+          </Button>
+        )}
+        {!reversed && canRegisterSale(role) && (
+          <Button size="icon" variant="ghost" title="Editar venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+        {!reversed && canRegisterSale(role) && canDeleteSale && (
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Estornar venda"
+            className="h-9 w-9"
+            onClick={() => { setReverseSale(s); setReverseReason(""); }}
+          >
+            <RotateCcw className="h-4 w-4 text-danger" />
+          </Button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="lg:text-[90%]">
@@ -561,9 +616,16 @@ export default function Vendas() {
                   <div className="rounded-lg border border-border bg-surface-elevated/40 p-3 flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-sm text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</span>
-                      <Badge variant="outline" className="capitalize text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-                        {pmLabel[s.payment_method] || s.payment_method}
-                      </Badge>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isReversed(s) && (
+                          <Badge className="bg-danger/15 text-danger border-danger/30 text-[11px] px-2 py-0.5 whitespace-nowrap">
+                            <RotateCcw className="h-3 w-3 mr-1" />Estornada
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="capitalize text-[11px] px-2 py-0.5 whitespace-nowrap">
+                          {pmLabel[s.payment_method] || s.payment_method}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">{dtShort}</div>
                     <div className="text-sm truncate" title={s.customer_name || "Avulso"}>
@@ -583,24 +645,16 @@ export default function Vendas() {
                       <div className="text-[11px] text-muted-foreground whitespace-nowrap">
                         Desc. <span className="metric">{brl(Number(s.discount))}</span>
                       </div>
-                      <div className="flex items-center gap-2">
                         <div className="text-right">
                           <div className="text-[10px] text-muted-foreground leading-none">Total</div>
-                          <div className="metric text-base font-semibold whitespace-nowrap">{brl(Number(s.total))}</div>
+                          <div className={`metric text-base font-semibold whitespace-nowrap ${isReversed(s) ? "line-through text-muted-foreground" : ""}`}>{brl(Number(s.total))}</div>
                           {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
                             <div className="text-[10px] font-mono text-emerald-700 whitespace-nowrap">líq. {brl(Number(s.net_value))}</div>
                           )}
                         </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title="Imprimir comprovante"
-                          onClick={() => onPrintReceipt(s)}
-                          className="h-11 w-11 shrink-0"
-                        >
-                          <Printer className="h-5 w-5" />
-                        </Button>
-                      </div>
+                    </div>
+                    <div className="border-t border-border/60 pt-2 -mx-1">
+                      <SaleActions s={s} />
                     </div>
                   </div>
                 </li>
@@ -629,8 +683,13 @@ export default function Vendas() {
                 const due = s.due_date ? new Date(s.due_date + "T00:00:00") : null;
                 const overdue = due && due < today0;
                 return (
-                <tr key={s.id} className="hover:bg-surface-elevated/40">
-                  <td className="px-4 py-3 font-mono text-xs text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</td>
+                <tr key={s.id} className={`hover:bg-surface-elevated/40 ${isReversed(s) ? "opacity-70" : ""}`}>
+                  <td className="px-4 py-3 font-mono text-xs text-primary font-semibold whitespace-nowrap">
+                    {fmtNum(s.sale_number)}
+                    {isReversed(s) && (
+                      <div className="mt-1"><Badge className="bg-danger/15 text-danger border-danger/30 text-[10px]"><RotateCcw className="h-3 w-3 mr-1" />Estornada</Badge></div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">{new Date(s.created_at).toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-3 max-w-[240px]"><div className="truncate" title={s.customer_name || "Avulso"}>{s.customer_name || <span className="text-muted-foreground">Avulso</span>}</div></td>
                   <td className="px-4 py-3 whitespace-nowrap"><Badge variant="outline" className="capitalize text-xs whitespace-nowrap px-2 py-0.5">{pmLabel[s.payment_method] || s.payment_method}</Badge></td>
@@ -650,7 +709,7 @@ export default function Vendas() {
                   )}
                   <td className="px-4 py-3 text-right metric text-muted-foreground whitespace-nowrap">{brl(Number(s.discount))}</td>
                   <td className="px-4 py-3 text-right metric font-semibold whitespace-nowrap">
-                    {brl(Number(s.total))}
+                    <span className={isReversed(s) ? "line-through text-muted-foreground" : ""}>{brl(Number(s.total))}</span>
                     {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
                       <div className="text-[10px] font-mono text-emerald-700">
                         líq. {brl(Number(s.net_value))}
@@ -663,79 +722,7 @@ export default function Vendas() {
                     )}
                   </td>
                   <td className="px-2 py-3 text-right">
-                    <div className="flex justify-end gap-1">
-                      {(s.payment_method === "credito" || s.payment_method === "debito") && (
-                        <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" onClick={() => openAdjust(s)}>
-                          <Sliders className="h-4 w-4 text-info" />
-                        </Button>
-                      )}
-                      {s.payment_status === "pendente" && (
-                        <>
-                          <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" onClick={() => openReminder(s)}>
-                            <MessageCircle className="h-4 w-4 text-success" />
-                          </Button>
-                          <Button size="icon" variant="ghost" title="Marcar como pago" onClick={() => markPaid(s)}>
-                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                          </Button>
-                        </>
-                      )}
-                      {s.payment_status !== "pendente" && s.customer_whatsapp && store?.id && (
-                        <WhatsappSendButton
-                          storeId={store.id}
-                          phone={s.customer_whatsapp}
-                          saleId={s.id}
-                          vars={{
-                            cliente: s.customer_name || "cliente",
-                            loja: (store as any)?.trade_name || store?.name || "",
-                            valor: brl(Number(s.total || 0)),
-                            prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
-                          }}
-                          allowedEvents={["venda_concluida"]}
-                          className="h-8 w-8 p-0"
-                          size="sm"
-                        />
-                      )}
-                      <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" title="Ver itens da venda" onClick={() => openDetails(s)}>
-                        <Eye className="h-4 w-4 text-info" />
-                      </Button>
-                      {canRegisterSale(role) && (
-                        <Button size="icon" variant="ghost" title="Devolver / trocar itens" onClick={() => setReturnSale(s)}>
-                          <Undo2 className="h-4 w-4 text-warning" />
-                        </Button>
-                      )}
-                      {canRegisterSale(role) && (
-                        <Button size="icon" variant="ghost" title="Editar venda" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canRegisterSale(role) && canDeleteSale && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" title="Estornar venda">
-                              <RotateCcw className="h-4 w-4 text-danger" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Estornar venda #{s.sale_number}?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                O valor de <strong>{brl(Number(s.total))}</strong> será debitado do faturamento e os itens
-                                voltarão ao estoque automaticamente. Esta ação é registrada na auditoria.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => estornarVenda(s)} className="bg-danger text-danger-foreground hover:bg-danger/90">
-                                Confirmar estorno
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
+                    <SaleActions s={s} />
                   </td>
                 </tr>
                 );
@@ -1002,6 +989,45 @@ export default function Vendas() {
         sale={returnSale}
         onDone={() => { reloadSales(); }}
       />
+
+      {/* Estorno de venda — não exclui, marca como estornada */}
+      <Dialog open={!!reverseSale} onOpenChange={(b) => { if (!b) { setReverseSale(null); setReverseReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-4 w-4 text-danger" />
+              Estornar venda {reverseSale ? fmtNum(reverseSale.sale_number) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              A venda de <strong className="text-foreground">{reverseSale ? brl(Number(reverseSale.total)) : "—"}</strong> será
+              marcada como <strong className="text-foreground">estornada</strong> (o histórico é preservado). O estoque volta
+              com movimento registrado no livro-razão, os pagamentos são estornados, as parcelas do crediário em aberto são
+              canceladas e as comissões não pagas são revertidas.
+            </p>
+            <div>
+              <Label>Motivo do estorno</Label>
+              <Textarea
+                value={reverseReason}
+                onChange={(e) => setReverseReason(e.target.value)}
+                placeholder="Ex.: venda lançada em duplicidade"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReverseSale(null)} disabled={reversing}>Cancelar</Button>
+            <Button
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
+              onClick={estornarVenda}
+              disabled={reversing}
+            >
+              {reversing ? "Estornando…" : "Confirmar estorno"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

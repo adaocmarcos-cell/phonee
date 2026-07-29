@@ -35,6 +35,7 @@ const EstoqueAuditoriaPDF = lazy(() => import("./pages/app/EstoqueAuditoriaPDF")
 const EstoqueAuditoriaLedger = lazy(() => import("./pages/app/EstoqueAuditoriaLedger"));
 const Vendas = lazy(() => import("./pages/app/Vendas"));
 const VendaNova = lazy(() => import("./pages/app/VendaNova"));
+const VendaDetalhe = lazy(() => import("./pages/app/VendaDetalhe"));
 const Alertas = lazy(() => import("./pages/app/Alertas"));
 const CurvaABC = lazy(() => import("./pages/app/CurvaABC"));
 const TradeIn = lazy(() => import("./pages/app/TradeIn"));
@@ -167,6 +168,7 @@ const App = () => (
               <Route path="pedidos/novo" element={<PedidoNovo />} />
               <Route path="vendas" element={<Vendas />} />
               <Route path="vendas/nova" element={<VendaNova />} />
+              <Route path="vendas/:id" element={<VendaDetalhe />} />
               <Route path="vendas/:id/editar" element={<VendaNova />} />
               <Route path="vendas/encomendas" element={<Encomendas />} />
               <Route path="despesas" element={<Despesas />} />
