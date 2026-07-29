@@ -379,6 +379,9 @@ export default function EstoqueRelatoriosCentral() {
             <Button variant="outline" onClick={() => navigate("/painel/estoque/auditoria-pdf")} className="border-primary/40 text-primary hover:bg-primary/10">
               <ShieldCheck className="h-4 w-4 mr-1" /> Auditoria PDF
             </Button>
+            <Button variant="outline" onClick={() => navigate("/painel/estoque/auditoria-ledger")} className="border-primary/40 text-primary hover:bg-primary/10">
+              <ShieldCheck className="h-4 w-4 mr-1" /> Auditoria do histórico
+            </Button>
             <Button variant="outline" onClick={load} title="Recarregar"><RefreshCw className="h-4 w-4" /></Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
