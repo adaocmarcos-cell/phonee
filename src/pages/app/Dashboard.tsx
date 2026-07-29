@@ -275,7 +275,12 @@ export default function Dashboard() {
         <Card className="p-5 sm:p-6 mb-6 bg-card border-border shadow-card">
           <div className="flex items-baseline justify-between gap-2 mb-4">
             <h3 className="font-semibold">Resultado</h3>
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground truncate">{periodTitle}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground truncate">{periodTitle}</span>
+              <Button size="sm" variant="outline" onClick={() => setResultOpen(true)}>
+                Ver detalhes
+              </Button>
+            </div>
           </div>
           <div className="space-y-1.5 text-sm text-muted-foreground">
             <div className="flex items-center justify-between gap-3">
