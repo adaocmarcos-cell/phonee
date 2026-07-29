@@ -755,6 +755,17 @@ export default function VendaNova() {
     const draft = built.item;
     built.warnings.forEach((w) => toast.warning(w));
 
+    // Aviso não-bloqueante: sem custo cadastrado o lucro da venda não é calculado.
+    if (Number(p.cost_price ?? 0) <= 0) {
+      toast.warning(`"${p.name}": produto sem custo cadastrado — o lucro desta venda não será calculado.`, {
+        duration: 8000,
+        action: {
+          label: "Preencher custo",
+          onClick: () => { setCostFix({ id: p.id, name: p.name }); setCostFixValue(""); },
+        },
+      });
+    }
+
     setItems((arr) => {
       const existing = arr.find((i) => i.product_id === draft.product_id);
       if (existing) return arr.map((i) => i.product_id === draft.product_id ? { ...i, quantity: i.quantity + 1 } : i);
