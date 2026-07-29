@@ -558,6 +558,20 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">= Lucro bruto</span>
                 <span className="font-mono tabular-nums font-semibold">{brl(lucroBruto)}</span>
               </div>
+              {custoEstimado && (
+                <div className="flex items-start justify-between gap-3 rounded-md bg-warning/10 p-2 text-xs">
+                  <span className="text-muted-foreground">
+                    CMV calculado sobre {pct(cobertura)} das vendas — {itensSemCusto} item(ns) sem custo cadastrado.
+                    O lucro bruto é uma estimativa.
+                  </span>
+                  <button
+                    className="shrink-0 underline font-medium"
+                    onClick={() => navigate("/painel/vendas/sem-custo")}
+                  >
+                    Regularizar
+                  </button>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-3 pt-2">
                 <span className="text-muted-foreground">− Despesas operacionais</span>
                 <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
