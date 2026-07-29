@@ -848,6 +848,16 @@ export default function Estoque() {
                             IMEI pendente
                           </button>
                         )}
+                        {p.item_kind === "aparelho" && Number(p.stock_current) > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); navigate("/painel/estoque/aparelhos/desdobrar"); }}
+                            className="shrink-0 rounded border border-primary/40 bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 font-normal"
+                            title="Aparelho com mais de 1 unidade — clique para desdobrar em fichas individuais"
+                          >
+                            Desdobrar
+                          </button>
+                        )}
                       </div>
                       <div className="text-[11px] text-muted-foreground truncate">{p.brand || "—"}</div>
                     </td>
