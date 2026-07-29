@@ -337,10 +337,37 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
         </div>
 
         <TabsContent value="lancamentos">
+          {stockTotal > 0 && (
+            <Card className="p-4 mb-4 border-primary/30 bg-primary/5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="font-semibold">Entradas de estoque</div>
+                <div className="font-mono tabular-nums font-semibold">{brl(stockTotal)}</div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Compra de mercadoria não é despesa — ela vira custo quando o item é vendido (CMV).
+              </p>
+              <div className="mt-3 space-y-1 text-sm">
+                {stockEntries.slice(0, 8).map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-3">
+                    <span className="truncate text-muted-foreground">
+                      {format(new Date(e.expense_date), "dd/MM")} · {e.category_name} · {e.description}
+                    </span>
+                    <span className="font-mono tabular-nums shrink-0">{brl(Number(e.amount))}</span>
+                  </div>
+                ))}
+                {stockEntries.length > 8 && (
+                  <div className="text-xs text-muted-foreground">+ {stockEntries.length - 8} lançamento(s)</div>
+                )}
+              </div>
+            </Card>
+          )}
           <Card className="p-0 overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
               <div className="text-sm text-muted-foreground">
-                {filtered.length} lançamento(s) · Total: <span className="font-semibold text-foreground">{brl(filtered.reduce((s, e) => s + Number(e.amount), 0))}</span>
+                {filtered.length} lançamento(s) · Despesas operacionais:{" "}
+                <span className="font-semibold text-foreground">
+                  {brl(filtered.filter((e) => !isStockExpense(e)).reduce((s, e) => s + Number(e.amount), 0))}
+                </span>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={exportCSV}><FileDown className="h-4 w-4 mr-1" />CSV</Button>
