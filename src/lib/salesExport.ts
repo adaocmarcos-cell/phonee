@@ -409,11 +409,11 @@ export function printSaleReceipt(opts: {
         </div>
       ` : ""}
 
-      ${warrantyEnabled ? `
+      ${warrantyEnabled && warrantyItems.length > 0 ? `
         <div class="warranty">
           <div class="wh">Termo de Garantia</div>
           <div class="wgrid">
-            <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Prazo</span><div style="font-weight:700">${warrantyDays} dias</div></div>
+            <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Prazo</span><div style="font-weight:700">${maxWarrantyDays} dias</div></div>
             <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Início</span><div>${new Date(sale.created_at).toLocaleDateString("pt-BR")}</div></div>
             <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Válida até</span><div style="font-weight:700">${expDate.toLocaleDateString("pt-BR")}</div></div>
           </div>
@@ -422,12 +422,14 @@ export function printSaleReceipt(opts: {
               <th>Produto</th>
               <th style="width:170px">IMEI / Nº de série</th>
               <th style="width:90px;text-align:right">Prazo</th>
+              <th style="width:100px;text-align:right">Válida até</th>
             </tr></thead>
             <tbody>
-              ${items.map((i) => `<tr>
+              ${warrantyItems.map(({ item: i, days }) => `<tr>
                 <td>${escape(i.name)}</td>
                 <td class="imei">${escape(String(i.imei_serial || "").trim() || "—")}</td>
-                <td style="text-align:right">${warrantyDays} dias</td>
+                <td style="text-align:right">${days} dias</td>
+                <td style="text-align:right">${addDays(sale.created_at, days).toLocaleDateString("pt-BR")}</td>
               </tr>`).join("")}
             </tbody>
           </table>
