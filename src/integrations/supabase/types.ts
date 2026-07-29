@@ -5099,6 +5099,20 @@ export type Database = {
         }
         Returns: Json
       }
+      reconcile_stock: {
+        Args: { _store_id: string }
+        Returns: {
+          difference: number
+          item_kind: string
+          last_movement_at: string
+          last_movement_type: string
+          ledger_balance: number
+          name: string
+          product_id: string
+          sku: string
+          stock_current: number
+        }[]
+      }
       redeem_coupon: {
         Args: {
           _code: string
@@ -5261,8 +5275,10 @@ export type Database = {
           total_count: number
         }[]
       }
+      stock_reconcile_job: { Args: never; Returns: Json }
       store_data_health: { Args: { _store_id: string }; Returns: Json }
       sync_data_health_alert: { Args: { _store_id: string }; Returns: Json }
+      sync_stock_reconcile_alert: { Args: { _store_id: string }; Returns: Json }
       take_stock_snapshot: { Args: { p_date?: string }; Returns: number }
       track_device_by_imei: {
         Args: { _imei: string; _store_id: string }
