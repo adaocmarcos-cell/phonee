@@ -188,9 +188,12 @@ export default function VendaNova() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [skuInput, setSkuInput] = useState("");
   // Produto sem custo cadastrado: aviso não-bloqueante + atalho para preencher.
-  const [costFix, setCostFix] = useState<{ id: string; name: string } | null>(null);
-  const [costFixValue, setCostFixValue] = useState<number | "">("");
-  const [costFixSaving, setCostFixSaving] = useState(false);
+  // Produtos no carrinho sem cost_price cadastrado (aviso inline, não bloqueia).
+  const [costMissing, setCostMissing] = useState<Record<string, boolean>>({});
+  const [costDraft, setCostDraft] = useState<Record<string, number>>({});
+  // Produto bloqueado por falta de sale_price (campo inline para definir o preço).
+  const [priceFix, setPriceFix] = useState<{ product: any; value: number } | null>(null);
+  const [inlineSaving, setInlineSaving] = useState(false);
   const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);

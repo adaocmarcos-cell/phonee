@@ -104,7 +104,7 @@ export default function SaudeCadastro() {
   };
 
   const salvarProduto = async (p: ProdutoRow, keys: ("sale_price" | "cost_price")[]) => {
-    const payload: Record<string, number> = {};
+    const payload: { sale_price?: number; cost_price?: number } = {};
     keys.forEach((k) => {
       const v = Number(drafts[`p:${p.id}:${k}`] ?? 0);
       if (v > 0) payload[k] = v;
