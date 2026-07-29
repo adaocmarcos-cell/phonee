@@ -144,6 +144,7 @@ export default function Dashboard() {
         .from("sales")
         .select("id, total, net_value, payment_method, created_at, customer_name")
         .eq("store_id", store.id)
+        .neq("status", "estornada")
         .order("created_at", { ascending: false })
         .limit(6);
       if (!cancelled) {
@@ -185,6 +186,7 @@ export default function Dashboard() {
         .from("sales")
         .select("total, net_value, returned_total, created_at")
         .eq("store_id", store.id)
+        .neq("status", "estornada")
         .gte("created_at", since.toISOString())
         .lte("created_at", until.toISOString());
       if (cancelled) return;
