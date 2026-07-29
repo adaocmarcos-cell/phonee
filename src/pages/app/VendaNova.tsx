@@ -1530,7 +1530,7 @@ Obrigado pela preferência.`;
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
-            <Button onClick={onSubmitClick} disabled={busy || pendingPriceCount > 0} className="bg-primary text-primary-foreground shadow-glow">
+            <Button onClick={onSubmitClick} disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : (isEditingSale ? "Salvar alterações" : "Salvar venda")}
             </Button>
           </div>
@@ -2502,7 +2502,7 @@ Obrigado pela preferência.`;
           <Button type="button" variant="outline" onClick={sendWhatsapp} className="flex-shrink-0">
             <MessageCircle className="h-4 w-4" />
           </Button>
-          <Button type="submit" disabled={busy || pendingPriceCount > 0} className="flex-1 bg-primary text-primary-foreground shadow-glow">
+          <Button type="submit" disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0} className="flex-1 bg-primary text-primary-foreground shadow-glow">
             <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : `Salvar · ${brl(totalSale)}`}
           </Button>
         </div>
@@ -2547,7 +2547,7 @@ Obrigado pela preferência.`;
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
-            <Button onClick={() => submit()} disabled={busy || pendingPriceCount > 0 || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
+            <Button onClick={() => submit()} disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0 || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
             </Button>
           </DialogFooter>
