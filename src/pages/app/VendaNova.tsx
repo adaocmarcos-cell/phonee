@@ -2756,49 +2756,6 @@ Obrigado pela preferência.`;
         </DialogContent>
       </Dialog>
 
-      {/* Preenchimento rápido do custo do produto direto do PDV */}
-      <Dialog open={!!costFix} onOpenChange={(o) => !o && setCostFix(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Custo do produto</DialogTitle>
-            <DialogDescription>{costFix?.name}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>Preço de custo (R$)</Label>
-            <NumberInput
-              value={typeof costFixValue === "number" ? costFixValue : 0}
-              onValueChange={(v) => setCostFixValue(v)}
-              min={0}
-              autoFocus
-            />
-            <p className="text-xs text-muted-foreground">
-              Sem custo cadastrado o lucro desta venda não entra no cálculo do CMV.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCostFix(null)}>Agora não</Button>
-            <Button
-              disabled={costFixSaving}
-              onClick={async () => {
-                if (!costFix) return;
-                const v = Number(costFixValue);
-                if (!v || v <= 0) return toast.error("Informe um custo maior que zero.");
-                setCostFixSaving(true);
-                const { error } = await supabase
-                  .from("products")
-                  .update({ cost_price: v })
-                  .eq("id", costFix.id);
-                setCostFixSaving(false);
-                if (error) return toast.error(error.message);
-                toast.success("Custo atualizado.");
-                setCostFix(null);
-              }}
-            >
-              Salvar custo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
