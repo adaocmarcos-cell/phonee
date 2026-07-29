@@ -53,6 +53,8 @@ type DashboardMetrics = {
   lucro_bruto?: number;
   lucro_liquido?: number;
   movimento_caixa?: number;
+  entradas_periodo?: number;
+  saidas_periodo?: number;
   cobertura_custo?: number;
   cobertura_custo_pct?: number;
   itens_sem_custo?: number;
@@ -237,6 +239,9 @@ export default function Dashboard() {
   const lucroBruto     = metrics?.lucro_bruto       ?? (revenueTotal - (metrics?.custo ?? 0));
   const lucroLiquido   = metrics?.lucro_liquido     ?? (metrics?.lucro ?? 0);
   const movimentoCaixa = metrics?.movimento_caixa   ?? 0;
+  const entradasPeriodo= metrics?.entradas_periodo  ?? 0;
+  const saidasPeriodo  = metrics?.saidas_periodo    ?? 0;
+  const comprasPagas   = metrics?.compras_estoque_pagas ?? 0;
   const salesCount     = metrics?.qtd_vendas        ?? 0;
   const ticketMedio    = metrics?.ticket_medio      ?? 0;
   const pay            = (metrics?.formas_pagamento ?? []).map((p) => ({ ...p, name: PAY_LABEL[p.name] ?? p.name }));
@@ -398,13 +403,14 @@ export default function Dashboard() {
                   id: "movimento-caixa",
                   node: (
                     <MetricCard
-                      label="Movimento de caixa"
+                      label="Entradas − saídas do período"
                       value={brl(movimentoCaixa)}
                       delta={
-                        comprasEstoque > 0
-                          ? `inclui ${brl(comprasEstoque)} investidos em estoque`
-                          : "Entradas − saídas pagas no período"
+                        comprasPagas > 0
+                          ? `inclui ${brl(comprasPagas)} investidos em estoque`
+                          : "Resultado financeiro do período (não é saldo bancário)"
                       }
+                      footer={`entradas ${brl(entradasPeriodo)} · saídas ${brl(saidasPeriodo)} — resultado do período, não saldo bancário`}
                       icon={Banknote}
                       tone={movimentoCaixa >= 0 ? "success" : "danger"}
                       className="h-full"
