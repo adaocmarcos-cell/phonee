@@ -52,7 +52,7 @@ export function OsPartsSection({
   const load = async () => {
     const { data, error } = await (supabase as any)
       .from("service_order_parts")
-      .select("id,part_id,qty,unit_price,unit_cost,description,created_at,part:parts_inventory(name,sku)")
+      .select("id,part_id,qty,unit_price,unit_cost,description,created_at,part:products!service_order_parts_part_id_fkey(name,sku)")
       .eq("service_order_id", osId)
       .order("created_at", { ascending: true });
     if (error) return toast.error(error.message);
@@ -72,9 +72,10 @@ export function OsPartsSection({
       const q = term.trim();
       if (q.length < 2) { setResults([]); return; }
       const { data } = await (supabase as any)
-        .from("parts_inventory")
+        .from("products")
         .select("id,name,sku,sale_price,cost_price,stock_current")
         .eq("store_id", storeId)
+        .in("item_kind", ["peca", "ferramenta"])
         .or(`name.ilike.%${q}%,sku.ilike.%${q}%`)
         .limit(10);
       setResults((data as Part[]) ?? []);

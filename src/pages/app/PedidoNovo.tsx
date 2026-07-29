@@ -71,6 +71,7 @@ export default function PedidoNovo() {
         supabase.from("products")
           .select("id, name, supplier, cost_price, stock_current, stock_min, status")
           .eq("store_id", store.id)
+          .in("item_kind", ["aparelho", "acessorio"])
           .eq("status", "ativo"),
         supabase.from("sales")
           .select("created_at, sale_items(product_id, quantity)")

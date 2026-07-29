@@ -14,7 +14,7 @@
  *   TRADEIN_TEST_STORE_ID           — loja de teste (existente, com owner)
  *   TRADEIN_TEST_OWNER_ID           — user_id do owner da loja
  *
- * O teste cria e limpa suas próprias fixtures (trade_in + parts_inventory).
+ * O teste cria e limpa suas próprias fixtures (trade_in + peça no cadastro unificado).
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
@@ -32,10 +32,12 @@ let tradeInId: string;
 
 async function createFixtures() {
   const { data: part, error: pErr } = await admin
-    .from("parts_inventory")
+    .from("products")
     .insert({
       store_id: STORE_ID!,
       name: `TEST_PART_${Date.now()}`,
+      item_kind: "peca",
+      category: "peca",
       stock_current: 2,
       cost_price: 50,
     })
@@ -68,7 +70,7 @@ async function cleanupFixtures() {
     await admin.from("alerts").delete().eq("link", `/painel/troca/${tradeInId}/detalhes`);
     await admin.from("trade_ins").delete().eq("id", tradeInId);
   }
-  if (partId) await admin.from("parts_inventory").delete().eq("id", partId);
+  if (partId) await admin.from("products").delete().eq("id", partId);
 }
 
 describe.skipIf(!enabled)("finish_trade_in_repair — integração", () => {
@@ -90,7 +92,7 @@ describe.skipIf(!enabled)("finish_trade_in_repair — integração", () => {
   it("1) baixa de estoque é atômica: falha bloqueia consumo", async () => {
     // Peça em falta (qty > estoque): deve lançar erro e NÃO alterar estoque
     const { data: before } = await admin
-      .from("parts_inventory").select("stock_current").eq("id", partId).single();
+      .from("products").select("stock_current").eq("id", partId).single();
 
     const { error } = await (admin as any).rpc("finish_trade_in_repair", {
       _trade_in_id: tradeInId,
@@ -102,7 +104,7 @@ describe.skipIf(!enabled)("finish_trade_in_repair — integração", () => {
     expect(String(error?.message || "")).toMatch(/insuficiente|permissão|access/i);
 
     const { data: after } = await admin
-      .from("parts_inventory").select("stock_current").eq("id", partId).single();
+      .from("products").select("stock_current").eq("id", partId).single();
     expect(after?.stock_current).toBe(before?.stock_current);
 
     // Status permanece aprovado
@@ -133,7 +135,7 @@ describe.skipIf(!enabled)("finish_trade_in_repair — integração", () => {
     expect(String(ti?.notes || "")).toContain("[preparo] troca de vidro");
 
     const { data: part } = await admin
-      .from("parts_inventory").select("stock_current").eq("id", partId).single();
+      .from("products").select("stock_current").eq("id", partId).single();
     expect(part?.stock_current).toBe(1); // 2 - 1
 
     const { data: log } = await admin
@@ -151,7 +153,7 @@ describe.skipIf(!enabled)("finish_trade_in_repair — integração", () => {
     if (tiBefore?.status !== "em_estoque") return; // pré-condição do teste 2
 
     const { data: partBefore } = await admin
-      .from("parts_inventory").select("stock_current").eq("id", partId).single();
+      .from("products").select("stock_current").eq("id", partId).single();
 
     const { error } = await (admin as any).rpc("finish_trade_in_repair", {
       _trade_in_id: tradeInId,
@@ -164,7 +166,7 @@ describe.skipIf(!enabled)("finish_trade_in_repair — integração", () => {
     const { data: tiAfter } = await admin
       .from("trade_ins").select("repair_costs").eq("id", tradeInId).single();
     const { data: partAfter } = await admin
-      .from("parts_inventory").select("stock_current").eq("id", partId).single();
+      .from("products").select("stock_current").eq("id", partId).single();
 
     expect(Number(tiAfter?.repair_costs)).toBe(Number(tiBefore?.repair_costs));
     expect(partAfter?.stock_current).toBe(partBefore?.stock_current);

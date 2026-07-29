@@ -137,10 +137,12 @@ export default function EstoqueRelatorio() {
     const [{ data: prods, error: prodsErr }, { data: parts, error: partsErr }] = await Promise.all([
       supabase.from("products")
         .select("id, name, sku, category, stock_current, stock_min, cost_price, sale_price")
-        .eq("store_id", store.id),
-      supabase.from("parts_inventory")
-        .select("id, name, sku, category, stock_current, stock_min, cost_price, sale_price")
-        .eq("store_id", store.id),
+        .eq("store_id", store.id)
+        .in("item_kind", ["aparelho", "acessorio"]),
+      supabase.from("products")
+        .select("id, name, sku, category:subcategory, stock_current, stock_min, cost_price, sale_price")
+        .eq("store_id", store.id)
+        .in("item_kind", ["peca", "ferramenta"]),
     ]);
     if (prodsErr || partsErr) { handleSupabaseError(prodsErr || partsErr, "Erro ao carregar inventário"); setLoading(false); return; }
 
@@ -250,7 +252,7 @@ export default function EstoqueRelatorio() {
     const { data: userRes } = await supabase.auth.getUser();
     const uid = userRes.user?.id;
 
-    const table = adjTarget.kind === "product" ? "products" : "parts_inventory";
+    const table = "products" as const;
     const { error: e1 } = await supabase.from(table).update({ stock_current: next }).eq("id", adjTarget.id);
     if (e1) { toast.error(e1.message); return; }
     const { error: e2 } = await supabase.from("stock_adjustments").insert({

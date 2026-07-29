@@ -103,7 +103,6 @@ export default function Dashboard() {
     const ch = supabase
       .channel(`dashboard-stock-metrics-${store.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `store_id=eq.${store.id}` }, loadStockMetrics)
-      .on("postgres_changes", { event: "*", schema: "public", table: "parts_inventory", filter: `store_id=eq.${store.id}` }, loadStockMetrics)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [store, loadStockMetrics]);

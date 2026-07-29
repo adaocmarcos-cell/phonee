@@ -45,7 +45,7 @@ export default function VendasPecas() {
     setLoading(true);
     const { data, error } = await supabase
       .from("service_order_parts")
-      .select("id, qty, unit_price, created_at, service_order_id, part:parts_inventory(name, category, category_other), os:service_orders(os_number, customer_name, status)")
+      .select("id, qty, unit_price, created_at, service_order_id, part:products!service_order_parts_part_id_fkey(name, category:subcategory, category_other), os:service_orders(os_number, customer_name, status)")
       .eq("store_id", store.id)
       .order("created_at", { ascending: false })
       .limit(500);

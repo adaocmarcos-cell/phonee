@@ -126,7 +126,6 @@ export default function Estoque() {
     const ch = supabase
       .channel(`estoque-list-${store.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `store_id=eq.${store.id}` }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "parts_inventory", filter: `store_id=eq.${store.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [store?.id, load]);

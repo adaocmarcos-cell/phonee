@@ -88,7 +88,8 @@ export default function Alertas() {
     const { data: prods } = await supabase
       .from("products")
       .select("id, name, stock_current, stock_min, last_sold_at")
-      .eq("store_id", store.id);
+      .eq("store_id", store.id)
+      .in("item_kind", ["aparelho", "acessorio"]);
 
     const newAlerts: any[] = [];
     (prods ?? []).forEach((p) => {

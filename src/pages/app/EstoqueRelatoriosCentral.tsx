@@ -99,7 +99,9 @@ export default function EstoqueRelatoriosCentral() {
     const [{ data: prods }, { data: saleItems }, { data: adjustments }, { data: osParts }, { data: trIn }, { data: trOut }] = await Promise.all([
       supabase.from("products")
         .select("id, name, sku, brand, category, supplier, stock_current, stock_min, cost_price, sale_price, last_sold_at, created_at")
-        .eq("store_id", store.id).range(0, 49999),
+        .eq("store_id", store.id)
+        .in("item_kind", ["aparelho", "acessorio"])
+        .range(0, 49999),
       supabase.from("sale_items")
         .select("id, product_id, qty, unit_price, sales!inner(store_id, created_at)")
         .eq("sales.store_id", store.id)

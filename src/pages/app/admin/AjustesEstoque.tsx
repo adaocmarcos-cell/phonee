@@ -81,7 +81,8 @@ export default function AjustesEstoque() {
 
     // If rejecting, revert stock change
     if (decision === "rejeitado") {
-      const table = adj.item_kind === "product" ? "products" : "parts_inventory";
+      // Cadastro unificado: peças e produtos vivem na mesma tabela.
+      const table = "products" as const;
       const targetId = adj.item_kind === "product"
         ? (await supabase.from("stock_adjustments").select("product_id").eq("id", adj.id).single()).data?.product_id
         : (await supabase.from("stock_adjustments").select("part_id").eq("id", adj.id).single()).data?.part_id;
