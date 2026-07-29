@@ -69,10 +69,6 @@ export default function Vendas() {
   const [adjustSale, setAdjustSale] = useState<any | null>(null);
   const [adjustNet, setAdjustNet] = useState<string>("");
   const [adjustReason, setAdjustReason] = useState<string>("Taxa cartão de crédito");
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [detailsSale, setDetailsSale] = useState<any | null>(null);
-  const [detailsItems, setDetailsItems] = useState<any[] | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
   const [returnSale, setReturnSale] = useState<any | null>(null);
   const [reverseSale, setReverseSale] = useState<any | null>(null);
   const [reverseReason, setReverseReason] = useState("");
@@ -91,19 +87,6 @@ export default function Vendas() {
     })();
   };
 
-  const openDetails = async (sale: any) => {
-    setDetailsSale(sale);
-    setDetailsItems(null);
-    setDetailsOpen(true);
-    setDetailsLoading(true);
-    const { data, error } = await supabase
-      .from("sale_items")
-      .select("quantity, unit_price, total, description, is_service, name, sku, category, brand, model, unit, discount_amount, imei_serial, warranty_days")
-      .eq("sale_id", sale.id);
-    setDetailsLoading(false);
-    if (error) { toast.error(error.message); return; }
-    setDetailsItems(data ?? []);
-  };
   const tplKey = store ? `phonee.salesReminder.${store.id}` : "phonee.salesReminder";
   const legacyTplKey = store ? `mobileplus.salesReminder.${store.id}` : "mobileplus.salesReminder";
   const getTemplate = () => {
@@ -379,24 +362,27 @@ export default function Vendas() {
   const SaleActions = ({ s }: { s: any }) => {
     const reversed = isReversed(s);
     return (
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        <Button size="icon" variant="ghost" title="Ver detalhes da venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}`)}>
+      <div
+        className="flex flex-wrap items-center justify-end gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Button size="icon" variant="ghost" title="Ver venda completa" className="h-11 w-11 md:h-9 md:w-9" onClick={() => navigate(`/painel/vendas/${s.id}`)}>
           <Eye className="h-4 w-4 text-info" />
         </Button>
-        <Button size="icon" variant="ghost" title="Imprimir comprovante" className="h-9 w-9" onClick={() => onPrintReceipt(s)}>
+        <Button size="icon" variant="ghost" title="Imprimir comprovante" className="h-11 w-11 md:h-9 md:w-9" onClick={() => onPrintReceipt(s)}>
           <Printer className="h-4 w-4" />
         </Button>
         {!reversed && (s.payment_method === "credito" || s.payment_method === "debito") && (
-          <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" className="h-9 w-9" onClick={() => openAdjust(s)}>
+          <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" className="h-11 w-11 md:h-9 md:w-9" onClick={() => openAdjust(s)}>
             <Sliders className="h-4 w-4 text-info" />
           </Button>
         )}
         {!reversed && s.payment_status === "pendente" && (
           <>
-            <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" className="h-9 w-9" onClick={() => openReminder(s)}>
+            <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" className="h-11 w-11 md:h-9 md:w-9" onClick={() => openReminder(s)}>
               <MessageCircle className="h-4 w-4 text-success" />
             </Button>
-            <Button size="icon" variant="ghost" title="Marcar como pago" className="h-9 w-9" onClick={() => markPaid(s)}>
+            <Button size="icon" variant="ghost" title="Marcar como pago" className="h-11 w-11 md:h-9 md:w-9" onClick={() => markPaid(s)}>
               <CheckCircle2 className="h-4 w-4 text-primary" />
             </Button>
           </>
@@ -413,17 +399,17 @@ export default function Vendas() {
               prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
             }}
             allowedEvents={["venda_concluida"]}
-            className="h-9 w-9 p-0"
+            className="h-11 w-11 md:h-9 md:w-9 p-0"
             size="sm"
           />
         )}
         {!reversed && canRegisterSale(role) && (
-          <Button size="icon" variant="ghost" title="Devolver / trocar itens" className="h-9 w-9" onClick={() => setReturnSale(s)}>
+          <Button size="icon" variant="ghost" title="Devolver / trocar itens" className="h-11 w-11 md:h-9 md:w-9" onClick={() => setReturnSale(s)}>
             <Undo2 className="h-4 w-4 text-warning" />
           </Button>
         )}
         {!reversed && canRegisterSale(role) && (
-          <Button size="icon" variant="ghost" title="Editar venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
+          <Button size="icon" variant="ghost" title="Editar venda" className="h-11 w-11 md:h-9 md:w-9" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
             <Pencil className="h-4 w-4" />
           </Button>
         )}
@@ -432,7 +418,7 @@ export default function Vendas() {
             size="icon"
             variant="ghost"
             title="Estornar venda"
-            className="h-9 w-9"
+            className="h-11 w-11 md:h-9 md:w-9"
             onClick={() => { setReverseSale(s); setReverseReason(""); }}
           >
             <RotateCcw className="h-4 w-4 text-danger" />
@@ -613,9 +599,21 @@ export default function Vendas() {
               const dtShort = `${dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })} ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
               return (
                 <li key={s.id} className="p-3">
-                  <div className="rounded-lg border border-border bg-surface-elevated/40 p-3 flex flex-col gap-1.5">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/painel/vendas/${s.id}`)}
+                    onKeyDown={(e) => { if (e.key === "Enter") navigate(`/painel/vendas/${s.id}`); }}
+                    className="rounded-lg border border-border bg-surface-elevated/40 p-3 flex flex-col gap-1.5 cursor-pointer active:bg-surface-elevated/70 transition-colors"
+                  >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-sm text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/painel/vendas/${s.id}`); }}
+                        className="font-mono text-sm text-primary font-semibold whitespace-nowrap hover:underline"
+                      >
+                        {fmtNum(s.sale_number)}
+                      </button>
                       <div className="flex items-center gap-1 shrink-0">
                         {isReversed(s) && (
                           <Badge className="bg-danger/15 text-danger border-danger/30 text-[11px] px-2 py-0.5 whitespace-nowrap">
@@ -683,9 +681,19 @@ export default function Vendas() {
                 const due = s.due_date ? new Date(s.due_date + "T00:00:00") : null;
                 const overdue = due && due < today0;
                 return (
-                <tr key={s.id} className={`hover:bg-surface-elevated/40 ${isReversed(s) ? "opacity-70" : ""}`}>
+                <tr
+                  key={s.id}
+                  onClick={() => navigate(`/painel/vendas/${s.id}`)}
+                  className={`hover:bg-surface-elevated/40 cursor-pointer ${isReversed(s) ? "opacity-70" : ""}`}
+                >
                   <td className="px-4 py-3 font-mono text-xs text-primary font-semibold whitespace-nowrap">
-                    {fmtNum(s.sale_number)}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/painel/vendas/${s.id}`); }}
+                      className="hover:underline"
+                    >
+                      {fmtNum(s.sale_number)}
+                    </button>
                     {isReversed(s) && (
                       <div className="mt-1"><Badge className="bg-danger/15 text-danger border-danger/30 text-[10px]"><RotateCcw className="h-3 w-3 mr-1" />Estornada</Badge></div>
                     )}
@@ -738,74 +746,6 @@ export default function Vendas() {
         <Lock className="h-3 w-3 text-success" />
         <span>Dados protegidos com segurança e criptografia.</span>
       </div>
-
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Receipt className="h-4 w-4 text-primary" />
-              Itens da venda {detailsSale ? fmtNum(detailsSale.sale_number) : ""}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="text-xs text-muted-foreground grid grid-cols-2 gap-2">
-              <div>Cliente: <strong className="text-foreground">{detailsSale?.customer_name || "Avulso"}</strong></div>
-              <div>Pagamento: <strong className="text-foreground capitalize">{detailsSale?.payment_method}</strong>{detailsSale?.installments > 1 ? ` · ${detailsSale.installments}x` : ""}</div>
-              <div>Data: <strong className="text-foreground">{detailsSale ? new Date(detailsSale.created_at).toLocaleString("pt-BR") : ""}</strong></div>
-              <div>Total: <strong className="text-foreground">{detailsSale ? brl(Number(detailsSale.total)) : ""}</strong></div>
-            </div>
-            {detailsLoading ? (
-              <div className="text-sm text-muted-foreground py-6 text-center">Carregando itens…</div>
-            ) : !detailsItems || detailsItems.length === 0 ? (
-              <div className="text-sm text-danger py-6 text-center">Nenhum item vinculado a esta venda.</div>
-            ) : (
-              <div className="overflow-x-auto border border-border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
-                    <tr>
-                      <th className="text-left px-3 py-2 font-medium">Código</th>
-                      <th className="text-left px-3 py-2 font-medium">Descrição</th>
-                      <th className="text-right px-3 py-2 font-medium">Qtd</th>
-                      <th className="text-right px-3 py-2 font-medium">Unit.</th>
-                      <th className="text-right px-3 py-2 font-medium">Desc.</th>
-                      <th className="text-right px-3 py-2 font-medium">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {detailsItems.map((it: any, idx: number) => (
-                      <tr key={idx}>
-                        <td className="px-3 py-2 font-mono text-xs">{it.sku || (it.is_service ? "SERVIÇO" : "—")}</td>
-                        <td className="px-3 py-2">
-                          <div className="font-medium">{it.name || it.description || "—"}</div>
-                          {(it.brand || it.model || it.category || it.imei_serial) && (
-                            <div className="text-[11px] text-muted-foreground">
-                              {[it.brand, it.model, it.category].filter(Boolean).join(" · ")}
-                              {it.imei_serial ? ` · IMEI/Serial: ${it.imei_serial}` : ""}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono">{it.quantity} {it.unit || ""}</td>
-                        <td className="px-3 py-2 text-right font-mono">{brl(Number(it.unit_price))}</td>
-                        <td className="px-3 py-2 text-right font-mono text-warning">{Number(it.discount_amount) > 0 ? `- ${brl(Number(it.discount_amount))}` : "—"}</td>
-                        <td className="px-3 py-2 text-right font-mono font-semibold">{brl(Number(it.total))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            {detailsSale && (
-              <Button variant="outline" onClick={() => { setDetailsOpen(false); onPrintReceipt(detailsSale); }}>
-                <Printer className="h-4 w-4 mr-2" /> Imprimir comprovante
-              </Button>
-            )}
-            <Button onClick={() => setDetailsOpen(false)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={reminderOpen} onOpenChange={setReminderOpen}>
         <DialogContent>
           <DialogHeader>
