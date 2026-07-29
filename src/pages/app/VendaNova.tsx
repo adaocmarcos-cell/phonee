@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { loadDataHealth } from "@/lib/dataHealth";
+import { isValidImei } from "@/lib/itemKind";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -952,6 +954,46 @@ export default function VendaNova() {
     setConfirmOpen(true);
   };
 
+  // ── Gate de IMEI: aparelhos legados sem IMEI. Durante o prazo é só aviso;
+  // após o prazo o IMEI é exigido no momento da venda (melhor momento de captura).
+  const [imeiGate, setImeiGate] = useState<{ open: boolean; rows: Array<{ id: string; name: string; imei: string }> }>({ open: false, rows: [] });
+  const [imeiGateBusy, setImeiGateBusy] = useState(false);
+
+  const checkImeiGate = async (): Promise<"ok" | "blocked"> => {
+    if (!store) return "ok";
+    const ids = items.filter((i) => !i.is_service && i.product_id).map((i) => i.product_id!) as string[];
+    if (ids.length === 0) return "ok";
+    const { data } = await supabase
+      .from("products")
+      .select("id,name,imei")
+      .in("id", ids)
+      .eq("item_kind", "aparelho");
+    const pend = (data ?? []).filter((p: any) => !p.imei || String(p.imei).trim() === "");
+    if (pend.length === 0) return "ok";
+    const health = await loadDataHealth(store.id);
+    if (health?.vencido) {
+      setImeiGate({ open: true, rows: pend.map((p: any) => ({ id: p.id, name: p.name, imei: "" })) });
+      return "blocked";
+    }
+    toast.warning(`${pend.length} aparelho(s) sem IMEI nesta venda. Regularize o cadastro — em breve o IMEI será obrigatório.`);
+    return "ok";
+  };
+
+  const saveGateImeis = async () => {
+    for (const r of imeiGate.rows) {
+      if (!isValidImei(r.imei)) return toast.error(`IMEI inválido para ${r.name}. Use 15 dígitos válidos.`);
+    }
+    setImeiGateBusy(true);
+    for (const r of imeiGate.rows) {
+      const { error } = await supabase.from("products").update({ imei: r.imei.replace(/\D/g, "") }).eq("id", r.id);
+      if (error) { setImeiGateBusy(false); return toast.error(error.message); }
+    }
+    setImeiGateBusy(false);
+    setImeiGate({ open: false, rows: [] });
+    toast.success("IMEI registrado. Finalizando a venda...");
+    submit();
+  };
+
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
@@ -968,6 +1010,7 @@ export default function VendaNova() {
     if (invalid) {
       return toast.error("Há itens sem descrição ou quantidade válida. Revise antes de salvar.");
     }
+    if ((await checkImeiGate()) === "blocked") return;
     setBusy(true);
 
     const payload = buildPayload();
