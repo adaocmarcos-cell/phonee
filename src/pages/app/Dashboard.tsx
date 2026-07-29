@@ -403,13 +403,14 @@ export default function Dashboard() {
                   id: "movimento-caixa",
                   node: (
                     <MetricCard
-                      label="Movimento de caixa"
+                      label="Entradas − saídas do período"
                       value={brl(movimentoCaixa)}
                       delta={
-                        comprasEstoque > 0
-                          ? `inclui ${brl(comprasEstoque)} investidos em estoque`
-                          : "Entradas − saídas pagas no período"
+                        comprasPagas > 0
+                          ? `inclui ${brl(comprasPagas)} investidos em estoque`
+                          : "Resultado financeiro do período (não é saldo bancário)"
                       }
+                      footer={`entradas ${brl(entradasPeriodo)} · saídas ${brl(saidasPeriodo)} — resultado do período, não saldo bancário`}
                       icon={Banknote}
                       tone={movimentoCaixa >= 0 ? "success" : "danger"}
                       className="h-full"
