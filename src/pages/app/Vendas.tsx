@@ -989,6 +989,45 @@ export default function Vendas() {
         sale={returnSale}
         onDone={() => { reloadSales(); }}
       />
+
+      {/* Estorno de venda — não exclui, marca como estornada */}
+      <Dialog open={!!reverseSale} onOpenChange={(b) => { if (!b) { setReverseSale(null); setReverseReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-4 w-4 text-danger" />
+              Estornar venda {reverseSale ? fmtNum(reverseSale.sale_number) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              A venda de <strong className="text-foreground">{reverseSale ? brl(Number(reverseSale.total)) : "—"}</strong> será
+              marcada como <strong className="text-foreground">estornada</strong> (o histórico é preservado). O estoque volta
+              com movimento registrado no livro-razão, os pagamentos são estornados, as parcelas do crediário em aberto são
+              canceladas e as comissões não pagas são revertidas.
+            </p>
+            <div>
+              <Label>Motivo do estorno</Label>
+              <Textarea
+                value={reverseReason}
+                onChange={(e) => setReverseReason(e.target.value)}
+                placeholder="Ex.: venda lançada em duplicidade"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReverseSale(null)} disabled={reversing}>Cancelar</Button>
+            <Button
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
+              onClick={estornarVenda}
+              disabled={reversing}
+            >
+              {reversing ? "Estornando…" : "Confirmar estorno"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
