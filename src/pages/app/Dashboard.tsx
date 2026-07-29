@@ -53,6 +53,8 @@ type DashboardMetrics = {
   lucro_bruto?: number;
   lucro_liquido?: number;
   movimento_caixa?: number;
+  cobertura_custo?: number;
+  itens_sem_custo?: number;
   lucro: number;
   qtd_vendas: number;
   ticket_medio: number;
