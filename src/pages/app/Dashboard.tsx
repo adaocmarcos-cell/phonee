@@ -6,12 +6,14 @@ import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { SortableCards } from "@/components/SortableCards";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, num, pct } from "@/lib/format";
+import { exportResultPDF } from "@/lib/resultExport";
 import { cn } from "@/lib/utils";
 import { loadProductStockMetrics } from "@/lib/stockMetrics";
-import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Wrench, LayoutGrid, Check, Banknote, RefreshCw, Smartphone } from "lucide-react";
+import { Boxes, DollarSign, TrendingUp, AlertTriangle, Package, Percent, Wallet, Receipt, ShoppingCart, Wrench, LayoutGrid, Check, Banknote, RefreshCw, Smartphone, PiggyBank, FileDown } from "lucide-react";
 import { PeriodFilter, resolvePeriod, type PeriodValue, type CustomRange } from "@/components/PeriodFilter";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -63,6 +65,7 @@ export default function Dashboard() {
   const [period, setPeriod] = useState<PeriodValue>("month");
   const [periodCustom, setPeriodCustom] = useState<CustomRange>({});
   const [editingLayout, setEditingLayout] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
 
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
@@ -272,7 +275,12 @@ export default function Dashboard() {
         <Card className="p-5 sm:p-6 mb-6 bg-card border-border shadow-card">
           <div className="flex items-baseline justify-between gap-2 mb-4">
             <h3 className="font-semibold">Resultado</h3>
-            <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground truncate">{periodTitle}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground truncate">{periodTitle}</span>
+              <Button size="sm" variant="outline" onClick={() => setResultOpen(true)}>
+                Ver detalhes
+              </Button>
+            </div>
           </div>
           <div className="space-y-1.5 text-sm text-muted-foreground">
             <div className="flex items-center justify-between gap-3">
@@ -376,6 +384,25 @@ export default function Dashboard() {
               />
             ),
           },
+          ...(canSeeCost(role)
+            ? [
+                {
+                  id: "lucro-periodo",
+                  node: (
+                    <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
+                      <MetricCard
+                        label={`Lucro — ${periodLabel}`}
+                        value={brl(lucroMes)}
+                        delta={`Margem ${pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)} · ver detalhes`}
+                        icon={PiggyBank}
+                        tone={lucroMes >= 0 ? "success" : "danger"}
+                        className="h-full"
+                      />
+                    </button>
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -495,6 +522,82 @@ export default function Dashboard() {
           },
         ]}
       />
+
+      <Dialog open={resultOpen} onOpenChange={setResultOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resultado do período</DialogTitle>
+            <DialogDescription>{periodTitle} · {store?.name ?? ""}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Faturamento</span>
+                <span className="font-mono tabular-nums">{brl(revenueTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Vendas</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.faturamento_vendas ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Ordens de serviço</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.faturamento_os ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <span className="text-muted-foreground">− Custo da mercadoria</span>
+                <span className="font-mono tabular-nums">{brl(costMonth)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Produtos vendidos (CMV)</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.custo_produtos ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Peças de O.S.</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.custo_os ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <span className="text-muted-foreground">− Despesas</span>
+                <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
+              </div>
+            </div>
+            <div className="border-t border-border" />
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">= Lucro do período</div>
+                <div className={cn("metric font-bold text-2xl", lucroMes >= 0 ? "text-success" : "text-danger")}>{brl(lucroMes)}</div>
+              </div>
+              <div className="text-sm text-muted-foreground font-mono">
+                Margem {pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)}
+              </div>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() =>
+                exportResultPDF({
+                  storeName: store?.name ?? "",
+                  periodTitle,
+                  faturamentoTotal: revenueTotal,
+                  faturamentoVendas: metrics?.faturamento_vendas ?? 0,
+                  faturamentoOs: metrics?.faturamento_os ?? 0,
+                  custoTotal: costMonth,
+                  custoProdutos: metrics?.custo_produtos ?? 0,
+                  custoOs: metrics?.custo_os ?? 0,
+                  despesas: expensesMonth,
+                  lucro: lucroMes,
+                  qtdVendas: salesCount,
+                  ticketMedio,
+                  recebidoCaixa,
+                  recebidoTroca,
+                  aReceber: arCrediario,
+                })
+              }
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              Baixar PDF do resultado
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="-mt-3 mb-6 flex justify-end">
         <button
