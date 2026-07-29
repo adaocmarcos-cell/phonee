@@ -1183,6 +1183,7 @@ export default function VendaNova() {
       unit: unit || null,
       discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
       warranty_days: warrantyEnabled ? warrantyDays : null,
+      imei_serial: i.is_service ? null : (String(i.imei_serial ?? "").trim() || null),
     }));
     const rpcPayments = payments
       .filter((p) => Number(p.amount) > 0)
