@@ -14,7 +14,7 @@ export type WarrantySettings = {
 
 export const DEFAULT_WARRANTY: Omit<WarrantySettings, "store_id"> = {
   notice_text:
-    "Garantia legal de 90 dias contra defeitos de fabricação, conforme o CDC.",
+    "Garantia contra defeitos de fabricação, conforme o Código de Defesa do Consumidor.",
   message_template:
     "A garantia não cobre danos por mau uso, quedas, exposição a líquidos, violação por terceiros ou desgaste natural. Para acionamento, é obrigatória a apresentação deste comprovante.",
   default_enabled: true,

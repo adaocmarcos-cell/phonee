@@ -146,109 +146,163 @@ export function printSaleReceipt(opts: {
   const freight = Number(ex?.payment?.freight || 0);
   const otherExpenses = Number(ex?.payment?.other_expenses || 0);
 
+  const stripDays = (t: string) =>
+    String(t || "")
+      .replace(/\{dias\}/gi, String(warrantyDays))
+      .replace(/\s*(?:de\s+)?\d+\s*(?:dias|meses|m[êe]s|ano|anos)\b/gi, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+([,.;])/g, "$1")
+      .trim();
+
+  const noticeText = stripDays(warrantyNotice);
+  const termsText = stripDays(warrantyTerms);
+  const generalNotes = String(ex?.user_notes || "").trim();
+  const itemNotes = items
+    .map((i, idx) => ({ idx, name: i.name, note: String(i.public_notes || "").trim() }))
+    .filter((n) => n.note);
+  const hasObs = generalNotes.length > 0 || itemNotes.length > 0;
+  const anyImei = items.some((i) => String(i.imei_serial || "").trim());
+
+  const installments = Number(sale.installments || ex?.payment?.installments || 1);
+  const splits: any[] = Array.isArray(ex?.payment?.splits) ? ex.payment.splits : [];
+  const isCrediario = String(sale.payment_method || "").toLowerCase().includes("crediario")
+    || splits.some((sp) => String(sp?.method || "").toLowerCase().includes("crediario"));
+  const dueDates: string[] = [];
+  if (isCrediario && installments > 1) {
+    for (let n = 1; n <= installments; n++) {
+      const d = new Date(sale.created_at);
+      d.setMonth(d.getMonth() + n);
+      dueDates.push(d.toLocaleDateString("pt-BR"));
+    }
+  }
+  const stateReg = store?.state_registration || store?.ie || store?.inscricao_estadual || "";
+  const nonFiscalText = "DOCUMENTO SEM VALOR FISCAL — não substitui Nota Fiscal Eletrônica";
+
   const css = `
     *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#0f172a}
-    body{padding:28px 32px;font-size:12.5px;background:#fff}
+    body{padding:24px 28px;font-size:12.5px;background:#fff}
     .doc{border:1.5px solid #0f172a;border-radius:4px;overflow:hidden}
-    .head{display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1.5px solid #0f172a;background:#fafafa}
-    .head .logo{width:72px;height:72px;border:1px solid #cbd5e1;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;flex-shrink:0}
-    .head .logo img{max-width:100%;max-height:100%;object-fit:contain}
-    .head .store{flex:1;min-width:0}
-    .head .store h1{font-size:17px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.3px}
-    .head .store .line{font-size:11.5px;color:#334155;line-height:1.5}
-    .head .doctype{text-align:right;border-left:1px dashed #94a3b8;padding-left:16px;min-width:200px}
-    .head .doctype .title{font-size:13px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#0f172a}
-    .head .doctype .num{font-family:'Courier New',monospace;font-size:18px;font-weight:700;margin-top:4px}
-    .head .doctype .date{font-size:11px;color:#475569;margin-top:2px}
-    .section{border-bottom:1px solid #cbd5e1;padding:14px 20px}
-    .section .label{font-size:9.5px;font-weight:700;letter-spacing:.6px;color:#64748b;text-transform:uppercase;margin-bottom:8px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:12px}
+    .banner{background:#0f172a;color:#fff;text-align:center;padding:7px 10px;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+    .topgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:0;border-bottom:1.5px solid #0f172a}
+    .box{padding:12px 16px}
+    .box + .box{border-left:1.5px solid #0f172a}
+    .label{font-size:9.5px;font-weight:700;letter-spacing:.6px;color:#64748b;text-transform:uppercase;margin-bottom:7px}
+    .emit{display:flex;gap:14px;align-items:flex-start}
+    .logo{width:64px;height:64px;border:1px solid #cbd5e1;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fff;overflow:hidden;flex-shrink:0}
+    .logo img{max-width:100%;max-height:100%;object-fit:contain}
+    .emit h1{font-size:15px;margin:0 0 3px;text-transform:uppercase;letter-spacing:.3px}
+    .line{font-size:11px;color:#334155;line-height:1.5}
+    .doctype .title{font-size:12.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+    .doctype .num{font-family:'Courier New',monospace;font-size:17px;font-weight:700;margin-top:5px}
+    .doctype .date{font-size:11px;color:#475569;margin-top:3px}
+    .section{border-bottom:1px solid #cbd5e1;padding:12px 16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 20px;font-size:12px}
+    .grid.g3{grid-template-columns:1fr 1fr 1fr}
     .grid .field{display:flex;flex-direction:column;gap:2px}
     .grid .field .k{font-size:9.5px;color:#64748b;text-transform:uppercase;letter-spacing:.4px}
     .grid .field .v{font-size:12.5px;color:#0f172a;border-bottom:1px solid #e2e8f0;padding:4px 0;min-height:20px}
     table{width:100%;border-collapse:collapse;font-size:12px}
-    thead th{background:#0f172a;color:#fff;text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.4px;text-transform:uppercase;font-weight:600}
-    tbody td{border-bottom:1px solid #e2e8f0;padding:12px;vertical-align:top}
+    thead th{background:#0f172a;color:#fff;text-align:left;padding:9px 10px;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;font-weight:600}
+    tbody td{border-bottom:1px solid #e2e8f0;padding:10px;vertical-align:top}
     tbody tr:nth-child(even){background:#f8fafc}
-    .totals{margin-left:auto;width:320px;font-size:12.5px;padding:12px 20px;border-top:1.5px solid #0f172a}
-    .totals div{display:flex;justify-content:space-between;padding:6px 0}
-    .tot{font-weight:800;font-size:15px;border-top:1.5px solid #0f172a;padding-top:10px;margin-top:4px}
-    .terms{padding:16px 20px;font-size:11px;line-height:1.6;background:#fafafa}
-    .terms .title{font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.4px;margin-bottom:6px;color:#0f172a}
-    .notice{margin:14px 20px;background:#FFF8E1;border-left:4px solid #F59E0B;padding:10px 14px;font-size:11px;line-height:1.5}
-    .nonfiscal{margin:14px 20px 0;text-align:center;border:1.5px dashed #94a3b8;padding:8px;font-size:11px;color:#475569;letter-spacing:.5px;text-transform:uppercase;font-weight:600}
-    .sign{display:grid;grid-template-columns:1fr 1fr;gap:60px;padding:40px 20px 20px;font-size:11px;text-align:center}
+    .mono{font-family:'Courier New',monospace}
+    .imei{font-family:'Courier New',monospace;font-size:12.5px;letter-spacing:.4px;white-space:nowrap}
+    .totals{margin-left:auto;width:330px;font-size:12.5px;padding:12px 16px;border-top:1.5px solid #0f172a;border-left:1.5px solid #0f172a}
+    .totals div{display:flex;justify-content:space-between;padding:5px 0}
+    .tot{font-weight:800;font-size:15px;border-top:1.5px solid #0f172a;padding-top:9px;margin-top:4px}
+    .warranty{margin:14px 16px;border:1.5px solid #0f172a;border-radius:4px;overflow:hidden;page-break-inside:avoid}
+    .warranty .wh{background:#f1f5f9;border-bottom:1px solid #0f172a;padding:9px 14px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;font-size:12px}
+    .warranty .wgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 16px;padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:12px}
+    .warranty .wbody{padding:12px 14px;font-size:11px;line-height:1.6}
+    .warranty .wtitle{font-size:9.5px;font-weight:700;letter-spacing:.6px;color:#64748b;text-transform:uppercase;margin-bottom:5px}
+    .warranty table{font-size:11.5px}
+    .warranty thead th{background:#334155}
+    .notice{margin:0 14px 14px;border:1.5px solid #0f172a;background:#f1f5f9;padding:9px 12px;font-size:11px;line-height:1.5;font-weight:600}
+    .terms{padding:14px 16px;font-size:11px;line-height:1.6;background:#fafafa}
+    .terms .title{font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.4px;margin-bottom:5px}
+    .footnf{text-align:center;padding:8px;font-size:10px;color:#475569;letter-spacing:.5px;text-transform:uppercase;border-top:1px dashed #94a3b8}
+    .sign{display:grid;grid-template-columns:1fr 1fr;gap:60px;padding:38px 20px 18px;font-size:11px;text-align:center}
     .sign div{border-top:1px solid #0f172a;padding-top:6px}
-    @media print { body{padding:0} button{display:none} .doc{border:none} }
+    @media print { body{padding:0} button{display:none} .doc{border:none} thead{display:table-header-group} tr{page-break-inside:avoid} }
   `;
+
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Comprovante ${fmtNum(sale.sale_number)}</title><style>${css}</style></head><body>
     <div class="doc">
-      <div class="head">
-        <div class="logo">${logoUrl ? `<img src="${logoUrl}" alt="logo"/>` : `<span style="font-size:9px;color:#94a3b8">LOGO</span>`}</div>
-        <div class="store">
-          <h1>${escape(store?.trade_name || store?.name || "")}</h1>
-          ${showLegal && store?.trade_name && store?.name && store.trade_name !== store.name ? `<div class="line">${escape(store.name)}</div>` : ""}
-          ${showTaxId && store?.tax_id ? `<div class="line">CNPJ/CPF: ${escape(store.tax_id)}</div>` : ""}
-          ${addrLine ? `<div class="line">${escape(addrLine)}</div>` : ""}
-          <div class="line">${store?.phone ? `Telefone: ${escape(store.phone)}` : ""}${store?.email ? `${store?.phone ? " · " : ""}${escape(store.email)}` : ""}${store?.instagram ? ` · ${escape(store.instagram)}` : ""}</div>
+      ${showNonFiscal ? `<div class="banner">${nonFiscalText}</div>` : ""}
+
+      <div class="topgrid">
+        <div class="box">
+          <div class="label">Emitente</div>
+          <div class="emit">
+            <div class="logo">${logoUrl ? `<img src="${logoUrl}" alt="logo"/>` : `<span style="font-size:9px;color:#94a3b8">LOGO</span>`}</div>
+            <div>
+              <h1>${escape(store?.trade_name || store?.name || "")}</h1>
+              ${showLegal && store?.name && store?.trade_name && store.trade_name !== store.name ? `<div class="line">Razão social: ${escape(store.name)}</div>` : ""}
+              ${showTaxId && store?.tax_id ? `<div class="line">CNPJ/CPF: ${escape(store.tax_id)}</div>` : ""}
+              ${stateReg ? `<div class="line">IE: ${escape(stateReg)}</div>` : ""}
+              ${addrLine ? `<div class="line">${escape(addrLine)}</div>` : ""}
+              <div class="line">${store?.phone ? `Tel.: ${escape(store.phone)}` : ""}${store?.email ? `${store?.phone ? " · " : ""}${escape(store.email)}` : ""}${store?.instagram ? ` · ${escape(store.instagram)}` : ""}</div>
+            </div>
+          </div>
         </div>
-        <div class="doctype">
-          <div class="title">Comprovante de Venda</div>
-          <div class="num">Nº ${fmtNum(sale.sale_number)}</div>
-          <div class="date">${fmtDate(sale.created_at)}</div>
+        <div class="box doctype">
+          <div class="label">Documento</div>
+          <div class="title">Comprovante de Venda / Pedido</div>
+          <div class="num">Nº ${String(sale.sale_number ?? 0).padStart(4, "0")} · SÉRIE 1</div>
+          <div class="date">Emissão: ${fmtDate(sale.created_at)}</div>
         </div>
       </div>
 
-      ${showNonFiscal ? `<div class="nonfiscal">Este documento não é um documento fiscal</div>` : ""}
-
       <div class="section">
-        <div class="label">Dados do Cliente</div>
+        <div class="label">Destinatário</div>
         <div class="grid">
           <div class="field"><span class="k">Cliente</span><span class="v">${escape(sale.customer_name || "—")}</span></div>
-          <div class="field"><span class="k">Documento</span><span class="v">${escape(sale.customer_doc || "—")}</span></div>
-          <div class="field"><span class="k">WhatsApp</span><span class="v">${escape(ex.whatsapp || "—")}</span></div>
+          <div class="field"><span class="k">CPF/CNPJ</span><span class="v">${escape(sale.customer_doc || "—")}</span></div>
+          <div class="field"><span class="k">WhatsApp</span><span class="v">${escape(ex.whatsapp || ex.phone || "—")}</span></div>
           <div class="field"><span class="k">Cidade</span><span class="v">${escape(ex.city || "—")}</span></div>
         </div>
       </div>
 
       <div class="section">
-        <div class="label">Pagamento</div>
-        <div class="grid">
-          <div class="field"><span class="k">Forma de pagamento</span><span class="v">${escape(String(sale.payment_method || "").toUpperCase())}${sale.installments && sale.installments > 1 ? ` (${sale.installments}x)` : ""}</span></div>
+        <div class="label">Condição de pagamento</div>
+        <div class="grid g3">
+          <div class="field"><span class="k">Forma</span><span class="v">${escape(String(sale.payment_method || "").toUpperCase())}</span></div>
+          <div class="field"><span class="k">Parcelas</span><span class="v">${installments > 1 ? `${installments}x` : "À vista"}</span></div>
           <div class="field"><span class="k">Vendedor</span><span class="v">${escape(ex.seller || "—")}</span></div>
         </div>
+        ${dueDates.length ? `<div style="margin-top:9px;font-size:11px;color:#334155"><b>Vencimentos:</b> ${dueDates.map((d, n) => `${n + 1}ª ${d}`).join(" · ")}</div>` : ""}
       </div>
 
       <div style="padding:0">
         <table>
           <thead><tr>
+            <th style="width:34px;text-align:center">#</th>
             <th style="width:70px">Código</th>
             <th>Descrição</th>
-            <th style="text-align:center;width:60px">Un.</th>
-            <th style="text-align:right;width:60px">Qtd</th>
-            <th style="text-align:right;width:110px">Vlr. Unit.</th>
-            <th style="text-align:right;width:110px">Vlr. Total</th>
+            ${anyImei ? `<th style="width:150px">IMEI / Série</th>` : ""}
+            <th style="text-align:center;width:56px">Un.</th>
+            <th style="text-align:right;width:52px">Qtd</th>
+            <th style="text-align:right;width:100px">Vlr. Unit.</th>
+            <th style="text-align:right;width:100px">Vlr. Total</th>
           </tr></thead>
           <tbody>
-            ${items.map((i) => {
+            ${items.map((i, idx) => {
               const details = [
                 i.brand ? `Marca: ${escape(i.brand)}` : "",
                 i.model ? `Modelo: ${escape(i.model)}` : "",
                 i.category ? `Cat.: ${escape(i.category)}` : "",
-                i.imei_serial ? `IMEI/Serial: ${escape(i.imei_serial)}` : "",
               ].filter(Boolean).join(" · ");
               const discountLine = Number(i.discount_amount || 0) > 0
-                ? `<div style="color:#b45309;font-size:10.5px;margin-top:2px">Desconto: - ${brl(Number(i.discount_amount))}</div>` : "";
-              const notesLine = i.public_notes
-                ? `<div style="color:#334155;font-size:10.5px;margin-top:2px">Obs.: ${escape(i.public_notes)}</div>` : "";
+                ? `<div style="font-size:10.5px;margin-top:2px;color:#475569">Desconto: - ${brl(Number(i.discount_amount))}</div>` : "";
               return `<tr>
-                <td style="font-family:'Courier New',monospace;font-size:10.5px">${escape(i.sku || "—")}</td>
+                <td style="text-align:center;color:#64748b">${idx + 1}</td>
+                <td class="mono" style="font-size:10.5px">${escape(i.sku || "—")}</td>
                 <td>
                   <div style="font-weight:600">${escape(i.name)}</div>
                   ${details ? `<div style="color:#64748b;font-size:10.5px;margin-top:2px">${details}</div>` : ""}
                   ${discountLine}
-                  ${notesLine}
                 </td>
+                ${anyImei ? `<td class="imei">${escape(i.imei_serial || "—")}</td>` : ""}
                 <td style="text-align:center">${escape(i.unit || "un")}</td>
                 <td style="text-align:right">${i.quantity}</td>
                 <td style="text-align:right">${brl(i.unit_price)}</td>
@@ -280,7 +334,7 @@ export function printSaleReceipt(opts: {
             <tbody>
               ${tradeIns.map((t) => `<tr>
                 <td>${escape([t.brand, t.model, t.storage_gb ? t.storage_gb + "GB" : ""].filter(Boolean).join(" "))}</td>
-                <td style="font-family:'Courier New',monospace;font-size:11px">${escape(t.imei || "—")}</td>
+                <td class="imei">${escape(t.imei || "—")}</td>
                 <td style="text-align:right;font-weight:600">${brl(Number(t.value || 0))}</td>
               </tr>`).join("")}
             </tbody>
@@ -289,19 +343,50 @@ export function printSaleReceipt(opts: {
       ` : ""}
 
       ${warrantyEnabled ? `
-        ${warrantyNotice ? `<div class="notice"><b>AVISO:</b> ${escape(warrantyNotice)}</div>` : ""}
-        <div class="terms">
-          <div class="title">Termo de Garantia — ${warrantyDays} dias (válida até ${expDate.toLocaleDateString("pt-BR")})</div>
-          <div>${escape(warrantyTerms)}</div>
+        <div class="warranty">
+          <div class="wh">Termo de Garantia</div>
+          <div class="wgrid">
+            <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Prazo</span><div style="font-weight:700">${warrantyDays} dias</div></div>
+            <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Início</span><div>${new Date(sale.created_at).toLocaleDateString("pt-BR")}</div></div>
+            <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Válida até</span><div style="font-weight:700">${expDate.toLocaleDateString("pt-BR")}</div></div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Produto</th>
+              <th style="width:170px">IMEI / Nº de série</th>
+              <th style="width:90px;text-align:right">Prazo</th>
+            </tr></thead>
+            <tbody>
+              ${items.map((i) => `<tr>
+                <td>${escape(i.name)}</td>
+                <td class="imei">${escape(String(i.imei_serial || "").trim() || "—")}</td>
+                <td style="text-align:right">${warrantyDays} dias</td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+          ${hasObs ? `
+            <div class="wbody" style="border-top:1px solid #e2e8f0">
+              <div class="wtitle">Observações registradas na venda</div>
+              ${itemNotes.map((n) => `<div>• <b>${escape(n.name)}:</b> ${escape(n.note)}</div>`).join("")}
+              ${generalNotes ? `<div style="${itemNotes.length ? "margin-top:5px;" : ""}">• <b>Venda:</b> ${escape(generalNotes)}</div>` : ""}
+            </div>` : ""}
+          ${termsText ? `
+            <div class="wbody" style="border-top:1px solid #e2e8f0">
+              <div class="wtitle">Condições</div>
+              <div>${escape(termsText)}</div>
+            </div>` : ""}
+          ${noticeText ? `<div class="notice">AVISO: ${escape(noticeText)}</div>` : ""}
         </div>
       ` : ""}
 
-      ${store?.pdf_footer_text ? `<div class="terms" style="border-top:1px solid #cbd5e1"><div>${escape(store.pdf_footer_text)}</div></div>` : ""}
+      ${store?.pdf_footer_text ? `<div class="terms" style="border-top:1px solid #cbd5e1"><div class="title">Dados adicionais</div><div>${escape(store.pdf_footer_text)}</div></div>` : ""}
 
       <div class="sign">
         <div>Assinatura do cliente</div>
         <div>${escape(store?.trade_name || store?.name || "")}</div>
       </div>
+
+      ${showNonFiscal ? `<div class="footnf">${nonFiscalText}</div>` : ""}
     </div>
 
     <div style="margin-top:20px;text-align:center"><button onclick="window.print()">Imprimir</button></div>

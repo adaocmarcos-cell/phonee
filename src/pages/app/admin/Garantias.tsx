@@ -91,6 +91,11 @@ export default function Garantias() {
               onChange={(e) => update({ notice_text: e.target.value })}
               disabled={!canEdit}
             />
+            <p className="text-[11px] text-muted-foreground">
+              Não escreva o prazo (ex.: "90 dias") nestes textos: o prazo é definido na venda e
+              já aparece no cabeçalho do termo. Use <span className="font-mono">{"{dias}"}</span> se
+              precisar citá-lo — será substituído pelo prazo real da venda.
+            </p>
           </div>
 
           <div className="space-y-1.5">
