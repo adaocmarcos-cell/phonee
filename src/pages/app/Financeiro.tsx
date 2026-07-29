@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MetricCard } from "@/components/MetricCard";
 import { SortableCards } from "@/components/SortableCards";
+import { PayablesTab } from "@/components/financeiro/PayablesTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,7 @@ import { brl } from "@/lib/format";
 import {
   Wallet, TrendingUp, TrendingDown, Receipt, ArrowRight, Clock, CheckCircle2,
   AlertTriangle, Calendar as CalendarIcon, FileDown, Wrench, ShoppingCart, FileText, LayoutGrid, Check, MessageCircle, Send,
+  LineChart, Percent,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
