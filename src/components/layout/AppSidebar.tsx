@@ -34,6 +34,7 @@ const ops: Item[] = [
   { title: "Vendas", url: "/painel/vendas", icon: Receipt, children: [
     { title: "Encomendas", url: "/painel/vendas/encomendas", icon: PackagePlus },
     { title: "Orçamentos", url: "/painel/orcamentos", icon: FileText },
+    { title: "Vendas sem custo", url: "/painel/vendas/sem-custo", icon: AlertTriangle },
   ] },
   { title: "Estoque", url: "/painel/estoque", icon: Boxes, children: [
     { title: "Compras/Entradas", url: "/painel/compras", icon: ShoppingCart },
