@@ -163,6 +163,7 @@ export default function Compras() {
         .from("products")
         .select("id, name, sku, cost_price, category, brand")
         .eq("store_id", store.id)
+        .in("item_kind", ["aparelho", "acessorio"])
         .or(`name.ilike.${like},sku.ilike.${like}`)
         .limit(20);
       if (cancelled || !data || data.length === 0) return;
@@ -271,6 +272,7 @@ export default function Compras() {
         .from("products")
         .select("id, name, sku, cost_price, category, brand")
         .eq("store_id", store.id)
+        .in("item_kind", ["aparelho", "acessorio"])
         .order("name")
         .limit(2000);
       setCatalog((data ?? []) as CatalogProduct[]);
