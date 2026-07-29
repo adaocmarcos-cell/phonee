@@ -5086,6 +5086,13 @@ export type Database = {
         Args: { _days?: number; _store_id: string }
         Returns: Json
       }
+      check_price_below_cost: {
+        Args: never
+        Returns: {
+          produtos: number
+          store_id: string
+        }[]
+      }
       check_tradein_cost_divergence: {
         Args: never
         Returns: {
