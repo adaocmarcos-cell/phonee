@@ -616,9 +616,16 @@ export default function Vendas() {
                   <div className="rounded-lg border border-border bg-surface-elevated/40 p-3 flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-sm text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</span>
-                      <Badge variant="outline" className="capitalize text-[11px] px-2 py-0.5 whitespace-nowrap shrink-0">
-                        {pmLabel[s.payment_method] || s.payment_method}
-                      </Badge>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isReversed(s) && (
+                          <Badge className="bg-danger/15 text-danger border-danger/30 text-[11px] px-2 py-0.5 whitespace-nowrap">
+                            <RotateCcw className="h-3 w-3 mr-1" />Estornada
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="capitalize text-[11px] px-2 py-0.5 whitespace-nowrap">
+                          {pmLabel[s.payment_method] || s.payment_method}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">{dtShort}</div>
                     <div className="text-sm truncate" title={s.customer_name || "Avulso"}>
@@ -638,24 +645,16 @@ export default function Vendas() {
                       <div className="text-[11px] text-muted-foreground whitespace-nowrap">
                         Desc. <span className="metric">{brl(Number(s.discount))}</span>
                       </div>
-                      <div className="flex items-center gap-2">
                         <div className="text-right">
                           <div className="text-[10px] text-muted-foreground leading-none">Total</div>
-                          <div className="metric text-base font-semibold whitespace-nowrap">{brl(Number(s.total))}</div>
+                          <div className={`metric text-base font-semibold whitespace-nowrap ${isReversed(s) ? "line-through text-muted-foreground" : ""}`}>{brl(Number(s.total))}</div>
                           {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
                             <div className="text-[10px] font-mono text-emerald-700 whitespace-nowrap">líq. {brl(Number(s.net_value))}</div>
                           )}
                         </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title="Imprimir comprovante"
-                          onClick={() => onPrintReceipt(s)}
-                          className="h-11 w-11 shrink-0"
-                        >
-                          <Printer className="h-5 w-5" />
-                        </Button>
-                      </div>
+                    </div>
+                    <div className="border-t border-border/60 pt-2 -mx-1">
+                      <SaleActions s={s} />
                     </div>
                   </div>
                 </li>
