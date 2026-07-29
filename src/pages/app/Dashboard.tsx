@@ -239,6 +239,9 @@ export default function Dashboard() {
   const lucroBruto     = metrics?.lucro_bruto       ?? (revenueTotal - (metrics?.custo ?? 0));
   const lucroLiquido   = metrics?.lucro_liquido     ?? (metrics?.lucro ?? 0);
   const movimentoCaixa = metrics?.movimento_caixa   ?? 0;
+  const entradasPeriodo= metrics?.entradas_periodo  ?? 0;
+  const saidasPeriodo  = metrics?.saidas_periodo    ?? 0;
+  const comprasPagas   = metrics?.compras_estoque_pagas ?? 0;
   const salesCount     = metrics?.qtd_vendas        ?? 0;
   const ticketMedio    = metrics?.ticket_medio      ?? 0;
   const pay            = (metrics?.formas_pagamento ?? []).map((p) => ({ ...p, name: PAY_LABEL[p.name] ?? p.name }));
