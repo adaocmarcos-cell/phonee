@@ -347,11 +347,11 @@ export default function Dashboard() {
             node: canSeeCost(role) ? (
               <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
                 <MetricCard
-                  label="Lucro bruto"
+                  label={custoEstimado ? "Lucro bruto (estimativa)" : "Lucro bruto"}
                   value={brl(lucroBruto)}
-                  delta={`Margem bruta ${pct(margemBruta)} · ver detalhes`}
+                  delta={`Margem ${pct(margemBruta)} · CMV calculado sobre ${pct(cobertura)} das vendas`}
                   icon={Percent}
-                  tone={lucroBruto >= 0 ? "violet" : "danger"}
+                  tone={custoEstimado ? "warning" : lucroBruto >= 0 ? "violet" : "danger"}
                   className="h-full"
                 />
               </button>
