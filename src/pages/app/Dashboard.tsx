@@ -279,48 +279,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {canSeeCost(role) && (
-        <Card className="p-5 sm:p-6 mb-6 bg-card border-border shadow-card">
-          <div className="flex items-baseline justify-between gap-2 mb-4">
-            <h3 className="font-semibold">Resultado</h3>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground truncate">{periodTitle}</span>
-              <Button size="sm" variant="outline" onClick={() => setResultOpen(true)}>
-                Ver detalhes
-              </Button>
-            </div>
-          </div>
-          <div className="space-y-1.5 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between gap-3">
-              <span>Faturamento</span>
-              <span className="font-mono tabular-nums">{brl(revenueTotal)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>− Custo da mercadoria</span>
-              <span className="font-mono tabular-nums">{brl(costMonth)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>− Despesas</span>
-              <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
-            </div>
-          </div>
-          <div className="border-t border-border my-4" />
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-            <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs uppercase tracking-widest font-mono text-muted-foreground mb-1">
-                = Lucro do período
-              </div>
-              <div className={cn("metric font-bold leading-tight text-2xl sm:text-3xl truncate", lucroMes >= 0 ? "text-success" : "text-danger")}>
-                {brl(lucroMes)}
-              </div>
-            </div>
-            <div className="text-sm text-muted-foreground font-mono shrink-0">
-              Margem {pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)}
-            </div>
-          </div>
-        </Card>
-      )}
-
       {metricsError && (
         <Card className="p-4 mb-4 border-danger/40 bg-danger/5 flex items-center justify-between gap-3">
           <div className="flex items-start gap-3">
