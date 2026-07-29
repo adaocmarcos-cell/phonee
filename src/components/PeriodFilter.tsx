@@ -19,7 +19,7 @@ const LABELS: Record<string, string> = {
   "30d": "Últimos 30 dias",
   "90d": "Últimos 90 dias",
   "3m": "3 meses",
-  "6m": "6 meses",
+  "6m": "Últimos 180 dias",
   month: "Mês atual",
   year: "Ano atual",
   "1y": "1 ano",
