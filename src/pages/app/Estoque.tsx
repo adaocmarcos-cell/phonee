@@ -44,6 +44,7 @@ type Product = {
   stock_current: number; stock_min: number;
   last_sold_at: string | null;
   supplier?: string | null;
+  item_kind?: string | null;
 };
 
 const categoryLabel: Record<string, string> = {
@@ -97,7 +98,7 @@ export default function Estoque() {
     // Aparelhos pendentes de regularização (sem IMEI ou com quantidade > 1)
     const { data: pend } = await supabase
       .from("products")
-      .select("id,name,sku,brand,category,condition,status,cost_price,sale_price,stock_current,stock_min,last_sold_at,supplier")
+      .select("id,name,sku,brand,category,condition,status,cost_price,sale_price,stock_current,stock_min,last_sold_at,supplier,item_kind")
       .eq("store_id", store.id)
       .eq("item_kind", "aparelho")
       .gt("stock_current", 0)
@@ -846,6 +847,16 @@ export default function Estoque() {
                             title="Aparelho sem IMEI — clique para regularizar"
                           >
                             IMEI pendente
+                          </button>
+                        )}
+                        {p.item_kind === "aparelho" && Number(p.stock_current) > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); navigate("/painel/estoque/aparelhos/desdobrar"); }}
+                            className="shrink-0 rounded border border-primary/40 bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 font-normal"
+                            title="Aparelho com mais de 1 unidade — clique para desdobrar em fichas individuais"
+                          >
+                            Desdobrar
                           </button>
                         )}
                       </div>

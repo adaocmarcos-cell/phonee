@@ -4994,6 +4994,7 @@ export type Database = {
         Args: { _source?: string }
         Returns: string
       }
+      phonee_stock_contract_test: { Args: never; Returns: Json }
       phonee_store_bindings: {
         Args: { _store_id: string }
         Returns: {
@@ -5098,6 +5099,20 @@ export type Database = {
           _received_at?: string
         }
         Returns: Json
+      }
+      reconcile_stock: {
+        Args: { _store_id: string }
+        Returns: {
+          difference: number
+          item_kind: string
+          last_movement_at: string
+          last_movement_type: string
+          ledger_balance: number
+          name: string
+          product_id: string
+          sku: string
+          stock_current: number
+        }[]
       }
       redeem_coupon: {
         Args: {
@@ -5234,6 +5249,13 @@ export type Database = {
         Args: { _alert_id: string; _note?: string; _status: string }
         Returns: undefined
       }
+      split_device_units: {
+        Args: { _product_id: string; _units: Json }
+        Returns: {
+          imei: string
+          product_id: string
+        }[]
+      }
       stock_products_page: {
         Args: {
           _brand?: string
@@ -5250,6 +5272,7 @@ export type Database = {
           condition: string
           cost_price: number
           id: string
+          item_kind: string
           last_sold_at: string
           name: string
           sale_price: number
@@ -5261,8 +5284,10 @@ export type Database = {
           total_count: number
         }[]
       }
+      stock_reconcile_job: { Args: never; Returns: Json }
       store_data_health: { Args: { _store_id: string }; Returns: Json }
       sync_data_health_alert: { Args: { _store_id: string }; Returns: Json }
+      sync_stock_reconcile_alert: { Args: { _store_id: string }; Returns: Json }
       take_stock_snapshot: { Args: { p_date?: string }; Returns: number }
       track_device_by_imei: {
         Args: { _imei: string; _store_id: string }
