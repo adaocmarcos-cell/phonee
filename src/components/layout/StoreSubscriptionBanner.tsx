@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { BannerSlotItem } from "./BannerSlot";
 
 export function StoreSubscriptionBanner() {
   const { activeStoreSubscription, store } = useAuth();
@@ -17,6 +18,7 @@ export function StoreSubscriptionBanner() {
       : "A assinatura desta loja está com pagamento pendente.";
 
   return (
+    <BannerSlotItem id="store-subscription" priority={0}>
     <div className="mx-4 md:mx-6 mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 flex items-center gap-3 text-sm">
       <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
       <div className="flex-1 min-w-0">
@@ -30,5 +32,6 @@ export function StoreSubscriptionBanner() {
         Regularizar <ExternalLink className="h-3 w-3" />
       </button>
     </div>
+    </BannerSlotItem>
   );
 }
