@@ -809,6 +809,21 @@ export default function VendaNova() {
     });
     setProductQuery("");
     setShowProductList(false);
+    // A busca (search_sale_products) não devolve item_kind/imei. Carregamos aqui
+    // para saber se o item exige IMEI por unidade no carrinho.
+    (async () => {
+      const { data } = await supabase
+        .from("products").select("item_kind,imei").eq("id", draft.product_id).maybeSingle();
+      if (!data) return;
+      setItems((arr) => arr.map((i) => i.product_id === draft.product_id
+        ? {
+            ...i,
+            item_kind: (data as any).item_kind ?? i.item_kind,
+            imei_serial: i.imei_serial || (String((data as any).imei ?? "").trim() || undefined),
+            quantity: (data as any).item_kind === "aparelho" ? 1 : i.quantity,
+          }
+        : i));
+    })();
   };
 
   // Grava o custo informado inline no cadastro do produto. O create_sale copia
