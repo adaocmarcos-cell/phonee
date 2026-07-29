@@ -5271,6 +5271,7 @@ export type Database = {
           condition: string
           cost_price: number
           id: string
+          item_kind: string
           last_sold_at: string
           name: string
           sale_price: number
