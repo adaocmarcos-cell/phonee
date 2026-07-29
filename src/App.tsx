@@ -32,6 +32,7 @@ const ProductForm = lazy(() => import("./pages/app/ProductForm"));
 const EstoqueRelatorio = lazy(() => import("./pages/app/EstoqueRelatorio"));
 const EstoqueRelatoriosCentral = lazy(() => import("./pages/app/EstoqueRelatoriosCentral"));
 const EstoqueAuditoriaPDF = lazy(() => import("./pages/app/EstoqueAuditoriaPDF"));
+const EstoqueAuditoriaLedger = lazy(() => import("./pages/app/EstoqueAuditoriaLedger"));
 const Vendas = lazy(() => import("./pages/app/Vendas"));
 const VendaNova = lazy(() => import("./pages/app/VendaNova"));
 const Alertas = lazy(() => import("./pages/app/Alertas"));
@@ -150,6 +151,7 @@ const App = () => (
               <Route path="estoque/relatorio" element={<EstoqueRelatorio />} />
               <Route path="estoque/relatorios" element={<EstoqueRelatoriosCentral />} />
               <Route path="estoque/auditoria-pdf" element={<EstoqueAuditoriaPDF />} />
+              <Route path="estoque/auditoria-ledger" element={<EstoqueAuditoriaLedger />} />
               <Route path="estoque/rastreio-imei" element={<RastreioImei />} />
               <Route path="estoque/saude" element={<SaudeCadastro />} />
               <Route path="estoque/aparelhos/regularizar" element={<RegularizarAparelhos />} />
