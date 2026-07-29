@@ -523,9 +523,6 @@ export default function Dashboard() {
         ]}
       />
 
-      <div className="-mt-3 mb-6 flex justify-end">
-        <></>
-      </div>
       <Dialog open={resultOpen} onOpenChange={setResultOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
