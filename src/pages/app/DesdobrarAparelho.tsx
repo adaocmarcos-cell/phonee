@@ -195,7 +195,6 @@ export default function DesdobrarAparelho() {
                 <div>
                   <Label className="text-xs">Custo</Label>
                   <NumberInput
-                    currency
                     value={Number(u.cost_price || 0)}
                     onValueChange={(v) => setUnit(i, { cost_price: String(v ?? 0) })}
                   />
