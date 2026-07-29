@@ -82,49 +82,18 @@ export default function TransferenciaProdutos() {
     if (qty < 1 || qty > selected.stock_current) { toast.error("Quantidade inválida"); return; }
     setSubmitting(true);
     try {
-      // Buscar/duplicar produto destino por SKU/nome
-      let toProductId: string | null = null;
-      const { data: existing } = await supabase.from("products")
-        .select("id, stock_current")
-        .eq("store_id", toId)
-        .or(`sku.eq.${selected.sku ?? "___NONE___"},name.eq.${selected.name}`)
-        .maybeSingle();
-
-      if (existing) {
-        toProductId = existing.id;
-        await supabase.from("products")
-          .update({ stock_current: Number(existing.stock_current ?? 0) + qty })
-          .eq("id", existing.id);
-      } else {
-        // Cria cópia mínima no destino
-        const { data: full } = await (supabase.from("products") as any)
-          .select("*").eq("id", selected.id).maybeSingle();
-        if (!full) throw new Error("Produto de origem não encontrado");
-        const { id: _id, created_at: _c, updated_at: _u, store_id: _s, stock_current: _sc, ...copy } = full;
-        const { data: created, error: eIns } = await (supabase.from("products") as any)
-          .insert({ ...copy, store_id: toId, stock_current: qty })
-          .select("id").single();
-        if (eIns) throw eIns;
-        toProductId = created.id;
-      }
-
-      // Decrementa origem
-      const { error: eUp } = await supabase.from("products")
-        .update({ stock_current: selected.stock_current - qty })
-        .eq("id", selected.id);
-      if (eUp) throw eUp;
-
-      // Registra transferência
-      const { error: eTr } = await (supabase.from("product_transfers") as any).insert({
-        from_store_id: fromId,
-        to_store_id: toId,
-        from_product_id: selected.id,
-        to_product_id: toProductId,
-        quantity: qty,
-        note: note || null,
-        user_id: user.id,
+      // Transferência atômica no banco: cria/localiza o produto no destino,
+      // grava o documento em product_transfers e registra as duas pontas no
+      // ledger (transferencia_out / transferencia_in) com a origem correta.
+      const { error: eRpc } = await (supabase as any).rpc("transfer_products", {
+        _from_store_id: fromId,
+        _to_store_id: toId,
+        _from_product_id: selected.id,
+        _quantity: qty,
+        _note: note || null,
+        _to_product_id: null,
       });
-      if (eTr) throw eTr;
+      if (eRpc) throw eRpc;
 
       // Stock adjustments para auditoria nas duas lojas
       await supabase.from("stock_adjustments").insert([
