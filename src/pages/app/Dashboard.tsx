@@ -339,13 +339,24 @@ export default function Dashboard() {
           },
           {
             id: "margem-ou-baixo",
-            node: (
+            node: canSeeCost(role) ? (
+              <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
+                <MetricCard
+                  label="Lucro bruto"
+                  value={brl(lucroBruto)}
+                  delta={`Margem bruta ${pct(margemBruta)} · ver detalhes`}
+                  icon={Percent}
+                  tone={lucroBruto >= 0 ? "violet" : "danger"}
+                  className="h-full"
+                />
+              </button>
+            ) : (
               <MetricCard
-                label={canSeeCost(role) ? "Margem média" : "Estoque baixo"}
-                value={canSeeCost(role) ? pct(margin) : num(productsLow)}
-                icon={canSeeCost(role) ? Percent : AlertTriangle}
-                tone={canSeeCost(role) ? "violet" : "warning"}
-                delta={canSeeCost(role) ? "(Receita − custo) / receita" : `${num(productsTotal)} produtos no estoque`}
+                label="Estoque baixo"
+                value={num(productsLow)}
+                icon={AlertTriangle}
+                tone="warning"
+                delta={`${num(productsTotal)} produtos no estoque`}
                 className="h-full"
               />
             ),
@@ -353,18 +364,35 @@ export default function Dashboard() {
           ...(canSeeCost(role)
             ? [
                 {
-                  id: "lucro-periodo",
+                  id: "lucro-liquido",
                   node: (
                     <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
                       <MetricCard
-                        label={`Lucro — ${periodLabel}`}
-                        value={brl(lucroMes)}
-                        delta={`Margem ${pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)} · ver detalhes`}
+                        label="Lucro líquido"
+                        value={brl(lucroLiquido)}
+                        delta={`− ${brl(expensesMonth)} de despesas`}
                         icon={PiggyBank}
-                        tone={lucroMes >= 0 ? "success" : "danger"}
+                        tone={lucroLiquido >= 0 ? "success" : "danger"}
                         className="h-full"
                       />
                     </button>
+                  ),
+                },
+                {
+                  id: "movimento-caixa",
+                  node: (
+                    <MetricCard
+                      label="Movimento de caixa"
+                      value={brl(movimentoCaixa)}
+                      delta={
+                        comprasEstoque > 0
+                          ? `inclui ${brl(comprasEstoque)} investidos em estoque`
+                          : "Entradas − saídas pagas no período"
+                      }
+                      icon={Banknote}
+                      tone={movimentoCaixa >= 0 ? "success" : "danger"}
+                      className="h-full"
+                    />
                   ),
                 },
               ]
