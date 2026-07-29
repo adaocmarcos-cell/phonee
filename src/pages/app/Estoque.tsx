@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/NumberInput";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight, Copy } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight, Copy, Coins } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -59,7 +59,7 @@ export default function Estoque() {
   const [stockMetrics, setStockMetrics] = useState<ProductStockMetrics>({
     product_count: 0, units: 0, low_count: 0, stalled_count: 0,
     sale_value: 0, cost_value: 0, parts_count: 0, parts_units: 0,
-    parts_low_count: 0, parts_sale_value: 0, alert_count: 0,
+    parts_low_count: 0, parts_sale_value: 0, parts_cost_value: 0, alert_count: 0,
   });
   const [filterOptions, setFilterOptions] = useState<{ brands: string[]; categories: string[]; suppliers: string[] }>({ brands: [], categories: [], suppliers: [] });
   const [q, setQ] = useState("");
@@ -182,6 +182,7 @@ export default function Estoque() {
       units: stockMetrics.units,
       low: stockMetrics.low_count + stockMetrics.parts_low_count,
       value: stockMetrics.sale_value + stockMetrics.parts_sale_value,
+      totalCostValue: stockMetrics.cost_value + stockMetrics.parts_cost_value,
       costValue,
       saleValue,
       profitValue: saleValue - costValue,
@@ -549,7 +550,7 @@ export default function Estoque() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className={`grid grid-cols-2 gap-3 mb-4 ${canSeeCost(role) ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
         <Card className="bg-card border-border shadow-card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -574,6 +575,32 @@ export default function Estoque() {
             </div>
           </div>
         </Card>
+        {canSeeCost(role) && (
+          <Card className="bg-card border-border shadow-card p-4">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Preço de custo</div>
+                <div className="metric text-2xl font-bold mt-1">{brl(totals.totalCostValue)}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {totals.totalCostValue > 0 ? (
+                    <>
+                      margem{" "}
+                      <span className="text-success font-medium">
+                        {brl(totals.value - totals.totalCostValue)}
+                      </span>{" "}
+                      ({(((totals.value - totals.totalCostValue) / totals.totalCostValue) * 100).toFixed(0)}%)
+                    </>
+                  ) : (
+                    "custo investido"
+                  )}
+                </div>
+              </div>
+              <div className="h-9 w-9 rounded-md bg-info/10 flex items-center justify-center text-info">
+                <Coins className="h-4 w-4" />
+              </div>
+            </div>
+          </Card>
+        )}
         <Card className="bg-card border-border shadow-card p-4">
           <div className="flex items-center justify-between">
             <div>
