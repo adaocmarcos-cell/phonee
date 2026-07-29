@@ -683,8 +683,13 @@ export default function Vendas() {
                 const due = s.due_date ? new Date(s.due_date + "T00:00:00") : null;
                 const overdue = due && due < today0;
                 return (
-                <tr key={s.id} className="hover:bg-surface-elevated/40">
-                  <td className="px-4 py-3 font-mono text-xs text-primary font-semibold whitespace-nowrap">{fmtNum(s.sale_number)}</td>
+                <tr key={s.id} className={`hover:bg-surface-elevated/40 ${isReversed(s) ? "opacity-70" : ""}`}>
+                  <td className="px-4 py-3 font-mono text-xs text-primary font-semibold whitespace-nowrap">
+                    {fmtNum(s.sale_number)}
+                    {isReversed(s) && (
+                      <div className="mt-1"><Badge className="bg-danger/15 text-danger border-danger/30 text-[10px]"><RotateCcw className="h-3 w-3 mr-1" />Estornada</Badge></div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">{new Date(s.created_at).toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-3 max-w-[240px]"><div className="truncate" title={s.customer_name || "Avulso"}>{s.customer_name || <span className="text-muted-foreground">Avulso</span>}</div></td>
                   <td className="px-4 py-3 whitespace-nowrap"><Badge variant="outline" className="capitalize text-xs whitespace-nowrap px-2 py-0.5">{pmLabel[s.payment_method] || s.payment_method}</Badge></td>
@@ -704,7 +709,7 @@ export default function Vendas() {
                   )}
                   <td className="px-4 py-3 text-right metric text-muted-foreground whitespace-nowrap">{brl(Number(s.discount))}</td>
                   <td className="px-4 py-3 text-right metric font-semibold whitespace-nowrap">
-                    {brl(Number(s.total))}
+                    <span className={isReversed(s) ? "line-through text-muted-foreground" : ""}>{brl(Number(s.total))}</span>
                     {s.net_value != null && Number(s.net_value) !== Number(s.total) && (
                       <div className="text-[10px] font-mono text-emerald-700">
                         líq. {brl(Number(s.net_value))}
@@ -717,79 +722,7 @@ export default function Vendas() {
                     )}
                   </td>
                   <td className="px-2 py-3 text-right">
-                    <div className="flex justify-end gap-1">
-                      {(s.payment_method === "credito" || s.payment_method === "debito") && (
-                        <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" onClick={() => openAdjust(s)}>
-                          <Sliders className="h-4 w-4 text-info" />
-                        </Button>
-                      )}
-                      {s.payment_status === "pendente" && (
-                        <>
-                          <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" onClick={() => openReminder(s)}>
-                            <MessageCircle className="h-4 w-4 text-success" />
-                          </Button>
-                          <Button size="icon" variant="ghost" title="Marcar como pago" onClick={() => markPaid(s)}>
-                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                          </Button>
-                        </>
-                      )}
-                      {s.payment_status !== "pendente" && s.customer_whatsapp && store?.id && (
-                        <WhatsappSendButton
-                          storeId={store.id}
-                          phone={s.customer_whatsapp}
-                          saleId={s.id}
-                          vars={{
-                            cliente: s.customer_name || "cliente",
-                            loja: (store as any)?.trade_name || store?.name || "",
-                            valor: brl(Number(s.total || 0)),
-                            prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
-                          }}
-                          allowedEvents={["venda_concluida"]}
-                          className="h-8 w-8 p-0"
-                          size="sm"
-                        />
-                      )}
-                      <Button size="icon" variant="ghost" title="Imprimir comprovante" onClick={() => onPrintReceipt(s)}>
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" title="Ver itens da venda" onClick={() => openDetails(s)}>
-                        <Eye className="h-4 w-4 text-info" />
-                      </Button>
-                      {canRegisterSale(role) && (
-                        <Button size="icon" variant="ghost" title="Devolver / trocar itens" onClick={() => setReturnSale(s)}>
-                          <Undo2 className="h-4 w-4 text-warning" />
-                        </Button>
-                      )}
-                      {canRegisterSale(role) && (
-                        <Button size="icon" variant="ghost" title="Editar venda" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canRegisterSale(role) && canDeleteSale && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="icon" variant="ghost" title="Estornar venda">
-                              <RotateCcw className="h-4 w-4 text-danger" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Estornar venda #{s.sale_number}?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                O valor de <strong>{brl(Number(s.total))}</strong> será debitado do faturamento e os itens
-                                voltarão ao estoque automaticamente. Esta ação é registrada na auditoria.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => estornarVenda(s)} className="bg-danger text-danger-foreground hover:bg-danger/90">
-                                Confirmar estorno
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
+                    <SaleActions s={s} />
                   </td>
                 </tr>
                 );
