@@ -2426,6 +2426,47 @@ Obrigado pela preferência.`;
       </Dialog>
 
       {/* Confirmação pós-venda com atalho para o CRM */}
+      <Dialog open={imeiGate.open} onOpenChange={(o) => !o && setImeiGate({ open: false, rows: [] })}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Informe o IMEI para concluir a venda</DialogTitle>
+            <DialogDescription>
+              O prazo de regularização encerrou. Estes aparelhos ainda não têm IMEI cadastrado —
+              informe agora (15 dígitos) para garantir rastreio e garantia vinculada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+            {imeiGate.rows.map((r, idx) => (
+              <div key={r.id} className="space-y-1">
+                <div className="text-sm font-medium">{r.name}</div>
+                <Input
+                  value={r.imei}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 15);
+                    setImeiGate((g) => ({ ...g, rows: g.rows.map((x, i) => (i === idx ? { ...x, imei: v } : x)) }));
+                  }}
+                  placeholder="15 dígitos"
+                  inputMode="numeric"
+                  maxLength={15}
+                  className="font-mono"
+                />
+                {r.imei.length === 15 && !isValidImei(r.imei) && (
+                  <p className="text-xs text-danger">IMEI inválido (dígito verificador).</p>
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImeiGate({ open: false, rows: [] })} disabled={imeiGateBusy}>
+              Cancelar
+            </Button>
+            <Button onClick={saveGateImeis} disabled={imeiGateBusy}>
+              {imeiGateBusy ? "Salvando..." : "Salvar e finalizar venda"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={serviceDialog.open} onOpenChange={(o) => setServiceDialog((s) => ({ ...s, open: o }))}>
         <DialogContent className="max-w-md">
           <DialogHeader>
