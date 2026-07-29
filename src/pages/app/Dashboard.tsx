@@ -549,19 +549,29 @@ export default function Dashboard() {
                 <span>Peças de O.S.</span>
                 <span className="font-mono tabular-nums">{brl(metrics?.custo_os ?? 0)}</span>
               </div>
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/60">
+                <span className="text-muted-foreground">= Lucro bruto</span>
+                <span className="font-mono tabular-nums font-semibold">{brl(lucroBruto)}</span>
+              </div>
               <div className="flex items-center justify-between gap-3 pt-2">
-                <span className="text-muted-foreground">− Despesas</span>
+                <span className="text-muted-foreground">− Despesas operacionais</span>
                 <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
               </div>
+              {comprasEstoque > 0 && (
+                <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                  <span>Compra de mercadoria (não é despesa — vira CMV na venda)</span>
+                  <span className="font-mono tabular-nums">{brl(comprasEstoque)}</span>
+                </div>
+              )}
             </div>
             <div className="border-t border-border" />
             <div className="flex items-end justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">= Lucro do período</div>
-                <div className={cn("metric font-bold text-2xl", lucroMes >= 0 ? "text-success" : "text-danger")}>{brl(lucroMes)}</div>
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">= Lucro líquido</div>
+                <div className={cn("metric font-bold text-2xl", lucroLiquido >= 0 ? "text-success" : "text-danger")}>{brl(lucroLiquido)}</div>
               </div>
               <div className="text-sm text-muted-foreground font-mono">
-                Margem {pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)}
+                Margem líquida {pct(revenueTotal > 0 ? (lucroLiquido / revenueTotal) * 100 : 0)}
               </div>
             </div>
             <Button
@@ -577,7 +587,7 @@ export default function Dashboard() {
                   custoProdutos: metrics?.custo_produtos ?? 0,
                   custoOs: metrics?.custo_os ?? 0,
                   despesas: expensesMonth,
-                  lucro: lucroMes,
+                  lucro: lucroLiquido,
                   qtdVendas: salesCount,
                   ticketMedio,
                   recebidoCaixa,
