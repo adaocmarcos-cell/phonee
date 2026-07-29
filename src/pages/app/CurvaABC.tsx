@@ -148,7 +148,8 @@ export default function CurvaABC() {
       const { data: products, error: pErr } = await supabase
         .from("products")
         .select("id, name, stock_current, last_sold_at, cost_price")
-        .eq("store_id", store.id);
+        .eq("store_id", store.id)
+        .in("item_kind", ["aparelho", "acessorio"]);
       if (pErr) { handleSupabaseError(pErr, "Erro ao carregar produtos"); setLoading(false); return; }
       const { data: sales, error: sErr } = await supabase
         .from("sales")
