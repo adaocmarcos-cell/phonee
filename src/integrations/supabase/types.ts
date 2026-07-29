@@ -3234,6 +3234,7 @@ export type Database = {
           restock: boolean
           return_id: string
           sale_item_id: string
+          unit_cost: number
           unit_value: number
           warranty_os_id: string | null
         }
@@ -3246,6 +3247,7 @@ export type Database = {
           restock?: boolean
           return_id: string
           sale_item_id: string
+          unit_cost?: number
           unit_value?: number
           warranty_os_id?: string | null
         }
@@ -3258,6 +3260,7 @@ export type Database = {
           restock?: boolean
           return_id?: string
           sale_item_id?: string
+          unit_cost?: number
           unit_value?: number
           warranty_os_id?: string | null
         }
