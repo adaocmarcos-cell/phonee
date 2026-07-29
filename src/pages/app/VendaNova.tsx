@@ -187,6 +187,10 @@ export default function VendaNova() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [skuInput, setSkuInput] = useState("");
+  // Produto sem custo cadastrado: aviso não-bloqueante + atalho para preencher.
+  const [costFix, setCostFix] = useState<{ id: string; name: string } | null>(null);
+  const [costFixValue, setCostFixValue] = useState<number | "">("");
+  const [costFixSaving, setCostFixSaving] = useState(false);
   const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
