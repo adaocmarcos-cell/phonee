@@ -45,7 +45,7 @@ function docLink(g: Gap): string | null {
   switch (g.kind) {
     case "venda": return `/painel/vendas/${g.origin_id}/editar`;
     case "devolucao": return `/painel/vendas`;
-    case "uso_os": return `/painel/ordens-servico/${g.origin_id}`;
+    case "uso_os": return `/painel/ordens/${g.origin_id}`;
     default: return `/painel/estoque/transferencia`;
   }
 }
