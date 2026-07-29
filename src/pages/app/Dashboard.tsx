@@ -524,6 +524,85 @@ export default function Dashboard() {
       />
 
       <div className="-mt-3 mb-6 flex justify-end">
+        <></>
+      </div>
+      <Dialog open={resultOpen} onOpenChange={setResultOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resultado do período</DialogTitle>
+            <DialogDescription>{periodTitle} · {store?.name ?? ""}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Faturamento</span>
+                <span className="font-mono tabular-nums">{brl(revenueTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Vendas</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.faturamento_vendas ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Ordens de serviço</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.faturamento_os ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <span className="text-muted-foreground">− Custo da mercadoria</span>
+                <span className="font-mono tabular-nums">{brl(costMonth)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Produtos vendidos (CMV)</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.custo_produtos ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                <span>Peças de O.S.</span>
+                <span className="font-mono tabular-nums">{brl(metrics?.custo_os ?? 0)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <span className="text-muted-foreground">− Despesas</span>
+                <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
+              </div>
+            </div>
+            <div className="border-t border-border" />
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">= Lucro do período</div>
+                <div className={cn("metric font-bold text-2xl", lucroMes >= 0 ? "text-success" : "text-danger")}>{brl(lucroMes)}</div>
+              </div>
+              <div className="text-sm text-muted-foreground font-mono">
+                Margem {pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)}
+              </div>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() =>
+                exportResultPDF({
+                  storeName: store?.name ?? "",
+                  periodTitle,
+                  faturamentoTotal: revenueTotal,
+                  faturamentoVendas: metrics?.faturamento_vendas ?? 0,
+                  faturamentoOs: metrics?.faturamento_os ?? 0,
+                  custoTotal: costMonth,
+                  custoProdutos: metrics?.custo_produtos ?? 0,
+                  custoOs: metrics?.custo_os ?? 0,
+                  despesas: expensesMonth,
+                  lucro: lucroMes,
+                  qtdVendas: salesCount,
+                  ticketMedio,
+                  recebidoCaixa,
+                  recebidoTroca,
+                  aReceber: arCrediario,
+                })
+              }
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              Baixar PDF do resultado
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="-mt-3 mb-6 flex justify-end">
         <button
           type="button"
           onClick={() => setEditingLayout((v) => !v)}
