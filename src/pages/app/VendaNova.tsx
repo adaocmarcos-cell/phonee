@@ -191,8 +191,9 @@ export default function VendaNova() {
   // Produtos no carrinho sem cost_price cadastrado (aviso inline, não bloqueia).
   const [costMissing, setCostMissing] = useState<Record<string, boolean>>({});
   const [costDraft, setCostDraft] = useState<Record<string, number>>({});
-  // Produto bloqueado por falta de sale_price (campo inline para definir o preço).
-  const [priceFix, setPriceFix] = useState<{ product: any; value: number } | null>(null);
+  // Itens no carrinho aguardando preço de venda (resolução inline, sem sair da venda).
+  const [pricePending, setPricePending] = useState<Record<string, boolean>>({});
+  const [priceDraft, setPriceDraft] = useState<Record<string, number>>({});
   const [inlineSaving, setInlineSaving] = useState(false);
   const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
@@ -752,19 +753,20 @@ export default function VendaNova() {
       toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
       return;
     }
-    // BLOQUEIO: produto sem preço de venda cadastrado. Oferece campo inline
-    // para definir o preço (grava em products.sale_price) antes de adicionar.
-    if (Number(p.sale_price ?? 0) <= 0) {
-      setPriceFix({ product: p, value: 0 });
-      toast.error(`"${p.name}" está sem preço de venda cadastrado. Defina o preço para adicionar ao carrinho.`);
-      setShowProductList(false);
-      return;
-    }
     // Vinculação validada de product_id, nome, preço e estoque.
     const built = buildLineItemFromProduct(p);
     if (built.ok === false) { toast.error(built.error); return; }
     const draft = built.item;
-    built.warnings.forEach((w) => toast.warning(w));
+    const needsPrice = Number(p.sale_price ?? 0) <= 0;
+    if (needsPrice) {
+      // Sem preço cadastrado: entra no carrinho em modo de edição. A trava é na
+      // conclusão da venda, nunca na adição do item.
+      setPricePending((s) => ({ ...s, [draft.product_id]: true }));
+      setPriceDraft((s) => ({ ...s, [draft.product_id]: s[draft.product_id] ?? 0 }));
+      toast.info(`Informe o preço de venda de "${draft.name}".`);
+    } else {
+      built.warnings.forEach((w) => toast.warning(w));
+    }
 
     // Aviso NÃO bloqueante: sem custo cadastrado o lucro da venda não é calculado.
     if (Number(p.cost_price ?? 0) <= 0) {
