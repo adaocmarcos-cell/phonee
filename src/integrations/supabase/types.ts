@@ -4994,6 +4994,7 @@ export type Database = {
         Args: { _source?: string }
         Returns: string
       }
+      phonee_stock_contract_test: { Args: never; Returns: Json }
       phonee_store_bindings: {
         Args: { _store_id: string }
         Returns: {
