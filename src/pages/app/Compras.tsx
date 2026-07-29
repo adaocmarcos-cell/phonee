@@ -668,6 +668,7 @@ export default function Compras() {
       if ((res.created ?? 0) > 0) toast.message(`${res.created} produto(s) novo(s) cadastrado(s)`);
       if ((res.updated ?? 0) > 0) toast.message(`${res.updated} produto(s) tiveram saldo atualizado`);
       if (form.payment_status === "pago" && orderTotal > 0) toast.message("Despesa lançada no financeiro");
+      if (form.payment_status === "a_pagar" && orderTotal > 0) toast.message("Conta a pagar gerada no financeiro");
     } else {
       toast.success("Entrada atualizada · estoque recalculado por delta");
       const summary = buildDeltaSummary(originalItems, items, orderTotal);
@@ -933,6 +934,10 @@ export default function Compras() {
                 <div className="mt-2">
                   <Label className="text-[11px] text-muted-foreground">Vencimento</Label>
                   <Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Gera uma conta a pagar automaticamente. Se ficar em branco, o vencimento
+                    será a previsão de entrega ou 30 dias após a entrada.
+                  </p>
                 </div>
               )}
             </div>
