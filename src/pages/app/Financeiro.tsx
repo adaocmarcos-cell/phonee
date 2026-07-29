@@ -284,6 +284,19 @@ export default function Financeiro() {
         }
       />
 
+      {/* Atalhos gerenciais */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Button variant="outline" size="sm" onClick={() => navigate("/painel/financeiro/fluxo-caixa")}>
+          <LineChart className="h-3.5 w-3.5 mr-1" />Fluxo de caixa projetado
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate("/painel/financeiro/dre")}>
+          <FileText className="h-3.5 w-3.5 mr-1" />DRE Gerencial
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => navigate("/painel/financeiro/taxas")}>
+          <Percent className="h-3.5 w-3.5 mr-1" />Taxas de maquininha
+        </Button>
+      </div>
+
       {/* CTA Custos & Despesas (integração) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <button
@@ -497,40 +510,14 @@ export default function Financeiro() {
         </TabsContent>
 
         <TabsContent value="pagar">
-          <Card className="bg-card border-border shadow-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <span className="text-xs uppercase tracking-widest font-mono text-muted-foreground">Despesas e contas a pagar</span>
-              <Button size="sm" variant="outline" onClick={() => navigate("/painel/despesas")}>Lançar nova despesa <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => navigate("/painel/despesas")}>
+                Despesas já realizadas <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
             </div>
-            <table className="w-full text-sm">
-              <thead className="bg-surface-elevated text-[11px] uppercase tracking-widest font-mono text-muted-foreground">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium">Descrição</th>
-                  <th className="text-left px-4 py-3 font-medium">Categoria</th>
-                  <th className="text-left px-4 py-3 font-medium">Forma</th>
-                  <th className="text-left px-4 py-3 font-medium">Data</th>
-                  <th className="text-center px-4 py-3 font-medium">Status</th>
-                  <th className="text-right px-4 py-3 font-medium">Valor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {loading ? (
-                  <tr><td colSpan={6} className="px-4 py-12 text-center text-xs text-muted-foreground font-mono">CARREGANDO…</td></tr>
-                ) : payables.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">Nenhuma despesa no período.</td></tr>
-                ) : payables.map((p) => (
-                  <tr key={p.id} className="hover:bg-surface-elevated/40">
-                    <td className="px-4 py-2.5 max-w-[320px] truncate" title={p.description}>{p.description}</td>
-                    <td className="px-4 py-2.5"><Badge variant="outline" className="text-[10px]">{p.category}</Badge></td>
-                    <td className="px-4 py-2.5 text-xs">{p.method}</td>
-                    <td className="px-4 py-2.5 text-xs font-mono text-muted-foreground">{new Date(p.date).toLocaleDateString("pt-BR")}</td>
-                    <td className="px-4 py-2.5 text-center"><StatusBadge s={p.status} /></td>
-                    <td className="px-4 py-2.5 text-right metric font-semibold text-danger">{brl(p.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+            {store && <PayablesTab storeId={store.id} />}
+          </div>
         </TabsContent>
 
         <TabsContent value="aberto">
