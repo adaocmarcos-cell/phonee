@@ -3,6 +3,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { StoreSubscriptionBanner } from "./StoreSubscriptionBanner";
 import { TrialExpiryBanner } from "@/components/billing/TrialExpiryBanner";
+import { BannerSlotProvider } from "./BannerSlot";
+import { DataHealthBanner } from "@/components/dataHealth/DataHealthBanner";
 import { AlertTriangle, HelpCircle, LogOut, Search } from "lucide-react";
 import { NotificationsBell } from "./NotificationsBell";
 import { helpHrefForPath } from "@/content/helpManual";
@@ -111,8 +113,11 @@ export default function AppLayout() {
               </Button>
             </div>
           </header>
-          <StoreSubscriptionBanner />
-          <TrialExpiryBanner />
+          <BannerSlotProvider>
+            <StoreSubscriptionBanner />
+            <TrialExpiryBanner />
+            <DataHealthBanner />
+          </BannerSlotProvider>
           <main
             className={cn(
               "flex-1 p-3 sm:p-4 md:p-6 overflow-auto overflow-x-hidden",
