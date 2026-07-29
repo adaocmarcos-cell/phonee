@@ -13,7 +13,7 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 }
 
 type EventKind =
-  | "new_sale" | "low_stock" | "bill_due" | "new_service" | "monthly_report" | "test";
+  | "new_sale" | "low_stock" | "bill_due" | "new_service" | "monthly_report" | "data_health_imei" | "test";
 
 function brl(n: number) {
   return Number(n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -58,6 +58,13 @@ function buildMessage(event: EventKind, payload: any): { title: string; body: st
         url: "/app/dashboard",
         tag: `report-${payload?.month_key ?? ""}`,
       };
+    case "data_health_imei":
+      return {
+        title: "📱 Aparelhos sem IMEI",
+        body: `${payload?.pendentes ?? 0} aparelho(s) pendentes${payload?.dias_restantes != null ? ` · ${payload.dias_restantes} dia(s) restantes` : ""}. Regularize em poucos minutos.`,
+        url: "/painel/estoque/aparelhos/regularizar",
+        tag: "data-health-imei",
+      };
     case "test":
       return { title: "🔔 Notificações ativas", body: "Tudo certo! Você receberá os avisos do Phonee aqui.", url: "/app/configuracoes" };
     default:
@@ -71,6 +78,7 @@ const PREF_COLUMN: Record<EventKind, string | null> = {
   bill_due: "notify_bill_due",
   new_service: "notify_new_service",
   monthly_report: "notify_monthly_report",
+  data_health_imei: null,
   test: null,
 };
 

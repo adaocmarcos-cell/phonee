@@ -53,6 +53,7 @@ const OrdemServicoForm = lazy(() => import("./pages/app/OrdemServicoForm"));
 const RelatoriosOS = lazy(() => import("./pages/app/RelatoriosOS"));
 const PartsInventory = lazy(() => import("./pages/app/PartsInventory"));
 const RastreioImei = lazy(() => import("./pages/app/RastreioImei"));
+const RegularizarAparelhos = lazy(() => import("./pages/app/RegularizarAparelhos"));
 const VendasPecas = lazy(() => import("./pages/app/VendasPecas"));
 const Configuracoes = lazy(() => import("./pages/app/Configuracoes"));
 const TabelasPreco = lazy(() => import("./pages/app/TabelasPreco"));
@@ -98,6 +99,7 @@ const PhoneePlanos = lazy(() => import("./pages/phonee/Planos"));
 const PhoneeVinculos = lazy(() => import("./pages/phonee/Vinculos"));
 const PhoneeAuditLog = lazy(() => import("./pages/phonee/AuditLog"));
 const PhoneeBonificacoes = lazy(() => import("./pages/phonee/Bonificacoes"));
+const PhoneeDataHealth = lazy(() => import("./pages/phonee/DataHealth"));
 
 const RouteFallback = () => (
   <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
@@ -140,6 +142,7 @@ const App = () => (
               <Route path="estoque/relatorios" element={<EstoqueRelatoriosCentral />} />
               <Route path="estoque/auditoria-pdf" element={<EstoqueAuditoriaPDF />} />
               <Route path="estoque/rastreio-imei" element={<RastreioImei />} />
+              <Route path="estoque/aparelhos/regularizar" element={<RegularizarAparelhos />} />
               <Route path="estoque/:id" element={<ProductForm />} />
               <Route path="curva-abc" element={<CurvaABC />} />
               <Route path="troca" element={<TradeIn />} />
@@ -224,6 +227,7 @@ const App = () => (
               <Route path="audit-log" element={<PhoneeAuditLog />} />
               <Route path="diagnostico" element={<PhoneeDiagnostico />} />
               <Route path="bonificacoes" element={<PhoneeBonificacoes />} />
+              <Route path="data-health" element={<PhoneeDataHealth />} />
               <Route path="planos" element={<PhoneePlanos />} />
             </Route>
             <Route path="*" element={<NotFound />} />

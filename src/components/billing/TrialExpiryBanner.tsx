@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AlertTriangle, Clock, Crown, Rocket, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BannerSlotItem } from "@/components/layout/BannerSlot";
 
 type TrialSub = {
   id: string;
@@ -60,6 +61,7 @@ export function TrialExpiryBanner() {
   };
 
   return (
+    <BannerSlotItem id="trial-expiry" priority={1}>
     <div
       className={`border-b px-4 py-3 flex flex-wrap items-center gap-3 ${
         expired
@@ -100,5 +102,6 @@ export function TrialExpiryBanner() {
         )}
       </div>
     </div>
+    </BannerSlotItem>
   );
 }

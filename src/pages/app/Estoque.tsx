@@ -79,6 +79,8 @@ export default function Estoque() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<20 | 50 | 100>(20);
   const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [pendingOnly, setPendingOnly] = useState(false);
+  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   // Bulk action dialogs
@@ -91,6 +93,27 @@ export default function Estoque() {
     if (!store) return;
     setLoading(true);
     const activeQuery = skuQ.trim() ? skuQ.trim() : q;
+
+    // Aparelhos pendentes de regularização (sem IMEI ou com quantidade > 1)
+    const { data: pend } = await supabase
+      .from("products")
+      .select("id,name,sku,brand,category,condition,status,cost_price,sale_price,stock_current,stock_min,last_sold_at,supplier")
+      .eq("store_id", store.id)
+      .eq("item_kind", "aparelho")
+      .gt("stock_current", 0)
+      .or("imei.is.null,imei.eq.,stock_current.gt.1")
+      .order("name")
+      .limit(500);
+    const pendList = (pend ?? []) as unknown as Product[];
+    setPendingIds(new Set(pendList.map((p) => p.id)));
+
+    if (pendingOnly) {
+      setProducts(pendList);
+      setFilteredCount(pendList.length);
+      setLoading(false);
+      return;
+    }
+
     const [{ data: pData, error: pErr }, { data: metrics }, { data: options }] = await Promise.all([
       (supabase as any).rpc("stock_products_page", {
         _store_id: store.id,
@@ -116,7 +139,7 @@ export default function Estoque() {
       });
     }
     setLoading(false);
-  }, [store, q, skuQ, filter, brandFilter, categoryFilter, page, pageSize]);
+  }, [store, q, skuQ, filter, brandFilter, categoryFilter, page, pageSize, pendingOnly]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -143,7 +166,7 @@ export default function Estoque() {
   }, [products, skuQ]);
 
   // Reset page when filter changes
-  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, skuQ, filter, brandFilter, categoryFilter, pageSize]);
+  useEffect(() => { setPage(1); setSelectedIds(new Set()); }, [q, skuQ, filter, brandFilter, categoryFilter, pageSize, pendingOnly]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -691,6 +714,15 @@ export default function Estoque() {
             {distinctCategories.map((c) => <SelectItem key={c} value={c}>{categoryLabel[c] ?? c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          size="sm"
+          variant={pendingOnly ? "default" : "outline"}
+          onClick={() => setPendingOnly((v) => !v)}
+          className="h-10 whitespace-nowrap"
+          title="Aparelhos sem IMEI ou com quantidade maior que 1"
+        >
+          Somente pendentes{pendingIds.size > 0 ? ` (${pendingIds.size})` : ""}
+        </Button>
         <div className="flex gap-1 p-1 bg-card border border-border rounded-md">
           {(["all", "low", "stalled"] as const).map((f) => (
             <Button key={f} size="sm" variant={filter === f ? "default" : "ghost"} onClick={() => setFilter(f)} className={filter === f ? "bg-primary text-primary-foreground" : ""}>
@@ -804,7 +836,19 @@ export default function Estoque() {
                       />
                     </td>
                     <td className="px-4 py-3 min-w-[180px] max-w-[280px]">
-                      <div className="font-medium truncate" title={p.name}>{p.name}</div>
+                      <div className="font-medium truncate flex items-center gap-1.5" title={p.name}>
+                        <span className="truncate">{p.name}</span>
+                        {pendingIds.has(p.id) && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); navigate("/painel/estoque/aparelhos/regularizar"); }}
+                            className="shrink-0 rounded border border-warning/40 bg-warning/10 text-warning text-[10px] px-1.5 py-0.5 font-normal"
+                            title="Aparelho sem IMEI — clique para regularizar"
+                          >
+                            IMEI pendente
+                          </button>
+                        )}
+                      </div>
                       <div className="text-[11px] text-muted-foreground truncate">{p.brand || "—"}</div>
                     </td>
                     <td className="px-4 py-3">

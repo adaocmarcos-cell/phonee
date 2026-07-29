@@ -3436,6 +3436,11 @@ export type Database = {
           blocked_at: string | null
           blocked_by: string | null
           created_at: string
+          data_health_deadline_custom: boolean
+          data_health_deadline_days: number
+          data_health_done_at: string | null
+          data_health_last_push_at: string | null
+          data_health_started_at: string
           email: string | null
           hours: string | null
           id: string
@@ -3477,6 +3482,11 @@ export type Database = {
           blocked_at?: string | null
           blocked_by?: string | null
           created_at?: string
+          data_health_deadline_custom?: boolean
+          data_health_deadline_days?: number
+          data_health_done_at?: string | null
+          data_health_last_push_at?: string | null
+          data_health_started_at?: string
           email?: string | null
           hours?: string | null
           id?: string
@@ -3518,6 +3528,11 @@ export type Database = {
           blocked_at?: string | null
           blocked_by?: string | null
           created_at?: string
+          data_health_deadline_custom?: boolean
+          data_health_deadline_days?: number
+          data_health_done_at?: string | null
+          data_health_last_push_at?: string | null
+          data_health_started_at?: string
           email?: string | null
           hours?: string | null
           id?: string
@@ -4054,6 +4069,7 @@ export type Database = {
         Row: {
           allowed_hours: Json | null
           created_at: string
+          data_health_modal_seen_at: string | null
           expires_at: string | null
           failed_attempts: number
           job_title: string | null
@@ -4069,6 +4085,7 @@ export type Database = {
         Insert: {
           allowed_hours?: Json | null
           created_at?: string
+          data_health_modal_seen_at?: string | null
           expires_at?: string | null
           failed_attempts?: number
           job_title?: string | null
@@ -4084,6 +4101,7 @@ export type Database = {
         Update: {
           allowed_hours?: Json | null
           created_at?: string
+          data_health_modal_seen_at?: string | null
           expires_at?: string | null
           failed_attempts?: number
           job_title?: string | null
@@ -4559,6 +4577,7 @@ export type Database = {
         }
         Returns: Json
       }
+      data_health_weekly_job: { Args: never; Returns: Json }
       dispatch_push_event: {
         Args: { _event: string; _payload: Json; _store_id: string }
         Returns: undefined
@@ -4734,6 +4753,7 @@ export type Database = {
         Args: { _order_id: string }
         Returns: undefined
       }
+      mark_data_health_modal_seen: { Args: never; Returns: undefined }
       my_access_block_status: {
         Args: never
         Returns: {
@@ -4743,6 +4763,7 @@ export type Database = {
           store_name: string
         }[]
       }
+      my_data_health_modal_seen: { Args: never; Returns: boolean }
       my_stores: {
         Args: { _user_id: string }
         Returns: {
@@ -4843,6 +4864,20 @@ export type Database = {
         }[]
       }
       phonee_coupons_revenue: { Args: { _days?: number }; Returns: Json }
+      phonee_data_health_overview: {
+        Args: never
+        Returns: {
+          aparelhos_total: number
+          dias_restantes: number
+          modal_visto: boolean
+          pct_completo: number
+          pendentes_total: number
+          prazo_em_dias: number
+          prazo_personalizado: boolean
+          store_id: string
+          store_name: string
+        }[]
+      }
       phonee_growth: {
         Args: never
         Returns: {
@@ -4929,6 +4964,10 @@ export type Database = {
         Returns: Json
       }
       phonee_security_test: { Args: never; Returns: Json }
+      phonee_set_data_health_deadline: {
+        Args: { _days: number; _store_id: string }
+        Returns: undefined
+      }
       phonee_set_store_blocked: {
         Args: { _blocked: boolean; _store_id: string }
         Returns: undefined
@@ -5222,6 +5261,8 @@ export type Database = {
           total_count: number
         }[]
       }
+      store_data_health: { Args: { _store_id: string }; Returns: Json }
+      sync_data_health_alert: { Args: { _store_id: string }; Returns: Json }
       take_stock_snapshot: { Args: { p_date?: string }; Returns: number }
       track_device_by_imei: {
         Args: { _imei: string; _store_id: string }

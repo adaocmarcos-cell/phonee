@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { loadDataHealth } from "@/lib/dataHealth";
+import { isValidImei } from "@/lib/itemKind";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -952,6 +954,46 @@ export default function VendaNova() {
     setConfirmOpen(true);
   };
 
+  // ── Gate de IMEI: aparelhos legados sem IMEI. Durante o prazo é só aviso;
+  // após o prazo o IMEI é exigido no momento da venda (melhor momento de captura).
+  const [imeiGate, setImeiGate] = useState<{ open: boolean; rows: Array<{ id: string; name: string; imei: string }> }>({ open: false, rows: [] });
+  const [imeiGateBusy, setImeiGateBusy] = useState(false);
+
+  const checkImeiGate = async (): Promise<"ok" | "blocked"> => {
+    if (!store) return "ok";
+    const ids = items.filter((i) => !i.is_service && i.product_id).map((i) => i.product_id!) as string[];
+    if (ids.length === 0) return "ok";
+    const { data } = await supabase
+      .from("products")
+      .select("id,name,imei")
+      .in("id", ids)
+      .eq("item_kind", "aparelho");
+    const pend = (data ?? []).filter((p: any) => !p.imei || String(p.imei).trim() === "");
+    if (pend.length === 0) return "ok";
+    const health = await loadDataHealth(store.id);
+    if (health?.vencido) {
+      setImeiGate({ open: true, rows: pend.map((p: any) => ({ id: p.id, name: p.name, imei: "" })) });
+      return "blocked";
+    }
+    toast.warning(`${pend.length} aparelho(s) sem IMEI nesta venda. Regularize o cadastro — em breve o IMEI será obrigatório.`);
+    return "ok";
+  };
+
+  const saveGateImeis = async () => {
+    for (const r of imeiGate.rows) {
+      if (!isValidImei(r.imei)) return toast.error(`IMEI inválido para ${r.name}. Use 15 dígitos válidos.`);
+    }
+    setImeiGateBusy(true);
+    for (const r of imeiGate.rows) {
+      const { error } = await supabase.from("products").update({ imei: r.imei.replace(/\D/g, "") }).eq("id", r.id);
+      if (error) { setImeiGateBusy(false); return toast.error(error.message); }
+    }
+    setImeiGateBusy(false);
+    setImeiGate({ open: false, rows: [] });
+    toast.success("IMEI registrado. Finalizando a venda...");
+    submit();
+  };
+
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
@@ -968,6 +1010,7 @@ export default function VendaNova() {
     if (invalid) {
       return toast.error("Há itens sem descrição ou quantidade válida. Revise antes de salvar.");
     }
+    if ((await checkImeiGate()) === "blocked") return;
     setBusy(true);
 
     const payload = buildPayload();
@@ -2383,6 +2426,47 @@ Obrigado pela preferência.`;
       </Dialog>
 
       {/* Confirmação pós-venda com atalho para o CRM */}
+      <Dialog open={imeiGate.open} onOpenChange={(o) => !o && setImeiGate({ open: false, rows: [] })}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Informe o IMEI para concluir a venda</DialogTitle>
+            <DialogDescription>
+              O prazo de regularização encerrou. Estes aparelhos ainda não têm IMEI cadastrado —
+              informe agora (15 dígitos) para garantir rastreio e garantia vinculada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+            {imeiGate.rows.map((r, idx) => (
+              <div key={r.id} className="space-y-1">
+                <div className="text-sm font-medium">{r.name}</div>
+                <Input
+                  value={r.imei}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 15);
+                    setImeiGate((g) => ({ ...g, rows: g.rows.map((x, i) => (i === idx ? { ...x, imei: v } : x)) }));
+                  }}
+                  placeholder="15 dígitos"
+                  inputMode="numeric"
+                  maxLength={15}
+                  className="font-mono"
+                />
+                {r.imei.length === 15 && !isValidImei(r.imei) && (
+                  <p className="text-xs text-danger">IMEI inválido (dígito verificador).</p>
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImeiGate({ open: false, rows: [] })} disabled={imeiGateBusy}>
+              Cancelar
+            </Button>
+            <Button onClick={saveGateImeis} disabled={imeiGateBusy}>
+              {imeiGateBusy ? "Salvando..." : "Salvar e finalizar venda"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={serviceDialog.open} onOpenChange={(o) => setServiceDialog((s) => ({ ...s, open: o }))}>
         <DialogContent className="max-w-md">
           <DialogHeader>
