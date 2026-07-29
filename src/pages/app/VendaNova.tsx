@@ -749,21 +749,23 @@ export default function VendaNova() {
       toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
       return;
     }
+    // BLOQUEIO: produto sem preço de venda cadastrado. Oferece campo inline
+    // para definir o preço (grava em products.sale_price) antes de adicionar.
+    if (Number(p.sale_price ?? 0) <= 0) {
+      setPriceFix({ product: p, value: 0 });
+      toast.error(`"${p.name}" está sem preço de venda cadastrado. Defina o preço para adicionar ao carrinho.`);
+      setShowProductList(false);
+      return;
+    }
     // Vinculação validada de product_id, nome, preço e estoque.
     const built = buildLineItemFromProduct(p);
     if (built.ok === false) { toast.error(built.error); return; }
     const draft = built.item;
     built.warnings.forEach((w) => toast.warning(w));
 
-    // Aviso não-bloqueante: sem custo cadastrado o lucro da venda não é calculado.
+    // Aviso NÃO bloqueante: sem custo cadastrado o lucro da venda não é calculado.
     if (Number(p.cost_price ?? 0) <= 0) {
-      toast.warning(`"${p.name}": produto sem custo cadastrado — o lucro desta venda não será calculado.`, {
-        duration: 8000,
-        action: {
-          label: "Preencher custo",
-          onClick: () => { setCostFix({ id: p.id, name: p.name }); setCostFixValue(""); },
-        },
-      });
+      setCostMissing((s) => ({ ...s, [draft.product_id]: true }));
     }
 
     setItems((arr) => {
