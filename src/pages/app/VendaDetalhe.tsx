@@ -89,6 +89,12 @@ export default function VendaDetalhe() {
       setReturns((ret.data as any[]) ?? []);
       setMovements((mov.data as any[]) ?? []);
       setLoading(false);
+
+      if ((s as any).seller_id) {
+        const { data: prof } = await supabase
+          .from("profiles").select("full_name").eq("id", (s as any).seller_id).maybeSingle();
+        if (!cancelled) setSellerName((prof as any)?.full_name ?? null);
+      }
     })();
     return () => { cancelled = true; };
   }, [id]);
