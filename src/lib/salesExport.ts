@@ -248,7 +248,7 @@ export function printSaleReceipt(opts: {
         <div class="box doctype">
           <div class="label">Documento</div>
           <div class="title">Comprovante de Venda / Pedido</div>
-          <div class="num">Nº ${fmtNum(sale.sale_number)} · SÉRIE 1</div>
+          <div class="num">Nº ${String(sale.sale_number ?? 0).padStart(4, "0")} · SÉRIE 1</div>
           <div class="date">Emissão: ${fmtDate(sale.created_at)}</div>
         </div>
       </div>
