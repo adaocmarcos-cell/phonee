@@ -182,6 +182,7 @@ export default function Estoque() {
       units: stockMetrics.units,
       low: stockMetrics.low_count + stockMetrics.parts_low_count,
       value: stockMetrics.sale_value + stockMetrics.parts_sale_value,
+      totalCostValue: stockMetrics.cost_value + stockMetrics.parts_cost_value,
       costValue,
       saleValue,
       profitValue: saleValue - costValue,
