@@ -1001,6 +1001,11 @@ export default function VendaNova() {
     if (pendingPriceCount > 0) {
       return toast.error("Informe o preço de venda dos itens destacados antes de concluir.");
     }
+    if (imeiPendingItems.length > 0) {
+      return toast.error(
+        `Informe o IMEI (15 dígitos) de: ${imeiPendingItems.map((i) => i.name).join(", ")}.`,
+      );
+    }
     if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
     if (Math.abs(remaining) > 0.009) {
       return toast.error(
