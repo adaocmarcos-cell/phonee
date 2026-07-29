@@ -1260,6 +1260,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          is_stock_purchase: boolean
           is_system: boolean
           name: string
           store_id: string | null
@@ -1272,6 +1273,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_stock_purchase?: boolean
           is_system?: boolean
           name: string
           store_id?: string | null
@@ -1284,6 +1286,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_stock_purchase?: boolean
           is_system?: boolean
           name?: string
           store_id?: string | null

@@ -47,6 +47,12 @@ type DashboardMetrics = {
   custo_produtos: number;
   custo_os: number;
   despesas: number;
+  despesas_pagas?: number;
+  compras_estoque?: number;
+  compras_estoque_pagas?: number;
+  lucro_bruto?: number;
+  lucro_liquido?: number;
+  movimento_caixa?: number;
   lucro: number;
   qtd_vendas: number;
   ticket_medio: number;
@@ -224,7 +230,10 @@ export default function Dashboard() {
   const recebidoTroca  = metrics?.recebido_em_troca ?? 0;
   const costMonth      = metrics?.custo             ?? 0;
   const expensesMonth  = metrics?.despesas          ?? 0;
-  const lucroMes       = metrics?.lucro             ?? 0;
+  const comprasEstoque = metrics?.compras_estoque   ?? 0;
+  const lucroBruto     = metrics?.lucro_bruto       ?? (revenueTotal - (metrics?.custo ?? 0));
+  const lucroLiquido   = metrics?.lucro_liquido     ?? (metrics?.lucro ?? 0);
+  const movimentoCaixa = metrics?.movimento_caixa   ?? 0;
   const salesCount     = metrics?.qtd_vendas        ?? 0;
   const ticketMedio    = metrics?.ticket_medio      ?? 0;
   const pay            = (metrics?.formas_pagamento ?? []).map((p) => ({ ...p, name: PAY_LABEL[p.name] ?? p.name }));
@@ -232,7 +241,7 @@ export default function Dashboard() {
   const arCrediario    = metrics?.crediario_a_receber ?? 0;
   const arVencido      = metrics?.crediario_vencido ?? 0;
   const arVencidasCount= metrics?.crediario_vencidas_count ?? 0;
-  const margin         = revenueTotal > 0 ? ((revenueTotal - costMonth) / revenueTotal) * 100 : 0;
+  const margemBruta    = revenueTotal > 0 ? (lucroBruto / revenueTotal) * 100 : 0;
   const itensAlerta    = productsLow + stalled;
 
   const periodLabel =
@@ -269,48 +278,6 @@ export default function Dashboard() {
           />
         </div>
       </div>
-
-      {canSeeCost(role) && (
-        <Card className="p-5 sm:p-6 mb-6 bg-card border-border shadow-card">
-          <div className="flex items-baseline justify-between gap-2 mb-4">
-            <h3 className="font-semibold">Resultado</h3>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground truncate">{periodTitle}</span>
-              <Button size="sm" variant="outline" onClick={() => setResultOpen(true)}>
-                Ver detalhes
-              </Button>
-            </div>
-          </div>
-          <div className="space-y-1.5 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between gap-3">
-              <span>Faturamento</span>
-              <span className="font-mono tabular-nums">{brl(revenueTotal)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>− Custo da mercadoria</span>
-              <span className="font-mono tabular-nums">{brl(costMonth)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>− Despesas</span>
-              <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
-            </div>
-          </div>
-          <div className="border-t border-border my-4" />
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-            <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs uppercase tracking-widest font-mono text-muted-foreground mb-1">
-                = Lucro do período
-              </div>
-              <div className={cn("metric font-bold leading-tight text-2xl sm:text-3xl truncate", lucroMes >= 0 ? "text-success" : "text-danger")}>
-                {brl(lucroMes)}
-              </div>
-            </div>
-            <div className="text-sm text-muted-foreground font-mono shrink-0">
-              Margem {pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)}
-            </div>
-          </div>
-        </Card>
-      )}
 
       {metricsError && (
         <Card className="p-4 mb-4 border-danger/40 bg-danger/5 flex items-center justify-between gap-3">
@@ -372,13 +339,24 @@ export default function Dashboard() {
           },
           {
             id: "margem-ou-baixo",
-            node: (
+            node: canSeeCost(role) ? (
+              <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
+                <MetricCard
+                  label="Lucro bruto"
+                  value={brl(lucroBruto)}
+                  delta={`Margem bruta ${pct(margemBruta)} · ver detalhes`}
+                  icon={Percent}
+                  tone={lucroBruto >= 0 ? "violet" : "danger"}
+                  className="h-full"
+                />
+              </button>
+            ) : (
               <MetricCard
-                label={canSeeCost(role) ? "Margem média" : "Estoque baixo"}
-                value={canSeeCost(role) ? pct(margin) : num(productsLow)}
-                icon={canSeeCost(role) ? Percent : AlertTriangle}
-                tone={canSeeCost(role) ? "violet" : "warning"}
-                delta={canSeeCost(role) ? "(Receita − custo) / receita" : `${num(productsTotal)} produtos no estoque`}
+                label="Estoque baixo"
+                value={num(productsLow)}
+                icon={AlertTriangle}
+                tone="warning"
+                delta={`${num(productsTotal)} produtos no estoque`}
                 className="h-full"
               />
             ),
@@ -386,18 +364,35 @@ export default function Dashboard() {
           ...(canSeeCost(role)
             ? [
                 {
-                  id: "lucro-periodo",
+                  id: "lucro-liquido",
                   node: (
                     <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
                       <MetricCard
-                        label={`Lucro — ${periodLabel}`}
-                        value={brl(lucroMes)}
-                        delta={`Margem ${pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)} · ver detalhes`}
+                        label="Lucro líquido"
+                        value={brl(lucroLiquido)}
+                        delta={`− ${brl(expensesMonth)} de despesas`}
                         icon={PiggyBank}
-                        tone={lucroMes >= 0 ? "success" : "danger"}
+                        tone={lucroLiquido >= 0 ? "success" : "danger"}
                         className="h-full"
                       />
                     </button>
+                  ),
+                },
+                {
+                  id: "movimento-caixa",
+                  node: (
+                    <MetricCard
+                      label="Movimento de caixa"
+                      value={brl(movimentoCaixa)}
+                      delta={
+                        comprasEstoque > 0
+                          ? `inclui ${brl(comprasEstoque)} investidos em estoque`
+                          : "Entradas − saídas pagas no período"
+                      }
+                      icon={Banknote}
+                      tone={movimentoCaixa >= 0 ? "success" : "danger"}
+                      className="h-full"
+                    />
                   ),
                 },
               ]
@@ -468,7 +463,7 @@ export default function Dashboard() {
               <MetricCard
                 label="Despesas do período"
                 value={brl(expensesMonth)}
-                delta="Custos operacionais"
+                delta="Operacionais — não inclui compra de mercadoria"
                 icon={Receipt}
                 tone="warning"
               />
@@ -554,19 +549,29 @@ export default function Dashboard() {
                 <span>Peças de O.S.</span>
                 <span className="font-mono tabular-nums">{brl(metrics?.custo_os ?? 0)}</span>
               </div>
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/60">
+                <span className="text-muted-foreground">= Lucro bruto</span>
+                <span className="font-mono tabular-nums font-semibold">{brl(lucroBruto)}</span>
+              </div>
               <div className="flex items-center justify-between gap-3 pt-2">
-                <span className="text-muted-foreground">− Despesas</span>
+                <span className="text-muted-foreground">− Despesas operacionais</span>
                 <span className="font-mono tabular-nums">{brl(expensesMonth)}</span>
               </div>
+              {comprasEstoque > 0 && (
+                <div className="flex items-center justify-between gap-3 pl-4 text-xs text-muted-foreground">
+                  <span>Compra de mercadoria (não é despesa — vira CMV na venda)</span>
+                  <span className="font-mono tabular-nums">{brl(comprasEstoque)}</span>
+                </div>
+              )}
             </div>
             <div className="border-t border-border" />
             <div className="flex items-end justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">= Lucro do período</div>
-                <div className={cn("metric font-bold text-2xl", lucroMes >= 0 ? "text-success" : "text-danger")}>{brl(lucroMes)}</div>
+                <div className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-1">= Lucro líquido</div>
+                <div className={cn("metric font-bold text-2xl", lucroLiquido >= 0 ? "text-success" : "text-danger")}>{brl(lucroLiquido)}</div>
               </div>
               <div className="text-sm text-muted-foreground font-mono">
-                Margem {pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)}
+                Margem líquida {pct(revenueTotal > 0 ? (lucroLiquido / revenueTotal) * 100 : 0)}
               </div>
             </div>
             <Button
@@ -582,7 +587,7 @@ export default function Dashboard() {
                   custoProdutos: metrics?.custo_produtos ?? 0,
                   custoOs: metrics?.custo_os ?? 0,
                   despesas: expensesMonth,
-                  lucro: lucroMes,
+                  lucro: lucroLiquido,
                   qtdVendas: salesCount,
                   ticketMedio,
                   recebidoCaixa,

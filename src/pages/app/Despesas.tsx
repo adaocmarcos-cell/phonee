@@ -42,7 +42,7 @@ import {
 const PAY_METHODS = ["PIX", "Dinheiro", "Cartão de Débito", "Cartão de Crédito", "Boleto", "Transferência", "Cheque", "Outros"];
 const COLOR_PALETTE = ["#2563EB", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#06B6D4", "#EC4899", "#6B7280"];
 
-type Category = { id: string; name: string; color: string | null; icon: string | null; is_system: boolean; store_id: string | null };
+type Category = { id: string; name: string; color: string | null; icon: string | null; is_system: boolean; store_id: string | null; is_stock_purchase?: boolean | null };
 type Expense = {
   id: string; category_id: string | null; category_name: string; subcategory: string | null;
   description: string; amount: number; expense_date: string; payment_method: string;
@@ -135,26 +135,39 @@ export default function Despesas() {
     });
   }, [expenses, rangeStart, rangeEnd, filterCat]);
 
+  const stockCatIds = useMemo(
+    () => new Set(categories.filter((c) => c.is_stock_purchase).map((c) => c.id)),
+    [categories],
+  );
+  const isStockExpense = (e: { category_id: string | null }) => !!e.category_id && stockCatIds.has(e.category_id);
+
+  const stockEntries = useMemo(() => filtered.filter(isStockExpense), [filtered, stockCatIds]);
+  const stockTotal = useMemo(() => stockEntries.reduce((s, e) => s + Number(e.amount), 0), [stockEntries]);
+
   const totalMonth = useMemo(() => {
     const now = new Date(); const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    return expenses.filter((e) => new Date(e.expense_date) >= monthStart).reduce((s, e) => s + Number(e.amount), 0);
-  }, [expenses]);
+    return expenses
+      .filter((e) => new Date(e.expense_date) >= monthStart && !isStockExpense(e))
+      .reduce((s, e) => s + Number(e.amount), 0);
+  }, [expenses, stockCatIds]);
 
   const totalYear = useMemo(() => {
     const yearStart = new Date(new Date().getFullYear(), 0, 1);
-    return expenses.filter((e) => new Date(e.expense_date) >= yearStart).reduce((s, e) => s + Number(e.amount), 0);
-  }, [expenses]);
+    return expenses
+      .filter((e) => new Date(e.expense_date) >= yearStart && !isStockExpense(e))
+      .reduce((s, e) => s + Number(e.amount), 0);
+  }, [expenses, stockCatIds]);
 
   const byCategory = useMemo(() => {
     const map: Record<string, { name: string; total: number; color: string }> = {};
-    filtered.forEach((e) => {
+    filtered.filter((e) => !isStockExpense(e)).forEach((e) => {
       const cat = categories.find((c) => c.id === e.category_id);
       const k = e.category_name;
       if (!map[k]) map[k] = { name: k, total: 0, color: cat?.color ?? "#2563EB" };
       map[k].total += Number(e.amount);
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
-  }, [filtered, categories]);
+  }, [filtered, categories, stockCatIds]);
 
   const byMonth = useMemo(() => {
     const map: Record<string, number> = {};
@@ -324,10 +337,37 @@ ${filtered.map((e) => `<tr><td>${new Date(e.expense_date).toLocaleDateString("pt
         </div>
 
         <TabsContent value="lancamentos">
+          {stockTotal > 0 && (
+            <Card className="p-4 mb-4 border-primary/30 bg-primary/5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="font-semibold">Entradas de estoque</div>
+                <div className="font-mono tabular-nums font-semibold">{brl(stockTotal)}</div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Compra de mercadoria não é despesa — ela vira custo quando o item é vendido (CMV).
+              </p>
+              <div className="mt-3 space-y-1 text-sm">
+                {stockEntries.slice(0, 8).map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-3">
+                    <span className="truncate text-muted-foreground">
+                      {format(new Date(e.expense_date), "dd/MM")} · {e.category_name} · {e.description}
+                    </span>
+                    <span className="font-mono tabular-nums shrink-0">{brl(Number(e.amount))}</span>
+                  </div>
+                ))}
+                {stockEntries.length > 8 && (
+                  <div className="text-xs text-muted-foreground">+ {stockEntries.length - 8} lançamento(s)</div>
+                )}
+              </div>
+            </Card>
+          )}
           <Card className="p-0 overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
               <div className="text-sm text-muted-foreground">
-                {filtered.length} lançamento(s) · Total: <span className="font-semibold text-foreground">{brl(filtered.reduce((s, e) => s + Number(e.amount), 0))}</span>
+                {filtered.length} lançamento(s) · Despesas operacionais:{" "}
+                <span className="font-semibold text-foreground">
+                  {brl(filtered.filter((e) => !isStockExpense(e)).reduce((s, e) => s + Number(e.amount), 0))}
+                </span>
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={exportCSV}><FileDown className="h-4 w-4 mr-1" />CSV</Button>
