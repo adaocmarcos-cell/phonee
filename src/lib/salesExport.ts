@@ -226,8 +226,6 @@ export function printSaleReceipt(opts: {
     @media print { body{padding:0} button{display:none} .doc{border:none} thead{display:table-header-group} tr{page-break-inside:avoid} }
   `;
 
-  const itemCols = 6 + (anyImei ? 1 : 0);
-
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Comprovante ${fmtNum(sale.sale_number)}</title><style>${css}</style></head><body>
     <div class="doc">
       ${showNonFiscal ? `<div class="banner">${nonFiscalText}</div>` : ""}
