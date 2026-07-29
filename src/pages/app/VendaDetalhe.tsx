@@ -14,8 +14,6 @@ const fmtNum = (n: number | null | undefined) => `#${String(n ?? 0).padStart(4, 
 const dt = (v?: string | null) => (v ? new Date(v).toLocaleString("pt-BR") : "—");
 const d = (v?: string | null) => (v ? new Date(v + "T00:00:00").toLocaleDateString("pt-BR") : "—");
 
-type Section = { title: string; icon: any; children: React.ReactNode };
-
 function Block({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
   return (
     <Card className="p-4">
@@ -35,7 +33,7 @@ function Empty({ text }: { text: string }) {
 export default function VendaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { store, role } = useAuth();
+  const { role } = useAuth();
   const showCost = canSeeCost(role);
 
   const [loading, setLoading] = useState(true);
@@ -245,7 +243,7 @@ export default function VendaDetalhe() {
               {tradeIns.map((t) => (
                 <li key={t.id} className="py-2 flex items-center justify-between gap-3">
                   <div>
-                    <button className="text-left hover:underline" onClick={() => navigate(`/painel/estoque/trade-in/${t.id}`)}>
+                    <button className="text-left hover:underline" onClick={() => navigate(`/painel/troca/${t.id}/detalhes`)}>
                       {t.brand} {t.model}
                     </button>
                     <div className="text-[11px] font-mono text-muted-foreground">{t.imei || "sem IMEI"} · {t.status}</div>
@@ -324,7 +322,6 @@ export default function VendaDetalhe() {
         )}
       </Block>
 
-      {!store && null}
     </div>
   );
 }
