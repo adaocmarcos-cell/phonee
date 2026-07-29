@@ -210,7 +210,7 @@ export default function Vendas() {
   const onPrintReceipt = async (sale: any) => {
     const { data: items, error: itemsPrintErr } = await supabase
       .from("sale_items")
-      .select("quantity, unit_price, total, description, is_service, name, sku, category, brand, model, unit, discount_amount, imei_serial, public_notes")
+      .select("quantity, unit_price, total, description, is_service, name, sku, category, brand, model, unit, discount_amount, imei_serial, public_notes, warranty_days")
       .eq("sale_id", sale.id);
     if (itemsPrintErr) { handleSupabaseError(itemsPrintErr, "Erro ao carregar itens da venda"); return; }
     if (!items || items.length === 0) {
@@ -226,27 +226,41 @@ export default function Vendas() {
       unit: it.unit ?? null,
       imei_serial: it.imei_serial ?? null,
       public_notes: it.public_notes ?? null,
+      warranty_days: it.warranty_days ?? null,
       discount_amount: Number(it.discount_amount || 0),
       quantity: it.quantity,
       unit_price: Number(it.unit_price),
       total: Number(it.total),
     }));
+    // Pagamentos reais da venda (imprime pagamento misto e saldo em aberto).
+    let allPayments: any[] = [];
+    try {
+      const { data: pl } = await (supabase as any)
+        .from("sale_payments")
+        .select("method, amount, installments, notes, trade_in_id")
+        .eq("sale_id", sale.id)
+        .order("created_at");
+      allPayments = pl ?? [];
+    } catch { /* noop */ }
+    // Vendedor: prioriza o nome no perfil vinculado a sales.seller_id.
+    let sellerName: string | null = null;
+    if (sale.seller_id) {
+      const { data: prof } = await supabase
+        .from("profiles").select("full_name").eq("id", sale.seller_id).maybeSingle();
+      sellerName = (prof as any)?.full_name ?? null;
+    }
     // Carrega trade-ins vinculados a esta venda (troca como pagamento)
     let tradeIns: any[] = [];
     try {
-      const { data: pays } = await (supabase as any)
-        .from("sale_payments")
-        .select("amount, trade_in_id")
-        .eq("sale_id", sale.id)
-        .eq("method", "troca");
-      const ids = (pays ?? []).map((p: any) => p.trade_in_id).filter(Boolean);
+      const pays = allPayments.filter((p: any) => p.method === "troca");
+      const ids = pays.map((p: any) => p.trade_in_id).filter(Boolean);
       if (ids.length > 0) {
         const { data: tis } = await supabase
           .from("trade_ins")
           .select("id, brand, model, imei, storage_gb, entry_value")
           .in("id", ids);
         tradeIns = (tis ?? []).map((t: any) => {
-          const pay = (pays ?? []).find((p: any) => p.trade_in_id === t.id);
+          const pay = pays.find((p: any) => p.trade_in_id === t.id);
           return {
             brand: t.brand, model: t.model, imei: t.imei, storage_gb: t.storage_gb,
             value: Number(pay?.amount || t.entry_value || 0),
@@ -254,7 +268,7 @@ export default function Vendas() {
         });
       }
     } catch { /* noop */ }
-    printSaleReceipt({ sale, items: list, store, warranty, tradeIns });
+    printSaleReceipt({ sale, items: list, store, warranty, tradeIns, payments: allPayments, sellerName });
   };
 
   const openReminder = (sale: any) => {

@@ -91,18 +91,28 @@ export function printSaleReceipt(opts: {
     imei_serial?: string | null;
     public_notes?: string | null;
     discount_amount?: number;
+    warranty_days?: number | null;
     quantity: number;
     unit_price: number;
     total: number;
   }[];
   store: any;
   warranty?: WarrantySettings | null;
+  /** Pagamentos reais da venda (tabela sale_payments) — imprime pagamento misto. */
+  payments?: {
+    method: string;
+    amount: number;
+    installments?: number | null;
+    notes?: string | null;
+  }[];
+  /** Nome do vendedor resolvido a partir de sales.seller_id (fallback do JSON). */
+  sellerName?: string | null;
   tradeIns?: {
     brand?: string | null; model?: string | null; imei?: string | null;
     storage_gb?: number | null; value: number;
   }[];
 }) {
-  const { sale, items, store, warranty, tradeIns } = opts;
+  const { sale, items, store, warranty, tradeIns, payments, sellerName } = opts;
   const integrity = validateSaleForReceipt(sale, items as any);
   if (!integrity.ok) {
     const summary = integrity.issues
@@ -125,8 +135,23 @@ export function printSaleReceipt(opts: {
   const warrantyNotice = w?.notice ?? warranty?.notice_text ?? "";
   const warrantyTerms = w?.terms ?? warranty?.message_template ?? "";
 
-  const expDate = new Date(sale.created_at);
-  expDate.setDate(expDate.getDate() + Number(warrantyDays || 0));
+  // Garantia por item: usa warranty_days do próprio item; só cai no padrão da venda
+  // quando o item não tiver prazo próprio. Itens com 0 dia ficam fora do termo.
+  const warrantyItems = items
+    .map((i) => ({
+      item: i,
+      days: Number(i.warranty_days ?? warrantyDays ?? 0),
+    }))
+    .filter((wi) => wi.days > 0);
+  const maxWarrantyDays = warrantyItems.length
+    ? Math.max(...warrantyItems.map((wi) => wi.days))
+    : Number(warrantyDays || 0);
+  const addDays = (base: string, days: number) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + Number(days || 0));
+    return d;
+  };
+  const expDate = addDays(sale.created_at, maxWarrantyDays);
 
   const addrLine = [
     [store?.address_street, store?.address_number].filter(Boolean).join(", "),
@@ -145,10 +170,27 @@ export function printSaleReceipt(opts: {
   const grossTotal = items.reduce((a, i) => a + Number(i.total || 0), 0) + totalItemsDiscount;
   const freight = Number(ex?.payment?.freight || 0);
   const otherExpenses = Number(ex?.payment?.other_expenses || 0);
+  const saleDiscount = Number(sale.discount || 0);
+  const subtotalProdutos = grossTotal > 0 ? grossTotal : Number(sale.subtotal || 0);
+
+  // Pagamentos reais (sale_payments). Nunca inferidos do JSON de notes.
+  const payList = (payments ?? []).filter((p) => Number(p.amount || 0) !== 0);
+  const isMixed = payList.length > 1;
+  const paidSum = round2(payList.reduce((a, p) => a + Number(p.amount || 0), 0));
+  const openBalance = payList.length > 0 ? round2(Number(sale.total || 0) - paidSum) : 0;
+  const payLabel = (m: string) => {
+    const key = String(m || "").toLowerCase();
+    const map: Record<string, string> = {
+      dinheiro: "Dinheiro", pix: "PIX", debito: "Cartão de débito", credito: "Cartão de crédito",
+      crediario: "Crediário", boleto: "Boleto", transferencia: "Transferência",
+      troca: "Troca de aparelho", vale_troca: "Vale-troca", misto: "Pagamento misto",
+    };
+    return map[key] || key.toUpperCase();
+  };
 
   const stripDays = (t: string) =>
     String(t || "")
-      .replace(/\{dias\}/gi, String(warrantyDays))
+      .replace(/\{dias\}/gi, String(maxWarrantyDays))
       .replace(/\s*(?:de\s+)?\d+\s*(?:dias|meses|m[êe]s|ano|anos)\b/gi, "")
       .replace(/\s{2,}/g, " ")
       .replace(/\s+([,.;])/g, "$1")
@@ -266,10 +308,33 @@ export function printSaleReceipt(opts: {
       <div class="section">
         <div class="label">Condição de pagamento</div>
         <div class="grid g3">
-          <div class="field"><span class="k">Forma</span><span class="v">${escape(String(sale.payment_method || "").toUpperCase())}</span></div>
+          <div class="field"><span class="k">Forma</span><span class="v">${escape(isMixed ? "Pagamento misto" : payLabel(payList[0]?.method || sale.payment_method || ""))}</span></div>
           <div class="field"><span class="k">Parcelas</span><span class="v">${installments > 1 ? `${installments}x` : "À vista"}</span></div>
-          <div class="field"><span class="k">Vendedor</span><span class="v">${escape(ex.seller || "—")}</span></div>
+          <div class="field"><span class="k">Vendedor</span><span class="v">${escape(ex.seller || sellerName || "—")}</span></div>
         </div>
+        ${payList.length ? `
+          <table style="margin-top:10px">
+            <thead><tr>
+              <th>Forma de pagamento</th>
+              <th style="width:90px;text-align:center">Parcelas</th>
+              <th style="width:120px;text-align:right">Valor</th>
+            </tr></thead>
+            <tbody>
+              ${payList.map((p) => `<tr>
+                <td>${escape(payLabel(p.method))}</td>
+                <td style="text-align:center">${Number(p.installments || 1) > 1 ? `${Number(p.installments)}x` : "À vista"}</td>
+                <td style="text-align:right;font-weight:600">${brl(Number(p.amount || 0))}</td>
+              </tr>`).join("")}
+              <tr>
+                <td colspan="2" style="text-align:right;font-weight:700">Total pago</td>
+                <td style="text-align:right;font-weight:700">${brl(paidSum)}</td>
+              </tr>
+              ${Math.abs(openBalance) > 0.009 ? `<tr>
+                <td colspan="2" style="text-align:right;font-weight:700">${openBalance > 0 ? "Saldo em aberto" : "Valor pago a maior"}</td>
+                <td style="text-align:right;font-weight:700">${brl(Math.abs(openBalance))}</td>
+              </tr>` : ""}
+            </tbody>
+          </table>` : ""}
         ${dueDates.length ? `<div style="margin-top:9px;font-size:11px;color:#334155"><b>Vencimentos:</b> ${dueDates.map((d, n) => `${n + 1}ª ${d}`).join(" · ")}</div>` : ""}
       </div>
 
@@ -315,8 +380,10 @@ export function printSaleReceipt(opts: {
 
       <div class="totals">
         <div><span>Total de itens</span><span>${items.length} (${totalItemsQty} un.)</span></div>
-        <div><span>Subtotal produtos/serviços</span><span>${brl(grossTotal || Number(sale.subtotal || 0))}</span></div>
-        <div><span>Descontos</span><span>- ${brl(totalItemsDiscount || Number(sale.discount || 0))}</span></div>
+        <div><span>Subtotal produtos/serviços</span><span>${brl(subtotalProdutos)}</span></div>
+        ${totalItemsDiscount > 0 ? `<div><span>Desconto nos itens</span><span>- ${brl(totalItemsDiscount)}</span></div>` : ""}
+        ${saleDiscount > 0 ? `<div><span>Desconto da venda</span><span>- ${brl(saleDiscount)}</span></div>` : ""}
+        ${totalItemsDiscount <= 0 && saleDiscount <= 0 ? `<div><span>Descontos</span><span>- ${brl(0)}</span></div>` : ""}
         ${freight > 0 ? `<div><span>Frete</span><span>+ ${brl(freight)}</span></div>` : ""}
         ${otherExpenses > 0 ? `<div><span>Outras despesas</span><span>+ ${brl(otherExpenses)}</span></div>` : ""}
         <div class="tot"><span>TOTAL</span><span>${brl(Number(sale.total || 0))}</span></div>
@@ -342,11 +409,11 @@ export function printSaleReceipt(opts: {
         </div>
       ` : ""}
 
-      ${warrantyEnabled ? `
+      ${warrantyEnabled && warrantyItems.length > 0 ? `
         <div class="warranty">
           <div class="wh">Termo de Garantia</div>
           <div class="wgrid">
-            <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Prazo</span><div style="font-weight:700">${warrantyDays} dias</div></div>
+            <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Prazo</span><div style="font-weight:700">${maxWarrantyDays} dias</div></div>
             <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Início</span><div>${new Date(sale.created_at).toLocaleDateString("pt-BR")}</div></div>
             <div class="field"><span class="k" style="font-size:9.5px;color:#64748b;text-transform:uppercase">Válida até</span><div style="font-weight:700">${expDate.toLocaleDateString("pt-BR")}</div></div>
           </div>
@@ -355,12 +422,14 @@ export function printSaleReceipt(opts: {
               <th>Produto</th>
               <th style="width:170px">IMEI / Nº de série</th>
               <th style="width:90px;text-align:right">Prazo</th>
+              <th style="width:100px;text-align:right">Válida até</th>
             </tr></thead>
             <tbody>
-              ${items.map((i) => `<tr>
+              ${warrantyItems.map(({ item: i, days }) => `<tr>
                 <td>${escape(i.name)}</td>
                 <td class="imei">${escape(String(i.imei_serial || "").trim() || "—")}</td>
-                <td style="text-align:right">${warrantyDays} dias</td>
+                <td style="text-align:right">${days} dias</td>
+                <td style="text-align:right">${addDays(sale.created_at, days).toLocaleDateString("pt-BR")}</td>
               </tr>`).join("")}
             </tbody>
           </table>
@@ -406,4 +475,8 @@ function escape(s: any) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
 }

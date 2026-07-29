@@ -62,6 +62,9 @@ type LineItem = {
   discount_pct: number;
   discount_brl: number;
   unit_price: number;
+  /** IMEI/serial da unidade vendida — obrigatório para item_kind='aparelho'. */
+  imei_serial?: string;
+  item_kind?: string;
 };
 
 export type NewTradeInDraft = {
@@ -417,9 +420,27 @@ export default function VendaNova() {
           discount_pct: 0,
           discount_brl: discPerUnit,
           unit_price: price,
+          imei_serial: r.imei_serial ?? undefined,
         };
       });
       setItems(loadedItems);
+      // item_kind não fica em sale_items — busca nos produtos para reaplicar a
+      // exigência de IMEI por unidade também no modo edição.
+      const prodIds = loadedItems.map((i) => i.product_id).filter((id) => !String(id).startsWith("svc-"));
+      if (prodIds.length > 0) {
+        const { data: prods } = await supabase.from("products").select("id,item_kind,imei").in("id", prodIds);
+        if (prods?.length) {
+          setItems((arr) => arr.map((i) => {
+            const p = (prods as any[]).find((x) => x.id === i.product_id);
+            if (!p) return i;
+            return {
+              ...i,
+              item_kind: p.item_kind ?? undefined,
+              imei_serial: i.imei_serial || (String(p.imei ?? "").trim() || undefined),
+            };
+          }));
+        }
+      }
 
       const loadedPays: SplitPayment[] = ((sPays ?? []) as any[]).map((p) => ({
         method: p.method,
@@ -800,10 +821,27 @@ export default function VendaNova() {
         discount_pct: 0,
         discount_brl: 0,
         unit_price: draft.unit_price,
+        item_kind: p.item_kind ?? undefined,
+        imei_serial: String(p.imei ?? "").trim() || undefined,
       }];
     });
     setProductQuery("");
     setShowProductList(false);
+    // A busca (search_sale_products) não devolve item_kind/imei. Carregamos aqui
+    // para saber se o item exige IMEI por unidade no carrinho.
+    (async () => {
+      const { data } = await supabase
+        .from("products").select("item_kind,imei").eq("id", draft.product_id).maybeSingle();
+      if (!data) return;
+      setItems((arr) => arr.map((i) => i.product_id === draft.product_id
+        ? {
+            ...i,
+            item_kind: (data as any).item_kind ?? i.item_kind,
+            imei_serial: i.imei_serial || (String((data as any).imei ?? "").trim() || undefined),
+            quantity: (data as any).item_kind === "aparelho" ? 1 : i.quantity,
+          }
+        : i));
+    })();
   };
 
   // Grava o custo informado inline no cadastro do produto. O create_sale copia
@@ -899,9 +937,19 @@ export default function VendaNova() {
         merged.discount_brl = +(merged.list_price - merged.unit_price).toFixed(2);
         merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
       }
+      // Aparelho é rastreado por IMEI: uma linha por unidade.
+      if (merged.item_kind === "aparelho" && Number(merged.quantity) > 1) {
+        merged.quantity = 1;
+        toast.info("Aparelhos são vendidos por unidade (IMEI). Adicione outra linha para vender mais de um.");
+      }
       return merged;
     }));
   };
+
+  /** Itens do tipo aparelho que ainda não têm IMEI válido informado. */
+  const imeiPendingItems = items.filter(
+    (i) => !i.is_service && i.item_kind === "aparelho" && !isValidImei(String(i.imei_serial ?? "")),
+  );
 
   const removeItem = (id: string) => setItems((arr) => arr.filter((i) => i.product_id !== id));
 
@@ -970,6 +1018,11 @@ export default function VendaNova() {
     if (items.length === 0) return toast.error("Adicione ao menos um item");
     if (pendingPriceCount > 0) {
       return toast.error("Informe o preço de venda dos itens destacados antes de concluir.");
+    }
+    if (imeiPendingItems.length > 0) {
+      return toast.error(
+        `Informe o IMEI (15 dígitos) de: ${imeiPendingItems.map((i) => i.name).join(", ")}.`,
+      );
     }
     if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
     if (Math.abs(remaining) > 0.009) {
@@ -1148,6 +1201,7 @@ export default function VendaNova() {
       unit: unit || null,
       discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
       warranty_days: warrantyEnabled ? warrantyDays : null,
+      imei_serial: i.is_service ? null : (String(i.imei_serial ?? "").trim() || null),
     }));
     const rpcPayments = payments
       .filter((p) => Number(p.amount) > 0)
@@ -1476,7 +1530,7 @@ Obrigado pela preferência.`;
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
-            <Button onClick={onSubmitClick} disabled={busy || pendingPriceCount > 0} className="bg-primary text-primary-foreground shadow-glow">
+            <Button onClick={onSubmitClick} disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : (isEditingSale ? "Salvar alterações" : "Salvar venda")}
             </Button>
           </div>
@@ -1824,6 +1878,26 @@ Obrigado pela preferência.`;
                         </td>
                       </tr>
                     )}
+                    {i.item_kind === "aparelho" && (
+                      <tr className={`border-t ${isValidImei(String(i.imei_serial ?? "")) ? "border-border/40" : "border-amber-500/40 bg-amber-500/10"}`}>
+                        <td colSpan={11} className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-medium">IMEI do aparelho</span>
+                            <Input
+                              value={i.imei_serial ?? ""}
+                              onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+                              placeholder="15 dígitos"
+                              inputMode="numeric"
+                              maxLength={15}
+                              className="h-8 w-48 font-mono"
+                            />
+                            {!isValidImei(String(i.imei_serial ?? "")) && (
+                              <span className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     </Fragment>
                   ))}
                 </tbody>
@@ -1879,6 +1953,22 @@ Obrigado pela preferência.`;
                         </div>
                         <Button type="button" size="sm" variant="outline" disabled={inlineSaving} onClick={() => saveInlineCost(i.product_id, i.name)}>Salvar custo</Button>
                       </div>
+                    </div>
+                  )}
+                  {i.item_kind === "aparelho" && (
+                    <div className={`mt-2 rounded-md border p-2 space-y-1 ${isValidImei(String(i.imei_serial ?? "")) ? "border-border" : "border-amber-500/40 bg-amber-500/10"}`}>
+                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">IMEI do aparelho</Label>
+                      <Input
+                        value={i.imei_serial ?? ""}
+                        onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+                        placeholder="15 dígitos"
+                        inputMode="numeric"
+                        maxLength={15}
+                        className="font-mono"
+                      />
+                      {!isValidImei(String(i.imei_serial ?? "")) && (
+                        <p className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</p>
+                      )}
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2 text-xs">
@@ -2412,7 +2502,7 @@ Obrigado pela preferência.`;
           <Button type="button" variant="outline" onClick={sendWhatsapp} className="flex-shrink-0">
             <MessageCircle className="h-4 w-4" />
           </Button>
-          <Button type="submit" disabled={busy || pendingPriceCount > 0} className="flex-1 bg-primary text-primary-foreground shadow-glow">
+          <Button type="submit" disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0} className="flex-1 bg-primary text-primary-foreground shadow-glow">
             <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : `Salvar · ${brl(totalSale)}`}
           </Button>
         </div>
@@ -2457,7 +2547,7 @@ Obrigado pela preferência.`;
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
-            <Button onClick={() => submit()} disabled={busy || pendingPriceCount > 0 || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
+            <Button onClick={() => submit()} disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0 || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
             </Button>
           </DialogFooter>
