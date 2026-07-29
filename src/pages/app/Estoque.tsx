@@ -44,6 +44,7 @@ type Product = {
   stock_current: number; stock_min: number;
   last_sold_at: string | null;
   supplier?: string | null;
+  item_kind?: string | null;
 };
 
 const categoryLabel: Record<string, string> = {
@@ -97,7 +98,7 @@ export default function Estoque() {
     // Aparelhos pendentes de regularização (sem IMEI ou com quantidade > 1)
     const { data: pend } = await supabase
       .from("products")
-      .select("id,name,sku,brand,category,condition,status,cost_price,sale_price,stock_current,stock_min,last_sold_at,supplier")
+      .select("id,name,sku,brand,category,condition,status,cost_price,sale_price,stock_current,stock_min,last_sold_at,supplier,item_kind")
       .eq("store_id", store.id)
       .eq("item_kind", "aparelho")
       .gt("stock_current", 0)
