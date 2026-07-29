@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NumberInput } from "@/components/NumberInput";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -34,6 +37,7 @@ type ProdutoRow = {
   sku: string | null;
   sale_price: number | null;
   cost_price: number | null;
+  category?: string | null;
 };
 
 const TABS = ["sem-custo", "sem-preco", "prejuizo"] as const;
@@ -53,6 +57,13 @@ export default function SaudeCadastro() {
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, number>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  // Precificação em lote (aba "Produtos sem preço ou custo")
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [search, setSearch] = useState("");
+  const [cat, setCat] = useState("todas");
+  const [bulkMode, setBulkMode] = useState<"margem" | "fixo">("margem");
+  const [bulkValue, setBulkValue] = useState(80);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const setDraft = (k: string, v: number) => setDrafts((d) => ({ ...d, [k]: v }));
 
@@ -64,10 +75,10 @@ export default function SaudeCadastro() {
       supabase.rpc("sales_without_cost", {
         _store_id: store.id, _from: from.toISOString(), _to: new Date().toISOString(),
       }),
-      supabase.from("products").select("id,name,sku,sale_price,cost_price")
+      supabase.from("products").select("id,name,sku,sale_price,cost_price,category")
         .eq("store_id", store.id).or("sale_price.is.null,sale_price.eq.0,cost_price.is.null,cost_price.eq.0")
         .order("name").limit(500),
-      supabase.from("products").select("id,name,sku,sale_price,cost_price")
+      supabase.from("products").select("id,name,sku,sale_price,cost_price,category")
         .eq("store_id", store.id).gt("sale_price", 0).gt("cost_price", 0)
         .order("name").limit(500),
     ]);
@@ -79,6 +90,7 @@ export default function SaudeCadastro() {
     if (c.error) handleSupabaseError(c.error, "Erro ao carregar produtos");
     else setPrejuizo(((c.data as ProdutoRow[]) ?? []).filter((p) => Number(p.sale_price) < Number(p.cost_price)));
     setDrafts({});
+    setSelected({});
   }, [store]);
 
   useEffect(() => { load(); }, [load]);
@@ -121,6 +133,58 @@ export default function SaudeCadastro() {
   const counts = useMemo(() => ({
     semCusto: semCusto.length, semPreco: semPreco.length, prejuizo: prejuizo.length,
   }), [semCusto, semPreco, prejuizo]);
+
+  const categorias = useMemo(
+    () => Array.from(new Set(semPreco.map((p) => p.category).filter(Boolean) as string[])).sort(),
+    [semPreco],
+  );
+
+  const semPrecoFiltrado = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return semPreco.filter((p) =>
+      (cat === "todas" || (p.category ?? "") === cat) &&
+      (!q || p.name.toLowerCase().includes(q) || (p.sku ?? "").toLowerCase().includes(q)));
+  }, [semPreco, search, cat]);
+
+  const selectedIds = useMemo(
+    () => semPrecoFiltrado.filter((p) => selected[p.id]).map((p) => p.id),
+    [semPrecoFiltrado, selected],
+  );
+  const allFilteredSelected = semPrecoFiltrado.length > 0 && selectedIds.length === semPrecoFiltrado.length;
+
+  const toggleAll = (v: boolean) =>
+    setSelected((s) => {
+      const n = { ...s };
+      semPrecoFiltrado.forEach((p) => { if (v) n[p.id] = true; else delete n[p.id]; });
+      return n;
+    });
+
+  const aplicarLote = async () => {
+    if (!selectedIds.length) return toast.error("Selecione ao menos um produto.");
+    const v = Number(bulkValue) || 0;
+    if (v <= 0) return toast.error("Informe um valor maior que zero.");
+    const alvo = semPrecoFiltrado.filter((p) => selected[p.id]);
+    const semCustoBase = bulkMode === "margem" ? alvo.filter((p) => !Number(p.cost_price)) : [];
+    const aplicaveis = bulkMode === "margem" ? alvo.filter((p) => Number(p.cost_price) > 0) : alvo;
+    if (!aplicaveis.length) {
+      return toast.error("Nenhum dos produtos selecionados tem custo cadastrado para aplicar margem.");
+    }
+    setBulkBusy(true);
+    let ok = 0;
+    for (const p of aplicaveis) {
+      const preco = bulkMode === "margem"
+        ? Math.round(Number(p.cost_price) * (1 + v / 100) * 100) / 100
+        : v;
+      const { error } = await supabase.from("products").update({ sale_price: preco }).eq("id", p.id);
+      if (error) { handleSupabaseError(error, `Erro ao precificar ${p.name}`); break; }
+      ok++;
+    }
+    setBulkBusy(false);
+    if (ok) {
+      toast.success(`${ok} produto(s) precificado(s).${semCustoBase.length ? ` ${semCustoBase.length} sem custo foram ignorados.` : ""}`);
+      load();
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6">
@@ -196,10 +260,57 @@ export default function SaudeCadastro() {
         </TabsContent>
 
         <TabsContent value="sem-preco">
+          {canEdit && (
+            <Card className="p-3 mb-3 space-y-3">
+              <div className="flex flex-wrap gap-2 items-center">
+                <Input
+                  placeholder="Buscar por nome ou SKU"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full sm:w-64"
+                />
+                <Select value={cat} onValueChange={setCat}>
+                  <SelectTrigger className="w-full sm:w-52"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as categorias</SelectItem>
+                    {categorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Select value={bulkMode} onValueChange={(v) => setBulkMode(v as "margem" | "fixo")}>
+                  <SelectTrigger className="w-full sm:w-56"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="margem">Margem sobre o custo (%)</SelectItem>
+                    <SelectItem value="fixo">Preço fixo (R$)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="w-32">
+                  <NumberInput value={bulkValue} onValueChange={setBulkValue} min={0} />
+                </div>
+                <Button size="sm" disabled={bulkBusy || !selectedIds.length} onClick={aplicarLote}>
+                  Aplicar a {selectedIds.length} selecionado(s)
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {bulkMode === "margem"
+                    ? "Produtos sem custo cadastrado são ignorados na margem."
+                    : "Define o mesmo preço de venda para todos os selecionados."}
+                </span>
+              </div>
+            </Card>
+          )}
           <Card className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={allFilteredSelected}
+                      onCheckedChange={(v) => toggleAll(!!v)}
+                      disabled={!canEdit || !semPrecoFiltrado.length}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead className="w-[150px] text-right">Preço de venda</TableHead>
@@ -208,12 +319,20 @@ export default function SaudeCadastro() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading && <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>}
-                {!loading && !semPreco.length && (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Todos os produtos têm preço e custo. 🎉</TableCell></TableRow>
+                {loading && <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>}
+                {!loading && !semPrecoFiltrado.length && (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum produto nesse filtro. 🎉</TableCell></TableRow>
                 )}
-                {semPreco.map((p) => (
+                {semPrecoFiltrado.map((p) => (
                   <TableRow key={p.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={!!selected[p.id]}
+                        onCheckedChange={(v) => setSelected((s) => { const n = { ...s }; if (v) n[p.id] = true; else delete n[p.id]; return n; })}
+                        disabled={!canEdit}
+                        aria-label={`Selecionar ${p.name}`}
+                      />
+                    </TableCell>
                     <TableCell className="max-w-[280px] truncate">{p.name}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{p.sku ?? "—"}</TableCell>
                     <TableCell>
