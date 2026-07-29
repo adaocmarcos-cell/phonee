@@ -5248,6 +5248,13 @@ export type Database = {
         Args: { _alert_id: string; _note?: string; _status: string }
         Returns: undefined
       }
+      split_device_units: {
+        Args: { _product_id: string; _units: Json }
+        Returns: {
+          imei: string
+          product_id: string
+        }[]
+      }
       stock_products_page: {
         Args: {
           _brand?: string
