@@ -59,7 +59,7 @@ export default function Estoque() {
   const [stockMetrics, setStockMetrics] = useState<ProductStockMetrics>({
     product_count: 0, units: 0, low_count: 0, stalled_count: 0,
     sale_value: 0, cost_value: 0, parts_count: 0, parts_units: 0,
-    parts_low_count: 0, parts_sale_value: 0, alert_count: 0,
+    parts_low_count: 0, parts_sale_value: 0, parts_cost_value: 0, alert_count: 0,
   });
   const [filterOptions, setFilterOptions] = useState<{ brands: string[]; categories: string[]; suppliers: string[] }>({ brands: [], categories: [], suppliers: [] });
   const [q, setQ] = useState("");
