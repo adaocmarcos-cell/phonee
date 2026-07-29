@@ -62,6 +62,9 @@ type LineItem = {
   discount_pct: number;
   discount_brl: number;
   unit_price: number;
+  /** IMEI/serial da unidade vendida — obrigatório para item_kind='aparelho'. */
+  imei_serial?: string;
+  item_kind?: string;
 };
 
 export type NewTradeInDraft = {
