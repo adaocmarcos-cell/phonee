@@ -384,6 +384,25 @@ export default function Dashboard() {
               />
             ),
           },
+          ...(canSeeCost(role)
+            ? [
+                {
+                  id: "lucro-periodo",
+                  node: (
+                    <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
+                      <MetricCard
+                        label={`Lucro — ${periodLabel}`}
+                        value={brl(lucroMes)}
+                        delta={`Margem ${pct(revenueTotal > 0 ? (lucroMes / revenueTotal) * 100 : 0)} · ver detalhes`}
+                        icon={PiggyBank}
+                        tone={lucroMes >= 0 ? "success" : "danger"}
+                        className="h-full"
+                      />
+                    </button>
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
 
