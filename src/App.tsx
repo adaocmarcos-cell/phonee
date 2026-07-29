@@ -59,6 +59,7 @@ const RastreioImei = lazy(() => import("./pages/app/RastreioImei"));
 const DesdobrarAparelho = lazy(() => import("./pages/app/DesdobrarAparelho"));
 const RegularizarAparelhos = lazy(() => import("./pages/app/RegularizarAparelhos"));
 const VendasPecas = lazy(() => import("./pages/app/VendasPecas"));
+const VendasSemCusto = lazy(() => import("./pages/app/VendasSemCusto"));
 const Configuracoes = lazy(() => import("./pages/app/Configuracoes"));
 const TabelasPreco = lazy(() => import("./pages/app/TabelasPreco"));
 const ComingSoon = lazy(() => import("./pages/app/ComingSoon"));
@@ -165,6 +166,7 @@ const App = () => (
               <Route path="vendas/nova" element={<VendaNova />} />
               <Route path="vendas/:id/editar" element={<VendaNova />} />
               <Route path="vendas/encomendas" element={<Encomendas />} />
+              <Route path="vendas/sem-custo" element={<VendasSemCusto />} />
               <Route path="despesas" element={<Despesas />} />
               <Route path="financeiro" element={<Financeiro />} />
               <Route path="financeiro/fluxo-caixa" element={<FluxoCaixa />} />
