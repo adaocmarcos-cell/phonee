@@ -463,7 +463,7 @@ export default function Dashboard() {
               <MetricCard
                 label="Despesas do período"
                 value={brl(expensesMonth)}
-                delta="Custos operacionais"
+                delta="Operacionais — não inclui compra de mercadoria"
                 icon={Receipt}
                 tone="warning"
               />
