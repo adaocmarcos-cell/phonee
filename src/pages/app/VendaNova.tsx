@@ -420,9 +420,27 @@ export default function VendaNova() {
           discount_pct: 0,
           discount_brl: discPerUnit,
           unit_price: price,
+          imei_serial: r.imei_serial ?? undefined,
         };
       });
       setItems(loadedItems);
+      // item_kind não fica em sale_items — busca nos produtos para reaplicar a
+      // exigência de IMEI por unidade também no modo edição.
+      const prodIds = loadedItems.map((i) => i.product_id).filter((id) => !String(id).startsWith("svc-"));
+      if (prodIds.length > 0) {
+        const { data: prods } = await supabase.from("products").select("id,item_kind,imei").in("id", prodIds);
+        if (prods?.length) {
+          setItems((arr) => arr.map((i) => {
+            const p = (prods as any[]).find((x) => x.id === i.product_id);
+            if (!p) return i;
+            return {
+              ...i,
+              item_kind: p.item_kind ?? undefined,
+              imei_serial: i.imei_serial || (String(p.imei ?? "").trim() || undefined),
+            };
+          }));
+        }
+      }
 
       const loadedPays: SplitPayment[] = ((sPays ?? []) as any[]).map((p) => ({
         method: p.method,
