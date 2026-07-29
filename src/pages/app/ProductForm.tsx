@@ -29,6 +29,10 @@ import {
   reconcileSubcategoryOnCategoryChange,
 } from "@/lib/productCategory";
 import { brl } from "@/lib/format";
+import {
+  ITEM_KINDS, type ItemKind, kindFromCategory, defaultCategoryForKind,
+  isDevice, isTool, hasFreeQuantity, imeiError, isValidImei,
+} from "@/lib/itemKind";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 
@@ -48,7 +52,10 @@ const schema = z.object({
 });
 
 type FormState = {
-  name: string; sku: string; ean: string; imei: string; brand: string; compatible_model: string;
+  item_kind: ItemKind;
+  name: string; sku: string; ean: string; imei: string; imei2: string; brand: string; compatible_model: string;
+  compatible_models: string; battery_health: number; color: string; storage_gb: number;
+  patrimonio: string; responsavel: string; data_aquisicao: string; notes: string;
   category: string; subcategory: string; condition: string;
   supplier: string; cost_price: number; sale_price: number;
   stock_current: number; stock_min: number; stock_max: number;
@@ -57,7 +64,10 @@ type FormState = {
 };
 
 const empty: FormState = {
-  name: "", sku: "", ean: "", imei: "", brand: "", compatible_model: "",
+  item_kind: "acessorio",
+  name: "", sku: "", ean: "", imei: "", imei2: "", brand: "", compatible_model: "",
+  compatible_models: "", battery_health: 0, color: "", storage_gb: 0,
+  patrimonio: "", responsavel: "", data_aquisicao: "", notes: "",
   category: "", subcategory: "", condition: "novo",
   supplier: "", cost_price: 0, sale_price: 0,
   stock_current: 0, stock_min: 0, stock_max: 0,
@@ -159,10 +169,20 @@ export default function ProductForm() {
         setForm({
           ...empty,
           ...raw,
+          item_kind: (raw.item_kind ?? kindFromCategory(raw.category)) as ItemKind,
           name: raw.name ?? "",
           sku: raw.sku ?? "",
           ean: raw.ean ?? "",
           imei: raw.imei ?? "",
+          imei2: raw.imei2 ?? "",
+          compatible_models: raw.compatible_models ?? raw.compatible_model ?? "",
+          battery_health: Number(raw.battery_health ?? 0),
+          color: raw.color ?? "",
+          storage_gb: Number(raw.storage_gb ?? 0),
+          patrimonio: raw.patrimonio ?? "",
+          responsavel: raw.responsavel ?? "",
+          data_aquisicao: raw.data_aquisicao ?? "",
+          notes: raw.notes ?? "",
           brand: raw.brand ?? "",
           compatible_model: raw.compatible_model ?? "",
           category: raw.category ?? "",
@@ -199,17 +219,41 @@ export default function ProductForm() {
       location: form.location,
     });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    if (form.imei && !/^\d{15}$/.test(form.imei.trim())) {
-      return toast.error("IMEI inválido: deve ter 15 dígitos numéricos");
+
+    const kind = form.item_kind;
+    if (isDevice(kind)) {
+      const err = imeiError(form.imei);
+      if (err) return toast.error(err);
+      if (Number(form.stock_current) !== 1) {
+        return toast.error("Aparelho é sempre 1 unidade por registro. Cadastre um registro por aparelho.");
+      }
+    } else if (form.imei && !isValidImei(form.imei)) {
+      return toast.error("IMEI inválido: 15 dígitos e dígito verificador (Luhn).");
+    }
+    if (form.imei2 && !isValidImei(form.imei2)) {
+      return toast.error("IMEI 2 inválido: 15 dígitos e dígito verificador (Luhn).");
+    }
+    if (isTool(kind) && !form.patrimonio.trim()) {
+      return toast.error("Informe o número de patrimônio da ferramenta.");
     }
     setBusy(true);
 
     const payload: any = {
       store_id: store.id,
+      item_kind: kind,
       name: form.name.trim(),
       sku: form.sku || null,
       ean: form.ean || null,
-      imei: form.imei ? form.imei.trim() : null,
+      imei: form.imei ? form.imei.replace(/\D/g, "") : null,
+      imei2: form.imei2 ? form.imei2.replace(/\D/g, "") : null,
+      battery_health: isDevice(kind) && form.battery_health > 0 ? Number(form.battery_health) : null,
+      color: isDevice(kind) ? (form.color || null) : null,
+      storage_gb: isDevice(kind) && form.storage_gb > 0 ? Number(form.storage_gb) : null,
+      compatible_models: form.compatible_models || null,
+      notes: form.notes || null,
+      patrimonio: isTool(kind) ? (form.patrimonio || null) : null,
+      responsavel: isTool(kind) ? (form.responsavel || null) : null,
+      data_aquisicao: isTool(kind) ? (form.data_aquisicao || null) : null,
       brand: form.brand || null,
       compatible_model: form.compatible_model || null,
       category: catCheck.category,
@@ -219,11 +263,11 @@ export default function ProductForm() {
       supplier: form.supplier || null,
       cost_price: Number(form.cost_price),
       sale_price: Number(form.sale_price),
-      stock_current: Number(form.stock_current),
+      stock_current: isDevice(kind) ? 1 : Number(form.stock_current),
       stock_min: Number(form.stock_min),
       stock_max: Number(form.stock_max),
       location: form.location || null,
-      visible_in_catalog: form.visible_in_catalog,
+      visible_in_catalog: isTool(kind) ? false : form.visible_in_catalog,
       status: form.status,
       data_entrada: form.data_entrada || null,
     };
@@ -235,6 +279,8 @@ export default function ProductForm() {
     setBusy(false);
     if (error) {
       if ((error as any).code === "23505") return toast.error("Este SKU já está em uso. Use outro ou gere automaticamente.");
+      const msg = (error as any).message || "";
+      if (/IMEI/i.test(msg)) return toast.error(msg);
       const friendly = friendlyCategoryError(error as any);
       return toast.error(friendly ?? error.message);
     }
@@ -251,6 +297,41 @@ export default function ProductForm() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <Card className="p-6 bg-card border-border shadow-card">
+          <h3 className="font-semibold mb-1">Tipo de item *</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            O cadastro é único — escolha o tipo e o formulário se adapta.
+          </p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {ITEM_KINDS.map((k) => {
+              const active = form.item_kind === k.value;
+              return (
+                <button
+                  key={k.value}
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      item_kind: k.value,
+                      stock_current: k.value === "aparelho" ? 1 : f.stock_current,
+                      category: f.category || defaultCategoryForKind(k.value, f.condition),
+                      visible_in_catalog: k.value === "ferramenta" ? false : f.visible_in_catalog,
+                    }))
+                  }
+                  className={`text-left rounded-lg border p-3 transition ${
+                    active
+                      ? "border-primary bg-primary/10 ring-1 ring-primary/40"
+                      : "border-border hover:border-primary/40 bg-surface-elevated/40"
+                  }`}
+                >
+                  <div className="text-sm font-semibold">{k.label}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1 leading-snug">{k.hint}</div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
         {tradeInOrigins.length > 0 && (
           <Card className="p-4 bg-primary/5 border-primary/30">
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -320,15 +401,64 @@ export default function ProductForm() {
               <p className="text-xs text-muted-foreground mt-1">Opcional. Se deixar em branco, o produto ficará sem SKU (nenhum código é gerado automaticamente ao salvar).</p>
             </Field>
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
-            <Field label="IMEI (aparelhos)">
-              <Input
-                value={form.imei}
-                onChange={(e) => set("imei", e.target.value.replace(/\D/g, "").slice(0, 15))}
-                placeholder="15 dígitos (opcional)"
-                inputMode="numeric"
-                maxLength={15}
-              />
-            </Field>
+            {isDevice(form.item_kind) && (
+              <>
+                <Field label="IMEI *">
+                  <Input
+                    value={form.imei}
+                    onChange={(e) => set("imei", e.target.value.replace(/\D/g, "").slice(0, 15))}
+                    placeholder="15 dígitos"
+                    inputMode="numeric"
+                    maxLength={15}
+                    className="font-mono"
+                  />
+                  {form.imei.length > 0 && imeiError(form.imei) && (
+                    <p className="text-xs text-danger mt-1">{imeiError(form.imei)}</p>
+                  )}
+                </Field>
+                <Field label="IMEI 2 (dual SIM)">
+                  <Input
+                    value={form.imei2}
+                    onChange={(e) => set("imei2", e.target.value.replace(/\D/g, "").slice(0, 15))}
+                    placeholder="Opcional"
+                    inputMode="numeric"
+                    maxLength={15}
+                    className="font-mono"
+                  />
+                </Field>
+                <Field label="Cor">
+                  <Input value={form.color} onChange={(e) => set("color", e.target.value)} placeholder="Titânio natural" />
+                </Field>
+                <Field label="Armazenamento (GB)">
+                  <NumberInput allowDecimal={false} min={0} placeholder="128" value={form.storage_gb} onValueChange={(n) => set("storage_gb", n)} />
+                </Field>
+                <Field label="Saúde da bateria (%)">
+                  <NumberInput allowDecimal={false} min={0} max={100} placeholder="100" value={form.battery_health} onValueChange={(n) => set("battery_health", n)} />
+                </Field>
+              </>
+            )}
+            {hasFreeQuantity(form.item_kind) && (
+              <Field label="Modelos compatíveis">
+                <Input
+                  value={form.compatible_models}
+                  onChange={(e) => set("compatible_models", e.target.value)}
+                  placeholder="iPhone 13, 13 Pro, 14"
+                />
+              </Field>
+            )}
+            {isTool(form.item_kind) && (
+              <>
+                <Field label="Nº de patrimônio *">
+                  <Input value={form.patrimonio} onChange={(e) => set("patrimonio", e.target.value)} placeholder="FER-0012" className="font-mono" />
+                </Field>
+                <Field label="Responsável">
+                  <Input value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Nome do técnico" />
+                </Field>
+                <Field label="Data de aquisição">
+                  <Input type="date" value={form.data_aquisicao} onChange={(e) => set("data_aquisicao", e.target.value)} />
+                </Field>
+              </>
+            )}
             <Field label="Marca"><AutocompleteInput options={suggest.brands} value={form.brand} onChange={(e) => set("brand", e.target.value)} placeholder="Apple, Samsung, Generic…" /></Field>
             <Field label="Modelo compatível"><AutocompleteInput options={suggest.models} value={form.compatible_model} onChange={(e) => set("compatible_model", e.target.value)} placeholder="iPhone 15 Pro" /></Field>
             <Field label="Fornecedor"><AutocompleteInput options={suggest.suppliers} value={form.supplier} onChange={(e) => set("supplier", e.target.value)} placeholder="Selecione ou digite" /></Field>
@@ -401,21 +531,41 @@ export default function ProductForm() {
                 <NumberInput placeholder="0,00" value={form.cost_price} onValueChange={(n) => set("cost_price", n)} />
               </Field>
             )}
-            <Field label="Preço de venda (R$)">
-              <NumberInput placeholder="0,00" value={form.sale_price} onValueChange={(n) => set("sale_price", n)} />
-            </Field>
-            {canSeeCost(role) && (
+            {!isTool(form.item_kind) && (
+              <Field label="Preço de venda (R$)">
+                <NumberInput placeholder="0,00" value={form.sale_price} onValueChange={(n) => set("sale_price", n)} />
+              </Field>
+            )}
+            {canSeeCost(role) && !isTool(form.item_kind) && (
               <Field label="Margem">
                 <div className={`metric h-10 px-3 flex items-center rounded-md border border-border bg-muted/30 ${margin >= 30 ? "text-success" : margin >= 15 ? "text-warning" : "text-danger"}`}>
                   {margin.toFixed(1)}%
                 </div>
               </Field>
             )}
-            <Field label="Estoque atual"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_current} onValueChange={(n) => set("stock_current", n)} /></Field>
-            <Field label="Estoque mínimo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_min} onValueChange={(n) => set("stock_min", n)} /></Field>
-            <Field label="Estoque máximo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_max} onValueChange={(n) => set("stock_max", n)} /></Field>
+            {isDevice(form.item_kind) ? (
+              <Field label="Estoque atual">
+                <div className="h-10 px-3 flex items-center rounded-md border border-border bg-muted/30 text-sm font-mono">1 unidade</div>
+                <p className="text-xs text-muted-foreground mt-1">Cada aparelho é um registro próprio, identificado pelo IMEI.</p>
+              </Field>
+            ) : (
+              <>
+                <Field label="Estoque atual"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_current} onValueChange={(n) => set("stock_current", n)} /></Field>
+                {hasFreeQuantity(form.item_kind) && (
+                  <>
+                    <Field label="Estoque mínimo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_min} onValueChange={(n) => set("stock_min", n)} /></Field>
+                    <Field label="Estoque máximo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_max} onValueChange={(n) => set("stock_max", n)} /></Field>
+                  </>
+                )}
+              </>
+            )}
             <Field label="Localização física"><AutocompleteInput options={suggest.locations} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Prateleira A3" /></Field>
           </div>
+          {isTool(form.item_kind) && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Ferramentas não entram no valor do estoque, não aparecem na busca de venda e não geram alerta de estoque baixo.
+            </p>
+          )}
         </Card>
 
         {canSeeCost(role) && (
