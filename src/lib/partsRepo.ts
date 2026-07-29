@@ -13,8 +13,10 @@ export const PARTS_KINDS = ["peca", "ferramenta"] as const;
 /** Itens de venda: aparelhos e acessórios. */
 export const SALEABLE_KINDS = ["aparelho", "acessorio"] as const;
 
-export const PARTS_KINDS_ARR: string[] = [...PARTS_KINDS];
-export const SALEABLE_KINDS_ARR: string[] = [...SALEABLE_KINDS];
+export type ItemKind = (typeof PARTS_KINDS)[number] | (typeof SALEABLE_KINDS)[number];
+
+export const PARTS_KINDS_ARR: ItemKind[] = [...PARTS_KINDS];
+export const SALEABLE_KINDS_ARR: ItemKind[] = [...SALEABLE_KINDS];
 
 /**
  * Colunas de uma peça no formato legado (`category` vem de `subcategory`),
