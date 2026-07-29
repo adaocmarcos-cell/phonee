@@ -5762,6 +5762,7 @@ export type Database = {
         }
         Returns: Json
       }
+      receive_purchase_order: { Args: { _order_id: string }; Returns: Json }
       reconcile_stock: {
         Args: { _store_id: string }
         Returns: {
