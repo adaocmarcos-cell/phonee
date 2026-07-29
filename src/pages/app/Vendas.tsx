@@ -362,24 +362,27 @@ export default function Vendas() {
   const SaleActions = ({ s }: { s: any }) => {
     const reversed = isReversed(s);
     return (
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        <Button size="icon" variant="ghost" title="Ver detalhes da venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}`)}>
+      <div
+        className="flex flex-wrap items-center justify-end gap-1"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Button size="icon" variant="ghost" title="Ver venda completa" className="h-11 w-11 md:h-9 md:w-9" onClick={() => navigate(`/painel/vendas/${s.id}`)}>
           <Eye className="h-4 w-4 text-info" />
         </Button>
-        <Button size="icon" variant="ghost" title="Imprimir comprovante" className="h-9 w-9" onClick={() => onPrintReceipt(s)}>
+        <Button size="icon" variant="ghost" title="Imprimir comprovante" className="h-11 w-11 md:h-9 md:w-9" onClick={() => onPrintReceipt(s)}>
           <Printer className="h-4 w-4" />
         </Button>
         {!reversed && (s.payment_method === "credito" || s.payment_method === "debito") && (
-          <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" className="h-9 w-9" onClick={() => openAdjust(s)}>
+          <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" className="h-11 w-11 md:h-9 md:w-9" onClick={() => openAdjust(s)}>
             <Sliders className="h-4 w-4 text-info" />
           </Button>
         )}
         {!reversed && s.payment_status === "pendente" && (
           <>
-            <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" className="h-9 w-9" onClick={() => openReminder(s)}>
+            <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" className="h-11 w-11 md:h-9 md:w-9" onClick={() => openReminder(s)}>
               <MessageCircle className="h-4 w-4 text-success" />
             </Button>
-            <Button size="icon" variant="ghost" title="Marcar como pago" className="h-9 w-9" onClick={() => markPaid(s)}>
+            <Button size="icon" variant="ghost" title="Marcar como pago" className="h-11 w-11 md:h-9 md:w-9" onClick={() => markPaid(s)}>
               <CheckCircle2 className="h-4 w-4 text-primary" />
             </Button>
           </>
@@ -396,17 +399,17 @@ export default function Vendas() {
               prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
             }}
             allowedEvents={["venda_concluida"]}
-            className="h-9 w-9 p-0"
+            className="h-11 w-11 md:h-9 md:w-9 p-0"
             size="sm"
           />
         )}
         {!reversed && canRegisterSale(role) && (
-          <Button size="icon" variant="ghost" title="Devolver / trocar itens" className="h-9 w-9" onClick={() => setReturnSale(s)}>
+          <Button size="icon" variant="ghost" title="Devolver / trocar itens" className="h-11 w-11 md:h-9 md:w-9" onClick={() => setReturnSale(s)}>
             <Undo2 className="h-4 w-4 text-warning" />
           </Button>
         )}
         {!reversed && canRegisterSale(role) && (
-          <Button size="icon" variant="ghost" title="Editar venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
+          <Button size="icon" variant="ghost" title="Editar venda" className="h-11 w-11 md:h-9 md:w-9" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
             <Pencil className="h-4 w-4" />
           </Button>
         )}
@@ -415,7 +418,7 @@ export default function Vendas() {
             size="icon"
             variant="ghost"
             title="Estornar venda"
-            className="h-9 w-9"
+            className="h-11 w-11 md:h-9 md:w-9"
             onClick={() => { setReverseSale(s); setReverseReason(""); }}
           >
             <RotateCcw className="h-4 w-4 text-danger" />
