@@ -230,7 +230,10 @@ export default function Dashboard() {
   const recebidoTroca  = metrics?.recebido_em_troca ?? 0;
   const costMonth      = metrics?.custo             ?? 0;
   const expensesMonth  = metrics?.despesas          ?? 0;
-  const lucroMes       = metrics?.lucro             ?? 0;
+  const comprasEstoque = metrics?.compras_estoque   ?? 0;
+  const lucroBruto     = metrics?.lucro_bruto       ?? (revenueTotal - (metrics?.custo ?? 0));
+  const lucroLiquido   = metrics?.lucro_liquido     ?? (metrics?.lucro ?? 0);
+  const movimentoCaixa = metrics?.movimento_caixa   ?? 0;
   const salesCount     = metrics?.qtd_vendas        ?? 0;
   const ticketMedio    = metrics?.ticket_medio      ?? 0;
   const pay            = (metrics?.formas_pagamento ?? []).map((p) => ({ ...p, name: PAY_LABEL[p.name] ?? p.name }));
@@ -238,7 +241,7 @@ export default function Dashboard() {
   const arCrediario    = metrics?.crediario_a_receber ?? 0;
   const arVencido      = metrics?.crediario_vencido ?? 0;
   const arVencidasCount= metrics?.crediario_vencidas_count ?? 0;
-  const margin         = revenueTotal > 0 ? ((revenueTotal - costMonth) / revenueTotal) * 100 : 0;
+  const margemBruta    = revenueTotal > 0 ? (lucroBruto / revenueTotal) * 100 : 0;
   const itensAlerta    = productsLow + stalled;
 
   const periodLabel =
