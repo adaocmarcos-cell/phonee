@@ -550,7 +550,7 @@ export default function Estoque() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className={`grid grid-cols-2 gap-3 mb-4 ${canSeeCost(role) ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
         <Card className="bg-card border-border shadow-card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -575,6 +575,32 @@ export default function Estoque() {
             </div>
           </div>
         </Card>
+        {canSeeCost(role) && (
+          <Card className="bg-card border-border shadow-card p-4">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Preço de custo</div>
+                <div className="metric text-2xl font-bold mt-1">{brl(totals.totalCostValue)}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {totals.totalCostValue > 0 ? (
+                    <>
+                      margem{" "}
+                      <span className="text-success font-medium">
+                        {brl(totals.value - totals.totalCostValue)}
+                      </span>{" "}
+                      ({(((totals.value - totals.totalCostValue) / totals.totalCostValue) * 100).toFixed(0)}%)
+                    </>
+                  ) : (
+                    "custo investido"
+                  )}
+                </div>
+              </div>
+              <div className="h-9 w-9 rounded-md bg-info/10 flex items-center justify-center text-info">
+                <Coins className="h-4 w-4" />
+              </div>
+            </div>
+          </Card>
+        )}
         <Card className="bg-card border-border shadow-card p-4">
           <div className="flex items-center justify-between">
             <div>
