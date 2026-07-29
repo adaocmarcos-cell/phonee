@@ -3439,6 +3439,7 @@ export type Database = {
           data_health_deadline_custom: boolean
           data_health_deadline_days: number
           data_health_done_at: string | null
+          data_health_last_push_at: string | null
           data_health_started_at: string
           email: string | null
           hours: string | null
@@ -3484,6 +3485,7 @@ export type Database = {
           data_health_deadline_custom?: boolean
           data_health_deadline_days?: number
           data_health_done_at?: string | null
+          data_health_last_push_at?: string | null
           data_health_started_at?: string
           email?: string | null
           hours?: string | null
@@ -3529,6 +3531,7 @@ export type Database = {
           data_health_deadline_custom?: boolean
           data_health_deadline_days?: number
           data_health_done_at?: string | null
+          data_health_last_push_at?: string | null
           data_health_started_at?: string
           email?: string | null
           hours?: string | null
@@ -4574,6 +4577,7 @@ export type Database = {
         }
         Returns: Json
       }
+      data_health_weekly_job: { Args: never; Returns: Json }
       dispatch_push_event: {
         Args: { _event: string; _payload: Json; _store_id: string }
         Returns: undefined
