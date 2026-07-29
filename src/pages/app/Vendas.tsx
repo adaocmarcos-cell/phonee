@@ -375,6 +375,73 @@ export default function Vendas() {
 
   const today0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
 
+  /** Barra de ações usada tanto no card mobile quanto na tabela desktop. */
+  const SaleActions = ({ s }: { s: any }) => {
+    const reversed = isReversed(s);
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-1">
+        <Button size="icon" variant="ghost" title="Ver detalhes da venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}`)}>
+          <Eye className="h-4 w-4 text-info" />
+        </Button>
+        <Button size="icon" variant="ghost" title="Imprimir comprovante" className="h-9 w-9" onClick={() => onPrintReceipt(s)}>
+          <Printer className="h-4 w-4" />
+        </Button>
+        {!reversed && (s.payment_method === "credito" || s.payment_method === "debito") && (
+          <Button size="icon" variant="ghost" title="Ajustar valor líquido (taxas de cartão)" className="h-9 w-9" onClick={() => openAdjust(s)}>
+            <Sliders className="h-4 w-4 text-info" />
+          </Button>
+        )}
+        {!reversed && s.payment_status === "pendente" && (
+          <>
+            <Button size="icon" variant="ghost" title="Enviar lembrete WhatsApp" className="h-9 w-9" onClick={() => openReminder(s)}>
+              <MessageCircle className="h-4 w-4 text-success" />
+            </Button>
+            <Button size="icon" variant="ghost" title="Marcar como pago" className="h-9 w-9" onClick={() => markPaid(s)}>
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+            </Button>
+          </>
+        )}
+        {!reversed && s.payment_status !== "pendente" && s.customer_whatsapp && store?.id && (
+          <WhatsappSendButton
+            storeId={store.id}
+            phone={s.customer_whatsapp}
+            saleId={s.id}
+            vars={{
+              cliente: s.customer_name || "cliente",
+              loja: (store as any)?.trade_name || store?.name || "",
+              valor: brl(Number(s.total || 0)),
+              prazo: s.due_date ? new Date(s.due_date + "T00:00:00").toLocaleDateString("pt-BR") : "—",
+            }}
+            allowedEvents={["venda_concluida"]}
+            className="h-9 w-9 p-0"
+            size="sm"
+          />
+        )}
+        {!reversed && canRegisterSale(role) && (
+          <Button size="icon" variant="ghost" title="Devolver / trocar itens" className="h-9 w-9" onClick={() => setReturnSale(s)}>
+            <Undo2 className="h-4 w-4 text-warning" />
+          </Button>
+        )}
+        {!reversed && canRegisterSale(role) && (
+          <Button size="icon" variant="ghost" title="Editar venda" className="h-9 w-9" onClick={() => navigate(`/painel/vendas/${s.id}/editar`)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+        {!reversed && canRegisterSale(role) && canDeleteSale && (
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Estornar venda"
+            className="h-9 w-9"
+            onClick={() => { setReverseSale(s); setReverseReason(""); }}
+          >
+            <RotateCcw className="h-4 w-4 text-danger" />
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="lg:text-[90%]">
       <PageHeader
