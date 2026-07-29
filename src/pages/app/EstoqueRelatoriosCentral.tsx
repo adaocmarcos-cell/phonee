@@ -22,13 +22,14 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import MovimentacaoLedger from "./MovimentacaoLedger";
+import ReconcileTable from "@/components/estoque/ReconcileTable";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 
 type ReportKey =
   | "movement" | "in_out" | "transfers" | "balances" | "top_movers"
-  | "stalled" | "low_stock" | "financial" | "by_product";
+  | "stalled" | "low_stock" | "financial" | "by_product" | "reconciliacao";
 
 const REPORTS: { key: ReportKey; label: string; icon: any; desc: string }[] = [
   { key: "movement",   label: "Movimentação (livro)",    icon: ShieldCheck, desc: "Saldo inicial · Entradas · Saídas · Divergência" },
@@ -40,6 +41,7 @@ const REPORTS: { key: ReportKey; label: string; icon: any; desc: string }[] = [
   { key: "low_stock",  label: "Abaixo do Mínimo",         icon: AlertTriangle, desc: "Reposição urgente" },
   { key: "financial",  label: "Visão Financeira",         icon: DollarSign,  desc: "Custo · Venda · Lucro" },
   { key: "by_product", label: "Movimentação por Produto", icon: Search,      desc: "Linha do tempo individual" },
+  { key: "reconciliacao", label: "Reconciliação",         icon: ShieldCheck, desc: "Estoque x livro-razão" },
 ];
 
 function startOfMonth(d = new Date()) { return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0); }
@@ -484,6 +486,7 @@ export default function EstoqueRelatoriosCentral() {
         <TabsContent value="stalled"><StalledTable rows={stalled} loading={loading} /></TabsContent>
         <TabsContent value="low_stock"><LowStockTable rows={lowStock} loading={loading} /></TabsContent>
         <TabsContent value="financial"><FinancialTable rows={filteredProds} showCost={showCost} loading={loading} /></TabsContent>
+        <TabsContent value="reconciliacao"><ReconcileTable /></TabsContent>
         <TabsContent value="by_product">
           <Card className="p-3 mb-3">
             <Label className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground">Produto</Label>
