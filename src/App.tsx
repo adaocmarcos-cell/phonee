@@ -59,7 +59,7 @@ const RastreioImei = lazy(() => import("./pages/app/RastreioImei"));
 const DesdobrarAparelho = lazy(() => import("./pages/app/DesdobrarAparelho"));
 const RegularizarAparelhos = lazy(() => import("./pages/app/RegularizarAparelhos"));
 const VendasPecas = lazy(() => import("./pages/app/VendasPecas"));
-const VendasSemCusto = lazy(() => import("./pages/app/VendasSemCusto"));
+const SaudeCadastro = lazy(() => import("./pages/app/SaudeCadastro"));
 const Configuracoes = lazy(() => import("./pages/app/Configuracoes"));
 const TabelasPreco = lazy(() => import("./pages/app/TabelasPreco"));
 const ComingSoon = lazy(() => import("./pages/app/ComingSoon"));
@@ -151,6 +151,7 @@ const App = () => (
               <Route path="estoque/relatorios" element={<EstoqueRelatoriosCentral />} />
               <Route path="estoque/auditoria-pdf" element={<EstoqueAuditoriaPDF />} />
               <Route path="estoque/rastreio-imei" element={<RastreioImei />} />
+              <Route path="estoque/saude" element={<SaudeCadastro />} />
               <Route path="estoque/aparelhos/regularizar" element={<RegularizarAparelhos />} />
               <Route path="estoque/aparelhos/desdobrar" element={<DesdobrarAparelho />} />
               <Route path="estoque/:id" element={<ProductForm />} />
@@ -166,7 +167,6 @@ const App = () => (
               <Route path="vendas/nova" element={<VendaNova />} />
               <Route path="vendas/:id/editar" element={<VendaNova />} />
               <Route path="vendas/encomendas" element={<Encomendas />} />
-              <Route path="vendas/sem-custo" element={<VendasSemCusto />} />
               <Route path="despesas" element={<Despesas />} />
               <Route path="financeiro" element={<Financeiro />} />
               <Route path="financeiro/fluxo-caixa" element={<FluxoCaixa />} />
