@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Building2, Users, Receipt, DollarSign, TrendingUp, Inbox, LogOut, UserPlus, Target, Ticket, ShieldAlert, ShieldCheck, Crown, Layers, Stethoscope,
-  Megaphone, Link2, ScrollText, ChevronDown, Gift, Settings2, ShoppingBag, CreditCard, Package,
+  Megaphone, Link2, ScrollText, ChevronDown, Gift, Settings2, ShoppingBag, CreditCard, Package, Smartphone,
 } from "lucide-react";
 import logoAsset from "@/assets/phonee-logo-white.png.asset.json";
 
@@ -42,6 +42,7 @@ const groups: NavGroup[] = [
     { to: "/phonee/auditoria",   label: "Auditoria",    icon: ShieldAlert },
     { to: "/phonee/audit-log",   label: "Audit Log",    icon: ScrollText },
     { to: "/phonee/diagnostico", label: "Diagnóstico",  icon: Stethoscope },
+    { to: "/phonee/data-health", label: "Regularização IMEI", icon: Smartphone },
     { to: "/phonee/admins",      label: "Admins Master", icon: Crown },
   ]},
 ];
