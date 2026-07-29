@@ -1716,29 +1716,13 @@ Obrigado pela preferência.`;
               )}
             </div>
 
-            {priceFix && (
-              <div className="rounded-lg border border-danger/40 bg-danger/5 p-3 space-y-2">
-                <div className="text-sm font-medium text-danger">
-                  "{priceFix.product?.name}" está sem preço de venda cadastrado
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Item bloqueado. Informe o preço de venda para salvar no cadastro e adicionar ao carrinho.
+            {pendingPriceCount > 0 && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="text-xs text-amber-700">
+                  {pendingPriceCount === 1
+                    ? "1 item aguardando preço de venda. Informe o valor na linha destacada para concluir a venda."
+                    : `${pendingPriceCount} itens aguardando preço de venda. Informe os valores nas linhas destacadas para concluir a venda.`}
                 </p>
-                <div className="flex flex-wrap items-end gap-2">
-                  <div className="w-40">
-                    <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Preço de venda (R$)</Label>
-                    <NumberInput
-                      autoFocus
-                      min={0}
-                      value={priceFix.value}
-                      onValueChange={(v) => setPriceFix((s) => s ? { ...s, value: v } : s)}
-                    />
-                  </div>
-                  <Button type="button" size="sm" disabled={inlineSaving} onClick={saveInlinePriceAndAdd}>
-                    Salvar preço e adicionar
-                  </Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setPriceFix(null)}>Cancelar</Button>
-                </div>
               </div>
             )}
 
