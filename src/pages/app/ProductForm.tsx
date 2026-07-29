@@ -531,21 +531,41 @@ export default function ProductForm() {
                 <NumberInput placeholder="0,00" value={form.cost_price} onValueChange={(n) => set("cost_price", n)} />
               </Field>
             )}
-            <Field label="Preço de venda (R$)">
-              <NumberInput placeholder="0,00" value={form.sale_price} onValueChange={(n) => set("sale_price", n)} />
-            </Field>
-            {canSeeCost(role) && (
+            {!isTool(form.item_kind) && (
+              <Field label="Preço de venda (R$)">
+                <NumberInput placeholder="0,00" value={form.sale_price} onValueChange={(n) => set("sale_price", n)} />
+              </Field>
+            )}
+            {canSeeCost(role) && !isTool(form.item_kind) && (
               <Field label="Margem">
                 <div className={`metric h-10 px-3 flex items-center rounded-md border border-border bg-muted/30 ${margin >= 30 ? "text-success" : margin >= 15 ? "text-warning" : "text-danger"}`}>
                   {margin.toFixed(1)}%
                 </div>
               </Field>
             )}
-            <Field label="Estoque atual"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_current} onValueChange={(n) => set("stock_current", n)} /></Field>
-            <Field label="Estoque mínimo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_min} onValueChange={(n) => set("stock_min", n)} /></Field>
-            <Field label="Estoque máximo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_max} onValueChange={(n) => set("stock_max", n)} /></Field>
+            {isDevice(form.item_kind) ? (
+              <Field label="Estoque atual">
+                <div className="h-10 px-3 flex items-center rounded-md border border-border bg-muted/30 text-sm font-mono">1 unidade</div>
+                <p className="text-xs text-muted-foreground mt-1">Cada aparelho é um registro próprio, identificado pelo IMEI.</p>
+              </Field>
+            ) : (
+              <>
+                <Field label="Estoque atual"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_current} onValueChange={(n) => set("stock_current", n)} /></Field>
+                {hasFreeQuantity(form.item_kind) && (
+                  <>
+                    <Field label="Estoque mínimo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_min} onValueChange={(n) => set("stock_min", n)} /></Field>
+                    <Field label="Estoque máximo"><NumberInput allowDecimal={false} min={0} placeholder="0" value={form.stock_max} onValueChange={(n) => set("stock_max", n)} /></Field>
+                  </>
+                )}
+              </>
+            )}
             <Field label="Localização física"><AutocompleteInput options={suggest.locations} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="Prateleira A3" /></Field>
           </div>
+          {isTool(form.item_kind) && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Ferramentas não entram no valor do estoque, não aparecem na busca de venda e não geram alerta de estoque baixo.
+            </p>
+          )}
         </Card>
 
         {canSeeCost(role) && (
