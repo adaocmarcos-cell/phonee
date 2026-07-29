@@ -116,6 +116,7 @@ export default function VendaDetalhe() {
       unit: it.unit ?? null,
       imei_serial: it.imei_serial ?? null,
       public_notes: it.public_notes ?? null,
+      warranty_days: it.warranty_days ?? null,
       discount_amount: Number(it.discount_amount || 0),
       quantity: it.quantity,
       unit_price: Number(it.unit_price),
@@ -129,7 +130,18 @@ export default function VendaDetalhe() {
         value: Number(pay?.amount || t.entry_value || 0),
       };
     });
-    printSaleReceipt({ sale, items: list, store, warranty, tradeIns: tiList } as any);
+    printSaleReceipt({
+      sale,
+      items: list,
+      store,
+      warranty,
+      tradeIns: tiList,
+      payments: payments.map((p) => ({
+        method: p.method, amount: Number(p.amount || 0),
+        installments: p.installments ?? null, notes: p.notes ?? null,
+      })),
+      sellerName,
+    } as any);
   };
 
   /** Estorno não destrutivo via RPC reverse_sale. */
