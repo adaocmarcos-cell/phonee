@@ -1713,6 +1713,32 @@ Obrigado pela preferência.`;
               )}
             </div>
 
+            {priceFix && (
+              <div className="rounded-lg border border-danger/40 bg-danger/5 p-3 space-y-2">
+                <div className="text-sm font-medium text-danger">
+                  "{priceFix.product?.name}" está sem preço de venda cadastrado
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Item bloqueado. Informe o preço de venda para salvar no cadastro e adicionar ao carrinho.
+                </p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="w-40">
+                    <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Preço de venda (R$)</Label>
+                    <NumberInput
+                      autoFocus
+                      min={0}
+                      value={priceFix.value}
+                      onValueChange={(v) => setPriceFix((s) => s ? { ...s, value: v } : s)}
+                    />
+                  </div>
+                  <Button type="button" size="sm" disabled={inlineSaving} onClick={saveInlinePriceAndAdd}>
+                    Salvar preço e adicionar
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setPriceFix(null)}>Cancelar</Button>
+                </div>
+              </div>
+            )}
+
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-border/70">
               <table className="w-full text-sm border-collapse [&_th]:border-r [&_th]:border-border/60 [&_th:last-child]:border-r-0 [&_td]:border-r [&_td]:border-border/40 [&_td:last-child]:border-r-0">
@@ -1735,7 +1761,8 @@ Obrigado pela preferência.`;
                   {items.length === 0 ? (
                     <tr><td colSpan={11} className="text-center text-xs text-muted-foreground py-8 border-r-0">Nenhum item — busque acima para adicionar</td></tr>
                   ) : items.map((i, idx) => (
-                    <tr key={i.product_id} className={`border-t border-border/60 transition-colors hover:bg-primary/[0.03] ${idx % 2 === 1 ? "bg-surface-elevated/40" : ""}`}>
+                    <Fragment key={i.product_id}>
+                    <tr className={`border-t border-border/60 transition-colors hover:bg-primary/[0.03] ${idx % 2 === 1 ? "bg-surface-elevated/40" : ""}`}>
                       <td className="px-3 py-2.5 truncate max-w-[180px] font-medium">{i.name}</td>
                       <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{i.code}</td>
                       <td className="px-3 py-2.5 text-xs">{i.color || "—"}</td>
@@ -1748,6 +1775,29 @@ Obrigado pela preferência.`;
                       <td className="px-3 py-2.5 text-right metric font-semibold text-primary">{brl(i.quantity * i.unit_price)}</td>
                       <td className="text-center"><Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button></td>
                     </tr>
+                    {costMissing[i.product_id] && (
+                      <tr className="border-t border-amber-500/30 bg-amber-500/5">
+                        <td colSpan={11} className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-amber-700">
+                              Produto sem custo cadastrado — o lucro desta venda não será calculado.
+                            </span>
+                            <div className="w-32">
+                              <NumberInput
+                                min={0}
+                                value={costDraft[i.product_id] ?? 0}
+                                onValueChange={(v) => setCostDraft((s) => ({ ...s, [i.product_id]: v }))}
+                                className="h-8 text-right"
+                              />
+                            </div>
+                            <Button type="button" size="sm" variant="outline" disabled={inlineSaving} onClick={() => saveInlineCost(i.product_id, i.name)}>
+                              Salvar custo
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
