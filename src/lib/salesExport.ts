@@ -91,18 +91,28 @@ export function printSaleReceipt(opts: {
     imei_serial?: string | null;
     public_notes?: string | null;
     discount_amount?: number;
+    warranty_days?: number | null;
     quantity: number;
     unit_price: number;
     total: number;
   }[];
   store: any;
   warranty?: WarrantySettings | null;
+  /** Pagamentos reais da venda (tabela sale_payments) — imprime pagamento misto. */
+  payments?: {
+    method: string;
+    amount: number;
+    installments?: number | null;
+    notes?: string | null;
+  }[];
+  /** Nome do vendedor resolvido a partir de sales.seller_id (fallback do JSON). */
+  sellerName?: string | null;
   tradeIns?: {
     brand?: string | null; model?: string | null; imei?: string | null;
     storage_gb?: number | null; value: number;
   }[];
 }) {
-  const { sale, items, store, warranty, tradeIns } = opts;
+  const { sale, items, store, warranty, tradeIns, payments, sellerName } = opts;
   const integrity = validateSaleForReceipt(sale, items as any);
   if (!integrity.ok) {
     const summary = integrity.issues
