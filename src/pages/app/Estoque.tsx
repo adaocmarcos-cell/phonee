@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/NumberInput";
 import AutocompleteInput from "@/components/AutocompleteInput";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight, Copy } from "lucide-react";
+import { Plus, Search, Package, AlertTriangle, Edit3, Trash2, ShoppingBag, Tag, FileBarChart, Wrench, ClipboardCheck, Download, Upload, ShoppingCart, Truck, Boxes, DollarSign, TrendingDown, ArrowLeftRight, Copy, Coins } from "lucide-react";
 import { brl, num } from "@/lib/format";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
