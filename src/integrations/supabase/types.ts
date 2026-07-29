@@ -5236,6 +5236,10 @@ export type Database = {
         Args: { _from: string; _store_id: string; _to: string }
         Returns: Json
       }
+      get_dashboard_metrics_base: {
+        Args: { _from: string; _store_id: string; _to: string }
+        Returns: Json
+      }
       get_meta_pixel_id: { Args: never; Returns: string }
       get_open_cash_session: {
         Args: { _store_id: string }
