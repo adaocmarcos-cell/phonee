@@ -1991,26 +1991,37 @@ export type Database = {
       }
       products: {
         Row: {
+          battery_health: number | null
           brand: string | null
           category: Database["public"]["Enums"]["product_category"]
+          category_other: string | null
+          color: string | null
           compatible_model: string | null
+          compatible_models: string | null
           condition: Database["public"]["Enums"]["product_condition"]
           cost_price: number
           created_at: string
+          data_aquisicao: string | null
           data_entrada: string
           ean: string | null
           id: string
           imei: string | null
+          imei2: string | null
+          item_kind: Database["public"]["Enums"]["item_kind"]
           last_sold_at: string | null
           location: string | null
           name: string
+          notes: string | null
+          patrimonio: string | null
           photos: string[] | null
+          responsavel: string | null
           sale_price: number
           sku: string | null
           status: Database["public"]["Enums"]["product_status"]
           stock_current: number
           stock_max: number
           stock_min: number
+          storage_gb: number | null
           store_id: string
           subcategory: string | null
           supplier: string | null
@@ -2018,26 +2029,37 @@ export type Database = {
           visible_in_catalog: boolean
         }
         Insert: {
+          battery_health?: number | null
           brand?: string | null
           category?: Database["public"]["Enums"]["product_category"]
+          category_other?: string | null
+          color?: string | null
           compatible_model?: string | null
+          compatible_models?: string | null
           condition?: Database["public"]["Enums"]["product_condition"]
           cost_price?: number
           created_at?: string
+          data_aquisicao?: string | null
           data_entrada?: string
           ean?: string | null
           id?: string
           imei?: string | null
+          imei2?: string | null
+          item_kind?: Database["public"]["Enums"]["item_kind"]
           last_sold_at?: string | null
           location?: string | null
           name: string
+          notes?: string | null
+          patrimonio?: string | null
           photos?: string[] | null
+          responsavel?: string | null
           sale_price?: number
           sku?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           stock_current?: number
           stock_max?: number
           stock_min?: number
+          storage_gb?: number | null
           store_id: string
           subcategory?: string | null
           supplier?: string | null
@@ -2045,26 +2067,37 @@ export type Database = {
           visible_in_catalog?: boolean
         }
         Update: {
+          battery_health?: number | null
           brand?: string | null
           category?: Database["public"]["Enums"]["product_category"]
+          category_other?: string | null
+          color?: string | null
           compatible_model?: string | null
+          compatible_models?: string | null
           condition?: Database["public"]["Enums"]["product_condition"]
           cost_price?: number
           created_at?: string
+          data_aquisicao?: string | null
           data_entrada?: string
           ean?: string | null
           id?: string
           imei?: string | null
+          imei2?: string | null
+          item_kind?: Database["public"]["Enums"]["item_kind"]
           last_sold_at?: string | null
           location?: string | null
           name?: string
+          notes?: string | null
+          patrimonio?: string | null
           photos?: string[] | null
+          responsavel?: string | null
           sale_price?: number
           sku?: string | null
           status?: Database["public"]["Enums"]["product_status"]
           stock_current?: number
           stock_max?: number
           stock_min?: number
+          storage_gb?: number | null
           store_id?: string
           subcategory?: string | null
           supplier?: string | null
@@ -4756,6 +4789,7 @@ export type Database = {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
       }
+      is_valid_imei: { Args: { _imei: string }; Returns: boolean }
       link_customer_order_to_purchase: {
         Args: { _order_id: string; _purchase_order_id: string }
         Returns: undefined
@@ -5334,6 +5368,7 @@ export type Database = {
         | "atendimento"
       coupon_discount_type: "valor" | "percentual"
       device_condition: "otimo" | "bom" | "regular" | "com_defeito"
+      item_kind: "aparelho" | "acessorio" | "peca" | "ferramenta"
       os_budget_status: "pendente" | "aprovado" | "reprovado"
       os_status:
         | "recebido"
@@ -5543,6 +5578,7 @@ export const Constants = {
       ],
       coupon_discount_type: ["valor", "percentual"],
       device_condition: ["otimo", "bom", "regular", "com_defeito"],
+      item_kind: ["aparelho", "acessorio", "peca", "ferramenta"],
       os_budget_status: ["pendente", "aprovado", "reprovado"],
       os_status: [
         "recebido",
