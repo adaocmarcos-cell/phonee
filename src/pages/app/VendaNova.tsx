@@ -1854,6 +1854,26 @@ Obrigado pela preferência.`;
                         </td>
                       </tr>
                     )}
+                    {i.item_kind === "aparelho" && (
+                      <tr className={`border-t ${isValidImei(String(i.imei_serial ?? "")) ? "border-border/40" : "border-amber-500/40 bg-amber-500/10"}`}>
+                        <td colSpan={11} className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-medium">IMEI do aparelho</span>
+                            <Input
+                              value={i.imei_serial ?? ""}
+                              onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+                              placeholder="15 dígitos"
+                              inputMode="numeric"
+                              maxLength={15}
+                              className="h-8 w-48 font-mono"
+                            />
+                            {!isValidImei(String(i.imei_serial ?? "")) && (
+                              <span className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     </Fragment>
                   ))}
                 </tbody>
