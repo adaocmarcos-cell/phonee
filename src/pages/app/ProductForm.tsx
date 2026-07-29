@@ -297,6 +297,41 @@ export default function ProductForm() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <Card className="p-6 bg-card border-border shadow-card">
+          <h3 className="font-semibold mb-1">Tipo de item *</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            O cadastro é único — escolha o tipo e o formulário se adapta.
+          </p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {ITEM_KINDS.map((k) => {
+              const active = form.item_kind === k.value;
+              return (
+                <button
+                  key={k.value}
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      item_kind: k.value,
+                      stock_current: k.value === "aparelho" ? 1 : f.stock_current,
+                      category: f.category || defaultCategoryForKind(k.value, f.condition),
+                      visible_in_catalog: k.value === "ferramenta" ? false : f.visible_in_catalog,
+                    }))
+                  }
+                  className={`text-left rounded-lg border p-3 transition ${
+                    active
+                      ? "border-primary bg-primary/10 ring-1 ring-primary/40"
+                      : "border-border hover:border-primary/40 bg-surface-elevated/40"
+                  }`}
+                >
+                  <div className="text-sm font-semibold">{k.label}</div>
+                  <div className="text-[11px] text-muted-foreground mt-1 leading-snug">{k.hint}</div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+
         {tradeInOrigins.length > 0 && (
           <Card className="p-4 bg-primary/5 border-primary/30">
             <div className="flex items-center justify-between flex-wrap gap-2">
