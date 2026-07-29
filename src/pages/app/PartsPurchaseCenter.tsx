@@ -62,7 +62,11 @@ export default function PartsPurchaseCenter() {
     const fromIso = new Date(from + "T00:00:00").toISOString();
     const toIso = new Date(to + "T23:59:59").toISOString();
     const [{ data: p }, { data: adj }] = await Promise.all([
-      supabase.from("parts_inventory").select("id,name,sku,brand,stock_current,cost_price,category").eq("store_id", store.id).order("name"),
+      supabase.from("products")
+        .select("id,name,sku,brand,stock_current,cost_price,category:subcategory")
+        .eq("store_id", store.id)
+        .in("item_kind", ["peca", "ferramenta"])
+        .order("name"),
       supabase.from("stock_adjustments")
         .select("id,created_at,item_name,part_id,qty_change,prev_stock,new_stock,justification")
         .eq("store_id", store.id)
@@ -100,7 +104,7 @@ export default function PartsPurchaseCenter() {
     if (!part) { toast.error("Peça não encontrada"); return; }
     const prev = Number(part.stock_current || 0);
     const next = prev + qty;
-    const { error: e1 } = await supabase.from("parts_inventory")
+    const { error: e1 } = await supabase.from("products")
       .update({ stock_current: next, ...(unitCost > 0 ? { cost_price: unitCost } : {}) })
       .eq("id", part.id);
     if (e1) { toast.error(e1.message); return; }
