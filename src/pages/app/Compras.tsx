@@ -933,6 +933,10 @@ export default function Compras() {
                 <div className="mt-2">
                   <Label className="text-[11px] text-muted-foreground">Vencimento</Label>
                   <Input type="date" value={form.due_date ?? ""} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Gera uma conta a pagar automaticamente. Se ficar em branco, o vencimento
+                    será a previsão de entrega ou 30 dias após a entrada.
+                  </p>
                 </div>
               )}
             </div>
