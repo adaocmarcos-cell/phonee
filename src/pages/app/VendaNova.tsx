@@ -198,6 +198,11 @@ export default function VendaNova() {
   const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
+  // Itens que ainda não têm preço definido — travam apenas a conclusão da venda.
+  const pendingPriceCount = useMemo(
+    () => items.filter((i) => !i.is_service && (pricePending[i.product_id] || Number(i.unit_price) <= 0)).length,
+    [items, pricePending],
+  );
 
   // Serviços
   const [serviceDialog, setServiceDialog] = useState<{ open: boolean; description: string; quantity: number; unit_price: number; editing?: string | null }>({
