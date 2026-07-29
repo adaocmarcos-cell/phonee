@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, Fragment, FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { loadDataHealth } from "@/lib/dataHealth";
@@ -1822,6 +1822,23 @@ Obrigado pela preferência.`;
                     <Field label="Desc %"><NumberInput value={i.discount_pct} onValueChange={(n) => updateItem(i.product_id, { discount_pct: n })} /></Field>
                     <Field label="Desc R$"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} /></Field>
                     <Field label="P. unit."><NumberInput value={i.unit_price} onValueChange={(n) => updateItem(i.product_id, { unit_price: n })} /></Field>
+                  </div>
+                  {costMissing[i.product_id] && (
+                    <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-2">
+                      <p className="text-[11px] text-amber-700">Produto sem custo cadastrado — o lucro desta venda não será calculado.</p>
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <NumberInput
+                            min={0}
+                            value={costDraft[i.product_id] ?? 0}
+                            onValueChange={(v) => setCostDraft((st) => ({ ...st, [i.product_id]: v }))}
+                          />
+                        </div>
+                        <Button type="button" size="sm" variant="outline" disabled={inlineSaving} onClick={() => saveInlineCost(i.product_id, i.name)}>Salvar custo</Button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex flex-col gap-1">
                       <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</Label>
                       <div className="metric font-semibold h-10 flex items-center px-2 rounded-md bg-primary/10 text-primary">{brl(i.quantity * i.unit_price)}</div>
