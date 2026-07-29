@@ -9,6 +9,7 @@ export type ProductStockMetrics = {
   parts_units: number;
   parts_low_count: number;
   parts_sale_value: number;
+  parts_cost_value: number;
   alert_count: number;
 };
 
@@ -23,6 +24,7 @@ const zeroMetrics: ProductStockMetrics = {
   parts_units: 0,
   parts_low_count: 0,
   parts_sale_value: 0,
+  parts_cost_value: 0,
   alert_count: 0,
 };
 
@@ -38,6 +40,7 @@ export function normalizeProductStockMetrics(raw: any): ProductStockMetrics {
     parts_units: Number(raw?.parts_units ?? 0),
     parts_low_count: Number(raw?.parts_low_count ?? 0),
     parts_sale_value: Number(raw?.parts_sale_value ?? 0),
+    parts_cost_value: Number(raw?.parts_cost_value ?? 0),
     alert_count: Number(raw?.alert_count ?? 0),
   };
 }
