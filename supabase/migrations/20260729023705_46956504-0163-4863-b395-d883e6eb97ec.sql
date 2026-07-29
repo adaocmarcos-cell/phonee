@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_dashboard_metrics_base(uuid, timestamptz, timestamptz) TO authenticated;
