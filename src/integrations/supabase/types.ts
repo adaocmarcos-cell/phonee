@@ -1561,6 +1561,7 @@ export type Database = {
           id: string
           is_tool: boolean
           location: string | null
+          migrated_at: string | null
           name: string
           notes: string | null
           sale_price: number
@@ -1581,6 +1582,7 @@ export type Database = {
           id?: string
           is_tool?: boolean
           location?: string | null
+          migrated_at?: string | null
           name: string
           notes?: string | null
           sale_price?: number
@@ -1601,6 +1603,7 @@ export type Database = {
           id?: string
           is_tool?: boolean
           location?: string | null
+          migrated_at?: string | null
           name?: string
           notes?: string | null
           sale_price?: number
@@ -1684,7 +1687,7 @@ export type Database = {
             foreignKeyName: "parts_sales_part_id_fkey"
             columns: ["part_id"]
             isOneToOne: false
-            referencedRelation: "parts_inventory"
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
@@ -2010,6 +2013,7 @@ export type Database = {
           item_kind: Database["public"]["Enums"]["item_kind"]
           last_sold_at: string | null
           location: string | null
+          migrated_from_parts: boolean
           name: string
           notes: string | null
           patrimonio: string | null
@@ -2048,6 +2052,7 @@ export type Database = {
           item_kind?: Database["public"]["Enums"]["item_kind"]
           last_sold_at?: string | null
           location?: string | null
+          migrated_from_parts?: boolean
           name: string
           notes?: string | null
           patrimonio?: string | null
@@ -2086,6 +2091,7 @@ export type Database = {
           item_kind?: Database["public"]["Enums"]["item_kind"]
           last_sold_at?: string | null
           location?: string | null
+          migrated_from_parts?: boolean
           name?: string
           notes?: string | null
           patrimonio?: string | null
@@ -3032,7 +3038,7 @@ export type Database = {
             foreignKeyName: "service_order_parts_part_id_fkey"
             columns: ["part_id"]
             isOneToOne: false
-            referencedRelation: "parts_inventory"
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
@@ -3294,7 +3300,7 @@ export type Database = {
             foreignKeyName: "stock_adjustments_part_id_fkey"
             columns: ["part_id"]
             isOneToOne: false
-            referencedRelation: "parts_inventory"
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
