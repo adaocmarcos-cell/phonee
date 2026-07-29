@@ -792,6 +792,35 @@ export default function VendaNova() {
     setShowProductList(false);
   };
 
+  // Grava o custo informado inline no cadastro do produto. O create_sale copia
+  // products.cost_price para sale_items.unit_cost, então o custo desta venda
+  // passa a ser contabilizado.
+  const saveInlineCost = async (productId: string, name: string) => {
+    const v = Number(costDraft[productId] ?? 0);
+    if (!v || v <= 0) { toast.error("Informe um custo maior que zero."); return; }
+    setInlineSaving(true);
+    const { error } = await supabase.from("products").update({ cost_price: v }).eq("id", productId);
+    setInlineSaving(false);
+    if (error) { toast.error(error.message); return; }
+    setCostMissing((s) => { const n = { ...s }; delete n[productId]; return n; });
+    toast.success(`Custo de "${name}" salvo.`);
+  };
+
+  // Define o preço de venda do produto bloqueado e adiciona ao carrinho.
+  const saveInlinePriceAndAdd = async () => {
+    if (!priceFix) return;
+    const v = Number(priceFix.value ?? 0);
+    if (!v || v <= 0) { toast.error("Informe um preço maior que zero."); return; }
+    setInlineSaving(true);
+    const { error } = await supabase.from("products").update({ sale_price: v }).eq("id", priceFix.product.id);
+    setInlineSaving(false);
+    if (error) { toast.error(error.message); return; }
+    const p = { ...priceFix.product, sale_price: v };
+    setPriceFix(null);
+    toast.success(`Preço de "${p.name}" salvo.`);
+    addItem(p);
+  };
+
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showProductList || visibleProducts.length === 0) {
       if (e.key === "ArrowDown") { setShowProductList(true); }
