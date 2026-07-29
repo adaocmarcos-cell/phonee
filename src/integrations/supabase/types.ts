@@ -220,6 +220,44 @@ export type Database = {
           },
         ]
       }
+      appraisal_settings: {
+        Row: {
+          battery_penalty_pct: number
+          battery_threshold: number
+          condition_factors: Json
+          lookback_days: number
+          store_id: string
+          target_margin_pct: number
+          updated_at: string
+        }
+        Insert: {
+          battery_penalty_pct?: number
+          battery_threshold?: number
+          condition_factors?: Json
+          lookback_days?: number
+          store_id: string
+          target_margin_pct?: number
+          updated_at?: string
+        }
+        Update: {
+          battery_penalty_pct?: number
+          battery_threshold?: number
+          condition_factors?: Json
+          lookback_days?: number
+          store_id?: string
+          target_margin_pct?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asaas_settings: {
         Row: {
           account_email: string | null
@@ -2573,6 +2611,139 @@ export type Database = {
           },
         ]
       }
+      quote_items: {
+        Row: {
+          created_at: string
+          description: string
+          discount_amount: number
+          id: string
+          is_service: boolean
+          product_id: string | null
+          quantity: number
+          quote_id: string
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          discount_amount?: number
+          id?: string
+          is_service?: boolean
+          product_id?: string | null
+          quantity?: number
+          quote_id: string
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          discount_amount?: number
+          id?: string
+          is_service?: boolean
+          product_id?: string | null
+          quantity?: number
+          quote_id?: string
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          discount: number
+          id: string
+          notes: string | null
+          quote_number: number | null
+          sale_id: string | null
+          status: string
+          store_id: string
+          subtotal: number
+          total: number
+          updated_at: string
+          valid_until: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          quote_number?: number | null
+          sale_id?: string | null
+          status?: string
+          store_id: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          valid_until?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          quote_number?: number | null
+          sale_id?: string | null
+          status?: string
+          store_id?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       receivable_payments: {
         Row: {
           amount: number
@@ -3760,6 +3931,53 @@ export type Database = {
           },
         ]
       }
+      store_goals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          metric: string
+          notes: string | null
+          period_month: string
+          seller_id: string | null
+          store_id: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metric: string
+          notes?: string | null
+          period_month: string
+          seller_id?: string | null
+          store_id: string
+          target_value?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metric?: string
+          notes?: string | null
+          period_month?: string
+          seller_id?: string | null
+          store_id?: string
+          target_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_goals_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           access_blocked: boolean
@@ -4816,6 +5034,16 @@ export type Database = {
         Args: { _amount_cents: number; _code: string }
         Returns: Json
       }
+      appraise_device: {
+        Args: {
+          _battery_health?: number
+          _condition: Database["public"]["Enums"]["device_condition"]
+          _model: string
+          _storage?: string
+          _store_id: string
+        }
+        Returns: Json
+      }
       approve_public_budget: {
         Args: {
           _decision: string
@@ -4912,6 +5140,19 @@ export type Database = {
           _supplier_id: string
           _supplier_name: string
           _tags: string[]
+        }
+        Returns: Json
+      }
+      create_quote: {
+        Args: {
+          _customer_id?: string
+          _customer_name?: string
+          _customer_phone?: string
+          _discount?: number
+          _items: Json
+          _notes?: string
+          _store_id: string
+          _valid_days?: number
         }
         Returns: Json
       }
@@ -5071,6 +5312,10 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }[]
+      }
+      goals_progress: {
+        Args: { _month?: string; _store_id: string }
+        Returns: Json
       }
       grant_access_bonus: {
         Args: {
@@ -5484,6 +5729,10 @@ export type Database = {
         Returns: Json
       }
       product_stock_metrics: { Args: { _store_id: string }; Returns: Json }
+      quote_set_status: {
+        Args: { _quote_id: string; _sale_id?: string; _status: string }
+        Returns: Json
+      }
       recalc_service_order_totals: {
         Args: { _os_id: string }
         Returns: undefined
