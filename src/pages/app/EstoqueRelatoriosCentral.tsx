@@ -23,7 +23,6 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import MovimentacaoLedger from "./MovimentacaoLedger";
 import ReconcileTable from "@/components/estoque/ReconcileTable";
-import ReconcileTable from "@/components/estoque/ReconcileTable";
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
@@ -43,7 +42,6 @@ const REPORTS: { key: ReportKey; label: string; icon: any; desc: string }[] = [
   { key: "financial",  label: "Visão Financeira",         icon: DollarSign,  desc: "Custo · Venda · Lucro" },
   { key: "by_product", label: "Movimentação por Produto", icon: Search,      desc: "Linha do tempo individual" },
   { key: "reconciliacao", label: "Reconciliação",        icon: ShieldCheck, desc: "Estoque atual x livro-razão" },
-  { key: "reconciliacao", label: "Reconciliação",         icon: ShieldCheck, desc: "Estoque x livro-razão" },
 ];
 
 function startOfMonth(d = new Date()) { return new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0); }
@@ -488,7 +486,6 @@ export default function EstoqueRelatoriosCentral() {
         <TabsContent value="stalled"><StalledTable rows={stalled} loading={loading} /></TabsContent>
         <TabsContent value="low_stock"><LowStockTable rows={lowStock} loading={loading} /></TabsContent>
         <TabsContent value="financial"><FinancialTable rows={filteredProds} showCost={showCost} loading={loading} /></TabsContent>
-        <TabsContent value="reconciliacao"><ReconcileTable /></TabsContent>
         <TabsContent value="reconciliacao"><ReconcileTable /></TabsContent>
         <TabsContent value="by_product">
           <Card className="p-3 mb-3">
