@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, Fragment, FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { loadDataHealth } from "@/lib/dataHealth";
@@ -188,9 +188,12 @@ export default function VendaNova() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [skuInput, setSkuInput] = useState("");
   // Produto sem custo cadastrado: aviso não-bloqueante + atalho para preencher.
-  const [costFix, setCostFix] = useState<{ id: string; name: string } | null>(null);
-  const [costFixValue, setCostFixValue] = useState<number | "">("");
-  const [costFixSaving, setCostFixSaving] = useState(false);
+  // Produtos no carrinho sem cost_price cadastrado (aviso inline, não bloqueia).
+  const [costMissing, setCostMissing] = useState<Record<string, boolean>>({});
+  const [costDraft, setCostDraft] = useState<Record<string, number>>({});
+  // Produto bloqueado por falta de sale_price (campo inline para definir o preço).
+  const [priceFix, setPriceFix] = useState<{ product: any; value: number } | null>(null);
+  const [inlineSaving, setInlineSaving] = useState(false);
   const [skuBusy, setSkuBusy] = useState(false);
   const [allowNegativeStock, setAllowNegativeStock] = useState(true);
   const [items, setItems] = useState<LineItem[]>([]);
@@ -749,21 +752,23 @@ export default function VendaNova() {
       toast.warning(`"${p.name}" está sem estoque. Regularize em Compras/Estoque antes de vender.`);
       return;
     }
+    // BLOQUEIO: produto sem preço de venda cadastrado. Oferece campo inline
+    // para definir o preço (grava em products.sale_price) antes de adicionar.
+    if (Number(p.sale_price ?? 0) <= 0) {
+      setPriceFix({ product: p, value: 0 });
+      toast.error(`"${p.name}" está sem preço de venda cadastrado. Defina o preço para adicionar ao carrinho.`);
+      setShowProductList(false);
+      return;
+    }
     // Vinculação validada de product_id, nome, preço e estoque.
     const built = buildLineItemFromProduct(p);
     if (built.ok === false) { toast.error(built.error); return; }
     const draft = built.item;
     built.warnings.forEach((w) => toast.warning(w));
 
-    // Aviso não-bloqueante: sem custo cadastrado o lucro da venda não é calculado.
+    // Aviso NÃO bloqueante: sem custo cadastrado o lucro da venda não é calculado.
     if (Number(p.cost_price ?? 0) <= 0) {
-      toast.warning(`"${p.name}": produto sem custo cadastrado — o lucro desta venda não será calculado.`, {
-        duration: 8000,
-        action: {
-          label: "Preencher custo",
-          onClick: () => { setCostFix({ id: p.id, name: p.name }); setCostFixValue(""); },
-        },
-      });
+      setCostMissing((s) => ({ ...s, [draft.product_id]: true }));
     }
 
     setItems((arr) => {
@@ -785,6 +790,35 @@ export default function VendaNova() {
     });
     setProductQuery("");
     setShowProductList(false);
+  };
+
+  // Grava o custo informado inline no cadastro do produto. O create_sale copia
+  // products.cost_price para sale_items.unit_cost, então o custo desta venda
+  // passa a ser contabilizado.
+  const saveInlineCost = async (productId: string, name: string) => {
+    const v = Number(costDraft[productId] ?? 0);
+    if (!v || v <= 0) { toast.error("Informe um custo maior que zero."); return; }
+    setInlineSaving(true);
+    const { error } = await supabase.from("products").update({ cost_price: v }).eq("id", productId);
+    setInlineSaving(false);
+    if (error) { toast.error(error.message); return; }
+    setCostMissing((s) => { const n = { ...s }; delete n[productId]; return n; });
+    toast.success(`Custo de "${name}" salvo.`);
+  };
+
+  // Define o preço de venda do produto bloqueado e adiciona ao carrinho.
+  const saveInlinePriceAndAdd = async () => {
+    if (!priceFix) return;
+    const v = Number(priceFix.value ?? 0);
+    if (!v || v <= 0) { toast.error("Informe um preço maior que zero."); return; }
+    setInlineSaving(true);
+    const { error } = await supabase.from("products").update({ sale_price: v }).eq("id", priceFix.product.id);
+    setInlineSaving(false);
+    if (error) { toast.error(error.message); return; }
+    const p = { ...priceFix.product, sale_price: v };
+    setPriceFix(null);
+    toast.success(`Preço de "${p.name}" salvo.`);
+    addItem(p);
   };
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1679,6 +1713,32 @@ Obrigado pela preferência.`;
               )}
             </div>
 
+            {priceFix && (
+              <div className="rounded-lg border border-danger/40 bg-danger/5 p-3 space-y-2">
+                <div className="text-sm font-medium text-danger">
+                  "{priceFix.product?.name}" está sem preço de venda cadastrado
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Item bloqueado. Informe o preço de venda para salvar no cadastro e adicionar ao carrinho.
+                </p>
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="w-40">
+                    <Label className="text-[11px] uppercase tracking-widest font-mono text-muted-foreground">Preço de venda (R$)</Label>
+                    <NumberInput
+                      autoFocus
+                      min={0}
+                      value={priceFix.value}
+                      onValueChange={(v) => setPriceFix((s) => s ? { ...s, value: v } : s)}
+                    />
+                  </div>
+                  <Button type="button" size="sm" disabled={inlineSaving} onClick={saveInlinePriceAndAdd}>
+                    Salvar preço e adicionar
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setPriceFix(null)}>Cancelar</Button>
+                </div>
+              </div>
+            )}
+
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto rounded-lg border border-border/70">
               <table className="w-full text-sm border-collapse [&_th]:border-r [&_th]:border-border/60 [&_th:last-child]:border-r-0 [&_td]:border-r [&_td]:border-border/40 [&_td:last-child]:border-r-0">
@@ -1701,7 +1761,8 @@ Obrigado pela preferência.`;
                   {items.length === 0 ? (
                     <tr><td colSpan={11} className="text-center text-xs text-muted-foreground py-8 border-r-0">Nenhum item — busque acima para adicionar</td></tr>
                   ) : items.map((i, idx) => (
-                    <tr key={i.product_id} className={`border-t border-border/60 transition-colors hover:bg-primary/[0.03] ${idx % 2 === 1 ? "bg-surface-elevated/40" : ""}`}>
+                    <Fragment key={i.product_id}>
+                    <tr className={`border-t border-border/60 transition-colors hover:bg-primary/[0.03] ${idx % 2 === 1 ? "bg-surface-elevated/40" : ""}`}>
                       <td className="px-3 py-2.5 truncate max-w-[180px] font-medium">{i.name}</td>
                       <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{i.code}</td>
                       <td className="px-3 py-2.5 text-xs">{i.color || "—"}</td>
@@ -1714,6 +1775,29 @@ Obrigado pela preferência.`;
                       <td className="px-3 py-2.5 text-right metric font-semibold text-primary">{brl(i.quantity * i.unit_price)}</td>
                       <td className="text-center"><Button type="button" size="icon" variant="ghost" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button></td>
                     </tr>
+                    {costMissing[i.product_id] && (
+                      <tr className="border-t border-amber-500/30 bg-amber-500/5">
+                        <td colSpan={11} className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-amber-700">
+                              Produto sem custo cadastrado — o lucro desta venda não será calculado.
+                            </span>
+                            <div className="w-32">
+                              <NumberInput
+                                min={0}
+                                value={costDraft[i.product_id] ?? 0}
+                                onValueChange={(v) => setCostDraft((s) => ({ ...s, [i.product_id]: v }))}
+                                className="h-8 text-right"
+                              />
+                            </div>
+                            <Button type="button" size="sm" variant="outline" disabled={inlineSaving} onClick={() => saveInlineCost(i.product_id, i.name)}>
+                              Salvar custo
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -1738,6 +1822,23 @@ Obrigado pela preferência.`;
                     <Field label="Desc %"><NumberInput value={i.discount_pct} onValueChange={(n) => updateItem(i.product_id, { discount_pct: n })} /></Field>
                     <Field label="Desc R$"><NumberInput value={i.discount_brl} onValueChange={(n) => updateItem(i.product_id, { discount_brl: n })} /></Field>
                     <Field label="P. unit."><NumberInput value={i.unit_price} onValueChange={(n) => updateItem(i.product_id, { unit_price: n })} /></Field>
+                  </div>
+                  {costMissing[i.product_id] && (
+                    <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-2">
+                      <p className="text-[11px] text-amber-700">Produto sem custo cadastrado — o lucro desta venda não será calculado.</p>
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <NumberInput
+                            min={0}
+                            value={costDraft[i.product_id] ?? 0}
+                            onValueChange={(v) => setCostDraft((st) => ({ ...st, [i.product_id]: v }))}
+                          />
+                        </div>
+                        <Button type="button" size="sm" variant="outline" disabled={inlineSaving} onClick={() => saveInlineCost(i.product_id, i.name)}>Salvar custo</Button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex flex-col gap-1">
                       <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</Label>
                       <div className="metric font-semibold h-10 flex items-center px-2 rounded-md bg-primary/10 text-primary">{brl(i.quantity * i.unit_price)}</div>
@@ -2722,49 +2823,6 @@ Obrigado pela preferência.`;
         </DialogContent>
       </Dialog>
 
-      {/* Preenchimento rápido do custo do produto direto do PDV */}
-      <Dialog open={!!costFix} onOpenChange={(o) => !o && setCostFix(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Custo do produto</DialogTitle>
-            <DialogDescription>{costFix?.name}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label>Preço de custo (R$)</Label>
-            <NumberInput
-              value={typeof costFixValue === "number" ? costFixValue : 0}
-              onValueChange={(v) => setCostFixValue(v)}
-              min={0}
-              autoFocus
-            />
-            <p className="text-xs text-muted-foreground">
-              Sem custo cadastrado o lucro desta venda não entra no cálculo do CMV.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCostFix(null)}>Agora não</Button>
-            <Button
-              disabled={costFixSaving}
-              onClick={async () => {
-                if (!costFix) return;
-                const v = Number(costFixValue);
-                if (!v || v <= 0) return toast.error("Informe um custo maior que zero.");
-                setCostFixSaving(true);
-                const { error } = await supabase
-                  .from("products")
-                  .update({ cost_price: v })
-                  .eq("id", costFix.id);
-                setCostFixSaving(false);
-                if (error) return toast.error(error.message);
-                toast.success("Custo atualizado.");
-                setCostFix(null);
-              }}
-            >
-              Salvar custo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -34,13 +34,13 @@ const ops: Item[] = [
   { title: "Vendas", url: "/painel/vendas", icon: Receipt, children: [
     { title: "Encomendas", url: "/painel/vendas/encomendas", icon: PackagePlus },
     { title: "Orçamentos", url: "/painel/orcamentos", icon: FileText },
-    { title: "Vendas sem custo", url: "/painel/vendas/sem-custo", icon: AlertTriangle },
   ] },
   { title: "Estoque", url: "/painel/estoque", icon: Boxes, children: [
     { title: "Compras/Entradas", url: "/painel/compras", icon: ShoppingCart },
     { title: "Peças", url: "/painel/pecas", icon: Hammer },
     { title: "Compra e Troca", url: "/painel/troca", icon: Smartphone },
     { title: "Relatórios", url: "/painel/estoque/relatorios", icon: BarChart3 },
+    { title: "Saúde do cadastro", url: "/painel/estoque/saude", icon: AlertTriangle },
   ] },
   { title: "Clientes", url: "/painel/clientes", icon: Users, children: [
     { title: "Pós-venda", url: "/painel/pos-venda", icon: MessageCircle },

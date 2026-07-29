@@ -54,6 +54,7 @@ type DashboardMetrics = {
   lucro_liquido?: number;
   movimento_caixa?: number;
   cobertura_custo?: number;
+  cobertura_custo_pct?: number;
   itens_sem_custo?: number;
   lucro: number;
   qtd_vendas: number;
@@ -244,7 +245,7 @@ export default function Dashboard() {
   const arVencido      = metrics?.crediario_vencido ?? 0;
   const arVencidasCount= metrics?.crediario_vencidas_count ?? 0;
   const margemBruta    = revenueTotal > 0 ? (lucroBruto / revenueTotal) * 100 : 0;
-  const cobertura      = metrics?.cobertura_custo ?? 100;
+  const cobertura      = metrics?.cobertura_custo_pct ?? metrics?.cobertura_custo ?? 100;
   const itensSemCusto  = metrics?.itens_sem_custo ?? 0;
   const custoEstimado  = cobertura < 90;
   const itensAlerta    = productsLow + stalled;
@@ -347,11 +348,21 @@ export default function Dashboard() {
             node: canSeeCost(role) ? (
               <button type="button" onClick={() => setResultOpen(true)} className="text-left w-full h-full">
                 <MetricCard
-                  label={custoEstimado ? "Lucro bruto (estimativa)" : "Lucro bruto"}
+                  label="Lucro bruto"
                   value={brl(lucroBruto)}
-                  delta={`Margem ${pct(margemBruta)} · CMV calculado sobre ${pct(cobertura)} das vendas`}
+                  delta={`Margem bruta ${pct(margemBruta)} · ver detalhes`}
                   icon={Percent}
-                  tone={custoEstimado ? "warning" : lucroBruto >= 0 ? "violet" : "danger"}
+                  tone={lucroBruto >= 0 ? "violet" : "danger"}
+                  footer={custoEstimado ? (
+                    <div
+                      className="mt-1.5 text-[11px] leading-snug text-warning-foreground/90 bg-warning/25 rounded px-2 py-1"
+                      onClick={(e) => { e.stopPropagation(); navigate("/painel/estoque/saude?tab=sem-custo"); }}
+                      role="link"
+                    >
+                      estimativa — custo calculado sobre {pct(cobertura)} das vendas ·{" "}
+                      <span className="underline font-medium">regularizar</span>
+                    </div>
+                  ) : undefined}
                   className="h-full"
                 />
               </button>
@@ -566,7 +577,7 @@ export default function Dashboard() {
                   </span>
                   <button
                     className="shrink-0 underline font-medium"
-                    onClick={() => navigate("/painel/vendas/sem-custo")}
+                    onClick={() => navigate("/painel/estoque/saude?tab=sem-custo")}
                   >
                     Regularizar
                   </button>

@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,8 @@ interface Props {
   accent?: "primary" | "success" | "warning" | "danger";
   variant?: "default" | "filled" | "highlight";
   tone?: "primary" | "success" | "warning" | "danger" | "info" | "violet";
+  /** Conteúdo auxiliar renderizado abaixo do valor (ex.: aviso de estimativa). */
+  footer?: ReactNode;
   className?: string;
 }
 
@@ -30,7 +33,7 @@ const toneGradient: Record<NonNullable<Props["tone"]>, string> = {
   violet:  "bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-700 text-white border-purple-500/60",
 };
 
-export function MetricCard({ label, value, delta, trend = "flat", icon: Icon, accent = "primary", variant = "default", tone, className }: Props) {
+export function MetricCard({ label, value, delta, trend = "flat", icon: Icon, accent = "primary", variant = "default", tone, footer, className }: Props) {
   const filled = variant === "filled" || variant === "highlight";
   const highlight = variant === "highlight";
 
@@ -74,6 +77,7 @@ export function MetricCard({ label, value, delta, trend = "flat", icon: Icon, ac
         {value}
       </div>
       {delta && <div className={cn("text-xs sm:text-sm mt-2 font-mono font-medium truncate", trendColor)}>{delta}</div>}
+      {footer}
     </Card>
   );
 }
