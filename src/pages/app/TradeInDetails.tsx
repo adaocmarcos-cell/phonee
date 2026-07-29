@@ -138,9 +138,10 @@ export default function TradeInDetails() {
     if (!store) return;
     setRepairMode(mode);
     const { data } = await supabase
-      .from("parts_inventory")
+      .from("products")
       .select("id,name,stock_current,cost_price")
       .eq("store_id", store.id)
+      .in("item_kind", ["peca", "ferramenta"])
       .order("name");
     setInvParts((data ?? []) as any);
     if (mode === "finish") {
