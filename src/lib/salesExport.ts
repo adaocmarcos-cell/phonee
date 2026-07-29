@@ -155,6 +155,23 @@ export function printSaleReceipt(opts: {
   const grossTotal = items.reduce((a, i) => a + Number(i.total || 0), 0) + totalItemsDiscount;
   const freight = Number(ex?.payment?.freight || 0);
   const otherExpenses = Number(ex?.payment?.other_expenses || 0);
+  const saleDiscount = Number(sale.discount || 0);
+  const subtotalProdutos = grossTotal > 0 ? grossTotal : Number(sale.subtotal || 0);
+
+  // Pagamentos reais (sale_payments). Nunca inferidos do JSON de notes.
+  const payList = (payments ?? []).filter((p) => Number(p.amount || 0) !== 0);
+  const isMixed = payList.length > 1;
+  const paidSum = round2(payList.reduce((a, p) => a + Number(p.amount || 0), 0));
+  const openBalance = payList.length > 0 ? round2(Number(sale.total || 0) - paidSum) : 0;
+  const payLabel = (m: string) => {
+    const key = String(m || "").toLowerCase();
+    const map: Record<string, string> = {
+      dinheiro: "Dinheiro", pix: "PIX", debito: "Cartão de débito", credito: "Cartão de crédito",
+      crediario: "Crediário", boleto: "Boleto", transferencia: "Transferência",
+      troca: "Troca de aparelho", vale_troca: "Vale-troca", misto: "Pagamento misto",
+    };
+    return map[key] || key.toUpperCase();
+  };
 
   const stripDays = (t: string) =>
     String(t || "")
