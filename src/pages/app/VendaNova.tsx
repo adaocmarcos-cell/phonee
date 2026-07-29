@@ -1931,6 +1931,22 @@ Obrigado pela preferência.`;
                       </div>
                     </div>
                   )}
+                  {i.item_kind === "aparelho" && (
+                    <div className={`mt-2 rounded-md border p-2 space-y-1 ${isValidImei(String(i.imei_serial ?? "")) ? "border-border" : "border-amber-500/40 bg-amber-500/10"}`}>
+                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">IMEI do aparelho</Label>
+                      <Input
+                        value={i.imei_serial ?? ""}
+                        onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
+                        placeholder="15 dígitos"
+                        inputMode="numeric"
+                        maxLength={15}
+                        className="font-mono"
+                      />
+                      {!isValidImei(String(i.imei_serial ?? "")) && (
+                        <p className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex flex-col gap-1">
                       <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</Label>
