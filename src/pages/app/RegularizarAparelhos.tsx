@@ -57,8 +57,7 @@ export default function RegularizarAparelhos() {
       return;
     }
     setSaving(row.id);
-    const patch: Record<string, any> = { imei: raw };
-    if ((row.stock_current ?? 0) > 1) patch.stock_current = 1;
+    const patch = (row.stock_current ?? 0) > 1 ? { imei: raw, stock_current: 1 } : { imei: raw };
     const { error } = await supabase.from("products").update(patch).eq("id", row.id);
     setSaving(null);
     if (error) {
@@ -79,7 +78,7 @@ export default function RegularizarAparelhos() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <PageHeader title="Regularizar aparelhos" subtitle="Informe o IMEI de cada aparelho — um por linha, sem abrir formulário." />
+      <PageHeader title="Regularizar aparelhos" description="Informe o IMEI de cada aparelho — um por linha, sem abrir formulário." />
 
       <Card className="p-4 mb-4">
         <div className="flex items-center gap-3 flex-wrap">
