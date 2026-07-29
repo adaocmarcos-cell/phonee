@@ -808,19 +808,20 @@ export default function VendaNova() {
     toast.success(`Custo de "${name}" salvo.`);
   };
 
-  // Define o preço de venda do produto bloqueado e adiciona ao carrinho.
-  const saveInlinePriceAndAdd = async () => {
-    if (!priceFix) return;
-    const v = Number(priceFix.value ?? 0);
-    if (!v || v <= 0) { toast.error("Informe um preço maior que zero."); return; }
+  // Define o preço de venda do item pendente: grava em products.sale_price
+  // (para não repetir na próxima venda) e aplica no item do carrinho.
+  const savePendingPrice = async (productId: string, name: string) => {
+    const v = Number(priceDraft[productId] ?? 0);
+    if (!v || v <= 0) { toast.error("Informe um preço de venda maior que zero."); return; }
     setInlineSaving(true);
-    const { error } = await supabase.from("products").update({ sale_price: v }).eq("id", priceFix.product.id);
+    const { error } = await supabase.from("products").update({ sale_price: v }).eq("id", productId);
     setInlineSaving(false);
     if (error) { toast.error(error.message); return; }
-    const p = { ...priceFix.product, sale_price: v };
-    setPriceFix(null);
-    toast.success(`Preço de "${p.name}" salvo.`);
-    addItem(p);
+    setItems((arr) => arr.map((i) => i.product_id === productId
+      ? { ...i, list_price: v, discount_pct: 0, discount_brl: 0, unit_price: v }
+      : i));
+    setPricePending((s) => { const n = { ...s }; delete n[productId]; return n; });
+    toast.success(`Preço de "${name}" salvo.`);
   };
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
