@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { loadDataHealth } from "@/lib/dataHealth";
 import { useAuth, canSeeCost } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -86,6 +87,10 @@ export default function ProductForm() {
   const [suggest, setSuggest] = useState<{
     brands: string[]; models: string[]; suppliers: string[]; locations: string[];
   }>({ brands: [], models: [], suppliers: [], locations: [] });
+  // Regularização de dados legados (aparelho antigo sem IMEI)
+  const [legacyPending, setLegacyPending] = useState(false);
+  const [healthExpired, setHealthExpired] = useState(false);
+  const imeiRef = useRef<HTMLInputElement | null>(null);
   const [tradeInOrigins, setTradeInOrigins] = useState<Array<{ id: string; customer_name: string; imei: string | null; created_at: string }>>([]);
 
   // Carrega histórico de trade-ins (procedência) vinculados a este produto ou ao mesmo IMEI
@@ -160,6 +165,11 @@ export default function ProductForm() {
   }, [store]);
 
   useEffect(() => {
+    if (!store?.id) return;
+    loadDataHealth(store.id).then((h) => setHealthExpired(!!h?.vencido));
+  }, [store?.id]);
+
+  useEffect(() => {
     if (isNew || !store) return;
     (async () => {
       const { data, error } = await supabase.from("products").select("*").eq("id", id!).single();
@@ -195,6 +205,10 @@ export default function ProductForm() {
           sale_price: Number(data.sale_price),
           data_entrada: raw.data_entrada || empty.data_entrada,
         });
+        const kind = (raw.item_kind ?? kindFromCategory(raw.category)) as ItemKind;
+        const pending = kind === "aparelho" && (!raw.imei || String(raw.imei).trim() === "");
+        setLegacyPending(pending);
+        if (pending) setTimeout(() => imeiRef.current?.focus(), 300);
       }
     })();
   }, [id, isNew, store]);
@@ -223,7 +237,11 @@ export default function ProductForm() {
     const kind = form.item_kind;
     if (isDevice(kind)) {
       const err = imeiError(form.imei);
-      if (err) return toast.error(err);
+      const semImei = !form.imei.trim();
+      if (err && !(semImei && legacyPending && !healthExpired)) return toast.error(err);
+      if (semImei && legacyPending && !healthExpired) {
+        toast.warning("Salvo sem IMEI. Regularize antes do fim do prazo — depois disso o IMEI será exigido na venda.");
+      }
       if (Number(form.stock_current) !== 1) {
         return toast.error("Aparelho é sempre 1 unidade por registro. Cadastre um registro por aparelho.");
       }
@@ -297,6 +315,33 @@ export default function ProductForm() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {legacyPending && (
+          <Card className="p-4 border-warning/40 bg-warning/10">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold">IMEI pendente neste aparelho</div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  O IMEI garante rastreio, garantia vinculada e bloqueio de venda duplicada.
+                  {healthExpired ? " O prazo encerrou: será exigido na venda." : " Você ainda pode salvar sem ele durante o prazo."}
+                </p>
+                <Input
+                  ref={imeiRef}
+                  value={form.imei}
+                  onChange={(e) => set("imei", e.target.value.replace(/\D/g, "").slice(0, 15))}
+                  placeholder="IMEI — 15 dígitos"
+                  inputMode="numeric"
+                  maxLength={15}
+                  className="font-mono max-w-xs bg-card"
+                />
+                {form.imei.length > 0 && imeiError(form.imei) && (
+                  <p className="text-xs text-danger mt-1">{imeiError(form.imei)}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
+
         <Card className="p-6 bg-card border-border shadow-card">
           <h3 className="font-semibold mb-1">Tipo de item *</h3>
           <p className="text-xs text-muted-foreground mb-4">
