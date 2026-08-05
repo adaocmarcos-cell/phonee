@@ -426,12 +426,39 @@ export default function VendaNova() {
           category: r.category ?? undefined,
           quantity: qty,
           list_price: price + discPerUnit,
-          discount_pct: 0,
+          discount_pct: (price + discPerUnit) > 0 ? +((discPerUnit / (price + discPerUnit)) * 100).toFixed(2) : 0,
           discount_brl: discPerUnit,
           unit_price: price,
           imei_serial: r.imei_serial ?? undefined,
         };
       });
+
+      // Recupera Desconto Geral dos Extras
+      try {
+        const extras = (sale as any).notes ? JSON.parse((sale as any).notes) : null;
+        const totalEx = extras?.extras?.totals;
+        if (totalEx?.sale_discount) {
+          const sd = totalEx.sale_discount;
+          setSaleDiscountMode(sd.mode || "brl");
+          setSaleDiscountValue(sd.value || 0);
+
+          // Se houve desconto geral rateado, "des-rateia" os itens para
+          // que o desconto unitário original apareça corretamente.
+          const totalItemsValueLocal = loadedItems.reduce((a, it) => a + (it.quantity * (it.unit_price + it.discount_brl)), 0);
+          const rateioAmount = sd.amount || 0;
+
+          if (rateioAmount > 0 && totalItemsValueLocal > 0) {
+            loadedItems.forEach(it => {
+              const itemSubtotal = it.quantity * (it.unit_price + it.discount_brl);
+              const part = (itemSubtotal / totalItemsValueLocal) * rateioAmount;
+              it.discount_brl = Math.max(0, +(it.discount_brl - (part / it.quantity)).toFixed(2));
+              it.unit_price = +(it.list_price - it.discount_brl).toFixed(2);
+              it.discount_pct = it.list_price > 0 ? +((it.discount_brl / it.list_price) * 100).toFixed(2) : 0;
+            });
+          }
+        }
+      } catch { /* noop */ }
+
       setItems(loadedItems);
       // item_kind não fica em sale_items — busca nos produtos para reaplicar a
       // exigência de IMEI por unidade também no modo edição.
@@ -1001,10 +1028,12 @@ export default function VendaNova() {
   const totalsItems = items.length;
   const totalsQty = items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = items.reduce((s, i) => s + i.quantity * i.list_price, 0);
-  const totalDiscount = items.reduce((s, i) => s + i.quantity * i.discount_brl, 0);
-  const totalItemsValue = subtotal - totalDiscount;
+  const totalItemsDiscount = items.reduce((s, i) => s + i.quantity * i.discount_brl, 0);
+  const totalItemsValue = subtotal - totalItemsDiscount;
+  const saleDiscountAmount = calculateSaleDiscountAmount(totalItemsValue, saleDiscountMode, saleDiscountValue);
+  const totalDiscount = +(totalItemsDiscount + saleDiscountAmount).toFixed(2);
   const commissionValue = +(totalItemsValue * (commissionPct / 100)).toFixed(2);
-  const totalSale = +(totalItemsValue + otherExpenses + freight).toFixed(2);
+  const totalSale = +(totalItemsValue - saleDiscountAmount + otherExpenses + freight).toFixed(2);
   const paid = +payments.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2);
   const remaining = +(totalSale - paid).toFixed(2);
   const isMulti = payments.length > 1;
