@@ -2224,9 +2224,12 @@ Obrigado pela preferência.`;
                           <NumberInput
                             min={0}
                             value={p.amount}
-                            onValueChange={(n) => updatePayment(idx, { amount: n })}
+                            onValueChange={(v) => {
+                              updatePayment(idx, { amount: v });
+                            }}
                           />
                         </Field>
+
                         <Field label="Parcelas">
                           <NumberInput
                             allowDecimal={false}
@@ -2390,9 +2393,34 @@ Obrigado pela preferência.`;
                             </div>
                           </div>
                         )}
-                      </div>
-                    );
-                  })}
+                      {Math.abs(remaining) > 0.01 && (
+                        <div className="md:col-span-5 flex flex-wrap items-center justify-between bg-warning/10 border border-warning/20 p-2 rounded-md gap-2">
+                          <div className="flex items-center gap-2 text-warning text-[11px] font-medium">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Os pagamentos não fecham com o total (Diferença: {brl(Math.abs(remaining))})
+                          </div>
+                          {payments.length > 0 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-[10px]"
+                              onClick={() => {
+                                const totalP = payments.reduce((a, p) => a + Number(p.amount), 0);
+                                if (totalP <= 0) {
+                                   fillRemaining(0);
+                                   return;
+                                }
+                                setPayments(arr => arr.map(p => ({
+                                  ...p,
+                                  amount: +((Number(p.amount) / totalP) * totalSale).toFixed(2)
+                                })));
+                              }}
+                            >Redistribuir proporcionalmente</Button>
+                          )}
+                        </div>
+                      )}
+
 
                   <div className="grid grid-cols-3 gap-2 pt-2 text-xs font-mono">
                     <div className="rounded-md bg-muted/40 px-3 py-2">
