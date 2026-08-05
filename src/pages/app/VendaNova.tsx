@@ -2585,7 +2585,7 @@ Obrigado pela preferência.`;
             <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{customer || "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span>{totalsItems} · {totalsQty} un.</span></div>
             <div className="rounded-md border border-border/60 bg-surface-elevated/40 p-2 space-y-1 font-mono text-xs">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto</span><span>{brl(totalItemsValue + totalItemsDiscount)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto</span><span>{brl(items.reduce((a, i) => a + (i.quantity * i.list_price), 0))}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Descontos</span><span>− {brl(totalDiscount)}</span></div>
               {freight > 0 && (
                 <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>+ {brl(freight)}</span></div>
@@ -2594,6 +2594,7 @@ Obrigado pela preferência.`;
                 <div className="flex justify-between"><span className="text-muted-foreground">Outras despesas</span><span>+ {brl(otherExpenses)}</span></div>
               )}
               <div className="flex justify-between border-t border-border/60 pt-1 font-semibold text-foreground"><span>Total esperado</span><span>{brl(totalSale)}</span></div>
+
             </div>
             <div className="border-t border-border/60 pt-2 space-y-1">
               {payments.map((p, i) => (
