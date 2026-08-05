@@ -1175,11 +1175,72 @@ export default function VendaNova() {
     if ((await checkImeiGate()) === "blocked") return;
     setBusy(true);
 
-    const payload = buildPayload();
-    // Sincroniza cliente com o CRM antes de gravar a venda
     const linkedCustomerId = await ensureCustomerRecord();
-    // Compat: header payment_method é um enum e não conhece "troca". Usa o primeiro
-    // método monetário; se todos forem troca (sem parte em caixa), grava "dinheiro" como fallback.
+
+    // Rateio do desconto geral entre os itens
+    const itemsForRateio = items.map(i => ({
+      product_id: i.product_id,
+      quantity: i.quantity,
+      unit_price: i.unit_price + i.discount_brl,
+      discount_amount: 0
+    }));
+    const rateio = distributeSaleDiscount(itemsForRateio, saleDiscountAmount);
+
+    const rpcItems = items.map((i) => {
+      const part = rateio.find(p => p.product_id === i.product_id);
+      const distributedAmount = part ? part.distributed_discount : 0;
+      const finalLineDiscount = Number((Number(i.discount_brl || 0) * Number(i.quantity || 0) + distributedAmount).toFixed(2));
+
+      return {
+        product_id: i.is_service ? null : i.product_id,
+        is_service: !!i.is_service,
+        description: i.is_service ? (i.description || i.name) : null,
+        quantity: i.quantity,
+        unit_price: i.list_price,
+        name: i.name || null,
+        sku: i.is_service ? "SERVIÇO" : (i.code || null),
+        category: i.category || null,
+        brand: (i as any).brand || null,
+        model: (i as any).model || null,
+        unit: unit || null,
+        discount_amount: finalLineDiscount,
+        warranty_days: warrantyEnabled ? warrantyDays : null,
+        imei_serial: i.is_service ? null : (String(i.imei_serial ?? "").trim() || null),
+      };
+    });
+
+    // Extras para persistência
+    const totalsMetadata = {
+      items_discount: totalItemsDiscount,
+      sale_discount: {
+        mode: saleDiscountMode,
+        value: saleDiscountValue,
+        amount: saleDiscountAmount
+      },
+      discount_total: totalDiscount,
+      subtotal: totalItemsValue,
+      total: totalSale
+    };
+
+    const payload: any = {
+      extras: {
+        phone: (phone || "").trim(),
+        city: (city || "").trim(),
+        customer_doc_type: docType,
+        user_notes: notes.trim(),
+        category,
+        seller_id: sellerId || user.id,
+        commission: { percent: commissionPct, status: commissionStatus },
+        delivery: {
+          sale_date: saleDate, ship_date: shipDate, expected_date: expectedDate,
+          carrier, freight_payer: freightPayer, diff_address: diffAddress, delivery_address: deliveryAddress,
+        },
+        payment: { freight, other_expenses: otherExpenses },
+        totals: totalsMetadata
+      },
+    };
+
+    // Compat: header payment_method é um enum e não conhece "troca".
     const monetaryMethods = payments
       .filter((p) => p.method !== "troca" && Number(p.amount) > 0)
       .map((p) => p.method);
@@ -1191,27 +1252,6 @@ export default function VendaNova() {
               ? monetaryMethods[0]
               : "dinheiro"));
     const headInstallments = payments[0]?.installments ?? 1;
-
-    // Atomic sale: cabeçalho + itens + pagamentos + baixa de estoque numa única
-    // transação no banco. O total é recalculado no servidor e o estoque é
-    // debitado com trava (WHERE stock_current >= qty), evitando venda com
-    // estoque negativo em cenários concorrentes.
-    const rpcItems = items.map((i) => ({
-      product_id: i.is_service ? null : i.product_id,
-      is_service: !!i.is_service,
-      description: i.is_service ? (i.description || i.name) : null,
-      quantity: i.quantity,
-      unit_price: i.list_price,
-      name: i.name || null,
-      sku: i.is_service ? "SERVIÇO" : (i.code || null),
-      category: i.category || null,
-      brand: (i as any).brand || null,
-      model: (i as any).model || null,
-      unit: unit || null,
-      discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
-      warranty_days: warrantyEnabled ? warrantyDays : null,
-      imei_serial: i.is_service ? null : (String(i.imei_serial ?? "").trim() || null),
-    }));
     const rpcPayments = payments
       .filter((p) => Number(p.amount) > 0)
       .map((p) => ({
