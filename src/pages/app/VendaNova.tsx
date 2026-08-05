@@ -1240,6 +1240,11 @@ export default function VendaNova() {
       },
     };
 
+    // Re-calcula primaryMethod e isMulti
+    const activePayments = payments.filter(p => Number(p.amount) > 0);
+    const primaryMethod = activePayments[0]?.method || "dinheiro";
+    const isMulti = activePayments.length > 1;
+
     // Compat: header payment_method é um enum e não conhece "troca".
     const monetaryMethods = payments
       .filter((p) => p.method !== "troca" && Number(p.amount) > 0)
