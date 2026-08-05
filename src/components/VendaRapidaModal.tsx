@@ -53,7 +53,8 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
   useEffect(() => {
     if (product) {
       setPrice(Number(product.sale_price) || 0);
-      setDiscount(0);
+      setDiscountMode("brl");
+      setDiscountValue(0);
       setMethod("pix");
       setInstallments(2);
       setCustomer("");
@@ -62,7 +63,12 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
     }
   }, [product]);
 
-  const received = useMemo(() => Math.max(0, Number(price) - Number(discount)), [price, discount]);
+  const discountAmount = useMemo(() => {
+    if (discountMode === "pct") return price * (discountValue / 100);
+    return discountValue;
+  }, [price, discountMode, discountValue]);
+
+  const received = useMemo(() => Math.max(0, Number(price) - discountAmount), [price, discountAmount]);
   const cost = Number(product?.cost_price || 0);
   const profit = received - cost;
 
@@ -70,10 +76,9 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
     if (!product || !store || !user) return;
     if (received <= 0) return toast.error("Valor recebido inválido");
     setBusy(true);
-    // Venda atômica: cabeçalho + item + pagamento + baixa de estoque
-    // acontecem numa única transação no banco (RPC create_sale).
+
     const headInstallments = method === "crediario" ? installments : 1;
-    const discountNumber = Number(discount) || 0;
+    
     const { error } = await (supabase as any).rpc("create_sale", {
       _store_id: store.id,
       _customer_id: null,
@@ -82,15 +87,15 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
       _customer_whatsapp: whatsapp || null,
       _payment_method: method,
       _installments: headInstallments,
-      _discount: discountNumber,
+      _discount: discountAmount,
       _notes: notes || null,
       _items: [{
         product_id: product.id,
         is_service: false,
         quantity: 1,
-        unit_price: Number(price) || 0,
+        unit_price: Number(price) - discountAmount,
         name: product.name,
-        discount_amount: Number(discount) || 0,
+        discount_amount: discountAmount,
       }],
       _payments: [{
         method,
@@ -98,6 +103,7 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
         installments: headInstallments,
       }],
     });
+    
     if (error) {
       setBusy(false);
       const raw = error.message || "";
@@ -105,29 +111,6 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
         return toast.error("Estoque insuficiente para este produto. Recarregue a lista.");
       }
       if (/soma dos pagamentos/i.test(raw)) {
-        try {
-          await (supabase as any).from("audit_log").insert({
-            user_id: user.id,
-            store_id: store.id,
-            action: "checksum_falha",
-            entity: "sale",
-            module: "vendas",
-            screen: "venda_rapida",
-            status: "erro",
-            details: {
-              origem: "VendaRapidaModal",
-              subtotal_bruto: Number(price) || 0,
-              desconto_total: discountNumber,
-              frete: 0,
-              outras_despesas: 0,
-              total_esperado: (Number(price) || 0) - discountNumber,
-              soma_pagamentos: received,
-              divergencia: +(received - ((Number(price) || 0) - discountNumber)).toFixed(2),
-              produto: { id: product.id, name: product.name },
-              db_error: raw,
-            },
-          });
-        } catch {/* silencia */}
         return toast.error("Valor recebido não fecha com o total da venda.");
       }
       if (/sem acesso a esta loja/i.test(raw)) {
@@ -155,9 +138,39 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
             <Field label="Preço de venda (R$)">
               <NumberInput value={price} onValueChange={setPrice} />
             </Field>
-            <Field label="Desconto (R$)">
-              <NumberInput value={discount} onValueChange={setDiscount} />
-            </Field>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Desconto</Label>
+              <div className="flex gap-2">
+                <div className="flex bg-muted rounded-md p-0.5 h-10">
+                  <Button
+                    type="button"
+                    variant={discountMode === "brl" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-full px-3 text-[11px]"
+                    onClick={() => setDiscountMode("brl")}
+                  >R$</Button>
+                  <Button
+                    type="button"
+                    variant={discountMode === "pct" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-full px-3 text-[11px]"
+                    onClick={() => setDiscountMode("pct")}
+                  >%</Button>
+                </div>
+                <NumberInput 
+                  className="flex-1"
+                  min={0} 
+                  max={discountMode === "pct" ? 100 : price}
+                  value={discountValue} 
+                  onValueChange={(v) => {
+                    let val = v;
+                    if (discountMode === "pct" && val > 100) val = 100;
+                    if (discountMode === "brl" && val > price) val = price;
+                    setDiscountValue(val);
+                  }} 
+                />
+              </div>
+            </div>
           </div>
 
           <div className="text-xs text-muted-foreground">
@@ -215,7 +228,7 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
 
           <div className="rounded-md border border-border bg-surface-elevated/40 p-3 text-sm space-y-1">
             <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto:</span><span className="metric">{brl(Number(price))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Descontos:</span><span className="metric text-muted-foreground">− {brl(Number(discount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Descontos:</span><span className="metric text-muted-foreground">− {brl(discountAmount)}</span></div>
             <div className="border-t border-border my-1" />
             <div className="flex justify-between text-base"><span className="font-medium">Total esperado:</span><span className="metric font-semibold">{brl(received)}</span></div>
             <div className="flex justify-between text-xs"><span className="text-muted-foreground">Valor recebido:</span><span className="metric">{brl(received)}</span></div>
