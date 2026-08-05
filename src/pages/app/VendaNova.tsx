@@ -1159,6 +1159,17 @@ export default function VendaNova() {
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
+
+    // Dependências de build (variáveis que devem existir no escopo de submit)
+    const itemsTotalLocal = items.reduce((a, i) => a + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
+    const saleDiscountAmountLocal = calculateSaleDiscountAmount(itemsTotalLocal, saleDiscountMode, saleDiscountValue);
+    const totalItemsDiscountLocal = items.reduce((a, i) => a + Number(i.quantity || 0) * Number(i.discount_brl || 0), 0);
+    const totalDiscountLocal = totalItemsDiscountLocal + saleDiscountAmountLocal;
+    const totalSaleLocal = Number((itemsTotalLocal - saleDiscountAmountLocal + Number(freight || 0) + Number(otherExpenses || 0)).toFixed(2));
+    const paidLocal = payments.reduce((a, p) => a + Number(p.amount || 0), 0);
+
+    e?.preventDefault();
+    if (!store || !user) return;
     // Validação final antes de gravar — impede vendas sem itens ou itens inválidos
     if (items.length === 0) {
       return toast.error("Adicione ao menos um item antes de salvar.");
@@ -1184,7 +1195,7 @@ export default function VendaNova() {
       unit_price: i.unit_price + i.discount_brl,
       discount_amount: 0
     }));
-    const rateio = distributeSaleDiscount(itemsForRateio, saleDiscountAmount);
+    const rateio = distributeSaleDiscount(itemsForRateio, saleDiscountAmountLocal);
 
     const rpcItems = items.map((i) => {
       const part = rateio.find(p => p.product_id === i.product_id);
@@ -1211,15 +1222,15 @@ export default function VendaNova() {
 
     // Extras para persistência
     const totalsMetadata = {
-      items_discount: totalItemsDiscount,
+      items_discount: totalItemsDiscountLocal,
       sale_discount: {
         mode: saleDiscountMode,
         value: saleDiscountValue,
-        amount: saleDiscountAmount
+        amount: saleDiscountAmountLocal
       },
-      discount_total: totalDiscount,
-      subtotal: totalItemsValue,
-      total: totalSale
+      discount_total: totalDiscountLocal,
+      subtotal: itemsTotalLocal,
+      total: totalSaleLocal
     };
 
     const payload: any = {
@@ -1318,7 +1329,7 @@ export default function VendaNova() {
           _customer_whatsapp: whatsapp || null,
           _payment_method: dbMethod,
           _installments: headInstallments,
-          _discount: totalDiscount,
+          _discount: totalDiscountLocal,
           _notes: JSON.stringify(payload),
           _items: rpcItems,
           _payments: rpcPayments,
@@ -1331,7 +1342,7 @@ export default function VendaNova() {
           _customer_whatsapp: whatsapp || null,
           _payment_method: dbMethod,
           _installments: headInstallments,
-          _discount: totalDiscount,
+          _discount: totalDiscountLocal,
           _notes: JSON.stringify(payload),
           _items: rpcItems,
           _payments: rpcPayments,
@@ -1360,13 +1371,13 @@ export default function VendaNova() {
             status: "erro",
             details: {
               origem: "VendaNova",
-              subtotal_bruto: subtotal,
-              desconto_total: totalDiscount,
+              subtotal_bruto: itemsTotalLocal,
+              desconto_total: totalDiscountLocal,
               frete: freight,
               outras_despesas: otherExpenses,
-              total_esperado: totalSale,
-              soma_pagamentos: paid,
-              divergencia: +(paid - totalSale).toFixed(2),
+              total_esperado: totalSaleLocal,
+              soma_pagamentos: paidLocal,
+              divergencia: +(paidLocal - totalSaleLocal).toFixed(2),
               itens: rpcItems.map((it) => ({
                 name: it.name, qty: it.quantity, unit_price: it.unit_price, discount: it.discount_amount,
               })),
@@ -1445,7 +1456,7 @@ export default function VendaNova() {
       // A RPC calcula credit_total = sale.total - _entry_amount. Para vendas
       // mistas, financiamos apenas cp.amount → entry = total - cp.amount.
       const creditAmount = Number(cp.amount);
-      const entryAmount = Math.max(0, +(totalSale - creditAmount).toFixed(2));
+      const entryAmount = Math.max(0, +(totalSaleLocal - creditAmount).toFixed(2));
       const payload = {
         _sale_id: sale.id,
         _entry_amount: entryAmount,
@@ -2574,7 +2585,7 @@ Obrigado pela preferência.`;
             <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{customer || "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span>{totalsItems} · {totalsQty} un.</span></div>
             <div className="rounded-md border border-border/60 bg-surface-elevated/40 p-2 space-y-1 font-mono text-xs">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto</span><span>{brl(subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto</span><span>{brl(totalItemsValue + totalItemsDiscount)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Descontos</span><span>− {brl(totalDiscount)}</span></div>
               {freight > 0 && (
                 <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>+ {brl(freight)}</span></div>
