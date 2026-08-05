@@ -100,13 +100,28 @@ export default function VendaDetalhe() {
   }, [id]);
 
   const totals = useMemo(() => {
-    const bruto = items.reduce((a, i) => a + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
-    const descItens = items.reduce((a, i) => a + Number(i.discount_amount || 0), 0);
-    const custo = items.reduce((a, i) => a + Number(i.unit_cost || 0) * Number(i.quantity || 0), 0);
+    const bruto = items.reduce((a, b) => a + (Number(b.quantity || 0) * (Number(b.unit_price || 0) + (Number(b.discount_amount || 0) / Number(b.quantity || 1)))), 0);
+    const totalDiscountAmount = items.reduce((a, b) => a + Number(b.discount_amount || 0), 0);
+    const custo = items.reduce((a, b) => a + (Number(b.unit_cost || 0) * Number(b.quantity || 0)), 0);
+
+    let saleDiscount = 0;
+    try {
+      const extras = sale?.notes ? JSON.parse(sale.notes) : null;
+      if (extras?.extras?.totals?.sale_discount?.amount != null) {
+        saleDiscount = extras.extras.totals.sale_discount.amount;
+      }
+    } catch { /* noop */ }
+
+    // Se não encontrou no JSON, o sale.discount do banco é a melhor aproximação
+    if (saleDiscount === 0) saleDiscount = Number(sale?.discount || 0);
+
+    const descItens = Math.max(0, totalDiscountAmount - saleDiscount);
     const liquido = Number(sale?.net_value ?? sale?.total ?? 0);
     const margem = liquido > 0 ? ((liquido - custo) / liquido) * 100 : 0;
-    return { bruto, descItens, custo, liquido, margem };
+    
+    return { bruto, descItens, saleDiscount, custo, liquido, margem };
   }, [items, sale]);
+
 
   const reversed = String(sale?.status ?? "ativa") === "estornada";
 
