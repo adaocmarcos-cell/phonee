@@ -2209,7 +2209,9 @@ Obrigado pela preferência.`;
                     const isTroca = p.method === "troca";
                     const isVale = p.method === "vale_troca";
                     return (
-                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
+                      <Fragment key={idx}>
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
+
                         <Field label={`Forma ${idx + 1}`}>
                           <Select value={p.method} onValueChange={(v) => updatePayment(idx, { method: v })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -2262,6 +2264,7 @@ Obrigado pela preferência.`;
                             <Trash2 className="h-3.5 w-3.5 text-danger" />
                           </Button>
                         </div>
+
                         {p.method === "crediario" && (
                           <div className="md:col-span-5 -mt-1 rounded-md border border-indigo-500/30 bg-indigo-500/5 p-2 grid grid-cols-1 md:grid-cols-3 gap-2">
                             <div>
