@@ -935,17 +935,52 @@ export default function VendaNova() {
     setItems((arr) => arr.map((i) => {
       if (i.product_id !== id) return i;
       const merged = { ...i, ...patch };
-      // Recompute discount/unit cascading
+
+      // Bloqueio de desconto se preço for pendente
+      if ((patch.discount_pct !== undefined || patch.discount_brl !== undefined) && merged.list_price <= 0) {
+        toast.info("Informe o preço de venda antes de aplicar desconto.");
+        return i;
+      }
+
+      // Clamps nos inputs de desconto
       if (patch.discount_pct !== undefined) {
+        if (merged.discount_pct > 100) {
+          toast.warning("Desconto limitado a 100%");
+          merged.discount_pct = 100;
+        }
+        if (merged.discount_pct < 0) merged.discount_pct = 0;
+      }
+      if (patch.discount_brl !== undefined) {
+        if (merged.discount_brl > merged.list_price) {
+          toast.warning(`Desconto limitado ao preço de lista (${brl(merged.list_price)})`);
+          merged.discount_brl = merged.list_price;
+        }
+        if (merged.discount_brl < 0) merged.discount_brl = 0;
+      }
+
+      // Recompute logic preserving user choice
+      if (patch.list_price !== undefined) {
+        // Se mudou o P. Lista, preserva o desconto que o usuário digitou
+        if (i.discount_pct > 0) {
+          // Se era por %, recalcula o R$
+          merged.discount_brl = +(merged.list_price * (i.discount_pct / 100)).toFixed(2);
+        } else {
+          // Se era por R$ (ou zero), mantém o R$ e recalcula o %
+          merged.discount_brl = Math.min(i.discount_brl, merged.list_price);
+          merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
+        }
+        merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
+      } else if (patch.discount_pct !== undefined) {
         merged.discount_brl = +(merged.list_price * (merged.discount_pct / 100)).toFixed(2);
         merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
       } else if (patch.discount_brl !== undefined) {
         merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
         merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
-      } else if (patch.list_price !== undefined || patch.unit_price !== undefined) {
+      } else if (patch.unit_price !== undefined) {
         merged.discount_brl = +(merged.list_price - merged.unit_price).toFixed(2);
         merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
       }
+
       // Aparelho é rastreado por IMEI: uma linha por unidade.
       if (merged.item_kind === "aparelho" && Number(merged.quantity) > 1) {
         merged.quantity = 1;
@@ -2067,19 +2102,65 @@ Obrigado pela preferência.`;
               </TabsList>
 
               <TabsContent value="pagamento" className="mt-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Field label="Outras despesas">
-                   <NumberInput value={otherExpenses} onValueChange={setOtherExpenses} />
-                  </Field>
-                  <Field label="Frete">
-                   <NumberInput value={freight} onValueChange={setFreight} />
-                  </Field>
-                  <Field label="Total da venda">
-                    <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm font-semibold">
-                      {brl(totalSale)}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2 border-b border-border/40">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">Desconto da venda</Label>
+                    <div className="flex gap-2">
+                      <div className="flex bg-muted rounded-md p-0.5 h-10">
+                        <Button
+                          type="button"
+                          variant={saleDiscountMode === "brl" ? "secondary" : "ghost"}
+                          size="sm"
+                          className="h-full px-3 text-[11px]"
+                          onClick={() => setSaleDiscountMode("brl")}
+                        >R$</Button>
+                        <Button
+                          type="button"
+                          variant={saleDiscountMode === "pct" ? "secondary" : "ghost"}
+                          size="sm"
+                          className="h-full px-3 text-[11px]"
+                          onClick={() => setSaleDiscountMode("pct")}
+                        >%</Button>
+                      </div>
+                      <NumberInput
+                        className="flex-1"
+                        min={0}
+                        max={saleDiscountMode === "pct" ? 100 : totalItemsValue}
+                        value={saleDiscountValue}
+                        onValueChange={(v) => {
+                          let val = v;
+                          if (saleDiscountMode === "pct" && val > 100) val = 100;
+                          if (saleDiscountMode === "brl" && val > totalItemsValue) val = totalItemsValue;
+                          setSaleDiscountValue(val);
+                        }}
+                      />
                     </div>
-                  </Field>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Frete">
+                      <NumberInput value={freight} onValueChange={setFreight} />
+                    </Field>
+                    <Field label="Outras despesas">
+                      <NumberInput value={otherExpenses} onValueChange={setOtherExpenses} />
+                    </Field>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="rounded-md bg-muted/40 px-3 py-1.5 border border-border/40">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Subtotal líquido</div>
+                    <div className="text-sm font-semibold">{brl(totalItemsValue)}</div>
+                  </div>
+                  <div className="rounded-md bg-muted/40 px-3 py-1.5 border border-border/40">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Desconto extra</div>
+                    <div className="text-sm font-semibold text-danger">− {brl(saleDiscountAmount)}</div>
+                  </div>
+                  <div className="rounded-md bg-primary/5 px-3 py-1.5 border border-primary/20">
+                    <div className="text-[10px] uppercase tracking-widest text-primary/80">Total esperado</div>
+                    <div className="text-sm font-bold text-primary">{brl(totalSale)}</div>
+                  </div>
+                </div>
+
 
                 <div className="border border-border rounded-md p-3 space-y-2">
                   <div className="flex items-center justify-between">
