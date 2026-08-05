@@ -31,6 +31,11 @@ import { UserCheck } from "lucide-react";
 import { buildLineItemFromProduct } from "@/lib/vendaSearch";
 import { NumberInput } from "@/components/NumberInput";
 import { LastEditFooter } from "@/components/audit/LastEditFooter";
+import {
+  calculateSaleDiscountAmount,
+  distributeSaleDiscount,
+  type SaleDiscountMode,
+} from "@/lib/saleDiscount";
 
 type CustomerLite = {
   id: string;
@@ -287,6 +292,10 @@ export default function VendaNova() {
   const [editSaleLoaded, setEditSaleLoaded] = useState(false);
   const [editSaleNumber, setEditSaleNumber] = useState<number | null>(null);
 
+  // Desconto da venda
+  const [saleDiscountMode, setSaleDiscountMode] = useState<SaleDiscountMode>("brl");
+  const [saleDiscountValue, setSaleDiscountValue] = useState<number>(0);
+
   // Garantia
   const [warrantyCfg, setWarrantyCfg] = useState<WarrantySettings | null>(null);
   const [warrantyEnabled, setWarrantyEnabled] = useState(true);
@@ -417,12 +426,39 @@ export default function VendaNova() {
           category: r.category ?? undefined,
           quantity: qty,
           list_price: price + discPerUnit,
-          discount_pct: 0,
+          discount_pct: (price + discPerUnit) > 0 ? +((discPerUnit / (price + discPerUnit)) * 100).toFixed(2) : 0,
           discount_brl: discPerUnit,
           unit_price: price,
           imei_serial: r.imei_serial ?? undefined,
         };
       });
+
+      // Recupera Desconto Geral dos Extras
+      try {
+        const extras = (sale as any).notes ? JSON.parse((sale as any).notes) : null;
+        const totalEx = extras?.extras?.totals;
+        if (totalEx?.sale_discount) {
+          const sd = totalEx.sale_discount;
+          setSaleDiscountMode(sd.mode || "brl");
+          setSaleDiscountValue(sd.value || 0);
+
+          // Se houve desconto geral rateado, "des-rateia" os itens para
+          // que o desconto unitário original apareça corretamente.
+          const totalItemsValueLocal = loadedItems.reduce((a, it) => a + (it.quantity * (it.unit_price + it.discount_brl)), 0);
+          const rateioAmount = sd.amount || 0;
+
+          if (rateioAmount > 0 && totalItemsValueLocal > 0) {
+            loadedItems.forEach(it => {
+              const itemSubtotal = it.quantity * (it.unit_price + it.discount_brl);
+              const part = (itemSubtotal / totalItemsValueLocal) * rateioAmount;
+              it.discount_brl = Math.max(0, +(it.discount_brl - (part / it.quantity)).toFixed(2));
+              it.unit_price = +(it.list_price - it.discount_brl).toFixed(2);
+              it.discount_pct = it.list_price > 0 ? +((it.discount_brl / it.list_price) * 100).toFixed(2) : 0;
+            });
+          }
+        }
+      } catch { /* noop */ }
+
       setItems(loadedItems);
       // item_kind não fica em sale_items — busca nos produtos para reaplicar a
       // exigência de IMEI por unidade também no modo edição.
@@ -926,17 +962,52 @@ export default function VendaNova() {
     setItems((arr) => arr.map((i) => {
       if (i.product_id !== id) return i;
       const merged = { ...i, ...patch };
-      // Recompute discount/unit cascading
+
+      // Bloqueio de desconto se preço for pendente
+      if ((patch.discount_pct !== undefined || patch.discount_brl !== undefined) && merged.list_price <= 0) {
+        toast.info("Informe o preço de venda antes de aplicar desconto.");
+        return i;
+      }
+
+      // Clamps nos inputs de desconto
       if (patch.discount_pct !== undefined) {
+        if (merged.discount_pct > 100) {
+          toast.warning("Desconto limitado a 100%");
+          merged.discount_pct = 100;
+        }
+        if (merged.discount_pct < 0) merged.discount_pct = 0;
+      }
+      if (patch.discount_brl !== undefined) {
+        if (merged.discount_brl > merged.list_price) {
+          toast.warning(`Desconto limitado ao preço de lista (${brl(merged.list_price)})`);
+          merged.discount_brl = merged.list_price;
+        }
+        if (merged.discount_brl < 0) merged.discount_brl = 0;
+      }
+
+      // Recompute logic preserving user choice
+      if (patch.list_price !== undefined) {
+        // Se mudou o P. Lista, preserva o desconto que o usuário digitou
+        if (i.discount_pct > 0) {
+          // Se era por %, recalcula o R$
+          merged.discount_brl = +(merged.list_price * (i.discount_pct / 100)).toFixed(2);
+        } else {
+          // Se era por R$ (ou zero), mantém o R$ e recalcula o %
+          merged.discount_brl = Math.min(i.discount_brl, merged.list_price);
+          merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
+        }
+        merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
+      } else if (patch.discount_pct !== undefined) {
         merged.discount_brl = +(merged.list_price * (merged.discount_pct / 100)).toFixed(2);
         merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
       } else if (patch.discount_brl !== undefined) {
         merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
         merged.unit_price = +(merged.list_price - merged.discount_brl).toFixed(2);
-      } else if (patch.list_price !== undefined || patch.unit_price !== undefined) {
+      } else if (patch.unit_price !== undefined) {
         merged.discount_brl = +(merged.list_price - merged.unit_price).toFixed(2);
         merged.discount_pct = merged.list_price > 0 ? +((merged.discount_brl / merged.list_price) * 100).toFixed(2) : 0;
       }
+
       // Aparelho é rastreado por IMEI: uma linha por unidade.
       if (merged.item_kind === "aparelho" && Number(merged.quantity) > 1) {
         merged.quantity = 1;
@@ -957,10 +1028,12 @@ export default function VendaNova() {
   const totalsItems = items.length;
   const totalsQty = items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = items.reduce((s, i) => s + i.quantity * i.list_price, 0);
-  const totalDiscount = items.reduce((s, i) => s + i.quantity * i.discount_brl, 0);
-  const totalItemsValue = subtotal - totalDiscount;
+  const totalItemsDiscount = items.reduce((s, i) => s + i.quantity * i.discount_brl, 0);
+  const totalItemsValue = subtotal - totalItemsDiscount;
+  const saleDiscountAmount = calculateSaleDiscountAmount(totalItemsValue, saleDiscountMode, saleDiscountValue);
+  const totalDiscount = +(totalItemsDiscount + saleDiscountAmount).toFixed(2);
   const commissionValue = +(totalItemsValue * (commissionPct / 100)).toFixed(2);
-  const totalSale = +(totalItemsValue + otherExpenses + freight).toFixed(2);
+  const totalSale = +(totalItemsValue - saleDiscountAmount + otherExpenses + freight).toFixed(2);
   const paid = +payments.reduce((s, p) => s + Number(p.amount || 0), 0).toFixed(2);
   const remaining = +(totalSale - paid).toFixed(2);
   const isMulti = payments.length > 1;
@@ -1150,6 +1223,17 @@ export default function VendaNova() {
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!store || !user) return;
+
+    // Dependências de build (variáveis que devem existir no escopo de submit)
+    const itemsTotalLocal = items.reduce((a, i) => a + Number(i.quantity || 0) * Number(i.unit_price || 0), 0);
+    const saleDiscountAmountLocal = calculateSaleDiscountAmount(itemsTotalLocal, saleDiscountMode, saleDiscountValue);
+    const totalItemsDiscountLocal = items.reduce((a, i) => a + Number(i.quantity || 0) * Number(i.discount_brl || 0), 0);
+    const totalDiscountLocal = totalItemsDiscountLocal + saleDiscountAmountLocal;
+    const totalSaleLocal = Number((itemsTotalLocal - saleDiscountAmountLocal + Number(freight || 0) + Number(otherExpenses || 0)).toFixed(2));
+    const paidLocal = payments.reduce((a, p) => a + Number(p.amount || 0), 0);
+
+    e?.preventDefault();
+    if (!store || !user) return;
     // Validação final antes de gravar — impede vendas sem itens ou itens inválidos
     if (items.length === 0) {
       return toast.error("Adicione ao menos um item antes de salvar.");
@@ -1166,13 +1250,79 @@ export default function VendaNova() {
     if ((await checkImeiGate()) === "blocked") return;
     setBusy(true);
 
-    const payload = buildPayload();
-    // Sincroniza cliente com o CRM antes de gravar a venda
     const linkedCustomerId = await ensureCustomerRecord();
-    // Compat: header payment_method é um enum e não conhece "troca". Usa o primeiro
-    // método monetário; se todos forem troca (sem parte em caixa), grava "dinheiro" como fallback.
-    const monetaryMethods = payments
-      .filter((p) => p.method !== "troca" && Number(p.amount) > 0)
+
+    // Rateio do desconto geral entre os itens
+    const itemsForRateio = items.map(i => ({
+      product_id: i.product_id,
+      quantity: i.quantity,
+      unit_price: i.unit_price + i.discount_brl,
+      discount_amount: 0
+    }));
+    const rateio = distributeSaleDiscount(itemsForRateio, saleDiscountAmountLocal);
+
+    const rpcItems = items.map((i) => {
+      const part = rateio.find(p => p.product_id === i.product_id);
+      const distributedAmount = part ? part.distributed_discount : 0;
+      const finalLineDiscount = Number((Number(i.discount_brl || 0) * Number(i.quantity || 0) + distributedAmount).toFixed(2));
+
+      return {
+        product_id: i.is_service ? null : i.product_id,
+        is_service: !!i.is_service,
+        description: i.is_service ? (i.description || i.name) : null,
+        quantity: i.quantity,
+        unit_price: i.list_price,
+        name: i.name || null,
+        sku: i.is_service ? "SERVIÇO" : (i.code || null),
+        category: i.category || null,
+        brand: (i as any).brand || null,
+        model: (i as any).model || null,
+        unit: unit || null,
+        discount_amount: finalLineDiscount,
+        warranty_days: warrantyEnabled ? warrantyDays : null,
+        imei_serial: i.is_service ? null : (String(i.imei_serial ?? "").trim() || null),
+      };
+    });
+
+    // Extras para persistência
+    const totalsMetadata = {
+      items_discount: totalItemsDiscountLocal,
+      sale_discount: {
+        mode: saleDiscountMode,
+        value: saleDiscountValue,
+        amount: saleDiscountAmountLocal
+      },
+      discount_total: totalDiscountLocal,
+      subtotal: itemsTotalLocal,
+      total: totalSaleLocal
+    };
+
+    const payload: any = {
+      extras: {
+        phone: (phone || "").trim(),
+        city: (city || "").trim(),
+        customer_doc_type: docType,
+        user_notes: notes.trim(),
+        category,
+        seller_id: sellerId || user.id,
+        commission: { percent: commissionPct, status: commissionStatus },
+        delivery: {
+          sale_date: saleDate, ship_date: shipDate, expected_date: expectedDate,
+          carrier, freight_payer: freightPayer, diff_address: diffAddress, delivery_address: deliveryAddress,
+        },
+        payment: { freight, other_expenses: otherExpenses },
+        totals: totalsMetadata
+      },
+    };
+
+    // Re-calcula primaryMethod e isMulti
+    const activePayments = payments.filter(p => Number(p.amount) > 0);
+    const primaryMethod = activePayments[0]?.method || "dinheiro";
+    const isMulti = activePayments.length > 1;
+
+    // Compat: header payment_method é um enum e não conhece "troca".
+    const monetaryMethods = activePayments
+      .filter((p) => p.method !== "troca")
       .map((p) => p.method);
     const dbMethod = isMulti
       ? "misto"
@@ -1182,27 +1332,6 @@ export default function VendaNova() {
               ? monetaryMethods[0]
               : "dinheiro"));
     const headInstallments = payments[0]?.installments ?? 1;
-
-    // Atomic sale: cabeçalho + itens + pagamentos + baixa de estoque numa única
-    // transação no banco. O total é recalculado no servidor e o estoque é
-    // debitado com trava (WHERE stock_current >= qty), evitando venda com
-    // estoque negativo em cenários concorrentes.
-    const rpcItems = items.map((i) => ({
-      product_id: i.is_service ? null : i.product_id,
-      is_service: !!i.is_service,
-      description: i.is_service ? (i.description || i.name) : null,
-      quantity: i.quantity,
-      unit_price: i.list_price,
-      name: i.name || null,
-      sku: i.is_service ? "SERVIÇO" : (i.code || null),
-      category: i.category || null,
-      brand: (i as any).brand || null,
-      model: (i as any).model || null,
-      unit: unit || null,
-      discount_amount: +(Number(i.discount_brl || 0) * Number(i.quantity || 0)).toFixed(2),
-      warranty_days: warrantyEnabled ? warrantyDays : null,
-      imei_serial: i.is_service ? null : (String(i.imei_serial ?? "").trim() || null),
-    }));
     const rpcPayments = payments
       .filter((p) => Number(p.amount) > 0)
       .map((p) => ({
@@ -1264,7 +1393,7 @@ export default function VendaNova() {
           _customer_whatsapp: whatsapp || null,
           _payment_method: dbMethod,
           _installments: headInstallments,
-          _discount: totalDiscount,
+          _discount: totalDiscountLocal,
           _notes: JSON.stringify(payload),
           _items: rpcItems,
           _payments: rpcPayments,
@@ -1277,7 +1406,7 @@ export default function VendaNova() {
           _customer_whatsapp: whatsapp || null,
           _payment_method: dbMethod,
           _installments: headInstallments,
-          _discount: totalDiscount,
+          _discount: totalDiscountLocal,
           _notes: JSON.stringify(payload),
           _items: rpcItems,
           _payments: rpcPayments,
@@ -1306,13 +1435,13 @@ export default function VendaNova() {
             status: "erro",
             details: {
               origem: "VendaNova",
-              subtotal_bruto: subtotal,
-              desconto_total: totalDiscount,
+              subtotal_bruto: itemsTotalLocal,
+              desconto_total: totalDiscountLocal,
               frete: freight,
               outras_despesas: otherExpenses,
-              total_esperado: totalSale,
-              soma_pagamentos: paid,
-              divergencia: +(paid - totalSale).toFixed(2),
+              total_esperado: totalSaleLocal,
+              soma_pagamentos: paidLocal,
+              divergencia: +(paidLocal - totalSaleLocal).toFixed(2),
               itens: rpcItems.map((it) => ({
                 name: it.name, qty: it.quantity, unit_price: it.unit_price, discount: it.discount_amount,
               })),
@@ -1391,7 +1520,7 @@ export default function VendaNova() {
       // A RPC calcula credit_total = sale.total - _entry_amount. Para vendas
       // mistas, financiamos apenas cp.amount → entry = total - cp.amount.
       const creditAmount = Number(cp.amount);
-      const entryAmount = Math.max(0, +(totalSale - creditAmount).toFixed(2));
+      const entryAmount = Math.max(0, +(totalSaleLocal - creditAmount).toFixed(2));
       const payload = {
         _sale_id: sale.id,
         _entry_amount: entryAmount,
@@ -2002,19 +2131,65 @@ Obrigado pela preferência.`;
               </TabsList>
 
               <TabsContent value="pagamento" className="mt-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Field label="Outras despesas">
-                   <NumberInput value={otherExpenses} onValueChange={setOtherExpenses} />
-                  </Field>
-                  <Field label="Frete">
-                   <NumberInput value={freight} onValueChange={setFreight} />
-                  </Field>
-                  <Field label="Total da venda">
-                    <div className="h-10 px-3 flex items-center rounded-md bg-muted font-mono text-sm font-semibold">
-                      {brl(totalSale)}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2 border-b border-border/40">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs">Desconto da venda</Label>
+                    <div className="flex gap-2">
+                      <div className="flex bg-muted rounded-md p-0.5 h-10">
+                        <Button
+                          type="button"
+                          variant={saleDiscountMode === "brl" ? "secondary" : "ghost"}
+                          size="sm"
+                          className="h-full px-3 text-[11px]"
+                          onClick={() => setSaleDiscountMode("brl")}
+                        >R$</Button>
+                        <Button
+                          type="button"
+                          variant={saleDiscountMode === "pct" ? "secondary" : "ghost"}
+                          size="sm"
+                          className="h-full px-3 text-[11px]"
+                          onClick={() => setSaleDiscountMode("pct")}
+                        >%</Button>
+                      </div>
+                      <NumberInput
+                        className="flex-1"
+                        min={0}
+                        max={saleDiscountMode === "pct" ? 100 : totalItemsValue}
+                        value={saleDiscountValue}
+                        onValueChange={(v) => {
+                          let val = v;
+                          if (saleDiscountMode === "pct" && val > 100) val = 100;
+                          if (saleDiscountMode === "brl" && val > totalItemsValue) val = totalItemsValue;
+                          setSaleDiscountValue(val);
+                        }}
+                      />
                     </div>
-                  </Field>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Frete">
+                      <NumberInput value={freight} onValueChange={setFreight} />
+                    </Field>
+                    <Field label="Outras despesas">
+                      <NumberInput value={otherExpenses} onValueChange={setOtherExpenses} />
+                    </Field>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="rounded-md bg-muted/40 px-3 py-1.5 border border-border/40">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Subtotal líquido</div>
+                    <div className="text-sm font-semibold">{brl(totalItemsValue)}</div>
+                  </div>
+                  <div className="rounded-md bg-muted/40 px-3 py-1.5 border border-border/40">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Desconto extra</div>
+                    <div className="text-sm font-semibold text-danger">− {brl(saleDiscountAmount)}</div>
+                  </div>
+                  <div className="rounded-md bg-primary/5 px-3 py-1.5 border border-primary/20">
+                    <div className="text-[10px] uppercase tracking-widest text-primary/80">Total esperado</div>
+                    <div className="text-sm font-bold text-primary">{brl(totalSale)}</div>
+                  </div>
+                </div>
+
 
                 <div className="border border-border rounded-md p-3 space-y-2">
                   <div className="flex items-center justify-between">
@@ -2034,7 +2209,10 @@ Obrigado pela preferência.`;
                     const isTroca = p.method === "troca";
                     const isVale = p.method === "vale_troca";
                     return (
-                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
+                      <Fragment key={idx}>
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
+
+
                         <Field label={`Forma ${idx + 1}`}>
                           <Select value={p.method} onValueChange={(v) => updatePayment(idx, { method: v })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -2049,9 +2227,12 @@ Obrigado pela preferência.`;
                           <NumberInput
                             min={0}
                             value={p.amount}
-                            onValueChange={(n) => updatePayment(idx, { amount: n })}
+                            onValueChange={(v) => {
+                              updatePayment(idx, { amount: v });
+                            }}
                           />
                         </Field>
+
                         <Field label="Parcelas">
                           <NumberInput
                             allowDecimal={false}
@@ -2084,6 +2265,7 @@ Obrigado pela preferência.`;
                             <Trash2 className="h-3.5 w-3.5 text-danger" />
                           </Button>
                         </div>
+
                         {p.method === "crediario" && (
                           <div className="md:col-span-5 -mt-1 rounded-md border border-indigo-500/30 bg-indigo-500/5 p-2 grid grid-cols-1 md:grid-cols-3 gap-2">
                             <div>
@@ -2215,11 +2397,41 @@ Obrigado pela preferência.`;
                             </div>
                           </div>
                         )}
-                      </div>
+                        </div>
+                      </Fragment>
                     );
                   })}
 
+                  {Math.abs(remaining) > 0.01 && (
+                    <div className="flex flex-wrap items-center justify-between bg-warning/10 border border-warning/20 p-2 rounded-md gap-2">
+                      <div className="flex items-center gap-2 text-warning text-[11px] font-medium">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Os pagamentos não fecham com o total (Diferença: {brl(Math.abs(remaining))})
+                      </div>
+                      {payments.length > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px]"
+                          onClick={() => {
+                            const totalP = payments.reduce((a, p) => a + Number(p.amount), 0);
+                            if (totalP <= 0) {
+                               fillRemaining(0);
+                               return;
+                            }
+                            setPayments(arr => arr.map(p => ({
+                              ...p,
+                              amount: +((Number(p.amount) / totalP) * totalSale).toFixed(2)
+                            })));
+                          }}
+                        >Redistribuir proporcionalmente</Button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-3 gap-2 pt-2 text-xs font-mono">
+
                     <div className="rounded-md bg-muted/40 px-3 py-2">
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
                       <div className="text-sm font-semibold">{brl(totalSale)}</div>
@@ -2520,7 +2732,7 @@ Obrigado pela preferência.`;
             <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{customer || "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span>{totalsItems} · {totalsQty} un.</span></div>
             <div className="rounded-md border border-border/60 bg-surface-elevated/40 p-2 space-y-1 font-mono text-xs">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto</span><span>{brl(subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal bruto</span><span>{brl(items.reduce((a, i) => a + (i.quantity * i.list_price), 0))}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Descontos</span><span>− {brl(totalDiscount)}</span></div>
               {freight > 0 && (
                 <div className="flex justify-between"><span className="text-muted-foreground">Frete</span><span>+ {brl(freight)}</span></div>
@@ -2529,6 +2741,7 @@ Obrigado pela preferência.`;
                 <div className="flex justify-between"><span className="text-muted-foreground">Outras despesas</span><span>+ {brl(otherExpenses)}</span></div>
               )}
               <div className="flex justify-between border-t border-border/60 pt-1 font-semibold text-foreground"><span>Total esperado</span><span>{brl(totalSale)}</span></div>
+
             </div>
             <div className="border-t border-border/60 pt-2 space-y-1">
               {payments.map((p, i) => (
