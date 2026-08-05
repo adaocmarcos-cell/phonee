@@ -2429,11 +2429,9 @@ Obrigado pela preferência.`;
                       )}
                     </div>
                   )}
-                </div>
-
-
 
                   <div className="grid grid-cols-3 gap-2 pt-2 text-xs font-mono">
+
                     <div className="rounded-md bg-muted/40 px-3 py-2">
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
                       <div className="text-sm font-semibold">{brl(totalSale)}</div>
