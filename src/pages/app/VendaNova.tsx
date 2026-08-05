@@ -2212,6 +2212,7 @@ Obrigado pela preferência.`;
                       <Fragment key={idx}>
                         <div className="grid grid-cols-1 md:grid-cols-[1fr_140px_90px_1fr_auto] gap-2 items-end border-t border-border/40 pt-2 first:border-t-0 first:pt-0">
 
+
                         <Field label={`Forma ${idx + 1}`}>
                           <Select value={p.method} onValueChange={(v) => updatePayment(idx, { method: v })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -2396,33 +2397,40 @@ Obrigado pela preferência.`;
                             </div>
                           </div>
                         )}
-                      {Math.abs(remaining) > 0.01 && (
-                        <div className="md:col-span-5 flex flex-wrap items-center justify-between bg-warning/10 border border-warning/20 p-2 rounded-md gap-2">
-                          <div className="flex items-center gap-2 text-warning text-[11px] font-medium">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            Os pagamentos não fecham com o total (Diferença: {brl(Math.abs(remaining))})
-                          </div>
-                          {payments.length > 0 && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-[10px]"
-                              onClick={() => {
-                                const totalP = payments.reduce((a, p) => a + Number(p.amount), 0);
-                                if (totalP <= 0) {
-                                   fillRemaining(0);
-                                   return;
-                                }
-                                setPayments(arr => arr.map(p => ({
-                                  ...p,
-                                  amount: +((Number(p.amount) / totalP) * totalSale).toFixed(2)
-                                })));
-                              }}
-                            >Redistribuir proporcionalmente</Button>
-                          )}
                         </div>
+                      </Fragment>
+                    );
+                  })}
+
+                  {Math.abs(remaining) > 0.01 && (
+                    <div className="flex flex-wrap items-center justify-between bg-warning/10 border border-warning/20 p-2 rounded-md gap-2">
+                      <div className="flex items-center gap-2 text-warning text-[11px] font-medium">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Os pagamentos não fecham com o total (Diferença: {brl(Math.abs(remaining))})
+                      </div>
+                      {payments.length > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px]"
+                          onClick={() => {
+                            const totalP = payments.reduce((a, p) => a + Number(p.amount), 0);
+                            if (totalP <= 0) {
+                               fillRemaining(0);
+                               return;
+                            }
+                            setPayments(arr => arr.map(p => ({
+                              ...p,
+                              amount: +((Number(p.amount) / totalP) * totalSale).toFixed(2)
+                            })));
+                          }}
+                        >Redistribuir proporcionalmente</Button>
                       )}
+                    </div>
+                  )}
+                </div>
+
 
 
                   <div className="grid grid-cols-3 gap-2 pt-2 text-xs font-mono">
