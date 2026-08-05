@@ -261,7 +261,8 @@ export default function VendaDetalhe() {
           <dl className="text-sm space-y-1.5">
             <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Bruto dos itens</dt><dd className="metric">{brl(totals.bruto)}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Desconto nos itens</dt><dd className="metric">−{brl(totals.descItens)}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Desconto da venda</dt><dd className="metric">−{brl(Number(sale.discount || 0))}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Desconto da venda</dt><dd className="metric">−{brl(totals.saleDiscount)}</dd></div>
+
             <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Subtotal</dt><dd className="metric">{brl(Number(sale.subtotal || 0))}</dd></div>
             <div className="flex justify-between gap-3 border-t border-border pt-1.5"><dt className="font-medium">Total</dt><dd className="metric font-semibold">{brl(Number(sale.total || 0))}</dd></div>
             {sale.net_value != null && Number(sale.net_value) !== Number(sale.total) && (
@@ -313,8 +314,9 @@ export default function VendaDetalhe() {
                       </td>
                       <td className="py-2 font-mono text-xs">{i.imei_serial || "—"}</td>
                       <td className="py-2 text-right metric">{Number(i.quantity || 0)}</td>
-                      <td className="py-2 text-right metric">{brl(Number(i.unit_price || 0))}</td>
+                      <td className="py-2 text-right metric">{brl(Number(i.unit_price || 0) + (Number(i.discount_amount || 0) / Number(i.quantity || 1)))}</td>
                       <td className="py-2 text-right metric text-muted-foreground">{brl(Number(i.discount_amount || 0))}</td>
+
                       {showCost && <td className="py-2 text-right metric">{brl(custo)}</td>}
                       {showCost && <td className="py-2 text-right metric">{mg.toFixed(1)}%</td>}
                       <td className="py-2 text-right metric font-semibold">{brl(tot)}</td>

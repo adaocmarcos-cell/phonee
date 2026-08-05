@@ -40,7 +40,9 @@ const INSTALLMENTS = [2, 3, 6, 10, 12, 18];
 export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props) {
   const { store, user } = useAuth();
   const [price, setPrice] = useState(0);
-  const [discount, setDiscount] = useState(0);
+  const [discountMode, setDiscountMode] = useState<"brl" | "pct">("brl");
+  const [discountValue, setDiscountValue] = useState(0);
+
   const [method, setMethod] = useState<string>("pix");
   const [installments, setInstallments] = useState(2);
   const [customer, setCustomer] = useState("");

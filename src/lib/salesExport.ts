@@ -381,9 +381,9 @@ export function printSaleReceipt(opts: {
       <div class="totals">
         <div><span>Total de itens</span><span>${items.length} (${totalItemsQty} un.)</span></div>
         <div><span>Subtotal produtos/serviços</span><span>${brl(subtotalProdutos)}</span></div>
-        ${totalItemsDiscount > 0 ? `<div><span>Desconto nos itens</span><span>- ${brl(totalItemsDiscount)}</span></div>` : ""}
-        ${saleDiscount > 0 ? `<div><span>Desconto da venda</span><span>- ${brl(saleDiscount)}</span></div>` : ""}
-        ${totalItemsDiscount <= 0 && saleDiscount <= 0 ? `<div><span>Descontos</span><span>- ${brl(0)}</span></div>` : ""}
+        ${totalItemsDiscount > 0 ? `<div><span>Desconto nos itens</span><span>− ${brl(totalItemsDiscount)}</span></div>` : ""}
+        ${saleDiscount > 0 ? `<div><span>Desconto da venda</span><span>− ${brl(saleDiscount)}</span></div>` : ""}
+
         ${freight > 0 ? `<div><span>Frete</span><span>+ ${brl(freight)}</span></div>` : ""}
         ${otherExpenses > 0 ? `<div><span>Outras despesas</span><span>+ ${brl(otherExpenses)}</span></div>` : ""}
         <div class="tot"><span>TOTAL</span><span>${brl(Number(sale.total || 0))}</span></div>
