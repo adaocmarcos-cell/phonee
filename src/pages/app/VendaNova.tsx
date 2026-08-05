@@ -1246,8 +1246,8 @@ export default function VendaNova() {
     const isMulti = activePayments.length > 1;
 
     // Compat: header payment_method é um enum e não conhece "troca".
-    const monetaryMethods = payments
-      .filter((p) => p.method !== "troca" && Number(p.amount) > 0)
+    const monetaryMethods = activePayments
+      .filter((p) => p.method !== "troca")
       .map((p) => p.method);
     const dbMethod = isMulti
       ? "misto"
