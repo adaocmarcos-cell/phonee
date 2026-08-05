@@ -2402,6 +2402,9 @@ Obrigado pela preferência.`;
                     );
                   })}
 
+                    );
+                  })}
+
                   {Math.abs(remaining) > 0.01 && (
                     <div className="flex flex-wrap items-center justify-between bg-warning/10 border border-warning/20 p-2 rounded-md gap-2">
                       <div className="flex items-center gap-2 text-warning text-[11px] font-medium">
