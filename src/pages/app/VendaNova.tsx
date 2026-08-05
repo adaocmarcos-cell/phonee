@@ -31,6 +31,11 @@ import { UserCheck } from "lucide-react";
 import { buildLineItemFromProduct } from "@/lib/vendaSearch";
 import { NumberInput } from "@/components/NumberInput";
 import { LastEditFooter } from "@/components/audit/LastEditFooter";
+import {
+  calculateSaleDiscountAmount,
+  distributeSaleDiscount,
+  type SaleDiscountMode,
+} from "@/lib/saleDiscount";
 
 type CustomerLite = {
   id: string;
@@ -286,6 +291,10 @@ export default function VendaNova() {
   const [editHasTradeIn, setEditHasTradeIn] = useState(false);
   const [editSaleLoaded, setEditSaleLoaded] = useState(false);
   const [editSaleNumber, setEditSaleNumber] = useState<number | null>(null);
+
+  // Desconto da venda
+  const [saleDiscountMode, setSaleDiscountMode] = useState<SaleDiscountMode>("brl");
+  const [saleDiscountValue, setSaleDiscountValue] = useState<number>(0);
 
   // Garantia
   const [warrantyCfg, setWarrantyCfg] = useState<WarrantySettings | null>(null);
