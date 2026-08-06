@@ -1,3 +1,4 @@
+/* Execute esta instrucao no projeto: faca uma analise de usuarios da ultima semana, visitas e clique em comprar agora */
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
