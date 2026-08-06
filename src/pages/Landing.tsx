@@ -1,3 +1,4 @@
+/* Execute esta instrucao no projeto: mude o botao do cabeçalho, ao inves de comprar agora altere para Quero total controle */
 /* Execute esta instrucao no projeto: faca uma analise de usuarios da ultima semana, visitas e clique em comprar agora */
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -275,7 +276,7 @@ export default function Landing() {
               </Button>
             </Link>
             <Link to="/comprar?plano=annual" onClick={() => trackCheckoutClick("annual", "header")}>
-              <Button className="bg-gradient-primary hidden sm:inline-flex animate-neon-pulse rounded-md">Comprar agora</Button>
+              <Button className="bg-gradient-primary hidden sm:inline-flex animate-neon-pulse rounded-md">Quero total controle</Button>
             </Link>
           </div>
         </div>
