@@ -339,11 +339,12 @@ export default function TradeInForm() {
               </Select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>IMEI</Label>
+              <Label>IMEI (opcional)</Label>
               <div className="flex gap-2">
                 <Input value={form.imei} onChange={(e) => update({ imei: e.target.value, imei_status: "nao_verificado" })} placeholder="15 dígitos" className="font-mono" />
                 <Button type="button" variant="outline" onClick={checkImei}>Consultar</Button>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">Pode ser preenchido depois, na venda ou na garantia.</p>
               {form.imei_status === "limpo" && <Badge className="bg-success/15 text-success border-success/30"><ShieldCheck className="h-3 w-3 mr-1" />IMEI limpo</Badge>}
               {form.imei_status === "restrito" && <Badge className="bg-danger/15 text-danger border-danger/30"><ShieldAlert className="h-3 w-3 mr-1" />IMEI com restrição</Badge>}
             </div>

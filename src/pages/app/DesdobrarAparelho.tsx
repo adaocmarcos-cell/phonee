@@ -80,7 +80,7 @@ export default function DesdobrarAparelho() {
     const seen = new Set<string>();
     units.forEach((u, i) => {
       const v = u.imei.trim();
-      if (!v) { errs.push(`Unidade ${i + 1}: informe o IMEI`); return; }
+      if (!v) return; // IMEI é opcional
       if (!luhnOk(v)) errs.push(`Unidade ${i + 1}: IMEI inválido (15 dígitos + dígito verificador)`);
       if (seen.has(v)) errs.push(`Unidade ${i + 1}: IMEI repetido nesta tela`);
       seen.add(v);
@@ -173,7 +173,7 @@ export default function DesdobrarAparelho() {
               <div className="text-sm font-semibold">Unidade {i + 1}{i === 0 ? " (cadastro original)" : ""}</div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <Label className="text-xs">IMEI *</Label>
+                  <Label className="text-xs">IMEI (opcional)</Label>
                   <Input
                     value={u.imei}
                     inputMode="numeric"
@@ -182,6 +182,7 @@ export default function DesdobrarAparelho() {
                     onChange={(e) => setUnit(i, { imei: e.target.value.replace(/\D/g, "") })}
                     className={u.imei && !luhnOk(u.imei) ? "border-destructive" : ""}
                   />
+                  <p className="text-[11px] text-muted-foreground mt-1">Pode ser preenchido depois, na venda ou na garantia.</p>
                 </div>
                 <div>
                   <Label className="text-xs">IMEI 2</Label>

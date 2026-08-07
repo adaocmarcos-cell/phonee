@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, Fragment, FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { loadDataHealth } from "@/lib/dataHealth";
 import { isValidImei } from "@/lib/itemKind";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
@@ -1017,9 +1016,17 @@ export default function VendaNova() {
     }));
   };
 
-  /** Itens do tipo aparelho que ainda não têm IMEI válido informado. */
-  const imeiPendingItems = items.filter(
-    (i) => !i.is_service && i.item_kind === "aparelho" && !isValidImei(String(i.imei_serial ?? "")),
+  /** Aparelhos sem IMEI informado — apenas aviso, nunca bloqueio. */
+  const imeiMissingItems = items.filter(
+    (i) => !i.is_service && i.item_kind === "aparelho" && !String(i.imei_serial ?? "").trim(),
+  );
+  /** IMEI preenchido porém inválido — só nesse caso a venda é impedida. */
+  const imeiInvalidItems = items.filter(
+    (i) =>
+      !i.is_service &&
+      i.item_kind === "aparelho" &&
+      !!String(i.imei_serial ?? "").trim() &&
+      !isValidImei(String(i.imei_serial ?? "")),
   );
 
   const removeItem = (id: string) => setItems((arr) => arr.filter((i) => i.product_id !== id));
@@ -1092,9 +1099,9 @@ export default function VendaNova() {
     if (pendingPriceCount > 0) {
       return toast.error("Informe o preço de venda dos itens destacados antes de concluir.");
     }
-    if (imeiPendingItems.length > 0) {
+    if (imeiInvalidItems.length > 0) {
       return toast.error(
-        `Informe o IMEI (15 dígitos) de: ${imeiPendingItems.map((i) => i.name).join(", ")}.`,
+        `IMEI inválido em: ${imeiInvalidItems.map((i) => i.name).join(", ")}. Corrija ou deixe em branco.`,
       );
     }
     if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
@@ -1180,8 +1187,8 @@ export default function VendaNova() {
     setConfirmOpen(true);
   };
 
-  // ── Gate de IMEI: aparelhos legados sem IMEI. Durante o prazo é só aviso;
-  // após o prazo o IMEI é exigido no momento da venda (melhor momento de captura).
+  // ── IMEI é opcional: nunca bloqueia a venda. Mantemos apenas um aviso e a
+  // possibilidade de registrar o IMEI depois (estoque, venda ou garantia).
   const [imeiGate, setImeiGate] = useState<{ open: boolean; rows: Array<{ id: string; name: string; imei: string }> }>({ open: false, rows: [] });
   const [imeiGateBusy, setImeiGateBusy] = useState(false);
 
@@ -1196,12 +1203,6 @@ export default function VendaNova() {
       .eq("item_kind", "aparelho");
     const pend = (data ?? []).filter((p: any) => !p.imei || String(p.imei).trim() === "");
     if (pend.length === 0) return "ok";
-    const health = await loadDataHealth(store.id);
-    if (health?.vencido) {
-      setImeiGate({ open: true, rows: pend.map((p: any) => ({ id: p.id, name: p.name, imei: "" })) });
-      return "blocked";
-    }
-    toast.warning(`${pend.length} aparelho(s) sem IMEI nesta venda. Regularize o cadastro — em breve o IMEI será obrigatório.`);
     return "ok";
   };
 
@@ -1597,6 +1598,11 @@ export default function VendaNova() {
         });
       }
     } catch { /* noop */ }
+    if (imeiMissingItems.length > 0) {
+      toast.warning(
+        `Venda concluída sem IMEI em ${imeiMissingItems.length} aparelho(s). Pode ser preenchido depois, na venda ou na garantia.`,
+      );
+    }
     if (isEditingSale) {
       toast.success("Venda atualizada · estoque recalculado");
       navigate("/painel/vendas");
@@ -1659,7 +1665,7 @@ Obrigado pela preferência.`;
             <Button variant="ghost" onClick={() => navigate("/painel/vendas")}><X className="h-4 w-4 mr-1" />Cancelar</Button>
             <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
             <Button variant="outline" onClick={sendWhatsapp}><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</Button>
-            <Button onClick={onSubmitClick} disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0} className="bg-primary text-primary-foreground shadow-glow">
+            <Button onClick={onSubmitClick} disabled={busy || pendingPriceCount > 0 || imeiInvalidItems.length > 0} className="bg-primary text-primary-foreground shadow-glow">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : (isEditingSale ? "Salvar alterações" : "Salvar venda")}
             </Button>
           </div>
@@ -2008,10 +2014,10 @@ Obrigado pela preferência.`;
                       </tr>
                     )}
                     {i.item_kind === "aparelho" && (
-                      <tr className={`border-t ${isValidImei(String(i.imei_serial ?? "")) ? "border-border/40" : "border-amber-500/40 bg-amber-500/10"}`}>
+                      <tr className={`border-t ${!String(i.imei_serial ?? "").trim() || isValidImei(String(i.imei_serial ?? "")) ? "border-border/40" : "border-amber-500/40 bg-amber-500/10"}`}>
                         <td colSpan={11} className="px-3 py-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-medium">IMEI do aparelho</span>
+                            <span className="text-xs font-medium">IMEI (opcional)</span>
                             <Input
                               value={i.imei_serial ?? ""}
                               onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
@@ -2020,9 +2026,11 @@ Obrigado pela preferência.`;
                               maxLength={15}
                               className="h-8 w-48 font-mono"
                             />
-                            {!isValidImei(String(i.imei_serial ?? "")) && (
-                              <span className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</span>
-                            )}
+                            {!String(i.imei_serial ?? "").trim() ? (
+                              <span className="text-[11px] text-muted-foreground">Pode ser preenchido depois, na venda ou na garantia.</span>
+                            ) : !isValidImei(String(i.imei_serial ?? "")) ? (
+                              <span className="text-[11px] text-amber-700">IMEI inválido — corrija ou deixe em branco.</span>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -2085,8 +2093,8 @@ Obrigado pela preferência.`;
                     </div>
                   )}
                   {i.item_kind === "aparelho" && (
-                    <div className={`mt-2 rounded-md border p-2 space-y-1 ${isValidImei(String(i.imei_serial ?? "")) ? "border-border" : "border-amber-500/40 bg-amber-500/10"}`}>
-                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">IMEI do aparelho</Label>
+                    <div className={`mt-2 rounded-md border p-2 space-y-1 ${!String(i.imei_serial ?? "").trim() || isValidImei(String(i.imei_serial ?? "")) ? "border-border" : "border-amber-500/40 bg-amber-500/10"}`}>
+                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">IMEI (opcional)</Label>
                       <Input
                         value={i.imei_serial ?? ""}
                         onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
@@ -2095,9 +2103,11 @@ Obrigado pela preferência.`;
                         maxLength={15}
                         className="font-mono"
                       />
-                      {!isValidImei(String(i.imei_serial ?? "")) && (
-                        <p className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</p>
-                      )}
+                      {!String(i.imei_serial ?? "").trim() ? (
+                        <p className="text-[11px] text-muted-foreground">Pode ser preenchido depois, na venda ou na garantia.</p>
+                      ) : !isValidImei(String(i.imei_serial ?? "")) ? (
+                        <p className="text-[11px] text-amber-700">IMEI inválido — corrija ou deixe em branco.</p>
+                      ) : null}
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2 text-xs">
@@ -2714,7 +2724,7 @@ Obrigado pela preferência.`;
           <Button type="button" variant="outline" onClick={sendWhatsapp} className="flex-shrink-0">
             <MessageCircle className="h-4 w-4" />
           </Button>
-          <Button type="submit" disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0} className="flex-1 bg-primary text-primary-foreground shadow-glow">
+          <Button type="submit" disabled={busy || pendingPriceCount > 0 || imeiInvalidItems.length > 0} className="flex-1 bg-primary text-primary-foreground shadow-glow">
             <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : `Salvar · ${brl(totalSale)}`}
           </Button>
         </div>
@@ -2760,7 +2770,7 @@ Obrigado pela preferência.`;
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={busy}>Voltar</Button>
-            <Button onClick={() => submit()} disabled={busy || pendingPriceCount > 0 || imeiPendingItems.length > 0 || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
+            <Button onClick={() => submit()} disabled={busy || pendingPriceCount > 0 || imeiInvalidItems.length > 0 || Math.abs(remaining) > 0.009} className="bg-primary text-primary-foreground">
               <Save className="h-4 w-4 mr-1" />{busy ? "Salvando…" : "Confirmar e salvar"}
             </Button>
           </DialogFooter>
