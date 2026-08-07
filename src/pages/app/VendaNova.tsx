@@ -1599,6 +1599,11 @@ export default function VendaNova() {
         });
       }
     } catch { /* noop */ }
+    if (imeiMissingItems.length > 0) {
+      toast.warning(
+        `Venda concluída sem IMEI em ${imeiMissingItems.length} aparelho(s). Pode ser preenchido depois, na venda ou na garantia.`,
+      );
+    }
     if (isEditingSale) {
       toast.success("Venda atualizada · estoque recalculado");
       navigate("/painel/vendas");
