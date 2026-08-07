@@ -1188,8 +1188,8 @@ export default function VendaNova() {
     setConfirmOpen(true);
   };
 
-  // ── Gate de IMEI: aparelhos legados sem IMEI. Durante o prazo é só aviso;
-  // após o prazo o IMEI é exigido no momento da venda (melhor momento de captura).
+  // ── IMEI é opcional: nunca bloqueia a venda. Mantemos apenas um aviso e a
+  // possibilidade de registrar o IMEI depois (estoque, venda ou garantia).
   const [imeiGate, setImeiGate] = useState<{ open: boolean; rows: Array<{ id: string; name: string; imei: string }> }>({ open: false, rows: [] });
   const [imeiGateBusy, setImeiGateBusy] = useState(false);
 
@@ -1204,12 +1204,6 @@ export default function VendaNova() {
       .eq("item_kind", "aparelho");
     const pend = (data ?? []).filter((p: any) => !p.imei || String(p.imei).trim() === "");
     if (pend.length === 0) return "ok";
-    const health = await loadDataHealth(store.id);
-    if (health?.vencido) {
-      setImeiGate({ open: true, rows: pend.map((p: any) => ({ id: p.id, name: p.name, imei: "" })) });
-      return "blocked";
-    }
-    toast.warning(`${pend.length} aparelho(s) sem IMEI nesta venda. Regularize o cadastro — em breve o IMEI será obrigatório.`);
     return "ok";
   };
 
