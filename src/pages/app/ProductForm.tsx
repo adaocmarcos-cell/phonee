@@ -236,11 +236,12 @@ export default function ProductForm() {
 
     const kind = form.item_kind;
     if (isDevice(kind)) {
-      const err = imeiError(form.imei);
-      const semImei = !form.imei.trim();
-      if (err && !(semImei && legacyPending && !healthExpired)) return toast.error(err);
-      if (semImei && legacyPending && !healthExpired) {
-        toast.warning("Salvo sem IMEI. Regularize antes do fim do prazo — depois disso o IMEI será exigido na venda.");
+      // IMEI é opcional: só valida o formato quando o campo estiver preenchido.
+      if (form.imei.trim()) {
+        const err = imeiError(form.imei);
+        if (err) return toast.error(err);
+      } else {
+        toast.warning("Salvo sem IMEI. Pode ser preenchido depois, na venda ou na garantia.");
       }
       if (Number(form.stock_current) !== 1) {
         return toast.error("Aparelho é sempre 1 unidade por registro. Cadastre um registro por aparelho.");
@@ -448,7 +449,7 @@ export default function ProductForm() {
             <Field label="EAN / Código de barras"><Input value={form.ean} onChange={(e) => set("ean", e.target.value)} /></Field>
             {isDevice(form.item_kind) && (
               <>
-                <Field label="IMEI *">
+                <Field label="IMEI (opcional)">
                   <Input
                     value={form.imei}
                     onChange={(e) => set("imei", e.target.value.replace(/\D/g, "").slice(0, 15))}
@@ -457,6 +458,7 @@ export default function ProductForm() {
                     maxLength={15}
                     className="font-mono"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">Pode ser preenchido depois, na venda ou na garantia.</p>
                   {form.imei.length > 0 && imeiError(form.imei) && (
                     <p className="text-xs text-danger mt-1">{imeiError(form.imei)}</p>
                   )}

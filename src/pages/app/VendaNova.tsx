@@ -1017,9 +1017,17 @@ export default function VendaNova() {
     }));
   };
 
-  /** Itens do tipo aparelho que ainda não têm IMEI válido informado. */
-  const imeiPendingItems = items.filter(
-    (i) => !i.is_service && i.item_kind === "aparelho" && !isValidImei(String(i.imei_serial ?? "")),
+  /** Aparelhos sem IMEI informado — apenas aviso, nunca bloqueio. */
+  const imeiMissingItems = items.filter(
+    (i) => !i.is_service && i.item_kind === "aparelho" && !String(i.imei_serial ?? "").trim(),
+  );
+  /** IMEI preenchido porém inválido — só nesse caso a venda é impedida. */
+  const imeiInvalidItems = items.filter(
+    (i) =>
+      !i.is_service &&
+      i.item_kind === "aparelho" &&
+      !!String(i.imei_serial ?? "").trim() &&
+      !isValidImei(String(i.imei_serial ?? "")),
   );
 
   const removeItem = (id: string) => setItems((arr) => arr.filter((i) => i.product_id !== id));
@@ -1092,9 +1100,9 @@ export default function VendaNova() {
     if (pendingPriceCount > 0) {
       return toast.error("Informe o preço de venda dos itens destacados antes de concluir.");
     }
-    if (imeiPendingItems.length > 0) {
+    if (imeiInvalidItems.length > 0) {
       return toast.error(
-        `Informe o IMEI (15 dígitos) de: ${imeiPendingItems.map((i) => i.name).join(", ")}.`,
+        `IMEI inválido em: ${imeiInvalidItems.map((i) => i.name).join(", ")}. Corrija ou deixe em branco.`,
       );
     }
     if (totalSale <= 0) return toast.error("Total da venda deve ser maior que zero");
