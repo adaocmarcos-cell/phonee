@@ -2016,10 +2016,10 @@ Obrigado pela preferência.`;
                       </tr>
                     )}
                     {i.item_kind === "aparelho" && (
-                      <tr className={`border-t ${isValidImei(String(i.imei_serial ?? "")) ? "border-border/40" : "border-amber-500/40 bg-amber-500/10"}`}>
+                      <tr className={`border-t ${!String(i.imei_serial ?? "").trim() || isValidImei(String(i.imei_serial ?? "")) ? "border-border/40" : "border-amber-500/40 bg-amber-500/10"}`}>
                         <td colSpan={11} className="px-3 py-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-medium">IMEI do aparelho</span>
+                            <span className="text-xs font-medium">IMEI (opcional)</span>
                             <Input
                               value={i.imei_serial ?? ""}
                               onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
@@ -2028,9 +2028,11 @@ Obrigado pela preferência.`;
                               maxLength={15}
                               className="h-8 w-48 font-mono"
                             />
-                            {!isValidImei(String(i.imei_serial ?? "")) && (
-                              <span className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</span>
-                            )}
+                            {!String(i.imei_serial ?? "").trim() ? (
+                              <span className="text-[11px] text-muted-foreground">Pode ser preenchido depois, na venda ou na garantia.</span>
+                            ) : !isValidImei(String(i.imei_serial ?? "")) ? (
+                              <span className="text-[11px] text-amber-700">IMEI inválido — corrija ou deixe em branco.</span>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -2093,8 +2095,8 @@ Obrigado pela preferência.`;
                     </div>
                   )}
                   {i.item_kind === "aparelho" && (
-                    <div className={`mt-2 rounded-md border p-2 space-y-1 ${isValidImei(String(i.imei_serial ?? "")) ? "border-border" : "border-amber-500/40 bg-amber-500/10"}`}>
-                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">IMEI do aparelho</Label>
+                    <div className={`mt-2 rounded-md border p-2 space-y-1 ${!String(i.imei_serial ?? "").trim() || isValidImei(String(i.imei_serial ?? "")) ? "border-border" : "border-amber-500/40 bg-amber-500/10"}`}>
+                      <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">IMEI (opcional)</Label>
                       <Input
                         value={i.imei_serial ?? ""}
                         onChange={(e) => updateItem(i.product_id, { imei_serial: e.target.value.replace(/\D/g, "").slice(0, 15) })}
@@ -2103,9 +2105,11 @@ Obrigado pela preferência.`;
                         maxLength={15}
                         className="font-mono"
                       />
-                      {!isValidImei(String(i.imei_serial ?? "")) && (
-                        <p className="text-[11px] text-amber-700">Obrigatório para concluir a venda.</p>
-                      )}
+                      {!String(i.imei_serial ?? "").trim() ? (
+                        <p className="text-[11px] text-muted-foreground">Pode ser preenchido depois, na venda ou na garantia.</p>
+                      ) : !isValidImei(String(i.imei_serial ?? "")) ? (
+                        <p className="text-[11px] text-amber-700">IMEI inválido — corrija ou deixe em branco.</p>
+                      ) : null}
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2 text-xs">
