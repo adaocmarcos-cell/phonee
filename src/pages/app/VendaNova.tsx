@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, Fragment, FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { loadDataHealth } from "@/lib/dataHealth";
 import { isValidImei } from "@/lib/itemKind";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
