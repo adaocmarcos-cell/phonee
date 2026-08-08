@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { brl } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
+import { withAuthRetry, authErrorMessage } from "@/lib/authRetry";
 
 type Product = {
   id: string;
@@ -79,7 +80,7 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
 
     const headInstallments = method === "crediario" ? installments : 1;
     
-    const { error } = await (supabase as any).rpc("create_sale", {
+    const { error } = await withAuthRetry(async () => await (supabase as any).rpc("create_sale", {
       _store_id: store.id,
       _customer_id: null,
       _customer_name: customer || null,
@@ -102,11 +103,13 @@ export function VendaRapidaModal({ product, open, onOpenChange, onDone }: Props)
         amount: received,
         installments: headInstallments,
       }],
-    });
+    }));
     
     if (error) {
       setBusy(false);
       const raw = error.message || "";
+      const authMsg = authErrorMessage(error);
+      if (authMsg) return toast.error(authMsg);
       if (/estoque insuficiente/i.test(raw)) {
         return toast.error("Estoque insuficiente para este produto. Recarregue a lista.");
       }
