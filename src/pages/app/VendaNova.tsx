@@ -1385,40 +1385,45 @@ export default function VendaNova() {
       );
     }
 
-    const { data: rpcData, error } = isEditingSale
-      ? await (supabase as any).rpc("update_sale_with_stock", {
-          _sale_id: editingSaleId,
-          _customer_id: linkedCustomerId,
-          _customer_name: customer || null,
-          _customer_doc: doc || null,
-          _customer_whatsapp: whatsapp || null,
-          _payment_method: dbMethod,
-          _installments: headInstallments,
-          _discount: totalDiscountLocal,
-          _notes: JSON.stringify(payload),
-          _items: rpcItems,
-          _payments: rpcPayments,
-        })
-      : await (supabase as any).rpc("create_sale", {
-          _store_id: store.id,
-          _customer_id: linkedCustomerId,
-          _customer_name: customer || null,
-          _customer_doc: doc || null,
-          _customer_whatsapp: whatsapp || null,
-          _payment_method: dbMethod,
-          _installments: headInstallments,
-          _discount: totalDiscountLocal,
-          _notes: JSON.stringify(payload),
-          _items: rpcItems,
-          _payments: rpcPayments,
-          _trade_in: tradeInPayload,
-        });
+    const { data: rpcData, error } = await withAuthRetry(async () =>
+      isEditingSale
+        ? await (supabase as any).rpc("update_sale_with_stock", {
+            _sale_id: editingSaleId,
+            _customer_id: linkedCustomerId,
+            _customer_name: customer || null,
+            _customer_doc: doc || null,
+            _customer_whatsapp: whatsapp || null,
+            _payment_method: dbMethod,
+            _installments: headInstallments,
+            _discount: totalDiscountLocal,
+            _notes: JSON.stringify(payload),
+            _items: rpcItems,
+            _payments: rpcPayments,
+          })
+        : await (supabase as any).rpc("create_sale", {
+            _store_id: store.id,
+            _customer_id: linkedCustomerId,
+            _customer_name: customer || null,
+            _customer_doc: doc || null,
+            _customer_whatsapp: whatsapp || null,
+            _payment_method: dbMethod,
+            _installments: headInstallments,
+            _discount: totalDiscountLocal,
+            _notes: JSON.stringify(payload),
+            _items: rpcItems,
+            _payments: rpcPayments,
+            _trade_in: tradeInPayload,
+          }),
+    );
 
     if (error || !rpcData) {
       setBusy(false);
       const raw = error?.message ?? "";
       let msg = raw || "Erro ao registrar a venda.";
-      if (/estoque insuficiente/i.test(raw)) {
+      const authMsg = error ? authErrorMessage(error) : null;
+      if (authMsg) {
+        msg = authMsg;
+      } else if (/estoque insuficiente/i.test(raw)) {
         msg = "Estoque insuficiente para um dos itens. Atualize a lista e tente novamente.";
       } else if (/sem acesso a esta loja/i.test(raw)) {
         msg = "Você não tem permissão para registrar vendas nesta loja.";
