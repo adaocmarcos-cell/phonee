@@ -35,6 +35,7 @@ import {
   distributeSaleDiscount,
   type SaleDiscountMode,
 } from "@/lib/saleDiscount";
+import { withAuthRetry, authErrorMessage } from "@/lib/authRetry";
 
 type CustomerLite = {
   id: string;
